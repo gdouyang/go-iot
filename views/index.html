@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <!-- import CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+  <div id="app">
+      <el-container style=" border: 1px solid #eee">
+          <el-aside width="200px" style="background-color: rgb(238, 241, 246)">
+              <my-menu></my-menu>
+          </el-aside>
+          <el-container>
+              <el-main>
+                <router-view></router-view>
+              </el-main>
+          </el-container>
+      </el-container>
+  </div>
+</body>
+  <!-- import Vue before Element -->
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+  <!-- import JavaScript -->
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <script src="static/js/menu.js"></script>
+  <script src="static/js/restful.js"></script>
+  <script src="static/js/websoket.js"></script>
+  <script src="static/js/device.js"></script>
+  <script src="static/js/router.js"></script>
+  <script>
+    new Vue({
+      el: '#app',
+	    router: router,
+      data: function() {
+        return { visible: false }
+      }
+    })
+  </script>
+</html>
