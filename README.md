@@ -12,6 +12,6 @@ go版本的iot管理项目
 
 #### 使用说明
 
-1. xxxx
-2. xxxx
-3. xxxx
+1. 下载LiteIDE
+2. 执行Get命令下载依赖包
+3. 执行BuildAndRun
