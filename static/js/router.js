@@ -1,6 +1,7 @@
 
 const routes = [
     { path: '/websocket', component: WebSocketCpt },
+    { path: '/northwebsocket', component: NorthWebSocketCpt },
     { path: '/restful', component: Restful },
     { path: '/device', component: Device },
   ]

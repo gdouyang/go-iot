@@ -14,6 +14,10 @@ Vue.component('my-menu', {
 	      <el-menu-item index="3">
 	        <i class="el-icon-document"></i>
 	        <span slot="title"><router-link to="/device">Device</router-link></span>
+		  </el-menu-item>
+		  <el-menu-item index="4">
+	        <i class="el-icon-document"></i>
+	        <span slot="title"><router-link to="/northwebsocket">north websocket</router-link></span>
 	      </el-menu-item>
 	    </el-menu>
 	`

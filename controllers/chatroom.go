@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"container/list"
+	"encoding/json"
 	"time"
 
 	"go-iot/models"
@@ -10,25 +11,32 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type Subscription struct {
-	Archive []models.Event      // All the events from the archive.
-	New     <-chan models.Event // New events coming in.
+// 创建事件
+func newEvent(ep models.EventType, msg string) models.Event {
+	return models.Event{ep, "", int(time.Now().Unix()), msg}
 }
 
-func newEvent(ep models.EventType, user, msg string) models.Event {
-	return models.Event{ep, user, int(time.Now().Unix()), msg}
+// 加入
+func Join(type_ string, evt string, ws *websocket.Conn) string {
+	if len(type_) == 0 {
+		beego.Error("type can not be null echo or north")
+	}
+	addr := ws.RemoteAddr().String()
+	subscribe <- Subscriber{Type: type_, Evt: evt, Addr: addr, Conn: ws}
+
+	return addr
 }
 
-func Join(user string, ws *websocket.Conn) {
-	subscribe <- Subscriber{Name: user, Conn: ws}
+// 离开
+func Leave(id string) {
+	unsubscribe <- id
 }
 
-func Leave(user string) {
-	unsubscribe <- user
-}
-
+// 订阅者
 type Subscriber struct {
-	Name string
+	Type string // north\echo
+	Evt  string // 客户端订阅的事件
+	Addr string
 	Conn *websocket.Conn // Only for WebSocket users; otherwise nil.
 }
 
@@ -38,10 +46,9 @@ var (
 	// Channel for exit users.
 	unsubscribe = make(chan string, 10)
 	// Send events here to publish them.
-	publish = make(chan models.Event, 10)
-	// Long polling waiting list.
-	waitingList = list.New()
-	subscribers = list.New()
+	publish         = make(chan models.Event, 10)
+	subscribers     = list.New()
+	echoSubscribers = list.New()
 )
 
 // This function handles all incoming chan messages.
@@ -49,38 +56,46 @@ func chatroom() {
 	for {
 		select {
 		case sub := <-subscribe:
-			if !isUserExist(subscribers, sub.Name) {
+			switch sub.Type {
+			case models.ECHO:
+				echoSubscribers.PushBack(sub) // Add user to the end of list.
+				beego.Info("New echo user:", sub.Addr, ";WebSocket:", sub.Conn != nil)
+			case models.NORTH:
 				subscribers.PushBack(sub) // Add user to the end of list.
-				// Publish a JOIN event.
-				publish <- newEvent(models.EVENT_JOIN, sub.Name, "")
-				beego.Info("New user:", sub.Name, ";WebSocket:", sub.Conn != nil)
-			} else {
-				beego.Info("Old user:", sub.Name, ";WebSocket:", sub.Conn != nil)
+				beego.Info("New north user:", sub.Addr, ";WebSocket:", sub.Conn != nil)
+			default:
+				Leave(sub.Addr)
+				beego.Error("Type not persent(echo or north)")
 			}
 		case event := <-publish:
-			// Notify waiting list.
-			for ch := waitingList.Back(); ch != nil; ch = ch.Prev() {
-				ch.Value.(chan bool) <- true
-				waitingList.Remove(ch)
-			}
-
 			broadcastWebSocket(event)
-			models.NewArchive(event)
 
 			if event.Type == models.EVENT_MESSAGE {
-				beego.Info("Message from", event.User, ";Content:", event.Content)
+				beego.Info("Message from", event.Addr, ";Content:", event.Content)
 			}
 		case unsub := <-unsubscribe:
 			for sub := subscribers.Front(); sub != nil; sub = sub.Next() {
-				if sub.Value.(Subscriber).Name == unsub {
+				if sub.Value.(Subscriber).Addr == unsub {
 					subscribers.Remove(sub)
 					// Clone connection.
 					ws := sub.Value.(Subscriber).Conn
 					if ws != nil {
 						ws.Close()
-						beego.Error("WebSocket closed:", unsub)
+						beego.Error("NorthWebSocket closed:", unsub)
 					}
-					publish <- newEvent(models.EVENT_LEAVE, unsub, "") // Publish a LEAVE event.
+					// publish <- newEvent(models.EVENT_LEAVE, unsub, "", ) // Publish a LEAVE event.
+					break
+				}
+			}
+			for sub := echoSubscribers.Front(); sub != nil; sub = sub.Next() {
+				if sub.Value.(Subscriber).Addr == unsub {
+					echoSubscribers.Remove(sub)
+					// Clone connection.
+					ws := sub.Value.(Subscriber).Conn
+					if ws != nil {
+						ws.Close()
+						beego.Error("EchoWebSocket closed:", unsub)
+					}
 					break
 				}
 			}
@@ -88,15 +103,50 @@ func chatroom() {
 	}
 }
 
-func init() {
-	go chatroom()
-}
+// 广播发送给WebSocket用户
+func broadcastWebSocket(event models.Event) {
+	data, err := json.Marshal(event)
+	if err != nil {
+		beego.Error("Fail to marshal event:", err)
+		return
+	}
 
-func isUserExist(subscribers *list.List, user string) bool {
+	if subscribers.Len() < 1 {
+		echoToBrowers("无NorthWebSocket订阅:" + event.Content)
+		return
+	}
+
 	for sub := subscribers.Front(); sub != nil; sub = sub.Next() {
-		if sub.Value.(Subscriber).Name == user {
-			return true
+		// Immediately send event to WebSocket users.
+		suber := sub.Value.(Subscriber)
+		ws := suber.Conn
+		if ws != nil {
+			if ws.WriteMessage(websocket.TextMessage, data) == nil {
+				content := "向[" + suber.Addr + "]推送:" + event.Content
+				echoToBrowers(content)
+			} else {
+				// User disconnected.
+				unsubscribe <- sub.Value.(Subscriber).Addr
+			}
 		}
 	}
-	return false
+}
+
+// 北向接口消息输出到浏览器
+func echoToBrowers(data string) {
+	bytedata := []byte(data)
+	for sub := echoSubscribers.Front(); sub != nil; sub = sub.Next() {
+		// Immediately send event to WebSocket users.
+		ws := sub.Value.(Subscriber).Conn
+		if ws != nil {
+			if ws.WriteMessage(websocket.TextMessage, bytedata) != nil {
+				// User disconnected.
+				unsubscribe <- sub.Value.(Subscriber).Addr
+			}
+		}
+	}
+}
+
+func init() {
+	go chatroom()
 }

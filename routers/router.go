@@ -9,5 +9,7 @@ import (
 func init() {
 	beego.Router("/", &controllers.MainController{})
 	// WebSocket.
-	beego.Router("/ws/join", &controllers.WebSocketController{}, "get:Join")
+	beego.Router("/ws/echo", &controllers.EchoWebSocketController{}, "get:Join")
+	beego.Router("/ws/north", &controllers.NorthWebSocketController{}, "get:Join")
+	beego.Router("/north/push", &controllers.NorthWebSocketController{}, "post:PushNorth")
 }
