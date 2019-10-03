@@ -9,6 +9,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func init() {
+	beego.Router("/north/push", &NorthWebSocketController{}, "post:PushNorth")
+	beego.Router("/ws/north", &NorthWebSocketController{}, "get:Join")
+}
+
 // 北向websocket 处理北向接口的websocket请求.
 type NorthWebSocketController struct {
 	beego.Controller

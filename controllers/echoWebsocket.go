@@ -9,6 +9,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func init() {
+	beego.Router("/ws/echo", &EchoWebSocketController{}, "get:Join")
+}
+
 // EchoWebSocketController处理浏览器的Echo WebSocket请求.
 type EchoWebSocketController struct {
 	beego.Controller
