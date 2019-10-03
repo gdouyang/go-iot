@@ -5,7 +5,7 @@ Vue.component('my-menu', {
 	      class="el-menu-vertical-demo">
 	      <el-menu-item index="1">
 	        <i class="el-icon-menu"></i>
-	        <span slot="title"><router-link to="/websocket">websocket</router-link></span>
+	        <span slot="title"><router-link to="/echows">echo</router-link></span>
 	      </el-menu-item>
 	      <el-menu-item index="2">
 	        <i class="el-icon-document"></i>
