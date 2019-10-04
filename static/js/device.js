@@ -12,15 +12,15 @@ define(["device_add"], function(deviceAdd) {
       this.searchList();
     },
     methods: {
-      openDialog(){
+      openDialog(data, isEdit){
         this.$nextTick(()=>{
-          this.$refs.addDialog.openDialog()
+          this.$refs.addDialog.openDialog(data, isEdit);
         })
       },
       searchList(){
         fetch('/device/list', {
-          method: 'POST', // or 'PUT'
-          body: JSON.stringify({}), // data can be `string` or {object}!
+          method: 'POST',
+          body: JSON.stringify({}),
           headers: new Headers({
             'Content-Type': 'application/json'
           })
@@ -34,12 +34,36 @@ define(["device_add"], function(deviceAdd) {
           this.tableData = data;
         })
       },
+      deleteRecord(data){
+        this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          fetch('/device/delete', {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers: new Headers({
+              'Content-Type': 'application/json'
+            })
+          }).then(res => {
+            return res.json()
+          }).then(data => {
+            this.searchList();
+            this.$message({
+              type: 'success',
+              message: '删除成功!'
+            });
+          })
+        })
+        
+      }
     },
     template: `
       <el-card class="box-card">
       <div slot="header" class="clearfix">
         <span>设备列表</span>
-        <el-button style="float: right; padding: 3px 0" type="text" @click="openDialog">添加</el-button>
+        <el-button style="float: right; padding: 3px 0" type="text" @click="openDialog(null, false)">添加</el-button>
       </div>
       <div class="text item">
         <el-table :data="tableData.list">
@@ -48,6 +72,12 @@ define(["device_add"], function(deviceAdd) {
           <el-table-column prop="sn" label="SN" width="120">
           </el-table-column>
           <el-table-column prop="name" label="名称">
+          </el-table-column>
+          <el-table-column label="操作">
+            <template slot-scope="scope">
+              <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
+              <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
+            </template>
           </el-table-column>
         </el-table>
       </div>

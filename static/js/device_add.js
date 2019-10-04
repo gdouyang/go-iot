@@ -2,19 +2,28 @@ define({
     data: function () {
       return {
         dialogVisible:false,
+        isEdit: false,
         createForm: {id: '', sn: '', name: ''}
       }
     },
     mounted(){
     },
     methods: {
-      openDialog(){
+      openDialog(data, isEdit){
         this.dialogVisible = true;
+        this.isEdit = isEdit;
+        if(data){
+          this.createForm = data;
+        }
       },
       save(){
         this.$refs.creteForm.validate((valid)=>{
           if (valid) {
-            fetch('/device/add', {
+            let url = '/device/add';
+            if(this.isEdit) {
+              url = '/device/update'
+            }
+            fetch(url, {
               method: 'POST', // or 'PUT'
               body: JSON.stringify(this.createForm),
               headers: new Headers({
