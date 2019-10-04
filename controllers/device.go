@@ -22,11 +22,20 @@ type DeviceController struct {
 }
 
 func (this *DeviceController) List() {
+	var ob models.Device
+	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 	mongoExecute("device", func(col *mgo.Collection) {
 		var result []models.Device
-		col.Find(nil).All(&result)
+		param := bson.M{}
+		if ob.Id != "" {
+			// param["id"] = ob.Id
+			param["id"] = bson.M{"$regex": bson.RegEx{ob.Id, "i"}}
 
-		this.Data["json"] = &models.PageResult{1, 1, 0, result}
+		}
+		col.Find(param).All(&result)
+		count, _ := col.Find(param).Count()
+
+		this.Data["json"] = &models.PageResult{1, 1, count, result}
 		this.ServeJSON()
 	})
 }

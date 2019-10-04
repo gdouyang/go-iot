@@ -6,6 +6,7 @@ define(["device_add"], function(deviceAdd) {
     data: function () {
       return {
         tableData: [],
+        searchParam:{id:''}
       }
     },
     mounted(){
@@ -20,7 +21,7 @@ define(["device_add"], function(deviceAdd) {
       searchList(){
         fetch('/device/list', {
           method: 'POST',
-          body: JSON.stringify({}),
+          body: JSON.stringify(this.searchParam),
           headers: new Headers({
             'Content-Type': 'application/json'
           })
@@ -63,7 +64,9 @@ define(["device_add"], function(deviceAdd) {
       <el-card class="box-card">
       <div slot="header" class="clearfix">
         <span>设备列表</span>
-        <el-button style="float: right; padding: 3px 0" type="text" @click="openDialog(null, false)">添加</el-button>
+        <el-input v-model="searchParam.id" @keyup.native.enter="searchList" style="width:200px;"></el-input>
+        <el-button type="text" @click="searchList">查询</el-button>
+        <el-button type="text" @click="openDialog(null, false)">添加</el-button>
       </div>
       <div class="text item">
         <el-table :data="tableData.list">
