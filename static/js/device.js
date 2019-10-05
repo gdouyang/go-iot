@@ -6,7 +6,7 @@ define(["device_add"], function(deviceAdd) {
     data: function () {
       return {
         tableData: [],
-        searchParam:{condition:{id:''},pageSize:1,pageNum:1}
+        searchParam:{id:''}
       }
     },
     mounted(){
@@ -19,21 +19,22 @@ define(["device_add"], function(deviceAdd) {
         })
       },
       searchList(){
-        fetch('/device/list', {
-          method: 'POST',
-          body: JSON.stringify(this.searchParam),
-          headers: new Headers({
-            'Content-Type': 'application/json'
-          })
-        }).then(res => {
-          return res.json()
-        }).then(data => {
-          console.log(data)
-          if(data.list == null){
-            data.list = []
-          }
-          this.tableData = data;
-        })
+        this.$refs.mainTable.search(this.searchParam);
+        // fetch('/device/list', {
+        //   method: 'POST',
+        //   body: JSON.stringify(this.searchParam),
+        //   headers: new Headers({
+        //     'Content-Type': 'application/json'
+        //   })
+        // }).then(res => {
+        //   return res.json()
+        // }).then(data => {
+        //   console.log(data)
+        //   if(data.list == null){
+        //     data.list = []
+        //   }
+        //   this.tableData = data;
+        // })
       },
       deleteRecord(data){
         this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
@@ -64,12 +65,12 @@ define(["device_add"], function(deviceAdd) {
       <el-card class="box-card">
       <div slot="header" class="clearfix">
         <span>设备列表</span>
-        <el-input v-model="searchParam.condition.id" @keyup.native.enter="searchList" style="width:200px;"></el-input>
+        <el-input v-model="searchParam.id" @keyup.native.enter="searchList" style="width:200px;"></el-input>
         <el-button type="text" @click="searchList">查询</el-button>
         <el-button type="text" @click="openDialog(null, false)">添加</el-button>
       </div>
       <div class="text item">
-        <el-table :data="tableData.list">
+        <my-table url="/device/list" ref="mainTable">
           <el-table-column prop="id" label="ID" width="140">
           </el-table-column>
           <el-table-column prop="sn" label="SN" width="120">
@@ -82,7 +83,7 @@ define(["device_add"], function(deviceAdd) {
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
             </template>
           </el-table-column>
-        </el-table>
+        </my-table>
       </div>
       <add-dialog ref="addDialog" @success="searchList()"></add-dialog>
       </el-card>

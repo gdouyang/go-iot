@@ -43,7 +43,7 @@ define({
       }
     },
     template: `
-      <el-dialog title="新增" :visible.sync="dialogVisible" :close="handleClose">
+      <el-dialog title="新增" :visible.sync="dialogVisible" @close="handleClose">
         <el-form label-position="right" label-width="80px" :model="createForm" ref="creteForm">
           <el-form-item label="ID" prop="id" :rules="[{ required: true, message: '不能为空'}]">
             <el-input v-model="createForm.id"></el-input>

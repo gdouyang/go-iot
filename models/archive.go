@@ -41,6 +41,11 @@ type PageQuery struct {
 	Condition json.RawMessage `json:"condition"`
 }
 
+// 得到数据偏移，默认数据从0开始
+func (this *PageQuery) PageOffset() int {
+	return (this.PageNum - 1) * this.PageSize
+}
+
 //
 func mongoExecute(cName string, exec func(collection *mgo.Collection)) {
 	session, err := mgo.Dial("127.0.0.1") //Mongodb's connection

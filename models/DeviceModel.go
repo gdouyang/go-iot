@@ -17,10 +17,10 @@ type Device struct {
 }
 
 // 分页查询设备
-func ListDevice(ob *PageQuery) *PageResult {
+func ListDevice(page *PageQuery) *PageResult {
 	var pr *PageResult
 	var dev Device
-	json.Unmarshal(ob.Condition, &dev)
+	json.Unmarshal(page.Condition, &dev)
 	mongoExecute("device", func(col *mgo.Collection) {
 		param := bson.M{}
 		// var id string = conditon["id"].(string)
@@ -31,10 +31,10 @@ func ListDevice(ob *PageQuery) *PageResult {
 
 		}
 		var result []Device
-		col.Find(param).All(&result)
+		col.Find(param).Skip(page.PageOffset()).Limit(page.PageSize).All(&result)
 		count, _ := col.Find(param).Count()
 
-		pr = &PageResult{1, 1, count, result}
+		pr = &PageResult{page.PageSize, page.PageNum, count, result}
 	})
 
 	return pr
