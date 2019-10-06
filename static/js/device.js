@@ -45,9 +45,9 @@ define(["device_add"], function(deviceAdd) {
         })
       },
       open(data){
-        fetch('/north/control/open', {
+        fetch(`/north/control/${data.id}/switch`, {
           method: 'POST',
-          body: JSON.stringify(data),
+          body: JSON.stringify([{index:0,status:"open"}]),
           headers: new Headers({
             'Content-Type': 'application/json'
           })

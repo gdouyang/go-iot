@@ -15,3 +15,10 @@ go版本的iot管理项目
 1. 下载LiteIDE
 2. 执行Get命令下载依赖包
 3. 执行BuildAndRun
+
+#### 北向接口说明
+
+设备开关`/north/control/{deviceId}/switch`
+```
+[{index:0,status:"close"}]
+```

@@ -2,13 +2,14 @@ package controllers
 
 import (
 	"encoding/json"
+	"go-iot/models"
 
 	"github.com/astaxie/beego"
 )
 
 func init() {
 	ns := beego.NewNamespace("/north/control",
-		beego.NSRouter("/open", &NorthController{}, "post:Open"),
+		beego.NSRouter("/:id/switch", &NorthController{}, "post:Open"),
 		beego.NSRouter("/status", &NorthController{}, "post:Status"))
 	beego.AddNamespace(ns)
 }
@@ -19,7 +20,8 @@ type NorthController struct {
 
 // 设备开关
 func (this *NorthController) Open() {
-	var ob map[string]interface{}
+	beego.Info("deviceId=", this.Ctx.Input.Param(":id"))
+	var ob []models.SwitchStatus
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 
 	this.Data["json"] = &ob

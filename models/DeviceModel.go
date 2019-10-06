@@ -11,9 +11,17 @@ import (
 
 // 设备
 type Device struct {
-	Id   string `json:"id"`
-	Sn   string `json:"sn"`
-	Name string `json:"name"`
+	Id           string         `json:"id"` //设备ID
+	Sn           string         `json:"sn"` //设备SN
+	Name         string         `json:"name"`
+	OnlineStatus string         `json:onlineStatus` //在线状态
+	SwitchStatus []SwitchStatus `json:switchStatus`
+}
+
+// 开关状态
+type SwitchStatus struct {
+	Index  int    //第几路开关从0开始
+	Status string //状态open,close
 }
 
 // 分页查询设备
