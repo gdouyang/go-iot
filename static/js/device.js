@@ -20,21 +20,6 @@ define(["device_add"], function(deviceAdd) {
       },
       searchList(){
         this.$refs.mainTable.search(this.searchParam);
-        // fetch('/device/list', {
-        //   method: 'POST',
-        //   body: JSON.stringify(this.searchParam),
-        //   headers: new Headers({
-        //     'Content-Type': 'application/json'
-        //   })
-        // }).then(res => {
-        //   return res.json()
-        // }).then(data => {
-        //   console.log(data)
-        //   if(data.list == null){
-        //     data.list = []
-        //   }
-        //   this.tableData = data;
-        // })
       },
       deleteRecord(data){
         this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
@@ -58,7 +43,38 @@ define(["device_add"], function(deviceAdd) {
             });
           })
         })
-        
+      },
+      open(data){
+        fetch('/north/control/open', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          headers: new Headers({
+            'Content-Type': 'application/json'
+          })
+        }).then(res => {
+          return res.json()
+        }).then(data => {
+          this.$message({
+            type: 'success',
+            message: JSON.stringify(data)
+          });
+        })
+      },
+      status(data){
+        fetch('/north/control/status', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          headers: new Headers({
+            'Content-Type': 'application/json'
+          })
+        }).then(res => {
+          return res.json()
+        }).then(data => {
+          this.$message({
+            type: 'success',
+            message: JSON.stringify(data)
+          });
+        })
       }
     },
     template: `
@@ -81,6 +97,8 @@ define(["device_add"], function(deviceAdd) {
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
+              <el-button type="text" size="small" @click="open(scope.row)">开关</el-button>
+              <el-button type="text" size="small" @click="status(scope.row)">状态</el-button>
             </template>
           </el-table-column>
         </my-table>
