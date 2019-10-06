@@ -3,6 +3,8 @@ package models
 import (
 	"encoding/json"
 
+	"github.com/astaxie/beego"
+
 	"gopkg.in/mgo.v2"
 )
 
@@ -15,8 +17,12 @@ const (
 )
 
 const (
-	ECHO  = "echo"
-	NORTH = "north"
+	ECHO    = "echo"    // 浏览器使用
+	NORTH   = "north"   // 北向接口使用
+	ONLINE  = "online"  // 在线
+	OFFLINE = "offLine" // 离线
+	OPEN    = "open"    // 开
+	CLOSE   = "close"   // 关
 )
 
 type Event struct {
@@ -48,7 +54,8 @@ func (this *PageQuery) PageOffset() int {
 
 //
 func mongoExecute(cName string, exec func(collection *mgo.Collection)) {
-	session, err := mgo.Dial("127.0.0.1") //Mongodb's connection
+	mongodbhost := beego.AppConfig.String("mongodbhost")
+	session, err := mgo.Dial(mongodbhost) //Mongodb's connection
 	if err != nil {
 		panic(err)
 	}
