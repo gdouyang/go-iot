@@ -1,16 +1,20 @@
 define({
     data: function () {
       return {
-        dialogVisible:false,
         isEdit: false,
         createForm: {id: '', sn: '', name: ''}
       }
     },
     mounted(){
     },
+    computed:{
+      title(){
+        return this.isEdit ? '修改' : '新增';
+      }
+    },
     methods: {
       openDialog(data, isEdit){
-        this.dialogVisible = true;
+        this.$refs.addDialog.open();
         this.isEdit = isEdit;
         if(data){
           this.createForm = data;
@@ -39,11 +43,12 @@ define({
         })
       },
       handleClose(){
+        this.$refs.creteForm.clearValidate();
         this.createForm = {id: '', sn: '', name: ''};
       }
     },
     template: `
-      <el-dialog title="新增" :visible.sync="dialogVisible" @close="handleClose">
+      <my-dialog :title="title" ref="addDialog" @close="handleClose" @confrim="save()">
         <el-form label-position="right" label-width="80px" :model="createForm" ref="creteForm">
           <el-form-item label="ID" prop="id" :rules="[{ required: true, message: '不能为空'}]">
             <el-input v-model="createForm.id"></el-input>
@@ -55,10 +60,6 @@ define({
             <el-input v-model="createForm.name"></el-input>
           </el-form-item>
         </el-form>
-        <span slot="footer" class="dialog-footer">
-          <el-button @click="dialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="save">确 定</el-button>
-        </span>
-      </el-dialog>
+      </my-dialog>
     ` 
   });
