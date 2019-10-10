@@ -57,6 +57,7 @@ func mongoExecute(cName string, exec func(collection *mgo.Collection)) {
 	mongodbhost := beego.AppConfig.String("mongodbhost")
 	session, err := mgo.Dial(mongodbhost) //Mongodb's connection
 	if err != nil {
+		beego.Error("Mongodb connection error:", err)
 		panic(err)
 	}
 	session.SetMode(mgo.Monotonic, true)
