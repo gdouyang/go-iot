@@ -14,6 +14,7 @@ type Device struct {
 	Id           string         `json:"id"` //设备ID
 	Sn           string         `json:"sn"` //设备SN
 	Name         string         `json:"name"`
+	Provider     string         `json:"provider"`   //厂商
 	OnlineStatus string         `json:onlineStatus` //在线状态
 	SwitchStatus []SwitchStatus `json:switchStatus`
 }
@@ -49,6 +50,10 @@ func ListDevice(page *PageQuery) *PageResult {
 }
 
 func AddDevie(ob *Device) {
+	rs := GetDevice(ob.Id)
+	if rs.Id != "" {
+		return
+	}
 	mongoExecute("device", func(col *mgo.Collection) {
 		err := col.Insert(ob)
 		if err != nil {
@@ -73,4 +78,14 @@ func DeleteDevice(ob *Device) {
 			beego.Error("insert fail")
 		}
 	})
+}
+
+func GetDevice(deviceId string) Device {
+	var result Device
+	mongoExecute("device", func(col *mgo.Collection) {
+		param := bson.M{}
+		param["id"] = deviceId
+		col.Find(param).One(&result)
+	})
+	return result
 }

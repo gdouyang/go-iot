@@ -2,10 +2,11 @@ define({
     data: function () {
       return {
         isEdit: false,
-        createForm: {id: '', sn: '', name: ''}
+        createForm: {id: '', sn: '', name: '',provider:''}
       }
     },
     mounted(){
+      this.emptyFormData = JSON.stringify(this.createForm)
     },
     computed:{
       title(){
@@ -37,18 +38,18 @@ define({
               return res.json()
             }).then(data => {
               this.$emit('success')
-              this.dialogVisible = false;
+              this.$refs.addDialog.close();
             })
           }
         })
       },
       handleClose(){
         this.$refs.creteForm.clearValidate();
-        this.createForm = {id: '', sn: '', name: ''};
+        this.createForm = JSON.parse(this.emptyFormData);
       }
     },
     template: `
-      <my-dialog :title="title" ref="addDialog" @close="handleClose" @confrim="save()">
+      <my-dialog :title="title" ref="addDialog" @close="handleClose" @confirm="save()">
         <el-form label-position="right" label-width="80px" :model="createForm" ref="creteForm">
           <el-form-item label="ID" prop="id" :rules="[{ required: true, message: '不能为空'}]">
             <el-input v-model="createForm.id"></el-input>
@@ -58,6 +59,9 @@ define({
           </el-form-item>
           <el-form-item label="名称" prop="name" :rules="[{ required: true, message: '不能为空'}]">
             <el-input v-model="createForm.name"></el-input>
+          </el-form-item>
+          <el-form-item label="厂商" prop="provider" :rules="[{ required: true, message: '不能为空'}]">
+            <el-input v-model="createForm.provider"></el-input>
           </el-form-item>
         </el-form>
       </my-dialog>

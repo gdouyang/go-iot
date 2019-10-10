@@ -87,12 +87,10 @@ define(["device_add"], function(deviceAdd) {
       </div>
       <div class="text item">
         <my-table url="/device/list" ref="mainTable">
-          <el-table-column prop="id" label="ID" width="140">
-          </el-table-column>
-          <el-table-column prop="sn" label="SN" width="120">
-          </el-table-column>
-          <el-table-column prop="name" label="名称">
-          </el-table-column>
+          <el-table-column prop="id" label="ID" width="140"/>
+          <el-table-column prop="sn" label="SN" width="120"/>
+          <el-table-column prop="name" label="名称"/>
+          <el-table-column prop="provider" label="厂商"/>
           <el-table-column label="操作">
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>

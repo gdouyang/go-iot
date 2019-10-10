@@ -20,9 +20,17 @@ type NorthController struct {
 
 // 设备开关
 func (this *NorthController) Open() {
-	beego.Info("deviceId=", this.Ctx.Input.Param(":id"))
+	deviceId := this.Ctx.Input.Param(":id")
+	beego.Info("deviceId=", deviceId)
 	var ob []models.SwitchStatus
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
+	json.Unmarshal(this.Ctx.Input.RequestBody, ob)
+
+	var switchOper models.ISwitchOper
+	p := models.GetProvider("xixunled")
+	switchOper = p.(models.ISwitchOper)
+
+	device := models.GetDevice(deviceId)
+	switchOper.Switch(ob, device)
 
 	this.Data["json"] = &ob
 	this.ServeJSON()
