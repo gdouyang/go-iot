@@ -50,7 +50,6 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	abc := breath{}
 	var sn string
 
 	var l sync.Mutex
@@ -62,10 +61,12 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		resp := string(message)
-		beego.Info("mssageType : [", mt, "]message :", resp)
+		beego.Info("mssageType:", mt, "message :", resp)
+		abc := breath{}
 		json.Unmarshal(message, &abc)
 		sn = abc.Sn
 		if len(sn) > 0 {
+			beego.Info("breath ----->", sn)
 			_, ok := subscribers[sn]
 			if !ok {
 				led.SN = sn

@@ -23,7 +23,7 @@ func (this *NorthController) Open() {
 	deviceId := this.Ctx.Input.Param(":id")
 	beego.Info("deviceId=", deviceId)
 	var ob []models.SwitchStatus
-	json.Unmarshal(this.Ctx.Input.RequestBody, ob)
+	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 
 	var switchOper models.ISwitchOper
 	p := models.GetProvider("xixunled")
