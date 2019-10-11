@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/astaxie/beego"
 
@@ -49,10 +50,10 @@ func ListDevice(page *PageQuery) *PageResult {
 	return pr
 }
 
-func AddDevie(ob *Device) {
+func AddDevie(ob *Device) error {
 	rs := GetDevice(ob.Id)
 	if rs.Id != "" {
-		return
+		return errors.New("设备已存在!")
 	}
 	mongoExecute("device", func(col *mgo.Collection) {
 		err := col.Insert(ob)
@@ -60,6 +61,7 @@ func AddDevie(ob *Device) {
 			beego.Error("insert fail")
 		}
 	})
+	return nil
 }
 
 func UpdateDevice(ob *Device) {

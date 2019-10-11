@@ -29,8 +29,16 @@ func (this *DeviceController) List() {
 func (this *DeviceController) Add() {
 	var ob models.Device
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-	models.AddDevie(&ob)
-	this.Data["json"] = &ob
+	err := models.AddDevie(&ob)
+
+	var resp models.JsonResp
+	resp.Success = true
+	resp.Msg = "添加成功!"
+	if err != nil {
+		resp.Msg = err.Error()
+		resp.Success = false
+	}
+	this.Data["json"] = &resp
 	this.ServeJSON()
 }
 

@@ -37,8 +37,14 @@ define({
             }).then(res => {
               return res.json()
             }).then(data => {
-              this.$emit('success')
-              this.$refs.addDialog.close();
+              this.$message({
+                type: data.success ? 'success' : 'error',
+                message: data.msg
+              });
+              if(data.success){
+                this.$emit('success')
+                this.$refs.addDialog.close();
+              }
             })
           }
         })
