@@ -1,10 +1,10 @@
+// XiXun服务器提供WebSocket服务控制设备
 package xixun
 
 import (
 	"encoding/json"
 	"fmt"
 	"go-iot/provider/utils"
-	"log"
 	"net/http"
 	"sync"
 
@@ -26,7 +26,7 @@ type breath struct {
 }
 
 var (
-	subscribers = map[string]XixunLED{}
+	subscribers = map[string]*XixunLED{}
 )
 
 // 启动WebSocket
@@ -53,7 +53,7 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 	var sn string
 
 	var l sync.Mutex
-	led := XixunLED{uid: utils.Uuid(), SN: sn, Conn: c, Cond: sync.NewCond(&l)}
+	led := &XixunLED{uid: utils.Uuid(), SN: sn, Conn: c, Cond: sync.NewCond(&l)}
 	for {
 		mt, message, err := c.ReadMessage()
 		if err != nil {
@@ -61,12 +61,11 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		resp := string(message)
-		beego.Info("mssageType:", mt, "message :", resp)
 		abc := breath{}
 		json.Unmarshal(message, &abc)
 		sn = abc.Sn
 		if len(sn) > 0 {
-			beego.Info("breath ----->", sn)
+			beego.Info("breath -----> ", sn, "mssageType:", mt, "message :", resp)
 			_, ok := subscribers[sn]
 			if !ok {
 				led.SN = sn
@@ -74,16 +73,15 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 				beego.Info("led connected, connection len:", len(subscribers))
 			}
 		} else {
-			beego.Info("response ----->", led.SN)
-			led, ok := subscribers[led.SN]
+			l, ok := subscribers[led.SN]
 			if ok {
-
-				led.Cond.L.Lock()
-				rs := &led.Resp
-				*rs = string(message)
-				beego.Info("do response", &led.Resp, led.Resp)
-				led.Cond.Signal()
-				led.Cond.L.Unlock()
+				beego.Info("response -----> ", led.SN, "mssageType:", mt, "message :", resp)
+				l.Cond.L.Lock()
+				l.Resp = resp // 返回响应消息
+				l.Cond.Signal()
+				l.Cond.L.Unlock()
+			} else {
+				beego.Warn("not found connection sn:", led.SN)
 			}
 		}
 	}
@@ -100,19 +98,19 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-// 发送命令给Led
+// 发送命令给Led，等待Led给出响应后返回 TODO LED没有返回的情况需要处理超时
 func SendCommand(sn string, command string) string {
 	led, ok := subscribers[sn]
-	log.Println("xixun led switch", ok)
 	if ok {
 		led.Cond.L.Lock()
-		log.Println("send command", command)
+		beego.Info("send command", command)
 		led.Conn.WriteMessage(1, []byte(command))
 		led.Cond.Wait()
 		led.Cond.L.Unlock()
-		beego.Info("led.Resp", led.Resp)
-		beego.Info("led.Resp", &led.Resp)
+		beego.Info("led.Resp", &led.Resp, led.Resp)
 		return led.Resp
+	} else {
+		beego.Warn("not found led sn:", sn)
 	}
 	return ""
 }

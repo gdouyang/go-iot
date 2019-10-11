@@ -11,6 +11,7 @@ define(["device_add"], function(deviceAdd) {
     },
     mounted(){
       this.searchList();
+      //this.mock()
     },
     methods: {
       openDialog(data, isEdit){
@@ -75,6 +76,22 @@ define(["device_add"], function(deviceAdd) {
             message: JSON.stringify(data)
           });
         })
+      },
+      mock(){
+        // Create a socket
+        this.socket = new WebSocket('ws://localhost:7078/');
+        // Message received on the socket
+        this.socket.onmessage = (event => {
+            var content = event.data;
+            console.log(content)
+            this.socket.send(JSON.stringify({success:'true'}))
+        })
+        this.socket.onopen = (event => {
+          this.socket.send(JSON.stringify({cardId:'ld00002'}))
+        })
+        this.socket.onclose = (event => {
+          console.log('echo websocket close '+ new Date())
+        })
       }
     },
     template: `
@@ -95,15 +112,15 @@ define(["device_add"], function(deviceAdd) {
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
-			  <el-dropdown @command="open($event, scope.row)">
-				<el-button type="primary">
-				  开关<i class="el-icon-arrow-down el-icon--right"></i>
-				</el-button>
-				<el-dropdown-menu slot="dropdown">
-				  <el-dropdown-item command="open">开</el-dropdown-item>
-				  <el-dropdown-item command="close">关</el-dropdown-item>
-				</el-dropdown-menu>
-			  </el-dropdown>
+              <el-dropdown @command="open($event, scope.row)" size="mini">
+                <span class="el-dropdown-link">
+                开关<i class="el-icon-arrow-down el-icon--right"></i>
+                </span>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item command="open"> 开 </el-dropdown-item>
+                  <el-dropdown-item command="close" divided> 关 </el-dropdown-item>
+                </el-dropdown-menu>
+              </el-dropdown>
               <el-button type="text" size="small" @click="status(scope.row)">状态</el-button>
             </template>
           </el-table-column>
