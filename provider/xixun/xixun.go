@@ -1,6 +1,7 @@
 package xixun
 
 import (
+	"encoding/json"
 	"fmt"
 	"go-iot/models"
 	"log"
@@ -22,12 +23,11 @@ func (this ProviderXiXunLed) ProviderId() string {
 
 // 开关操作
 func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device models.Device) {
-	//			abc := "{\"type\":\"callLiveService\",\"_type\":\"StartLiveVideo\",\"url\":\"rtsp://admin:admin@10.28.124.243:554/media/video3\",\"width\":168,\"height\":152}"
-	//			abc := "{\"type\":\"callLiveService\",\"_type\":\"StartLiveVideo\",\"url\":\"rtmp://10.28.124.234:1935/live/abc\",\"width\":168,\"height\":152}"
-	//			abc := "{\"type\":\"loadUrl\",\"url\":\"http://10.28.124.234:18070/index.html\",\"persistent\":true}"
-	abc := "{\"type\":\"clear\"}"
+	abc := "{\"type\": \"callCardService\",\"fn\": \"setScreenOpen\",\"arg1\": false}"
 	led, ok := subscribers[device.Sn]
+	log.Println("xixun led switch", ok)
 	if ok {
+		log.Println("send command", abc)
 		led.Conn.WriteMessage(1, []byte(abc))
 	}
 }
@@ -41,6 +41,10 @@ var (
 	subscribers = map[string]XixunLED{}
 )
 
+type breath struct {
+	Sn string `json:"cardId"`
+}
+
 func init() {
 	port := beego.AppConfig.DefaultInt("xixunport", 7078)
 	beego.Info(fmt.Sprintf("xixun init port:%d", port))
@@ -53,22 +57,33 @@ func init() {
 }
 
 func upgradeWs(w http.ResponseWriter, r *http.Request) {
-	sn := r.RequestURI
 	c, err := websocket.Upgrade(w, r, nil, 1024, 1024)
 	if err != nil {
 		beego.Error("upgrade fail:", err)
 		return
 	}
-	subscribers[sn] = XixunLED{SN: sn, Conn: c}
-	defer close(sn)
+
+	abc := breath{}
+	var sn string
 	for {
 		mt, message, err := c.ReadMessage()
+		json.Unmarshal(message, &abc)
 		if err != nil {
 			beego.Error("ws read err:", err)
 			break
 		}
 		log.Println("message type:", mt)
+		log.Println(abc.Sn)
 		log.Println("message :", string(message))
+		sn = abc.Sn
+		_, ok := subscribers[sn]
+		if !ok {
+			subscribers[sn] = XixunLED{SN: sn, Conn: c}
+			log.Println("led connection len", len(subscribers))
+		}
+	}
+	if len(sn) > 0 {
+		defer close(sn)
 	}
 }
 
