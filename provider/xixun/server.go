@@ -74,10 +74,14 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 				beego.Info("led connected, connection len:", len(subscribers))
 			}
 		} else {
+			beego.Info("response ----->", led.SN)
 			led, ok := subscribers[led.SN]
-			if !ok {
+			if ok {
+
 				led.Cond.L.Lock()
-				led.Resp = resp
+				rs := &led.Resp
+				*rs = string(message)
+				beego.Info("do response", &led.Resp, led.Resp)
 				led.Cond.Signal()
 				led.Cond.L.Unlock()
 			}
@@ -105,7 +109,9 @@ func SendCommand(sn string, command string) string {
 		log.Println("send command", command)
 		led.Conn.WriteMessage(1, []byte(command))
 		led.Cond.Wait()
-		defer led.Cond.L.Unlock()
+		led.Cond.L.Unlock()
+		beego.Info("led.Resp", led.Resp)
+		beego.Info("led.Resp", &led.Resp)
 		return led.Resp
 	}
 	return ""
