@@ -64,7 +64,7 @@ func ListDevice(page *PageQuery) *PageResult {
 	id := dev.Id
 	params := make([]interface{}, 0)
 	if id != "" {
-		sql += " where id like ?"
+		sql += " where id_ like ?"
 		params = append(params, id)
 	}
 	//	countSql := sql
@@ -135,10 +135,21 @@ func DeleteDevice(ob *Device) {
 
 func GetDevice(deviceId string) Device {
 	var result Device
-	//	mongoExecute("device", func(col *mgo.Collection) {
-	//		param := bson.M{}
-	//		param["id"] = deviceId
-	//		col.Find(param).One(&result)
-	//	})
+	db, _ := getDb()
+	sql := "SELECT id_,sn_,name_,provider_ FROM device where id_ = ?"
+	rows, err := db.Query(sql, deviceId)
+	if err != nil {
+		beego.Error(err)
+	}
+	for rows.Next() {
+		var id string
+		var sn string
+		var name string
+		var provider string
+		rows.Scan(&id, &sn, &name, &provider)
+		result = Device{Id: id, Sn: sn, Name: name, Provider: provider}
+		break
+	}
+	db.Close()
 	return result
 }

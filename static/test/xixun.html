@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <button onclick="clearMsg()">clear</button>
+  <div id="app">
+      
+  </div>
+</body>
+  
+<script>
+  var app = document.getElementById("app")
+  // Create a socket
+  var socket = new WebSocket('ws://localhost:7078/');
+  // Message received on the socket
+  socket.onmessage = (event => {
+      var content = event.data;
+      app.append(content)
+      socket.send(JSON.stringify({success:'true'}))
+  })
+  socket.onopen = (event => {
+    app.append("connect success")
+    heart()
+  })
+  socket.onclose = (event => {
+    app.append("close")
+  })
+  function heart(){
+    setTimeout(()=>{
+      socket.send(JSON.stringify({cardId:'ld00002'}))
+      heart()
+    }, 10000)
+  }
+  function clearMsg(){
+    app.innerHTML = ""
+  }
+</script>
+</html>

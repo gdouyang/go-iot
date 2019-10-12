@@ -11,7 +11,6 @@ define(["device_add"], function(deviceAdd) {
     },
     mounted(){
       this.searchList();
-      //this.mock()
     },
     methods: {
       openDialog(data, isEdit){
@@ -77,22 +76,6 @@ define(["device_add"], function(deviceAdd) {
           });
         })
       },
-      mock(){
-        // Create a socket
-        this.socket = new WebSocket('ws://localhost:7078/');
-        // Message received on the socket
-        this.socket.onmessage = (event => {
-            var content = event.data;
-            console.log(content)
-            this.socket.send(JSON.stringify({success:'true'}))
-        })
-        this.socket.onopen = (event => {
-          this.socket.send(JSON.stringify({cardId:'ld00002'}))
-        })
-        this.socket.onclose = (event => {
-          console.log('echo websocket close '+ new Date())
-        })
-      }
     },
     template: `
       <el-card class="box-card">
