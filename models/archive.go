@@ -2,10 +2,6 @@ package models
 
 import (
 	"encoding/json"
-
-	"github.com/astaxie/beego"
-
-	"gopkg.in/mgo.v2"
 )
 
 type EventType int
@@ -55,18 +51,4 @@ type JsonResp struct {
 // 得到数据偏移，默认数据从0开始
 func (this *PageQuery) PageOffset() int {
 	return (this.PageNum - 1) * this.PageSize
-}
-
-//
-func mongoExecute(cName string, exec func(collection *mgo.Collection)) {
-	mongodbhost := beego.AppConfig.String("mongodbhost")
-	session, err := mgo.Dial(mongodbhost) //Mongodb's connection
-	if err != nil {
-		beego.Error("Mongodb connection error:", err)
-		panic(err)
-	}
-	session.SetMode(mgo.Monotonic, true)
-
-	defer session.Close()
-	exec(session.DB("iot").C(cName))
 }
