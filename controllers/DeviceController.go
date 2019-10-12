@@ -7,6 +7,7 @@ import (
 	"github.com/astaxie/beego"
 )
 
+// 设备管理
 func init() {
 	beego.Router("/device/list", &DeviceController{}, "post:List")
 	beego.Router("/device/add", &DeviceController{}, "post:Add")
@@ -18,6 +19,7 @@ type DeviceController struct {
 	beego.Controller
 }
 
+// 查询设备列表
 func (this *DeviceController) List() {
 	var ob models.PageQuery
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
@@ -26,6 +28,7 @@ func (this *DeviceController) List() {
 	this.ServeJSON()
 }
 
+// 添加设备
 func (this *DeviceController) Add() {
 	var ob models.Device
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
@@ -42,6 +45,7 @@ func (this *DeviceController) Add() {
 	this.ServeJSON()
 }
 
+// 更新设备信息
 func (this *DeviceController) Update() {
 	var ob models.Device
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
@@ -50,6 +54,7 @@ func (this *DeviceController) Update() {
 	this.ServeJSON()
 }
 
+// 删除设备
 func (this *DeviceController) Delete() {
 	var ob models.Device
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
