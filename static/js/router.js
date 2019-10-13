@@ -1,8 +1,7 @@
 
-require(['device', 'northws', 'echows', 'restful'], function(device, northws, echows, Restful) {
+require(['device', 'echows', 'restful'], function(device, echows, Restful) {
   const routes = [
       { path: '/echows', component: echows },
-      { path: '/northwebsocket', component: northws },
       { path: '/restful', component: Restful },
       { path: '/device', component: device },
     ]

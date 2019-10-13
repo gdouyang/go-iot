@@ -1,4 +1,4 @@
-define(["device_add"], function(deviceAdd) {
+define(["components/device_add"], function(deviceAdd) {
   return {
     components:{
       'add-dialog': deviceAdd

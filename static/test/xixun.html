@@ -2,57 +2,77 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <title>XiXunLed设备模拟</title>
+  <link rel="stylesheet" href="/static/css/element-ui.css">
+  </title>
 </head>
 <body>
-  <button onclick="clearMsg()">clear</button>
   <div id="app">
-      
-  </div>
+    <el-card class="box-card">
+    <div slot="header" class="clearfix">
+      <span>XiXunLed设备模拟</span>
+      <el-button style="float: right; padding: 3px 0" type="text" @click="clear">清空消息面板</el-button>
+    </div>
+    <div class="text item" style="height: 500px; overflow: auto;">
+      <el-alert type="info" effect="dark" style="margin-bottom: 5px;"
+        v-for="(msg, index) in msgList" :key="index" :title="msg.content"></el-alert>
+    </div>
+    </el-card>
+</div>
 </body>
-  
+<!-- import Vue before Element -->
+<script src="/static/js/lib/vue.js"></script>
+<script src="/static/js/lib/vue-router.js"></script>
+<!-- import JavaScript -->
+<script src="/static/js/lib/element-ui.js"></script>
 <script>
-  var app = document.getElementById("app")
-  // Create a socket
-  var socket = null;
-  function connection(timeout){
-    setTimeout(() => {
-      try{
-        socket = new WebSocket('ws://localhost:7078/');
-        // Message received on the socket
-        socket.onmessage = (event => {
-            var content = event.data;
-            append(content)
-            socket.send(JSON.stringify({success:'true'}))
-        })
-        socket.onopen = (event => {
-          append("connect success")
-          heart(500)
-        })
-        socket.onclose = (event => {
-          append("close")
-          connection()
-        })
-      }catch (e){
-        console.error(e)
-        connection()
+  new Vue({
+    el: '#app',
+    data: function () {
+      return {
+        socket: null,
+        msg: null,
+        msgList: []
       }
-    }, timeout?timeout:5000);
-  }
-  connection(200);
-
-  function append(text){
-    div = document.createElement('div')
-    div.innerHTML = text
-    app.append(div)
-  }
-  function heart(timeout){
-    setTimeout(()=>{
-      socket.send(JSON.stringify({cardId:'ld00002'}))
-      heart()
-    }, timeout ? timeout : 20000)
-  }
-  function clearMsg(){
-    app.innerHTML = ""
-  }
+    },
+    mounted(){
+      this.init(100);
+    },
+    methods: {
+      clear() {
+        this.msgList = [];
+      },
+      init(timeout){
+        setTimeout(() => {
+          try{
+            this.socket = new WebSocket('ws://localhost:7078/');
+            // Message received on the socket
+            this.socket.onmessage = (event => {
+                var content = event.data;
+                this.msgList.push({content: content})
+                this.socket.send(JSON.stringify({success:'true'}))
+            })
+            this.socket.onopen = (event => {
+              this.msgList.push({content: "connect success"})
+              this.heart(500)
+            })
+            this.socket.onclose = (event => {
+              this.msgList.push({content: "close"})
+              this.init()
+            })
+          }catch (e){
+            console.error(e)
+            this.init()
+          }
+        }, timeout?timeout:5000);
+      },
+      heart(timeout) {
+        setTimeout(() => {
+          this.socket.send(JSON.stringify({cardId:'ld00002'}))
+          this.heart()
+        }, timeout ? timeout : 20000);
+      }
+    }
+  })
 </script>
 </html>

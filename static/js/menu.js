@@ -1,24 +1,32 @@
+// contents of main.js:
+require.config({
+    paths: {
+        device: 'device',
+        restful: 'restful',
+        echows: 'websoket',
+    }
+});
+
 Vue.component('my-menu', {
+	method:{
+		toPage(path){
+			this.$router.push({path: path})
+		}
+	},
 	template: `
-		<el-menu
-	      default-active="2"
-	      class="el-menu-vertical-demo">
-	      <el-menu-item index="1">
-	        <i class="el-icon-menu"></i>
-	        <span slot="title"><router-link to="/echows">echo</router-link></span>
-	      </el-menu-item>
-	      <el-menu-item index="2">
-	        <i class="el-icon-document"></i>
-	        <span slot="title"><router-link to="/restful">restful</router-link></span>
-	      </el-menu-item>
-	      <el-menu-item index="3">
-	        <i class="el-icon-document"></i>
-	        <span slot="title"><router-link to="/device">Device</router-link></span>
-		  </el-menu-item>
-		  <el-menu-item index="4">
-	        <i class="el-icon-document"></i>
-	        <span slot="title"><router-link to="/northwebsocket">north websocket</router-link></span>
-	      </el-menu-item>
-	    </el-menu>
+		<el-menu default-active="2" class="el-menu-vertical-demo" :router="true">
+      <el-menu-item index="echows">
+        <i class="el-icon-connection"></i>
+        <span slot="title">Push Echo</span>
+      </el-menu-item>
+      <el-menu-item index="restful">
+        <i class="el-icon-monitor"></i>
+        <span slot="title">Restful</span>
+      </el-menu-item>
+      <el-menu-item index="device">
+        <i class="el-icon-mobile-phone"></i>
+        <span slot="title">设备</span>
+      </el-menu-item>
+    </el-menu>
 	`
 });
