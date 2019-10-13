@@ -55,8 +55,15 @@ func (this *DeviceController) Add() {
 func (this *DeviceController) Update() {
 	var ob models.Device
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-	models.UpdateDevice(&ob)
-	this.Data["json"] = &ob
+	err := models.UpdateDevice(&ob)
+	var resp models.JsonResp
+	resp.Success = true
+	resp.Msg = "修改成功!"
+	if err != nil {
+		resp.Msg = err.Error()
+		resp.Success = false
+	}
+	this.Data["json"] = &resp
 	this.ServeJSON()
 }
 

@@ -28,6 +28,7 @@ type SwitchStatus struct {
 
 func init() {
 	db, _ := getDb()
+	defer db.Close()
 	_, err := db.Exec(`
 		CREATE TABLE device (
 	    id_ VARCHAR(32) PRIMARY KEY,
@@ -45,7 +46,7 @@ func init() {
 }
 
 func getDb() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "./foo.db")
+	db, err := sql.Open("sqlite3", "./goiot.db")
 	if err != nil {
 		beego.Info("open sqlite fail")
 	}
@@ -60,6 +61,7 @@ func ListDevice(page *PageQuery) (*PageResult, error) {
 
 	//查询数据
 	db, _ := getDb()
+	defer db.Close()
 	sql := "SELECT id_,sn_,name_,provider_ FROM device "
 	countSql := "SELECT count(*) from device"
 	id := dev.Id
@@ -76,6 +78,7 @@ func ListDevice(page *PageQuery) (*PageResult, error) {
 		return nil, err
 	}
 	var result []Device
+	defer rows.Close()
 	for rows.Next() {
 		var id string
 		var sn string
@@ -91,12 +94,11 @@ func ListDevice(page *PageQuery) (*PageResult, error) {
 		return nil, err
 	}
 	count := 0
+	defer rows.Close()
 	for rows.Next() {
 		rows.Scan(&count)
 		break
 	}
-	//	rows.
-	db.Close()
 
 	pr = &PageResult{page.PageSize, page.PageNum, count, result}
 
@@ -113,48 +115,56 @@ func AddDevie(ob *Device) error {
 	}
 	//插入数据
 	db, _ := getDb()
+	defer db.Close()
 	stmt, _ := db.Prepare("INSERT INTO device(id_, sn_, name_, provider_) values(?,?,?,?)")
 
 	_, err = stmt.Exec(ob.Id, ob.Sn, ob.Name, ob.Provider)
 	if err != nil {
-		beego.Error("insert fail")
+		return err
 	}
-	db.Close()
+
 	return nil
 }
 
-func UpdateDevice(ob *Device) {
+func UpdateDevice(ob *Device) error {
 	//更新数据
 	db, _ := getDb()
+	defer db.Close()
 	stmt, err := db.Prepare("update device set sn_=?,name_=?,provider_=? where id_=?")
+	if err != nil {
+		return err
+	}
 
 	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Provider, ob.Id)
 	if err != nil {
 		beego.Error("update fail", err)
+		return err
 	}
-	db.Close()
+	return nil
 }
 
 func DeleteDevice(ob *Device) {
 	//更新数据
 	db, _ := getDb()
+	defer db.Close()
 	stmt, _ := db.Prepare("delete from device where id_=?")
 
 	_, err := stmt.Exec(ob.Id)
 	if err != nil {
 		beego.Error("delete fail", err)
 	}
-	db.Close()
 }
 
 func GetDevice(deviceId string) (Device, error) {
 	var result Device
 	db, _ := getDb()
+	defer db.Close()
 	sql := "SELECT id_,sn_,name_,provider_ FROM device where id_ = ?"
 	rows, err := db.Query(sql, deviceId)
 	if err != nil {
 		return result, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var id string
 		var sn string
@@ -164,6 +174,5 @@ func GetDevice(deviceId string) (Device, error) {
 		result = Device{Id: id, Sn: sn, Name: name, Provider: provider}
 		break
 	}
-	db.Close()
 	return result, nil
 }
