@@ -13,25 +13,43 @@
 <script>
   var app = document.getElementById("app")
   // Create a socket
-  var socket = new WebSocket('ws://localhost:7078/');
-  // Message received on the socket
-  socket.onmessage = (event => {
-      var content = event.data;
-      app.append(content)
-      socket.send(JSON.stringify({success:'true'}))
-  })
-  socket.onopen = (event => {
-    app.append("connect success")
-    heart()
-  })
-  socket.onclose = (event => {
-    app.append("close")
-  })
-  function heart(){
+  var socket = null;
+  function connection(timeout){
+    setTimeout(() => {
+      try{
+        socket = new WebSocket('ws://localhost:7078/');
+        // Message received on the socket
+        socket.onmessage = (event => {
+            var content = event.data;
+            append(content)
+            socket.send(JSON.stringify({success:'true'}))
+        })
+        socket.onopen = (event => {
+          append("connect success")
+          heart(500)
+        })
+        socket.onclose = (event => {
+          append("close")
+          connection()
+        })
+      }catch (e){
+        console.error(e)
+        connection()
+      }
+    }, timeout?timeout:5000);
+  }
+  connection(200);
+
+  function append(text){
+    div = document.createElement('div')
+    div.innerHTML = text
+    app.append(div)
+  }
+  function heart(timeout){
     setTimeout(()=>{
       socket.send(JSON.stringify({cardId:'ld00002'}))
       heart()
-    }, 10000)
+    }, timeout ? timeout : 20000)
   }
   function clearMsg(){
     app.innerHTML = ""

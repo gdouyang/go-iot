@@ -1,9 +1,10 @@
 // 定义操作接口
 
-package models
+package operates
 
 import (
 	"fmt"
+	"go-iot/models"
 )
 
 // 厂商map
@@ -29,12 +30,17 @@ type IProvider interface {
 	ProviderId() string
 }
 
+type OperResp struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg"`
+}
+
 // 开头操作
 type ISwitchOper interface {
-	Switch(status []SwitchStatus, device Device)
+	Switch(status []models.SwitchStatus, device models.Device) OperResp
 }
 
 // 调光操作
 type ILightOper interface {
-	Light()
+	Light() OperResp
 }

@@ -24,7 +24,13 @@ func (this *DeviceController) List() {
 	var ob models.PageQuery
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 
-	this.Data["json"] = models.ListDevice(&ob)
+	res, err := models.ListDevice(&ob)
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+	} else {
+
+		this.Data["json"] = &res
+	}
 	this.ServeJSON()
 }
 

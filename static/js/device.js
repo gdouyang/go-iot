@@ -56,7 +56,7 @@ define(["device_add"], function(deviceAdd) {
         }).then(data => {
           this.$message({
             type: 'success',
-            message: JSON.stringify(data)
+            message: data.msg
           });
         })
       },
@@ -96,12 +96,12 @@ define(["device_add"], function(deviceAdd) {
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
               <el-dropdown @command="open($event, scope.row)" size="mini">
-                <span class="el-dropdown-link">
+                <el-button type="text" class="el-dropdown-link">
                 开关<i class="el-icon-arrow-down el-icon--right"></i>
-                </span>
+                </el-button>
                 <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item command="open"> 开 </el-dropdown-item>
-                  <el-dropdown-item command="close" divided> 关 </el-dropdown-item>
+                  <el-dropdown-item command="open"> 打开 </el-dropdown-item>
+                  <el-dropdown-item command="close" divided> 关闭 </el-dropdown-item>
                 </el-dropdown-menu>
               </el-dropdown>
               <el-button type="text" size="small" @click="status(scope.row)">状态</el-button>

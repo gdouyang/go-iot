@@ -3,6 +3,7 @@ package xixun
 import (
 	"fmt"
 	"go-iot/models"
+	"go-iot/models/operates"
 
 	"github.com/astaxie/beego"
 )
@@ -15,7 +16,7 @@ func init() {
 	startWebSocket()
 	// 注册厂商
 	provider := ProviderXiXunLed{providerId}
-	models.RegisterProvider(provider.ProviderId(), provider)
+	operates.RegisterProvider(provider.ProviderId(), provider)
 }
 
 // 厂商实现
@@ -28,7 +29,8 @@ func (this ProviderXiXunLed) ProviderId() string {
 }
 
 // 开关操作
-func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device models.Device) {
+func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device models.Device) operates.OperResp {
+	var rsp operates.OperResp
 	abc := "{\"type\": \"callCardService\",\"fn\": \"setScreenOpen\",\"arg1\": %s}"
 	if len(status) > 0 {
 		ss := status[0]
@@ -39,5 +41,7 @@ func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device models.
 		}
 		resp := SendCommand(device.Sn, abc)
 		beego.Info("switch resp:", resp)
+		rsp.Msg = resp
 	}
+	return rsp
 }

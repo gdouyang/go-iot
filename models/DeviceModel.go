@@ -53,7 +53,7 @@ func getDb() (*sql.DB, error) {
 }
 
 // 分页查询设备
-func ListDevice(page *PageQuery) *PageResult {
+func ListDevice(page *PageQuery) (*PageResult, error) {
 	var pr *PageResult
 	var dev Device
 	json.Unmarshal(page.Condition, &dev)
@@ -61,16 +61,20 @@ func ListDevice(page *PageQuery) *PageResult {
 	//查询数据
 	db, _ := getDb()
 	sql := "SELECT id_,sn_,name_,provider_ FROM device "
+	countSql := "SELECT count(*) from device"
 	id := dev.Id
 	params := make([]interface{}, 0)
 	if id != "" {
 		sql += " where id_ like ?"
+		countSql += " where id_ like ?"
 		params = append(params, id)
 	}
-	//	countSql := sql
 	sql += " limit ? offset ?"
 	params = append(params, page.PageSize, page.PageOffset())
-	rows, _ := db.Query(sql, params...)
+	rows, err := db.Query(sql, params...)
+	if err != nil {
+		return nil, err
+	}
 	var result []Device
 	for rows.Next() {
 		var id string
@@ -82,18 +86,28 @@ func ListDevice(page *PageQuery) *PageResult {
 		result = append(result, device)
 	}
 
-	count := 1
-	//	rows := db.Query(countSql)
+	rows, err = db.Query(countSql, params...)
+	if err != nil {
+		return nil, err
+	}
+	count := 0
+	for rows.Next() {
+		rows.Scan(&count)
+		break
+	}
 	//	rows.
 	db.Close()
 
 	pr = &PageResult{page.PageSize, page.PageNum, count, result}
 
-	return pr
+	return pr, nil
 }
 
 func AddDevie(ob *Device) error {
-	rs := GetDevice(ob.Id)
+	rs, err := GetDevice(ob.Id)
+	if err != nil {
+		return err
+	}
 	if rs.Id != "" {
 		return errors.New("设备已存在!")
 	}
@@ -101,7 +115,7 @@ func AddDevie(ob *Device) error {
 	db, _ := getDb()
 	stmt, _ := db.Prepare("INSERT INTO device(id_, sn_, name_, provider_) values(?,?,?,?)")
 
-	_, err := stmt.Exec(ob.Id, ob.Sn, ob.Name, ob.Provider)
+	_, err = stmt.Exec(ob.Id, ob.Sn, ob.Name, ob.Provider)
 	if err != nil {
 		beego.Error("insert fail")
 	}
@@ -112,11 +126,11 @@ func AddDevie(ob *Device) error {
 func UpdateDevice(ob *Device) {
 	//更新数据
 	db, _ := getDb()
-	stmt, _ := db.Prepare("update device set sn_=?,name_=?,provider_=? where id_=?")
+	stmt, err := db.Prepare("update device set sn_=?,name_=?,provider_=? where id_=?")
 
-	_, err := stmt.Exec(ob.Sn, ob.Name, ob.Provider, ob.Id)
+	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Provider, ob.Id)
 	if err != nil {
-		beego.Error("update fail")
+		beego.Error("update fail", err)
 	}
 	db.Close()
 }
@@ -128,18 +142,18 @@ func DeleteDevice(ob *Device) {
 
 	_, err := stmt.Exec(ob.Id)
 	if err != nil {
-		beego.Error("delete fail")
+		beego.Error("delete fail", err)
 	}
 	db.Close()
 }
 
-func GetDevice(deviceId string) Device {
+func GetDevice(deviceId string) (Device, error) {
 	var result Device
 	db, _ := getDb()
 	sql := "SELECT id_,sn_,name_,provider_ FROM device where id_ = ?"
 	rows, err := db.Query(sql, deviceId)
 	if err != nil {
-		beego.Error(err)
+		return result, err
 	}
 	for rows.Next() {
 		var id string
@@ -151,5 +165,5 @@ func GetDevice(deviceId string) Device {
 		break
 	}
 	db.Close()
-	return result
+	return result, nil
 }

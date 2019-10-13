@@ -7,17 +7,19 @@ import (
 	"go-iot/provider/utils"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/astaxie/beego"
 	"github.com/gorilla/websocket"
 )
 
 type XixunLED struct {
-	uid  int             //WebSocket连接唯一标识
-	SN   string          //设备SN
-	Conn *websocket.Conn // websocket连接
-	Cond *sync.Cond      // 同步调用的condition
-	Resp string          // 命令返回
+	uid      int             //WebSocket连接唯一标识
+	SN       string          //设备SN
+	Conn     *websocket.Conn // websocket连接
+	Cond     *sync.Cond      // 同步调用的condition
+	respChan chan int        // 命令响应Channel
+	Resp     string          // 命令返回
 }
 
 // 心跳
@@ -53,7 +55,7 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 	var sn string
 
 	var l sync.Mutex
-	led := &XixunLED{uid: utils.Uuid(), SN: sn, Conn: c, Cond: sync.NewCond(&l)}
+	led := &XixunLED{uid: utils.Uuid(), SN: sn, Conn: c, Cond: sync.NewCond(&l), respChan: make(chan int, 2)}
 	for {
 		mt, message, err := c.ReadMessage()
 		if err != nil {
@@ -80,6 +82,7 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 				l.Resp = resp // 返回响应消息
 				l.Cond.Signal()
 				l.Cond.L.Unlock()
+				l.respChan <- 1
 			} else {
 				beego.Warn("not found connection sn:", led.SN)
 			}
@@ -98,10 +101,13 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-// 发送命令给Led，等待Led给出响应后返回 TODO LED没有返回的情况需要处理超时
+// 发送命令给Led，等待Led给出响应后返回
 func SendCommand(sn string, command string) string {
 	led, ok := subscribers[sn]
 	if ok {
+		// LED没有返回的情况需要处理超时
+		go checkTimeout(led)
+		// 把当前请求等待,等待接口返回
 		led.Cond.L.Lock()
 		beego.Info("send command", command)
 		led.Conn.WriteMessage(1, []byte(command))
@@ -113,4 +119,18 @@ func SendCommand(sn string, command string) string {
 		beego.Warn("not found led sn:", sn)
 	}
 	return ""
+}
+
+// LED没有返回的情况需要处理超时
+func checkTimeout(led *XixunLED) {
+	select {
+	case <-led.respChan:
+		beego.Info("send command success resp")
+	case <-time.Tick(time.Second * 20):
+		led.Cond.L.Lock()
+		beego.Info("send command has timeout")
+		led.Resp = "timeout"
+		led.Cond.Signal()
+		led.Cond.L.Unlock()
+	}
 }

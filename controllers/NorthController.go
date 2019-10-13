@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"go-iot/models"
+	"go-iot/models/operates"
 
 	"github.com/astaxie/beego"
 )
@@ -25,14 +26,18 @@ func (this *NorthController) Open() {
 	var ob []models.SwitchStatus
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 
-	var switchOper models.ISwitchOper
-	p := models.GetProvider("xixunled")
-	switchOper = p.(models.ISwitchOper)
+	var switchOper operates.ISwitchOper
+	p := operates.GetProvider("xixunled")
+	switchOper = p.(operates.ISwitchOper)
 
-	device := models.GetDevice(deviceId)
-	switchOper.Switch(ob, device)
+	device, err := models.GetDevice(deviceId)
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+	} else {
+		operResp := switchOper.Switch(ob, device)
+		this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+	}
 
-	this.Data["json"] = &ob
 	this.ServeJSON()
 }
 
