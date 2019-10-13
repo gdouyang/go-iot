@@ -75,6 +75,7 @@ define(["components/device_add"], function(deviceAdd) {
             type: 'success',
             message: data.msg
           });
+          this.lightvalue = 0;
         })
       },
       status(data){
