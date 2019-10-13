@@ -11,6 +11,7 @@ import (
 func init() {
 	ns := beego.NewNamespace("/north/control",
 		beego.NSRouter("/:id/switch", &NorthController{}, "post:Open"),
+		beego.NSRouter("/:id/light", &NorthController{}, "post:Light"),
 		beego.NSRouter("/status", &NorthController{}, "post:Status"))
 	beego.AddNamespace(ns)
 }
@@ -26,16 +27,44 @@ func (this *NorthController) Open() {
 	var ob []models.SwitchStatus
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 
-	var switchOper operates.ISwitchOper
-	p := operates.GetProvider("xixunled")
-	switchOper = p.(operates.ISwitchOper)
-
 	device, err := models.GetDevice(deviceId)
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
-		operResp := switchOper.Switch(ob, device)
-		this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+		p := operates.GetProvider(device.Provider)
+		if p == nil {
+			this.Data["json"] = models.JsonResp{Success: false, Msg: "没有找到相应厂商"}
+		} else {
+			var switchOper operates.ISwitchOper
+			switchOper = p.(operates.ISwitchOper)
+			operResp := switchOper.Switch(ob, device)
+			this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+		}
+	}
+
+	this.ServeJSON()
+}
+
+// 设备调光
+func (this *NorthController) Light() {
+	deviceId := this.Ctx.Input.Param(":id")
+	beego.Info("deviceId=", deviceId)
+	var ob map[string]int
+	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
+	value := ob["value"]
+	device, err := models.GetDevice(deviceId)
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+	} else {
+		p := operates.GetProvider(device.Provider)
+		if p == nil {
+			this.Data["json"] = models.JsonResp{Success: false, Msg: "没有找到相应厂商"}
+		} else {
+			var lightOper operates.ILightOper
+			lightOper = p.(operates.ILightOper)
+			operResp := lightOper.Light(value, device)
+			this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+		}
 	}
 
 	this.ServeJSON()

@@ -45,3 +45,14 @@ func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device models.
 	}
 	return rsp
 }
+
+// Led 调光
+func (this ProviderXiXunLed) Light(value int, device models.Device) operates.OperResp {
+	var rsp operates.OperResp
+	abc := "{\"type\": \"callCardService\",\"fn\": \"setScreenOpen\",\"arg1\": %d}"
+	abc = fmt.Sprintf(abc, value)
+	resp := SendCommand(device.Sn, abc)
+	beego.Info("light resp:", resp)
+	rsp.Msg = resp
+	return rsp
+}

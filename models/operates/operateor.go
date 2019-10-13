@@ -37,10 +37,13 @@ type OperResp struct {
 
 // 开头操作
 type ISwitchOper interface {
+	// 开关
 	Switch(status []models.SwitchStatus, device models.Device) OperResp
 }
 
 // 调光操作
 type ILightOper interface {
-	Light() OperResp
+	// 调光
+	// value 0-100
+	Light(value int, device models.Device) OperResp
 }
