@@ -1,13 +1,15 @@
-define(["components/device_add"], function(deviceAdd) {
+define(["components/device_add", "components/switchOpt", "components/lightOpt"], 
+function(deviceAdd, switchOpt, lightOpt) {
   return {
     components:{
-      'add-dialog': deviceAdd
+      'add-dialog': deviceAdd,
+      'switch-opt': switchOpt,
+      'light-opt': lightOpt,
     },
     data: function () {
       return {
         tableData: [],
         searchParam:{id:''},
-        lightvalue:0
       }
     },
     mounted(){
@@ -45,39 +47,6 @@ define(["components/device_add"], function(deviceAdd) {
           })
         })
       },
-      open(command, data){
-        fetch(`/north/control/${data.id}/switch`, {
-          method: 'POST',
-          body: JSON.stringify([{index:0,status:command}]),
-          headers: new Headers({
-            'Content-Type': 'application/json'
-          })
-        }).then(res => {
-          return res.json()
-        }).then(data => {
-          this.$message({
-            type: 'success',
-            message: data.msg
-          });
-        })
-      },
-      light(value, data){
-        fetch(`/north/control/${data.id}/light`, {
-          method: 'POST',
-          body: JSON.stringify({value:value}),
-          headers: new Headers({
-            'Content-Type': 'application/json'
-          })
-        }).then(res => {
-          return res.json()
-        }).then(data => {
-          this.$message({
-            type: 'success',
-            message: data.msg
-          });
-          this.lightvalue = 0;
-        })
-      },
       status(data){
         fetch('/north/control/status', {
           method: 'POST',
@@ -113,28 +82,9 @@ define(["components/device_add"], function(deviceAdd) {
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
-              <el-dropdown @command="open($event, scope.row)" size="mini">
-                <el-button type="text" class="el-dropdown-link">
-                开关<i class="el-icon-arrow-down el-icon--right"></i>
-                </el-button>
-                <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item command="open" style="width:50px;">打 开</el-dropdown-item>
-                  <el-dropdown-item command="close" divided style="width:50px;">关 闭</el-dropdown-item>
-                </el-dropdown-menu>
-              </el-dropdown>
-              <el-dropdown size="mini">
-                <el-button type="text" class="el-dropdown-link">
-                调光<i class="el-icon-arrow-down el-icon--right"></i>
-                </el-button>
-                <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item>
-                  <div style="width:200px;">
-                  <el-slider v-model="lightvalue" :min="0" :max="100" @change="light(lightvalue, scope.row)"></el-slider>
-                  </div>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </el-dropdown>
-              <el-button type="text" size="small" @click="status(scope.row)">状态</el-button>
+              <switch-opt :deviceId="scope.row.id"/>
+              <light-opt :deviceId="scope.row.id"/>
+              <!-- <el-button type="text" size="small" @click="status(scope.row)">状态</el-button> -->
             </template>
           </el-table-column>
         </my-table>
