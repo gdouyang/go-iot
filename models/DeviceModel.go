@@ -41,12 +41,12 @@ func init() {
 		);
 	`)
 	if err != nil {
-		beego.Info("create table fail")
+		beego.Info("create table device fail: ", err)
 	}
 }
 
 func getDb() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "./goiot.db")
+	db, err := sql.Open("sqlite3", "./db/device.db")
 	if err != nil {
 		beego.Info("open sqlite fail")
 	}
