@@ -80,7 +80,13 @@ function(deviceAdd, switchOpt, lightOpt) {
           <el-table-column prop="provider" label="厂商"/>
           <el-table-column prop="type" label="类型"/>
           <el-table-column prop="model" label="型号"/>
-          <el-table-column prop="onlineStatus" label="在线状态"/>
+          <el-table-column prop="onlineStatus" label="在线状态">
+            <template slot-scope="scope">
+              <el-tag :type="scope.row.onlineStatus == 'onLine' ? 'success': 'info'" size="mini">
+              {{scope.row.onlineStatus}}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column label="操作" :width="200" fixed="right">
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>

@@ -24,18 +24,18 @@ define({
             type: 'success',
             message: data.msg
           });
-          this.lightvalue = 0;
+          // this.lightvalue = 0;
         })
       },
     },
     template: `
-    <el-dropdown size="mini">
+    <el-dropdown size="mini" :hide-on-click="false">
       <el-button type="text" class="el-dropdown-link">
       调光<i class="el-icon-arrow-down el-icon--right"></i>
       </el-button>
       <el-dropdown-menu slot="dropdown">
         <el-dropdown-item>
-        <div style="width:200px;">
+        <div style="width:200px; padding:5px;">
         <el-slider v-model="lightvalue" :min="0" :max="100" @change="light(lightvalue)"></el-slider>
         </div>
         </el-dropdown-item>

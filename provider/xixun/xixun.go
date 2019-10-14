@@ -2,8 +2,8 @@ package xixun
 
 import (
 	"fmt"
-	"go-iot/models"
-	"go-iot/models/operates"
+	models "go-iot/models"
+	operates "go-iot/models/operates"
 
 	"github.com/astaxie/beego"
 )

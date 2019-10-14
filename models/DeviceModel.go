@@ -1,10 +1,9 @@
 package models
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
-
-	"database/sql"
 
 	"github.com/astaxie/beego"
 	_ "github.com/mattn/go-sqlite3"
@@ -151,6 +150,28 @@ func UpdateDevice(ob *Device) error {
 	}
 
 	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Provider, ob.Type, ob.Id)
+	if err != nil {
+		beego.Error("update fail", err)
+		return err
+	}
+	return nil
+}
+
+// 根据SN与provider来更新设备在线状态
+func UpdateOnlineStatus(onlineStatus string, sn string, provider string) error {
+	//更新数据
+	db, _ := getDb()
+	defer db.Close()
+	stmt, err := db.Prepare(`
+	update device 
+	set online_status_ = ?
+	where sn_ = ? and provider_ = ?
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.Exec(onlineStatus, sn, provider)
 	if err != nil {
 		beego.Error("update fail", err)
 		return err

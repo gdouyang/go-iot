@@ -4,6 +4,9 @@ package xixun
 import (
 	"encoding/json"
 	"fmt"
+
+	"go-iot/models"
+	"go-iot/models/operates"
 	"go-iot/provider/utils"
 	"net/http"
 	"sync"
@@ -72,6 +75,8 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				led.SN = sn
 				subscribers[sn] = led
+				evt := operates.DeviceOnlineStatus{OnlineStatus: models.ONLINE, Sn: sn, Provider: providerId}
+				operates.FireOnlineStatus(evt)
 				beego.Info("led connected, connection len:", len(subscribers))
 			}
 		} else {
@@ -98,6 +103,8 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 		} else {
 			c.Close()
 		}
+		evt := operates.DeviceOnlineStatus{OnlineStatus: models.OFFLINE, Sn: sn, Provider: providerId}
+		operates.FireOnlineStatus(evt)
 	}()
 }
 

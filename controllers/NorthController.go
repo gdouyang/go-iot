@@ -31,9 +31,9 @@ func (this *NorthController) Open() {
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
-		p := operates.GetProvider(device.Provider)
-		if p == nil {
-			this.Data["json"] = models.JsonResp{Success: false, Msg: "没有找到相应厂商"}
+		p, err := operates.GetProvider(device.Provider)
+		if err != nil {
+			this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 		} else {
 			var switchOper operates.ISwitchOper
 			switchOper = p.(operates.ISwitchOper)
@@ -56,9 +56,9 @@ func (this *NorthController) Light() {
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
-		p := operates.GetProvider(device.Provider)
-		if p == nil {
-			this.Data["json"] = models.JsonResp{Success: false, Msg: "没有找到相应厂商"}
+		p, err := operates.GetProvider(device.Provider)
+		if err != nil {
+			this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 		} else {
 			var lightOper operates.ILightOper
 			lightOper = p.(operates.ILightOper)
