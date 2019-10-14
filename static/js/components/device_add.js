@@ -2,7 +2,7 @@ define({
     data: function () {
       return {
         isEdit: false,
-        createForm: {id: '', sn: '', name: '',provider:''}
+        createForm: {id: '', sn: '', name: '',provider:'',type:'',model:''}
       }
     },
     mounted(){
@@ -68,6 +68,16 @@ define({
           </el-form-item>
           <el-form-item label="厂商" prop="provider" :rules="[{ required: true, message: '不能为空'}]">
             <el-input v-model="createForm.provider"></el-input>
+          </el-form-item>
+          <el-form-item label="类型" prop="type" :rules="[{ required: true, message: '不能为空'}]">
+            <el-select v-model="createForm.type">
+              <el-option label="LED" value="led"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="型号" prop="model" :rules="[{ required: true, message: '不能为空'}]">
+            <el-select v-model="createForm.model">
+              <el-option label="0001" value="0001"></el-option>
+            </el-select>
           </el-form-item>
         </el-form>
       </my-dialog>

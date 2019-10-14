@@ -78,7 +78,10 @@ function(deviceAdd, switchOpt, lightOpt) {
           <el-table-column prop="sn" label="SN" width="120"/>
           <el-table-column prop="name" label="名称"/>
           <el-table-column prop="provider" label="厂商"/>
-          <el-table-column label="操作">
+          <el-table-column prop="type" label="类型"/>
+          <el-table-column prop="model" label="型号"/>
+          <el-table-column prop="onlineStatus" label="在线状态"/>
+          <el-table-column label="操作" :width="200" fixed="right">
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>

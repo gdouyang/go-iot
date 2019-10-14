@@ -15,9 +15,11 @@ type Device struct {
 	Id           string         `json:"id"` //设备ID
 	Sn           string         `json:"sn"` //设备SN
 	Name         string         `json:"name"`
-	Provider     string         `json:"provider"`   //厂商
-	OnlineStatus string         `json:onlineStatus` //在线状态
-	SwitchStatus []SwitchStatus `json:switchStatus`
+	Provider     string         `json:"provider"` //厂商
+	Type         string         `json:"type"`
+	Model        string         `json:"model"`
+	OnlineStatus string         `json:"onlineStatus"` //在线状态
+	SwitchStatus []SwitchStatus `json:"switchStatus"`
 }
 
 // 开关状态
@@ -35,13 +37,17 @@ func init() {
 	    sn_ VARCHAR(64) NULL,
 	    name_ VARCHAR(64) NULL,
 		provider_ VARCHAR(32) NULL,
-		onlineStatus_ VARCHAR(10) NULL,
-		switchStatus_ VARCHAR(128) NULL,
+		type_ VARCHAR(32) NULL,
+		model_ VARCHAR(32) NULL,
+		online_status_ VARCHAR(10) NULL,
+		switch_status_ VARCHAR(128) NULL,
 	    created_ DATE NULL
 		);
 	`)
 	if err != nil {
-		beego.Info("create table device fail: ", err)
+		beego.Info("table device create fail:", err)
+	} else {
+		beego.Info("table device create success")
 	}
 }
 
@@ -62,7 +68,7 @@ func ListDevice(page *PageQuery) (*PageResult, error) {
 	//查询数据
 	db, _ := getDb()
 	defer db.Close()
-	sql := "SELECT id_,sn_,name_,provider_ FROM device "
+	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_ FROM device "
 	countSql := "SELECT count(*) from device"
 	id := dev.Id
 	params := make([]interface{}, 0)
@@ -78,14 +84,16 @@ func ListDevice(page *PageQuery) (*PageResult, error) {
 		return nil, err
 	}
 	var result []Device
+	var (
+		Id, Sn, Name, Provider, Type, Model, OnlineStatus string
+	)
 	defer rows.Close()
 	for rows.Next() {
-		var id string
-		var sn string
-		var name string
-		var provider string
-		rows.Scan(&id, &sn, &name, &provider)
-		device := Device{Id: id, Sn: sn, Name: name, Provider: provider}
+		rows.Scan(&Id, &Sn, &Name,
+			&Provider, &Type, &Model, &OnlineStatus)
+
+		device := Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
+			Type: Type, Model: Model, OnlineStatus: OnlineStatus}
 		result = append(result, device)
 	}
 
@@ -116,9 +124,12 @@ func AddDevie(ob *Device) error {
 	//插入数据
 	db, _ := getDb()
 	defer db.Close()
-	stmt, _ := db.Prepare("INSERT INTO device(id_, sn_, name_, provider_) values(?,?,?,?)")
+	stmt, _ := db.Prepare(`
+	INSERT INTO device(id_, sn_, name_, provider_, type_, model_, online_status_) 
+	values(?,?,?,?,?,?,?)
+	`)
 
-	_, err = stmt.Exec(ob.Id, ob.Sn, ob.Name, ob.Provider)
+	_, err = stmt.Exec(ob.Id, ob.Sn, ob.Name, ob.Provider, ob.Type, ob.Model, OFFLINE)
 	if err != nil {
 		return err
 	}
@@ -130,12 +141,16 @@ func UpdateDevice(ob *Device) error {
 	//更新数据
 	db, _ := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare("update device set sn_=?,name_=?,provider_=? where id_=?")
+	stmt, err := db.Prepare(`
+	update device 
+	set sn_=?,name_=?,provider_=?,type_=? 
+	where id_=?
+	`)
 	if err != nil {
 		return err
 	}
 
-	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Provider, ob.Id)
+	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Provider, ob.Type, ob.Id)
 	if err != nil {
 		beego.Error("update fail", err)
 		return err
@@ -159,19 +174,19 @@ func GetDevice(deviceId string) (Device, error) {
 	var result Device
 	db, _ := getDb()
 	defer db.Close()
-	sql := "SELECT id_,sn_,name_,provider_ FROM device where id_ = ?"
+	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_ FROM device where id_ = ?"
 	rows, err := db.Query(sql, deviceId)
 	if err != nil {
 		return result, err
 	}
+	var (
+		Id, Sn, Name, Provider, Type, Model, OnlineStatus string
+	)
 	defer rows.Close()
 	for rows.Next() {
-		var id string
-		var sn string
-		var name string
-		var provider string
-		rows.Scan(&id, &sn, &name, &provider)
-		result = Device{Id: id, Sn: sn, Name: name, Provider: provider}
+		rows.Scan(&Id, &Sn, &Name, &Provider, &Type, &Model, &OnlineStatus)
+		result = Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
+			Type: Type, Model: Model, OnlineStatus: OnlineStatus}
 		break
 	}
 	return result, nil
