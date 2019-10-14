@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"go-iot/models"
+	"go-iot/models/operates"
 
 	"github.com/astaxie/beego"
 )
@@ -13,6 +14,7 @@ func init() {
 	beego.Router("/device/add", &DeviceController{}, "post:Add")
 	beego.Router("/device/update", &DeviceController{}, "post:Update")
 	beego.Router("/device/delete", &DeviceController{}, "post:Delete")
+	beego.Router("/device/listProvider", &DeviceController{}, "post:ListProvider")
 }
 
 type DeviceController struct {
@@ -73,5 +75,12 @@ func (this *DeviceController) Delete() {
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 	models.DeleteDevice(&ob)
 	this.Data["json"] = &ob
+	this.ServeJSON()
+}
+
+// 查询所有厂商
+func (this *DeviceController) ListProvider() {
+	pros := operates.AllProvierId()
+	this.Data["json"] = &pros
 	this.ServeJSON()
 }

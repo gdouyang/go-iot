@@ -46,6 +46,15 @@ func GetProvider(id string) (interface{}, error) {
 	return nil, errors.New("没有找到厂商")
 }
 
+// 返回所有厂商ID
+func AllProvierId() []string {
+	var providerNames []string
+	for key := range providerMap {
+		providerNames = append(providerNames, key)
+	}
+	return providerNames
+}
+
 // 厂商接口
 type IProvider interface {
 	//厂商ID全局唯一
