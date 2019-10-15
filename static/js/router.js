@@ -1,9 +1,11 @@
 
-require(['device', 'echows', 'restful'], function(device, echows, Restful) {
+require(['device', 'echows', 'restful', 'material'], 
+function(device, echows, Restful, material) {
   const routes = [
       { path: '/echows', component: echows },
       { path: '/restful', component: Restful },
       { path: '/device', component: device },
+      { path: '/material', component: material },
     ]
     
     // 3. 创建 router 实例，然后传 `routes` 配置
