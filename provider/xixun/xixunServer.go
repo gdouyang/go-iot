@@ -4,6 +4,9 @@ package xixun
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"regexp"
+	"strings"
 
 	"go-iot/models"
 	"go-iot/models/operates"
@@ -140,4 +143,46 @@ func checkTimeout(led *XixunLED) {
 		led.Cond.Signal()
 		led.Cond.L.Unlock()
 	}
+}
+
+// 设备自动发现 等待秒数，返回json串
+func DeviceDispear(duration time.Duration) string {
+	liste := map[string]string{}
+	connLister, err := net.ResolveUDPAddr("udp", "0.0.0.0:31306")
+	if err != nil {
+		fmt.Print(err)
+		return ""
+	}
+	conn1, err := net.ListenUDP("udp", connLister)
+	if err != nil {
+		fmt.Print(err)
+		return ""
+	}
+	defer conn1.Close()
+	go func() {
+		buf1 := make([]byte, 1024)
+		for {
+			n, p, err := conn1.ReadFromUDP(buf1)
+			if err != nil {
+				fmt.Print(err)
+				continue
+			}
+
+			reg := regexp.MustCompile(`DisplayID=[a-z A-Z 0-9 \-]*`)
+			cardIds := reg.FindAllString(string(buf1[:n]), -1)[0]
+			cardId := strings.Split(cardIds, "=")
+			//			fmt.Println(cardId)
+			//			fmt.Println(p.IP.String())
+			liste[cardId[1]] = p.IP.String()
+		}
+	}()
+	// 时间到了就退出
+	time.Sleep(duration * time.Second)
+	jsonStr, err := json.Marshal(liste)
+	if err != nil {
+		fmt.Println("MapToJsonDemo err: ", err)
+		return ""
+	}
+	return string(jsonStr)
+
 }
