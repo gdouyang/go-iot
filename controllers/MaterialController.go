@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"go-iot/models"
 	"go-iot/models/material"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/astaxie/beego"
 )
@@ -12,7 +15,7 @@ import (
 func init() {
 	beego.Router("/material/list", &MaterialController{}, "post:List")
 	beego.Router("/material/add", &MaterialController{}, "post:Add")
-	beego.Router("/material/update", &MaterialController{}, "post:Update")
+	beego.Router("/material/update", &MaterialController{}, "post:Add")
 	beego.Router("/material/delete", &MaterialController{}, "post:Delete")
 }
 
@@ -39,30 +42,44 @@ func (this *MaterialController) List() {
 func (this *MaterialController) Add() {
 	var ob material.Material
 	ob.Name = this.GetString("name")
-	ob.Type = this.GetString("type")
-	f, h, err := this.GetFile("uploadname")
-	defer f.Close()
-
+	ob.Id = this.GetString("id")
+	// ob.Type = this.GetString("type")
 	var resp models.JsonResp
 	resp.Success = true
-	resp.Msg = "添加成功!"
 	defer func() {
 		this.Data["json"] = &resp
 		this.ServeJSON()
 	}()
+	f, h, err := this.GetFile("uploadname")
 	if err != nil {
-		resp.Msg = err.Error()
-		return
+		if err.Error() != "http: no such file" {
+			resp.Msg = err.Error()
+			return
+		}
+	} else {
+		defer f.Close()
+		fileName := h.Filename
+		index := strings.LastIndex(fileName, ".")
+		if index != -1 {
+			fileName = fileName[:index] + strconv.Itoa(int(time.Now().Unix())) + fileName[index:]
+		}
+		filePath := "/files/" + fileName
+		err = this.SaveToFile("uploadname", "."+filePath)
+		if err != nil {
+			resp.Msg = err.Error()
+			return
+		}
+		ob.Path = filePath
 	}
-	filePath := "/files/" + h.Filename
-	err = this.SaveToFile("uploadname", "."+filePath)
-	if err != nil {
-		resp.Msg = err.Error()
-		return
+	if len(ob.Id) > 0 {
+		resp.Msg = "修改成功!"
+		// 保存入库
+		err = material.UpdateMaterial(&ob)
+	} else {
+		resp.Msg = "添加成功!"
+		// 保存入库
+		err = material.AddMaterial(&ob)
 	}
-	ob.Path = filePath
-	// 保存入库
-	err = material.AddMaterial(&ob)
 	if err != nil {
 		resp.Msg = err.Error()
 		resp.Success = false

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"go-iot/models"
+	"os"
 
 	"github.com/astaxie/beego"
 	_ "github.com/mattn/go-sqlite3"
@@ -128,16 +129,26 @@ func UpdateMaterial(ob *Material) error {
 	//更新数据
 	db, _ := getDb()
 	defer db.Close()
-	stmt, err := db.Prepare(`
-	update material 
-	set name_=?, type_=?
-	where id_=?
-	`)
+	params := make([]interface{}, 0)
+
+	sql := "update material set name_=?"
+	params = append(params, ob.Name)
+	if len(ob.Type) > 0 {
+		sql += ", type_ = ?"
+		params = append(params, ob.Type)
+	}
+	if len(ob.Path) > 0 {
+		sql += ", path_ = ?"
+		params = append(params, ob.Path)
+	}
+	sql += " where id_ = ?"
+	params = append(params, ob.Id)
+	stmt, err := db.Prepare(sql)
 	if err != nil {
 		return err
 	}
 
-	_, err = stmt.Exec(ob.Name, ob.Type, ob.Path, ob.Id)
+	_, err = stmt.Exec(params...)
 	if err != nil {
 		beego.Error("update fail", err)
 		return err
@@ -146,16 +157,25 @@ func UpdateMaterial(ob *Material) error {
 }
 
 // 删除素材
-func DeleteMaterial(ob *Material) {
+func DeleteMaterial(ob *Material) error {
 	//更新数据
 	db, _ := getDb()
 	defer db.Close()
-	stmt, _ := db.Prepare("delete from material where id_=?")
 
-	_, err := stmt.Exec(ob.Id)
+	m, err := GetMaterialByName(ob.Name)
+	if err != nil {
+		return err
+	}
+	// 删除文件
+	os.Remove("." + m.Path)
+	stmt, err := db.Prepare("delete from material where id_=?")
+
+	_, err = stmt.Exec(ob.Id)
 	if err != nil {
 		beego.Error("delete fail", err)
+		return err
 	}
+	return nil
 }
 
 // 根据name查询素材

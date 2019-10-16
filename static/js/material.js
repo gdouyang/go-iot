@@ -58,7 +58,7 @@ function(materialAdd) {
         <my-table url="/material/list" ref="mainTable">
           <el-table-column prop="id" label="ID" width="140"/>
           <el-table-column prop="name" label="名称"/>
-          <el-table-column prop="type" label="类型"/>
+          <!-- <el-table-column prop="type" label="类型"/> -->
           <el-table-column prop="path" label="路径"/>
           </el-table-column>
           <el-table-column label="操作" :width="200" fixed="right">
