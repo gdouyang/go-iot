@@ -1,9 +1,11 @@
 package xixun
 
 import (
+	"errors"
 	"fmt"
 	models "go-iot/models"
 	operates "go-iot/models/operates"
+	"net"
 
 	"github.com/astaxie/beego"
 )
@@ -31,7 +33,7 @@ func (this ProviderXiXunLed) ProviderId() string {
 // 开关操作
 func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device models.Device) operates.OperResp {
 	var rsp operates.OperResp
-	abc := "{\"type\": \"callCardService\",\"fn\": \"setScreenOpen\",\"arg1\": %s}"
+	abc := `{"type": "callCardService","fn": "setScreenOpen","arg1": %s}`
 	if len(status) > 0 {
 		ss := status[0]
 		if ss.Status == "open" {
@@ -49,7 +51,7 @@ func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device models.
 // Led 调光
 func (this ProviderXiXunLed) Light(value int, device models.Device) operates.OperResp {
 	var rsp operates.OperResp
-	abc := "{\"type\": \"callCardService\",\"fn\": \"setBrightness\",\"arg1\": %d}"
+	abc := `{"type": "callCardService","fn": "setBrightness","arg1": %d}`
 	abc = fmt.Sprintf(abc, value)
 	resp := SendCommand(device.Sn, abc)
 	beego.Info("light resp:", resp)
@@ -60,7 +62,7 @@ func (this ProviderXiXunLed) Light(value int, device models.Device) operates.Ope
 // Led 音量
 func (this ProviderXiXunLed) Volume(value int, device models.Device) operates.OperResp {
 	var rsp operates.OperResp
-	abc := "{\"type\": \"callCardService\",\"fn\": \"setVolume\",\"arg1\": %d}"
+	abc := `{"type": "callCardService","fn": "setVolume","arg1": %d}`
 	abc = fmt.Sprintf(abc, value)
 	resp := SendCommand(device.Sn, abc)
 	beego.Info("set volume resp:", resp)
@@ -69,10 +71,19 @@ func (this ProviderXiXunLed) Volume(value int, device models.Device) operates.Op
 }
 
 // 文件上传 url为文件下载路径，path为文件存储在本地路径  "/abc/portoflove.zip"
-func (this ProviderXiXunLed) FileUpload(url string, path string, device models.Device) operates.OperResp {
+func (this ProviderXiXunLed) FileUpload(filename string, device models.Device) operates.OperResp {
 	var rsp operates.OperResp
-	abc := "{\"type\": \"downloadFileToLocal\",\"url\": \"%s\",\"path\": \"%s\"}"
-	abc = fmt.Sprintf(abc, url, path)
+	mip, err := externalIP()
+	if err != nil {
+		fmt.Println(err)
+		rsp.Msg = "无法获取本机ip"
+		rsp.Success = false
+		return rsp
+	}
+	mport := beego.AppConfig.DefaultInt("httpport", 8080)
+	serverUrl := fmt.Sprintf("http://%s:%d/file/%s", mip, mport, filename)
+	abc := `{"type": "downloadFileToLocal","url": "%s","path": "/abc/%s"}`
+	abc = fmt.Sprintf(abc, serverUrl, filename)
 	resp := SendCommand(device.Sn, abc)
 	beego.Info("Upload file resp:", resp)
 	rsp.Msg = resp
@@ -86,12 +97,80 @@ type uploadResp struct {
 	Length int    `json:"length"`
 }
 
-func (this ProviderXiXunLed) FileLength(path string, device models.Device) operates.OperResp {
+func (this ProviderXiXunLed) FileLength(filename string, device models.Device) operates.OperResp {
 	var rsp operates.OperResp
-	abc := "{\"type\": \"getFileLength\",\"path\": \"%s\"}"
-	abc = fmt.Sprintf(abc, path)
+	abc := `{"type": "getFileLength","path": "%s"}`
+	abc = fmt.Sprintf(abc, filename)
 	resp := SendCommand(device.Sn, abc)
 	beego.Info("fileLength resp:", resp)
 	rsp.Msg = resp
 	return rsp
+}
+
+// 文件删除
+func (this ProviderXiXunLed) FileDrop(filename string, device models.Device) operates.OperResp {
+	var rsp operates.OperResp
+	abc := `{"type": "deleteFileFromLocal","path": "/abc/%s"}`
+	abc = fmt.Sprintf(abc, filename)
+	resp := SendCommand(device.Sn, abc)
+	beego.Info("fileLength resp:", resp)
+	rsp.Msg = resp
+	return rsp
+}
+
+// 文件播放ZIP
+func (this ProviderXiXunLed) PlayZip(filename string, device models.Device) operates.OperResp {
+	var rsp operates.OperResp
+	abc := `{"type":"commandXixunPlayer","command":{"_type":"PlayXixunProgramZip","path":"/abc/%s","password":"888"}}`
+	abc = fmt.Sprintf(abc, filename)
+	resp := SendCommand(device.Sn, abc)
+	beego.Info("fileLength resp:", resp)
+	rsp.Msg = resp
+	return rsp
+}
+
+func externalIP() (net.IP, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 {
+			continue // interface down
+		}
+		if iface.Flags&net.FlagLoopback != 0 {
+			continue // loopback interface
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return nil, err
+		}
+		for _, addr := range addrs {
+			ip := getIpFromAddr(addr)
+			if ip == nil {
+				continue
+			}
+			return ip, nil
+		}
+	}
+	return nil, errors.New("connected to the network?")
+}
+
+func getIpFromAddr(addr net.Addr) net.IP {
+	var ip net.IP
+	switch v := addr.(type) {
+	case *net.IPNet:
+		ip = v.IP
+	case *net.IPAddr:
+		ip = v.IP
+	}
+	if ip == nil || ip.IsLoopback() {
+		return nil
+	}
+	ip = ip.To4()
+	if ip == nil {
+		return nil // not an ipv4 address
+	}
+
+	return ip
 }
