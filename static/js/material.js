@@ -45,6 +45,9 @@ function(materialAdd) {
           })
         })
       },
+      download(data){
+        document.location.href = `/material/download/${data.id}`;
+      }
     },
     template: `
       <el-card class="box-card">
@@ -65,6 +68,7 @@ function(materialAdd) {
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
+              <el-button type="text" size="small" @click="download(scope.row)">下载</el-button>
             </template>
           </el-table-column>
         </my-table>

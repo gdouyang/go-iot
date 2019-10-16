@@ -162,7 +162,7 @@ func DeleteMaterial(ob *Material) error {
 	db, _ := getDb()
 	defer db.Close()
 
-	m, err := GetMaterialByName(ob.Name)
+	m, err := GetMaterialById(ob.Id)
 	if err != nil {
 		return err
 	}
@@ -185,6 +185,28 @@ func GetMaterialByName(name string) (Material, error) {
 	defer db.Close()
 	sql := "SELECT id_,name_,type_,path_ FROM material where name_ = ?"
 	rows, err := db.Query(sql, name)
+	if err != nil {
+		return result, err
+	}
+	var (
+		Id, Name, Type, Path string
+	)
+	defer rows.Close()
+	for rows.Next() {
+		rows.Scan(&Id, &Name, &Type, &Path)
+		result = Material{Id: Id, Name: Name, Type: Type, Path: Path}
+		break
+	}
+	return result, nil
+}
+
+// 根据id查询素材
+func GetMaterialById(id string) (Material, error) {
+	var result Material
+	db, _ := getDb()
+	defer db.Close()
+	sql := "SELECT id_,name_,type_,path_ FROM material where id_ = ?"
+	rows, err := db.Query(sql, id)
 	if err != nil {
 		return result, err
 	}

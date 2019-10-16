@@ -17,13 +17,14 @@ func init() {
 	beego.Router("/material/add", &MaterialController{}, "post:Add")
 	beego.Router("/material/update", &MaterialController{}, "post:Add")
 	beego.Router("/material/delete", &MaterialController{}, "post:Delete")
+	beego.Router("/material/download/:id", &MaterialController{}, "get:Download")
 }
 
 type MaterialController struct {
 	beego.Controller
 }
 
-// 查询设备列表
+// 查询素材列表
 func (this *MaterialController) List() {
 	var ob models.PageQuery
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
@@ -38,7 +39,7 @@ func (this *MaterialController) List() {
 	this.ServeJSON()
 }
 
-// 添加设备
+// 添加素材
 func (this *MaterialController) Add() {
 	var ob material.Material
 	ob.Name = this.GetString("name")
@@ -86,27 +87,28 @@ func (this *MaterialController) Add() {
 	}
 }
 
-// 更新设备信息
-func (this *MaterialController) Update() {
-	var ob material.Material
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-	err := material.UpdateMaterial(&ob)
-	var resp models.JsonResp
-	resp.Success = true
-	resp.Msg = "修改成功!"
-	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
-	}
-	this.Data["json"] = &resp
-	this.ServeJSON()
-}
-
-// 删除设备
+// 删除素材
 func (this *MaterialController) Delete() {
 	var ob material.Material
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 	material.DeleteMaterial(&ob)
 	this.Data["json"] = &ob
 	this.ServeJSON()
+}
+
+// 下载素材
+func (this *MaterialController) Download() {
+	id := this.Ctx.Input.Param(":id")
+
+	ob, err := material.GetMaterialById(id)
+	if err != nil {
+		beego.Error(err.Error())
+	}
+
+	if len(ob.Id) == 0 {
+		this.Ctx.Output.SetStatus(404)
+	} else {
+		this.Ctx.Output.Download("." + ob.Path)
+	}
+
 }
