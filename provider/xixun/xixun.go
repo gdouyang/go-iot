@@ -129,6 +129,18 @@ func (this ProviderXiXunLed) PlayZip(filename string, device models.Device) oper
 	return rsp
 }
 
+// 获取截图
+func (this ProviderXiXunLed) ScreenShot(device models.Device) operates.OperResp {
+	var rsp operates.OperResp
+	abc := `{"type": "callCardService","fn": "screenshot","arg1": 100,arg2": 100}`
+	resp := SendCommand(device.Sn, abc)
+	beego.Info("fileLength resp:", resp)
+	rsp.Msg = resp
+	return rsp
+}
+
+// 下发实时消息
+
 func externalIP() (net.IP, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
