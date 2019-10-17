@@ -73,20 +73,11 @@ func (this ProviderXiXunLed) Volume(value int, device models.Device) operates.Op
 }
 
 // 文件上传 url为文件下载路径，path为文件存储在本地路径  "/abc/portoflove.zip"
-func (this ProviderXiXunLed) FileUpload(filename string, device models.Device) operates.OperResp {
+func (this ProviderXiXunLed) FileUpload(sn string, url string, filename string) operates.OperResp {
 	var rsp operates.OperResp
-	mip, err := externalIP()
-	if err != nil {
-		fmt.Println(err)
-		rsp.Msg = "无法获取本机ip"
-		rsp.Success = false
-		return rsp
-	}
-	mport := beego.AppConfig.DefaultInt("httpport", 8080)
-	serverUrl := fmt.Sprintf("http://%s:%d/file/%s", mip, mport, filename)
 	abc := `{"type": "downloadFileToLocal","url": "%s","path": "/abc/%s"}`
-	abc = fmt.Sprintf(abc, serverUrl, filename)
-	resp := SendCommand(device.Sn, abc)
+	abc = fmt.Sprintf(abc, url, filename)
+	resp := SendCommand(sn, abc)
 	beego.Info("Upload file resp:", resp)
 	rsp.Msg = resp
 	return rsp

@@ -1,10 +1,11 @@
-define(["components/device_add", "components/switchOpt", "components/lightOpt"], 
-function(deviceAdd, switchOpt, lightOpt) {
+define(["components/device_add", "components/switchOpt", "components/lightOpt", "components/ledFileUpload"], 
+function(deviceAdd, switchOpt, lightOpt, ledFileUpload) {
   return {
     components:{
       'add-dialog': deviceAdd,
       'switch-opt': switchOpt,
       'light-opt': lightOpt,
+      'led-file-upload': ledFileUpload,
     },
     data: function () {
       return {
@@ -91,6 +92,7 @@ function(deviceAdd, switchOpt, lightOpt) {
               <switch-opt :deviceId="scope.row.id"/>
               <light-opt :deviceId="scope.row.id"/>
               <el-button type="text" size="small" @click="screenShot(scope.row)">截图</el-button>
+              <led-file-upload :deviceId="scope.row.id"/>
             </template>
           </el-table-column>
         </my-table>

@@ -63,7 +63,6 @@ function(materialAdd) {
           <el-table-column prop="name" label="名称"/>
           <!-- <el-table-column prop="type" label="类型"/> -->
           <el-table-column prop="path" label="路径"/>
-          </el-table-column>
           <el-table-column label="操作" :width="200" fixed="right">
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
