@@ -47,19 +47,16 @@ function(deviceAdd, switchOpt, lightOpt) {
           })
         })
       },
-      status(data){
-        fetch('/north/control/status', {
+      screenShot(data){
+        fetch(`/north/control/xixun/v1/${data.id}/screenShot`, {
           method: 'POST',
-          body: JSON.stringify(data),
-          headers: new Headers({
-            'Content-Type': 'application/json'
-          })
+          body: "",
         }).then(res => {
           return res.json()
         }).then(data => {
           this.$message({
-            type: 'success',
-            message: JSON.stringify(data)
+            type: data.success ? 'success' : 'error',
+            message: data.msg
           });
         })
       },
@@ -93,7 +90,7 @@ function(deviceAdd, switchOpt, lightOpt) {
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
               <switch-opt :deviceId="scope.row.id"/>
               <light-opt :deviceId="scope.row.id"/>
-              <!-- <el-button type="text" size="small" @click="status(scope.row)">状态</el-button> -->
+              <el-button type="text" size="small" @click="screenShot(scope.row)">截图</el-button>
             </template>
           </el-table-column>
         </my-table>

@@ -20,7 +20,7 @@ define({
           return res.json()
         }).then(data => {
           this.$message({
-            type: 'success',
+            type: data.success ? 'success' : 'error',
             message: data.msg
           });
         })

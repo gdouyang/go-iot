@@ -11,14 +11,16 @@ import (
 )
 
 // 厂商ID
-var providerId string = "xixunled"
+var (
+	providerId           string           = "xixunled"
+	ProviderImplXiXunLed ProviderXiXunLed = ProviderXiXunLed{providerId}
+)
 
 func init() {
 	//启动WebSocket
 	startWebSocket()
 	// 注册厂商
-	provider := ProviderXiXunLed{providerId}
-	operates.RegisterProvider(provider.ProviderId(), provider)
+	operates.RegisterProvider(ProviderImplXiXunLed.ProviderId(), ProviderImplXiXunLed)
 }
 
 // 厂商实现
@@ -130,10 +132,10 @@ func (this ProviderXiXunLed) PlayZip(filename string, device models.Device) oper
 }
 
 // 获取截图
-func (this ProviderXiXunLed) ScreenShot(device models.Device) operates.OperResp {
+func (this ProviderXiXunLed) ScreenShot(sn string) operates.OperResp {
 	var rsp operates.OperResp
 	abc := `{"type": "callCardService","fn": "screenshot","arg1": 100,arg2": 100}`
-	resp := SendCommand(device.Sn, abc)
+	resp := SendCommand(sn, abc)
 	beego.Info("fileLength resp:", resp)
 	rsp.Msg = resp
 	return rsp
