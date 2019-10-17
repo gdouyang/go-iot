@@ -17,7 +17,6 @@ func init() {
 	beego.Router("/material/add", &MaterialController{}, "post:Add")
 	beego.Router("/material/update", &MaterialController{}, "post:Add")
 	beego.Router("/material/delete", &MaterialController{}, "post:Delete")
-	beego.Router("/material/download/:id", &MaterialController{}, "get:Download")
 }
 
 type MaterialController struct {
@@ -94,21 +93,4 @@ func (this *MaterialController) Delete() {
 	material.DeleteMaterial(&ob)
 	this.Data["json"] = &ob
 	this.ServeJSON()
-}
-
-// 下载素材
-func (this *MaterialController) Download() {
-	id := this.Ctx.Input.Param(":id")
-
-	ob, err := material.GetMaterialById(id)
-	if err != nil {
-		beego.Error(err.Error())
-	}
-
-	if len(ob.Id) == 0 {
-		this.Ctx.Output.SetStatus(404)
-	} else {
-		this.Ctx.Output.Download("." + ob.Path)
-	}
-
 }
