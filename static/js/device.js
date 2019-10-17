@@ -11,6 +11,7 @@ function(deviceAdd, switchOpt, lightOpt, ledFileUpload) {
       return {
         tableData: [],
         searchParam:{id:''},
+		ledParam:{screenshot:'',yet:false}
       }
     },
     mounted(){
@@ -55,10 +56,16 @@ function(deviceAdd, switchOpt, lightOpt, ledFileUpload) {
         }).then(res => {
           return res.json()
         }).then(data => {
-          this.$message({
-            type: data.success ? 'success' : 'error',
-            message: data.msg
-          });
+			if(data.success){
+				this.ledParam.yet = true
+				this.ledParam.screenshot = data.msg
+				console.log(this.ledParam.screenshot)
+			}else{
+				this.$message({
+            	type: 'error',
+            	message: data.msg
+          		});
+			}
         })
       },
     },
@@ -84,6 +91,11 @@ function(deviceAdd, switchOpt, lightOpt, ledFileUpload) {
               {{scope.row.onlineStatus}}
               </el-tag>
             </template>
+          </el-table-column>
+		  <el-table-column label="截图" :show-overflow-tooltip="true">
+		    <template slot-scope="scope">
+              <img v-if="ledParam.yet" :src="ledParam.screenshot" class="avatar" style="width: 100%;border-radius: 50%;"/>
+			</template>
           </el-table-column>
           <el-table-column label="操作" :width="200" fixed="right">
             <template slot-scope="scope">
