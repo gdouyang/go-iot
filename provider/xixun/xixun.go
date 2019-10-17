@@ -1,11 +1,15 @@
 package xixun
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	models "go-iot/models"
 	operates "go-iot/models/operates"
+	"io/ioutil"
 	"net"
+	"os"
 
 	"github.com/astaxie/beego"
 )
@@ -123,12 +127,38 @@ func (this ProviderXiXunLed) PlayZip(filename string, device models.Device) oper
 }
 
 // 获取截图
+type screenshoot struct {
+	Type   string `json:"_type"`
+	Result string `json:"result"`
+}
+
 func (this ProviderXiXunLed) ScreenShot(sn string) operates.OperResp {
 	var rsp operates.OperResp
-	abc := `{"type": "callCardService","fn": "screenshot","arg1": 100,arg2": 100}`
+	abc := `{"type":"callCardService","fn":"screenshot","arg1": 100,"arg2": 100}`
 	resp := SendCommand(sn, abc)
-	beego.Info("fileLength resp:", resp)
-	rsp.Msg = resp
+	//截图保存在文件中，让界面默认展示
+	ssback := screenshoot{}
+	err := json.Unmarshal([]byte(resp), &ssback)
+	if err != nil {
+		rsp.Msg = err.Error()
+		rsp.Success = false
+		return rsp
+	}
+	pngStream, _ := base64.StdEncoding.DecodeString(ssback.Result)
+	err = os.Mkdir("files/screenshot", 0700)
+	if err != nil {
+		beego.Info(err)
+	}
+	pngName := fmt.Sprintf("files/screenshot/%s.png", sn)
+	err = ioutil.WriteFile(pngName, pngStream, 0666)
+	if err != nil {
+		rsp.Msg = err.Error()
+		rsp.Success = false
+		return rsp
+	}
+	beego.Info("截图指令:", resp)
+	rsp.Msg = ssback.Result
+	rsp.Success = true
 	return rsp
 }
 
