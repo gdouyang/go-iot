@@ -48,7 +48,7 @@ Vue.component('my-table', {
     selectionChange(selection){
       this.selectionData = selection;
     },
-    getSelectData(key){
+    getCheckData(key){
       var result = []
       this.selectionData.forEach(element => {
         if(key){
