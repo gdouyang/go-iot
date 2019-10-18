@@ -53,7 +53,12 @@ func (this *XiXunLedController) FileUpload() {
 		for _, id := range materialIds {
 			material, err := material.GetMaterialById(id)
 			if err == nil {
-				operResp := ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+material.Id, material.Name)
+				filename := material.Path
+				index := strings.LastIndex(material.Path, "/")
+				if index != -1 {
+					filename = filename[index+1:]
+				}
+				operResp := ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+material.Id, filename)
 				this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
 			}
 		}

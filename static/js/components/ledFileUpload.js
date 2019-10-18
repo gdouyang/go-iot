@@ -4,7 +4,7 @@ define({
     },
     data: function () {
       return {
-        serverUrl: window.location.host
+        serverUrl: window.location.protocol+"//"+window.location.host
       }
     },
     mounted(){
