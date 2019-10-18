@@ -63,7 +63,7 @@ Vue.component('my-menu', {
         </el-menu-item-group>
       </el-submenu>
       <el-menu-item index="material">
-        <i class="el-icon-mobile-phone"></i>
+        <i class="el-icon-files"></i>
         <span slot="title">素材</span>
       </el-menu-item>
     </el-menu>
