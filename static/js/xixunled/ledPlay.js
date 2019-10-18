@@ -12,7 +12,7 @@ define({
     },
     methods: {
       ledPlay(){
-        let idArray = this.$refs.table.getSelectData("id");
+        let idArray = this.$refs.table.getCheckData("id");
         if(idArray.length != 1){
           this.$message({
             type: 'error',
