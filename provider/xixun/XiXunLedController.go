@@ -52,6 +52,7 @@ func (this *XiXunLedController) FileUpload() {
 		materialIds := strings.Split(ids, ",")
 		serverUrl := param["serverUrl"]
 		serverUrl += "/file/"
+		msg := ""
 		for _, id := range materialIds {
 			material, err := material.GetMaterialById(id)
 			if err == nil {
@@ -61,9 +62,12 @@ func (this *XiXunLedController) FileUpload() {
 					filename = filename[index+1:]
 				}
 				operResp := ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+material.Id, filename)
-				this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+				msg += operResp.Msg
+			} else {
+				msg += err.Error()
 			}
 		}
+		this.Data["json"] = models.JsonResp{Success: true, Msg: msg}
 	}
 
 	this.ServeJSON()
