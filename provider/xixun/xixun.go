@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/astaxie/beego"
 )
@@ -91,17 +92,19 @@ func (this ProviderXiXunLed) FileUpload(sn string, url string, filename string) 
 // Return:{"length":2560812,"_type":"success"}
 type uploadResp struct {
 	Type   string `json:"_type"`
-	Length int    `json:"length"`
+	Length int64  `json:"length"`
 }
 
-func (this ProviderXiXunLed) FileLength(filename string, device models.Device) operates.OperResp {
-	var rsp operates.OperResp
-	abc := `{"type": "getFileLength","path": "%s"}`
+func (this ProviderXiXunLed) FileLength(filename string, device models.Device) (int64, error) {
+	abc := `{"type": "getLocalFileLength","path": "/abc/%s"}`
 	abc = fmt.Sprintf(abc, filename)
 	resp := SendCommand(device.Sn, abc)
-	beego.Info("fileLength resp:", resp)
-	rsp.Msg = resp
-	return rsp
+	rsp := uploadResp{}
+	json.Unmarshal([]byte(resp), &rsp)
+	if strings.EqualFold(rsp.Type, "success") {
+		return rsp.Length, nil
+	}
+	return 0, errors.New(resp)
 }
 
 // 文件删除
@@ -110,7 +113,7 @@ func (this ProviderXiXunLed) FileDrop(filename string, device models.Device) ope
 	abc := `{"type": "deleteFileFromLocal","path": "/abc/%s"}`
 	abc = fmt.Sprintf(abc, filename)
 	resp := SendCommand(device.Sn, abc)
-	beego.Info("fileLength resp:", resp)
+	beego.Info("filedrop resp:", resp)
 	rsp.Msg = resp
 	return rsp
 }
@@ -118,10 +121,10 @@ func (this ProviderXiXunLed) FileDrop(filename string, device models.Device) ope
 // 文件播放ZIP
 func (this ProviderXiXunLed) PlayZip(filename string, device models.Device) operates.OperResp {
 	var rsp operates.OperResp
-	abc := `{"type":"commandXixunPlayer","command":{"_type":"PlayXixunProgramZip","path":"/abc/%s","password":"888"}}`
+	abc := `{"type":"commandXixunPlayer","command":{"_type":"PlayXixunProgramZip","path":"\/data\/data\/com.xixun.xy.conn\/files\/local\/abc\/%s","password":"888"}}`
 	abc = fmt.Sprintf(abc, filename)
 	resp := SendCommand(device.Sn, abc)
-	beego.Info("fileLength resp:", resp)
+	beego.Info("fileplay resp:", resp)
 	rsp.Msg = resp
 	return rsp
 }

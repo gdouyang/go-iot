@@ -18,6 +18,7 @@ type Material struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 	Path string `json:"path"`
+	Size string `json:"size"`
 }
 
 func init() {
@@ -29,6 +30,7 @@ func init() {
 	    name_ VARCHAR(64) NULL,
 		type_ VARCHAR(32) NULL,
 		path_ VARCHAR(128) NULL,
+		size_ VARCHAR(32) NULL,
 	    created_ DATE NULL
 		);
 	`)
@@ -112,11 +114,11 @@ func AddMaterial(ob *Material) error {
 	db, _ := getDb()
 	defer db.Close()
 	stmt, _ := db.Prepare(`
-	INSERT INTO material(name_, type_, path_, created_) 
-	values(?,?,?,?)
+	INSERT INTO material(name_, type_, path_,size_, created_) 
+	values(?,?,?,?,?)
 	`)
 
-	_, err = stmt.Exec(ob.Name, ob.Type, ob.Path, "")
+	_, err = stmt.Exec(ob.Name, ob.Type, ob.Path, ob.Size, "")
 	if err != nil {
 		return err
 	}
@@ -140,6 +142,10 @@ func UpdateMaterial(ob *Material) error {
 	if len(ob.Path) > 0 {
 		sql += ", path_ = ?"
 		params = append(params, ob.Path)
+	}
+	if len(ob.Size) > 0 {
+		sql += ", size_ = ?"
+		params = append(params, ob.Size)
 	}
 	sql += " where id_ = ?"
 	params = append(params, ob.Id)
@@ -183,18 +189,18 @@ func GetMaterialByName(name string) (Material, error) {
 	var result Material
 	db, _ := getDb()
 	defer db.Close()
-	sql := "SELECT id_,name_,type_,path_ FROM material where name_ = ?"
+	sql := "SELECT id_,name_,type_,path_,size_ FROM material where name_ = ?"
 	rows, err := db.Query(sql, name)
 	if err != nil {
 		return result, err
 	}
 	var (
-		Id, Name, Type, Path string
+		Id, Name, Type, Path, Size string
 	)
 	defer rows.Close()
 	for rows.Next() {
-		rows.Scan(&Id, &Name, &Type, &Path)
-		result = Material{Id: Id, Name: Name, Type: Type, Path: Path}
+		rows.Scan(&Id, &Name, &Type, &Path, &Size)
+		result = Material{Id: Id, Name: Name, Type: Type, Path: Path, Size: Size}
 		break
 	}
 	return result, nil
@@ -205,18 +211,18 @@ func GetMaterialById(id string) (Material, error) {
 	var result Material
 	db, _ := getDb()
 	defer db.Close()
-	sql := "SELECT id_,name_,type_,path_ FROM material where id_ = ?"
+	sql := "SELECT id_,name_,type_,path_,size_ FROM material where id_ = ?"
 	rows, err := db.Query(sql, id)
 	if err != nil {
 		return result, err
 	}
 	var (
-		Id, Name, Type, Path string
+		Id, Name, Type, Path, Size string
 	)
 	defer rows.Close()
 	for rows.Next() {
-		rows.Scan(&Id, &Name, &Type, &Path)
-		result = Material{Id: Id, Name: Name, Type: Type, Path: Path}
+		rows.Scan(&Id, &Name, &Type, &Path, &Size)
+		result = Material{Id: Id, Name: Name, Type: Type, Path: Path, Size: Size}
 		break
 	}
 	return result, nil

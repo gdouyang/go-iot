@@ -1,6 +1,6 @@
 define(["components/device_add", "components/switchOpt", "components/lightOpt", 
-"xixunled/ledFileUpload", "xixunled/screenshot"], 
-function(deviceAdd, switchOpt, lightOpt, ledFileUpload, screenshot) {
+"xixunled/ledFileUpload", "xixunled/screenshot","xixunled/ledPlay"], 
+function(deviceAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay) {
   return {
     components:{
       'add-dialog': deviceAdd,
@@ -8,6 +8,7 @@ function(deviceAdd, switchOpt, lightOpt, ledFileUpload, screenshot) {
       'light-opt': lightOpt,
       'led-file-upload': ledFileUpload,
       'screenshot': screenshot,
+	  'ledPlay':ledPlay,
     },
     data: function () {
       return {
@@ -82,6 +83,7 @@ function(deviceAdd, switchOpt, lightOpt, ledFileUpload, screenshot) {
               <light-opt :deviceId="scope.row.id"/>
               <screenshot :deviceId="scope.row.id"/>
               <led-file-upload :deviceId="scope.row.id"/>
+			  <ledPlay :deviceId="scope.row.id"/>
             </template>
           </el-table-column>
         </my-table>

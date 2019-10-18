@@ -70,6 +70,7 @@ func (this *MaterialController) Add() {
 			return
 		}
 		ob.Path = filePath
+		ob.Size = strconv.FormatInt(h.Size, 10)
 	}
 	if len(ob.Id) > 0 {
 		resp.Msg = "修改成功!"
