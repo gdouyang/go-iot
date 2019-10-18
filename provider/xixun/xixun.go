@@ -144,6 +144,11 @@ func (this ProviderXiXunLed) ScreenShot(sn string) operates.OperResp {
 		rsp.Success = false
 		return rsp
 	}
+	if len(ssback.Result) == 0 && len(ssback.Type) == 0 {
+		rsp.Msg = resp
+		rsp.Success = false
+		return rsp
+	}
 	pngStream, _ := base64.StdEncoding.DecodeString(ssback.Result)
 	err = os.Mkdir("files/screenshot", 0700)
 	if err != nil {

@@ -128,7 +128,7 @@ func SendCommand(sn string, command string) string {
 	} else {
 		beego.Warn("not found led sn:", sn)
 	}
-	return fmt.Sprint(`{"success":false, msg:"`, sn, `没有在线"}`)
+	return fmt.Sprint(`{"success":false, "msg":"`, sn, `没有在线"}`)
 }
 
 // LED没有返回的情况需要处理超时
