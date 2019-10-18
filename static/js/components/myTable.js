@@ -36,6 +36,7 @@ Vue.component('my-table', {
         if(data.list == null){
           data.list = []
         }
+        this.$emit('done-load', data.list);
         this.tableData = data.list;
         this.total = data.total;
       }, err => this.loading = false)

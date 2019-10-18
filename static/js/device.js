@@ -1,17 +1,18 @@
-define(["components/device_add", "components/switchOpt", "components/lightOpt", "components/ledFileUpload"], 
-function(deviceAdd, switchOpt, lightOpt, ledFileUpload) {
+define(["components/device_add", "components/switchOpt", "components/lightOpt", "components/ledFileUpload"
+, "components/screenshot"], 
+function(deviceAdd, switchOpt, lightOpt, ledFileUpload, screenshot) {
   return {
     components:{
       'add-dialog': deviceAdd,
       'switch-opt': switchOpt,
       'light-opt': lightOpt,
       'led-file-upload': ledFileUpload,
+      'screenshot': screenshot,
     },
     data: function () {
       return {
         tableData: [],
-        searchParam:{id:''},
-		ledParam:{screenshot:'',yet:false}
+        searchParam:{id:''}
       }
     },
     mounted(){
@@ -49,25 +50,6 @@ function(deviceAdd, switchOpt, lightOpt, ledFileUpload) {
           })
         })
       },
-      screenShot(data){
-        fetch(`/north/control/xixun/v1/${data.id}/screenShot`, {
-          method: 'POST',
-          body: "",
-        }).then(res => {
-          return res.json()
-        }).then(data => {
-			if(data.success){
-				this.ledParam.yet = true
-				this.ledParam.screenshot = data.msg
-				console.log(this.ledParam.screenshot)
-			}else{
-				this.$message({
-            	type: 'error',
-            	message: data.msg
-          		});
-			}
-        })
-      },
     },
     template: `
       <el-card class="box-card">
@@ -92,18 +74,13 @@ function(deviceAdd, switchOpt, lightOpt, ledFileUpload) {
               </el-tag>
             </template>
           </el-table-column>
-		  <el-table-column label="截图" :show-overflow-tooltip="true">
-		    <template slot-scope="scope">
-              <img v-if="ledParam.yet" :src="ledParam.screenshot" class="avatar" style="width: 100%;border-radius: 50%;"/>
-			</template>
-          </el-table-column>
           <el-table-column label="操作" :width="200" fixed="right">
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
               <switch-opt :deviceId="scope.row.id"/>
               <light-opt :deviceId="scope.row.id"/>
-              <el-button type="text" size="small" @click="screenShot(scope.row)">截图</el-button>
+              <screenshot :deviceId="scope.row.id"/>
               <led-file-upload :deviceId="scope.row.id"/>
             </template>
           </el-table-column>
