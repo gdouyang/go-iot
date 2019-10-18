@@ -6,19 +6,22 @@
   <!-- import CSS -->
   <link rel="stylesheet" href="static/css/element-ui.css">
   <link rel="stylesheet" href="static/css/base.css">
+  <style>
+    body{margin: 0px;}
+  </style>
 </head>
 <body>
   <div id="app">
-      <el-container style=" border: 1px solid #eee">
-          <el-aside width="200px" style="background-color: rgb(238, 241, 246)">
-              <my-menu></my-menu>
-          </el-aside>
-          <el-container>
-              <el-main>
-                <router-view></router-view>
-              </el-main>
-          </el-container>
+    <el-container :style="elMainStyle">
+      <el-aside width="200px" style="background-color: #545c64">
+          <my-menu></my-menu>
+      </el-aside>
+      <el-container>
+          <el-main>
+            <router-view></router-view>
+          </el-main>
       </el-container>
+    </el-container>
   </div>
 </body>
   <!-- import Vue before Element -->
@@ -26,10 +29,9 @@
   <script src="static/js/lib/vue-router.js"></script>
   <!-- import JavaScript -->
   <script src="static/js/lib/element-ui.js"></script>
-  <script src="static/js/lib/require.js" data-main="static/js/menu"></script>
   <script src="static/js/components/myTable.js"></script>
   <script src="static/js/components/myDialog.js"></script>
-  <script src="static/js/router.js"></script>
+  <script src="static/js/lib/require.js" data-main="static/js/menu"></script>
   <script>
     
   </script>

@@ -1,5 +1,5 @@
-define(["components/device_add", "components/switchOpt", "components/lightOpt", "components/ledFileUpload"
-, "components/screenshot"], 
+define(["components/device_add", "components/switchOpt", "components/lightOpt", 
+"xixunled/ledFileUpload", "xixunled/screenshot"], 
 function(deviceAdd, switchOpt, lightOpt, ledFileUpload, screenshot) {
   return {
     components:{
@@ -54,7 +54,7 @@ function(deviceAdd, switchOpt, lightOpt, ledFileUpload, screenshot) {
     template: `
       <el-card class="box-card">
       <div slot="header" class="clearfix">
-        <span>设备列表</span>
+        <span>LED列表</span>
         <el-input v-model="searchParam.id" @keyup.native.enter="searchList" style="width:200px;"></el-input>
         <el-button type="text" @click="searchList">查询</el-button>
         <el-button type="text" @click="openDialog(null, false)">添加</el-button>
