@@ -5,16 +5,18 @@ require.config({
         restful: 'restful',
         echows: 'echows',
         material: 'material',
+        agent: 'agent',
     }
 });
 
-require(['device', 'echows', 'restful', 'material'], 
-function(device, echows, Restful, material) {
+require(['device', 'echows', 'restful', 'material', 'agent'], 
+function(device, echows, Restful, material, agent) {
   const routes = [
       { path: '/echows', component: echows },
       { path: '/restful', component: Restful },
       { path: '/device', component: device },
       { path: '/material', component: material },
+      { path: '/agent', component: agent },
     ]
     
     // 3. 创建 router 实例，然后传 `routes` 配置
@@ -45,12 +47,16 @@ Vue.component('my-menu', {
 	template: `
 		<el-menu default-active="2" background-color="#545c64" text-color="#fff" :router="true" style="height: 100%;">
       <el-menu-item index="echows">
-        <i class="el-icon-connection"></i>
+        <i class="el-icon-chat-line-square"></i>
         <span slot="title">Push Echo</span>
       </el-menu-item>
       <el-menu-item index="restful">
-        <i class="el-icon-monitor"></i>
+        <i class="el-icon-chat-line-round"></i>
         <span slot="title">Restful</span>
+      </el-menu-item>
+      <el-menu-item index="agent">
+        <i class="el-icon-connection"></i>
+        <span slot="title">Agent</span>
       </el-menu-item>
       <el-submenu index="2">
         <template slot="title">
