@@ -49,7 +49,7 @@ func conn() {
 
 func timeWriter(conn *websocket.Conn) {
 	for {
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 20)
 		ping := `{"sn":"agent123456"}`
 		conn.WriteMessage(websocket.TextMessage, []byte(ping))
 	}
