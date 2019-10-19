@@ -52,3 +52,9 @@ type JsonResp struct {
 func (this *PageQuery) PageOffset() int {
 	return (this.PageNum - 1) * this.PageSize
 }
+
+// 开关状态
+type SwitchStatus struct {
+	Index  int    //第几路开关从0开始
+	Status string //状态open,close
+}

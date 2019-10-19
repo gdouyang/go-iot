@@ -1,9 +1,11 @@
-package models
+package led
 
 import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+
+	"go-iot/models"
 
 	"github.com/astaxie/beego"
 	_ "github.com/mattn/go-sqlite3"
@@ -11,27 +13,21 @@ import (
 
 // 设备
 type Device struct {
-	Id           string         `json:"id"` //设备ID
-	Sn           string         `json:"sn"` //设备SN
-	Name         string         `json:"name"`
-	Provider     string         `json:"provider"` //厂商
-	Type         string         `json:"type"`
-	Model        string         `json:"model"`
-	OnlineStatus string         `json:"onlineStatus"` //在线状态
-	SwitchStatus []SwitchStatus `json:"switchStatus"`
-}
-
-// 开关状态
-type SwitchStatus struct {
-	Index  int    //第几路开关从0开始
-	Status string //状态open,close
+	Id           string                `json:"id"` //设备ID
+	Sn           string                `json:"sn"` //设备SN
+	Name         string                `json:"name"`
+	Provider     string                `json:"provider"` //厂商
+	Type         string                `json:"type"`
+	Model        string                `json:"model"`
+	OnlineStatus string                `json:"onlineStatus"` //在线状态
+	SwitchStatus []models.SwitchStatus `json:"switchStatus"`
 }
 
 func init() {
 	db, _ := getDb()
 	defer db.Close()
 	_, err := db.Exec(`
-		CREATE TABLE device (
+		CREATE TABLE led (
 	    id_ VARCHAR(32) PRIMARY KEY,
 	    sn_ VARCHAR(64) NULL,
 	    name_ VARCHAR(64) NULL,
@@ -44,14 +40,14 @@ func init() {
 		);
 	`)
 	if err != nil {
-		beego.Info("table device create fail:", err)
+		beego.Info("table led create fail:", err)
 	} else {
-		beego.Info("table device create success")
+		beego.Info("table led create success")
 	}
 }
 
 func getDb() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "./db/device.db")
+	db, err := sql.Open("sqlite3", "./db/led.db")
 	if err != nil {
 		beego.Info("open sqlite fail")
 	}
@@ -59,16 +55,16 @@ func getDb() (*sql.DB, error) {
 }
 
 // 分页查询设备
-func ListDevice(page *PageQuery) (*PageResult, error) {
-	var pr *PageResult
+func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
+	var pr *models.PageResult
 	var dev Device
 	json.Unmarshal(page.Condition, &dev)
 
 	//查询数据
 	db, _ := getDb()
 	defer db.Close()
-	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_ FROM device "
-	countSql := "SELECT count(*) from device"
+	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_ FROM led "
+	countSql := "SELECT count(*) from led"
 	id := dev.Id
 	params := make([]interface{}, 0)
 	if id != "" {
@@ -107,7 +103,7 @@ func ListDevice(page *PageQuery) (*PageResult, error) {
 		break
 	}
 
-	pr = &PageResult{page.PageSize, page.PageNum, count, result}
+	pr = &models.PageResult{page.PageSize, page.PageNum, count, result}
 
 	return pr, nil
 }
@@ -124,11 +120,11 @@ func AddDevie(ob *Device) error {
 	db, _ := getDb()
 	defer db.Close()
 	stmt, _ := db.Prepare(`
-	INSERT INTO device(id_, sn_, name_, provider_, type_, model_, online_status_) 
+	INSERT INTO led(id_, sn_, name_, provider_, type_, model_, online_status_) 
 	values(?,?,?,?,?,?,?)
 	`)
 
-	_, err = stmt.Exec(ob.Id, ob.Sn, ob.Name, ob.Provider, ob.Type, ob.Model, OFFLINE)
+	_, err = stmt.Exec(ob.Id, ob.Sn, ob.Name, ob.Provider, ob.Type, ob.Model, models.OFFLINE)
 	if err != nil {
 		return err
 	}
@@ -141,7 +137,7 @@ func UpdateDevice(ob *Device) error {
 	db, _ := getDb()
 	defer db.Close()
 	stmt, err := db.Prepare(`
-	update device 
+	update led 
 	set sn_=?,name_=?,provider_=?,type_=? 
 	where id_=?
 	`)
@@ -163,7 +159,7 @@ func UpdateOnlineStatus(onlineStatus string, sn string, provider string) error {
 	db, _ := getDb()
 	defer db.Close()
 	stmt, err := db.Prepare(`
-	update device 
+	update led 
 	set online_status_ = ?
 	where sn_ = ? and provider_ = ?
 	`)
@@ -183,7 +179,7 @@ func DeleteDevice(ob *Device) {
 	//更新数据
 	db, _ := getDb()
 	defer db.Close()
-	stmt, _ := db.Prepare("delete from device where id_=?")
+	stmt, _ := db.Prepare("delete from led where id_=?")
 
 	_, err := stmt.Exec(ob.Id)
 	if err != nil {
@@ -195,7 +191,7 @@ func GetDevice(deviceId string) (Device, error) {
 	var result Device
 	db, _ := getDb()
 	defer db.Close()
-	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_ FROM device where id_ = ?"
+	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_ FROM led where id_ = ?"
 	rows, err := db.Query(sql, deviceId)
 	if err != nil {
 		return result, err

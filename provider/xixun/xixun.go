@@ -38,7 +38,7 @@ func (this ProviderXiXunLed) ProviderId() string {
 }
 
 // 开关操作
-func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device models.Device) operates.OperResp {
+func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device operates.Device) operates.OperResp {
 	var rsp operates.OperResp
 	abc := `{"type": "callCardService","fn": "setScreenOpen","arg1": %s}`
 	if len(status) > 0 {
@@ -60,7 +60,7 @@ func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device models.
 }
 
 // Led 调光
-func (this ProviderXiXunLed) Light(value int, device models.Device) operates.OperResp {
+func (this ProviderXiXunLed) Light(value int, device operates.Device) operates.OperResp {
 	var rsp operates.OperResp
 	abc := `{"type": "callCardService","fn": "setBrightness","arg1": %d}`
 	abc = fmt.Sprintf(abc, value)
@@ -74,11 +74,11 @@ func (this ProviderXiXunLed) Light(value int, device models.Device) operates.Ope
 }
 
 // Led 音量
-func (this ProviderXiXunLed) Volume(value int, device models.Device) operates.OperResp {
+func (this ProviderXiXunLed) Volume(value int, sn string) operates.OperResp {
 	var rsp operates.OperResp
 	abc := `{"type": "callCardService","fn": "setVolume","arg1": %d}`
 	abc = fmt.Sprintf(abc, value)
-	resp, err := SendCommand(device.Sn, abc)
+	resp, err := SendCommand(sn, abc)
 	if err != nil {
 		rsp.Msg = err.Error()
 	} else {
@@ -108,10 +108,10 @@ type uploadResp struct {
 	Length int64  `json:"length"`
 }
 
-func (this ProviderXiXunLed) FileLength(filename string, device models.Device) (int64, error) {
+func (this ProviderXiXunLed) FileLength(filename string, sn string) (int64, error) {
 	abc := `{"type": "getLocalFileLength","path": "/abc/%s"}`
 	abc = fmt.Sprintf(abc, filename)
-	resp, err := SendCommand(device.Sn, abc)
+	resp, err := SendCommand(sn, abc)
 	if err != nil {
 		return 0, err
 	}
@@ -124,11 +124,11 @@ func (this ProviderXiXunLed) FileLength(filename string, device models.Device) (
 }
 
 // 文件删除
-func (this ProviderXiXunLed) FileDrop(filename string, device models.Device) operates.OperResp {
+func (this ProviderXiXunLed) FileDrop(filename string, sn string) operates.OperResp {
 	var rsp operates.OperResp
 	abc := `{"type": "deleteFileFromLocal","path": "/abc/%s"}`
 	abc = fmt.Sprintf(abc, filename)
-	resp, err := SendCommand(device.Sn, abc)
+	resp, err := SendCommand(sn, abc)
 	if err != nil {
 		rsp.Msg = err.Error()
 	} else {
@@ -138,11 +138,11 @@ func (this ProviderXiXunLed) FileDrop(filename string, device models.Device) ope
 }
 
 // 文件播放ZIP
-func (this ProviderXiXunLed) PlayZip(filename string, device models.Device) operates.OperResp {
+func (this ProviderXiXunLed) PlayZip(filename string, sn string) operates.OperResp {
 	var rsp operates.OperResp
 	abc := `{"type":"commandXixunPlayer","command":{"_type":"PlayXixunProgramZip","path":"\/data\/data\/com.xixun.xy.conn\/files\/local\/abc\/%s","password":"888"}}`
 	abc = fmt.Sprintf(abc, filename)
-	resp, err := SendCommand(device.Sn, abc)
+	resp, err := SendCommand(sn, abc)
 	if err != nil {
 		rsp.Msg = err.Error()
 	} else {

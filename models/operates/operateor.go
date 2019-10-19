@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/models"
+	"go-iot/models/led"
 
 	"github.com/astaxie/beego"
 )
@@ -17,9 +18,16 @@ func init() {
 		for {
 			o := <-onlineChannel
 			beego.Info("UpdateOnlineStatus")
-			models.UpdateOnlineStatus(o.OnlineStatus, o.Sn, o.Provider)
+			led.UpdateOnlineStatus(o.OnlineStatus, o.Sn, o.Provider)
 		}
 	}()
+}
+
+type Device struct {
+	Id       string `json:"id"` //设备ID
+	Sn       string `json:"sn"` //设备SN
+	Name     string `json:"name"`
+	Provider string `json:"provider"` //厂商
 }
 
 // 厂商map
@@ -81,12 +89,12 @@ type OperResp struct {
 // 开头操作
 type ISwitchOper interface {
 	// 开关
-	Switch(status []models.SwitchStatus, device models.Device) OperResp
+	Switch(status []models.SwitchStatus, device Device) OperResp
 }
 
 // 调光操作
 type ILightOper interface {
 	// 调光
 	// value 0-100
-	Light(value int, device models.Device) OperResp
+	Light(value int, device Device) OperResp
 }

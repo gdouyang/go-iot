@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"go-iot/models"
+	"go-iot/models/led"
 	"go-iot/models/operates"
 
 	"github.com/astaxie/beego"
@@ -26,7 +27,7 @@ func (this *DeviceController) List() {
 	var ob models.PageQuery
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 
-	res, err := models.ListDevice(&ob)
+	res, err := led.ListDevice(&ob)
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
@@ -38,9 +39,9 @@ func (this *DeviceController) List() {
 
 // 添加设备
 func (this *DeviceController) Add() {
-	var ob models.Device
+	var ob led.Device
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-	err := models.AddDevie(&ob)
+	err := led.AddDevie(&ob)
 
 	var resp models.JsonResp
 	resp.Success = true
@@ -55,9 +56,9 @@ func (this *DeviceController) Add() {
 
 // 更新设备信息
 func (this *DeviceController) Update() {
-	var ob models.Device
+	var ob led.Device
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-	err := models.UpdateDevice(&ob)
+	err := led.UpdateDevice(&ob)
 	var resp models.JsonResp
 	resp.Success = true
 	resp.Msg = "修改成功!"
@@ -71,9 +72,9 @@ func (this *DeviceController) Update() {
 
 // 删除设备
 func (this *DeviceController) Delete() {
-	var ob models.Device
+	var ob led.Device
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-	models.DeleteDevice(&ob)
+	led.DeleteDevice(&ob)
 	this.Data["json"] = &ob
 	this.ServeJSON()
 }

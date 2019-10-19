@@ -3,6 +3,7 @@ package xixun
 import (
 	"encoding/json"
 	"go-iot/models"
+	"go-iot/models/led"
 	"go-iot/models/material"
 	"strconv"
 	"strings"
@@ -26,7 +27,7 @@ type XiXunLedController struct {
 func (this *XiXunLedController) ScreenShot() {
 	deviceId := this.Ctx.Input.Param(":id")
 	beego.Info("deviceId=", deviceId)
-	device, err := models.GetDevice(deviceId)
+	device, err := led.GetDevice(deviceId)
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
@@ -44,7 +45,7 @@ func (this *XiXunLedController) FileUpload() {
 	var param map[string]string
 	json.Unmarshal(this.Ctx.Input.RequestBody, &param)
 
-	device, err := models.GetDevice(deviceId)
+	device, err := led.GetDevice(deviceId)
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
@@ -84,7 +85,7 @@ func (this *XiXunLedController) LedPlay() {
 	var param map[string]string
 	json.Unmarshal(this.Ctx.Input.RequestBody, &param)
 
-	device, err := models.GetDevice(deviceId)
+	device, err := led.GetDevice(deviceId)
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
@@ -104,7 +105,7 @@ func (this *XiXunLedController) LedPlay() {
 				beego.Error(err)
 			}
 			beego.Info(filename)
-			leg, err := ProviderImplXiXunLed.FileLength(filename, device)
+			leg, err := ProviderImplXiXunLed.FileLength(filename, device.Sn)
 			if err != nil {
 				this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 				this.ServeJSON()
@@ -115,7 +116,7 @@ func (this *XiXunLedController) LedPlay() {
 				this.ServeJSON()
 			}
 			//如果长度一致，就发起播放
-			operResp := ProviderImplXiXunLed.PlayZip(filename, device)
+			operResp := ProviderImplXiXunLed.PlayZip(filename, device.Sn)
 			this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
 		}
 	}

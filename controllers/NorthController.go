@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"go-iot/models"
+	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
 
 	"github.com/astaxie/beego"
@@ -27,7 +28,7 @@ func (this *NorthController) Open() {
 	var ob []models.SwitchStatus
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 
-	device, err := models.GetDevice(deviceId)
+	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
@@ -52,7 +53,7 @@ func (this *NorthController) Light() {
 	var ob map[string]int
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 	value := ob["value"]
-	device, err := models.GetDevice(deviceId)
+	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
