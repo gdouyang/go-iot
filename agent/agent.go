@@ -21,7 +21,7 @@ var (
 	queueName string
 )
 
-func init() {
+func init1() {
 	agentmode := beego.AppConfig.String("agentmode")
 	if agentmode != "true" {
 		return
