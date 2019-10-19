@@ -14,12 +14,18 @@ func init() {
 	if agentmode != "true" {
 		return
 	}
+	agent_server_ip = beego.AppConfig.String("agent_server_ip")
+	agent_sn = beego.AppConfig.String("agent_sn")
 	go conn()
 }
 
+var (
+	agent_server_ip string
+	agent_sn        string
+)
+
 // 连接iot中心管理端
 func conn() {
-	agent_server_ip := beego.AppConfig.String("agent_server_ip")
 	if len(agent_server_ip) == 0 {
 		beego.Error("agent_server_ip len is 0")
 	}
@@ -34,7 +40,7 @@ func conn() {
 		return
 	}
 	beego.Info("iot center server connected")
-	go timeWriter(conn)
+	go heartbeat(conn)
 
 	for {
 		_, message, err := conn.ReadMessage()
@@ -47,10 +53,10 @@ func conn() {
 	}
 }
 
-func timeWriter(conn *websocket.Conn) {
+func heartbeat(conn *websocket.Conn) {
 	for {
-		time.Sleep(time.Second * 20)
-		ping := `{"sn":"agent123456"}`
+		ping := `{"sn":"` + agent_sn + `"}`
 		conn.WriteMessage(websocket.TextMessage, []byte(ping))
+		time.Sleep(time.Second * 20)
 	}
 }
