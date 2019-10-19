@@ -48,9 +48,13 @@ func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device models.
 		} else {
 			abc = fmt.Sprintf(abc, "false")
 		}
-		resp := SendCommand(device.Sn, abc)
-		beego.Info("switch resp:", resp)
-		rsp.Msg = resp
+		resp, err := SendCommand(device.Sn, abc)
+		if err != nil {
+			rsp.Msg = err.Error()
+		} else {
+			rsp.Msg = resp
+		}
+
 	}
 	return rsp
 }
@@ -60,9 +64,12 @@ func (this ProviderXiXunLed) Light(value int, device models.Device) operates.Ope
 	var rsp operates.OperResp
 	abc := `{"type": "callCardService","fn": "setBrightness","arg1": %d}`
 	abc = fmt.Sprintf(abc, value)
-	resp := SendCommand(device.Sn, abc)
-	beego.Info("light resp:", resp)
-	rsp.Msg = resp
+	resp, err := SendCommand(device.Sn, abc)
+	if err != nil {
+		rsp.Msg = err.Error()
+	} else {
+		rsp.Msg = resp
+	}
 	return rsp
 }
 
@@ -71,9 +78,12 @@ func (this ProviderXiXunLed) Volume(value int, device models.Device) operates.Op
 	var rsp operates.OperResp
 	abc := `{"type": "callCardService","fn": "setVolume","arg1": %d}`
 	abc = fmt.Sprintf(abc, value)
-	resp := SendCommand(device.Sn, abc)
-	beego.Info("set volume resp:", resp)
-	rsp.Msg = resp
+	resp, err := SendCommand(device.Sn, abc)
+	if err != nil {
+		rsp.Msg = err.Error()
+	} else {
+		rsp.Msg = resp
+	}
 	return rsp
 }
 
@@ -82,9 +92,12 @@ func (this ProviderXiXunLed) FileUpload(sn string, url string, filename string) 
 	var rsp operates.OperResp
 	abc := `{"type": "downloadFileToLocal","url": "%s","path": "/abc/%s"}`
 	abc = fmt.Sprintf(abc, url, filename)
-	resp := SendCommand(sn, abc)
-	beego.Info("Upload file resp:", resp)
-	rsp.Msg = resp
+	resp, err := SendCommand(sn, abc)
+	if err != nil {
+		rsp.Msg = err.Error()
+	} else {
+		rsp.Msg = resp
+	}
 	return rsp
 }
 
@@ -98,7 +111,10 @@ type uploadResp struct {
 func (this ProviderXiXunLed) FileLength(filename string, device models.Device) (int64, error) {
 	abc := `{"type": "getLocalFileLength","path": "/abc/%s"}`
 	abc = fmt.Sprintf(abc, filename)
-	resp := SendCommand(device.Sn, abc)
+	resp, err := SendCommand(device.Sn, abc)
+	if err != nil {
+		return 0, err
+	}
 	rsp := uploadResp{}
 	json.Unmarshal([]byte(resp), &rsp)
 	if strings.EqualFold(rsp.Type, "success") {
@@ -112,9 +128,12 @@ func (this ProviderXiXunLed) FileDrop(filename string, device models.Device) ope
 	var rsp operates.OperResp
 	abc := `{"type": "deleteFileFromLocal","path": "/abc/%s"}`
 	abc = fmt.Sprintf(abc, filename)
-	resp := SendCommand(device.Sn, abc)
-	beego.Info("filedrop resp:", resp)
-	rsp.Msg = resp
+	resp, err := SendCommand(device.Sn, abc)
+	if err != nil {
+		rsp.Msg = err.Error()
+	} else {
+		rsp.Msg = resp
+	}
 	return rsp
 }
 
@@ -123,9 +142,12 @@ func (this ProviderXiXunLed) PlayZip(filename string, device models.Device) oper
 	var rsp operates.OperResp
 	abc := `{"type":"commandXixunPlayer","command":{"_type":"PlayXixunProgramZip","path":"\/data\/data\/com.xixun.xy.conn\/files\/local\/abc\/%s","password":"888"}}`
 	abc = fmt.Sprintf(abc, filename)
-	resp := SendCommand(device.Sn, abc)
-	beego.Info("fileplay resp:", resp)
-	rsp.Msg = resp
+	resp, err := SendCommand(device.Sn, abc)
+	if err != nil {
+		rsp.Msg = err.Error()
+	} else {
+		rsp.Msg = resp
+	}
 	return rsp
 }
 
@@ -138,10 +160,15 @@ type screenshoot struct {
 func (this ProviderXiXunLed) ScreenShot(sn string) operates.OperResp {
 	var rsp operates.OperResp
 	abc := `{"type":"callCardService","fn":"screenshot","arg1": 100,"arg2": 100}`
-	resp := SendCommand(sn, abc)
+	resp, err := SendCommand(sn, abc)
+	if err != nil {
+		rsp.Msg = err.Error()
+		rsp.Success = false
+		return rsp
+	}
 	//截图保存在文件中，让界面默认展示
 	ssback := screenshoot{}
-	err := json.Unmarshal([]byte(resp), &ssback)
+	err = json.Unmarshal([]byte(resp), &ssback)
 	if err != nil {
 		rsp.Msg = err.Error()
 		rsp.Success = false

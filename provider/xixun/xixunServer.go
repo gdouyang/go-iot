@@ -3,6 +3,7 @@ package xixun
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -112,7 +113,7 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 }
 
 // 发送命令给Led，等待Led给出响应后返回
-func SendCommand(sn string, command string) string {
+func SendCommand(sn string, command string) (string, error) {
 	led, ok := subscribers[sn]
 	if ok {
 		// LED没有返回的情况需要处理超时
@@ -124,11 +125,9 @@ func SendCommand(sn string, command string) string {
 		led.Cond.Wait()
 		led.Cond.L.Unlock()
 		beego.Info("led.Resp", &led.Resp, led.Resp)
-		return led.Resp
-	} else {
-		beego.Warn("not found led sn:", sn)
+		return led.Resp, nil
 	}
-	return fmt.Sprint(`{"success":false, "msg":"`, sn, `没有在线"}`)
+	return "", errors.New(sn + "没有在线")
 }
 
 // LED没有返回的情况需要处理超时
