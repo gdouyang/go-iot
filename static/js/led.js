@@ -1,9 +1,9 @@
-define(["components/device_add", "components/switchOpt", "components/lightOpt", 
+define(["components/led_add", "components/switchOpt", "components/lightOpt", 
 "xixunled/ledFileUpload", "xixunled/screenshot","xixunled/ledPlay"], 
-function(deviceAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay) {
+function(ledAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay) {
   return {
     components:{
-      'add-dialog': deviceAdd,
+      'add-dialog': ledAdd,
       'switch-opt': switchOpt,
       'light-opt': lightOpt,
       'led-file-upload': ledFileUpload,
@@ -34,7 +34,7 @@ function(deviceAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay) {
           cancelButtonText: '取消',
           type: 'warning'
         }).then(() => {
-          fetch('/device/delete', {
+          fetch('/led/delete', {
             method: 'POST',
             body: JSON.stringify(data),
             headers: new Headers({
@@ -61,7 +61,7 @@ function(deviceAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay) {
         <el-button type="text" @click="openDialog(null, false)">添加</el-button>
       </div>
       <div class="text item">
-        <my-table url="/device/list" ref="mainTable">
+        <my-table url="/led/list" ref="mainTable">
           <el-table-column prop="id" label="ID" width="140"/>
           <el-table-column prop="sn" label="SN" width="120"/>
           <el-table-column prop="name" label="名称"/>

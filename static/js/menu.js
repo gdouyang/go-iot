@@ -1,7 +1,7 @@
 // contents of main.js:
 require.config({
     paths: {
-        device: 'device',
+      led: 'led',
         restful: 'restful',
         echows: 'echows',
         material: 'material',
@@ -9,12 +9,12 @@ require.config({
     }
 });
 
-require(['device', 'echows', 'restful', 'material', 'agent'], 
-function(device, echows, Restful, material, agent) {
+require(['led', 'echows', 'restful', 'material', 'agent'], 
+function(led, echows, Restful, material, agent) {
   const routes = [
       { path: '/echows', component: echows },
       { path: '/restful', component: Restful },
-      { path: '/device', component: device },
+      { path: '/led', component: led },
       { path: '/material', component: material },
       { path: '/agent', component: agent },
     ]
@@ -65,7 +65,7 @@ Vue.component('my-menu', {
         </template>
         <el-menu-item-group>
         <template slot="title">设备</template>
-          <el-menu-item index="device">LED</el-menu-item>
+          <el-menu-item index="led">LED</el-menu-item>
         </el-menu-item-group>
       </el-submenu>
       <el-menu-item index="material">

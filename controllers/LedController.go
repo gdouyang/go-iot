@@ -11,19 +11,19 @@ import (
 
 // 设备管理
 func init() {
-	beego.Router("/device/list", &DeviceController{}, "post:List")
-	beego.Router("/device/add", &DeviceController{}, "post:Add")
-	beego.Router("/device/update", &DeviceController{}, "post:Update")
-	beego.Router("/device/delete", &DeviceController{}, "post:Delete")
-	beego.Router("/device/listProvider", &DeviceController{}, "post:ListProvider")
+	beego.Router("/led/list", &LedController{}, "post:List")
+	beego.Router("/led/add", &LedController{}, "post:Add")
+	beego.Router("/led/update", &LedController{}, "post:Update")
+	beego.Router("/led/delete", &LedController{}, "post:Delete")
+	beego.Router("/led/listProvider", &LedController{}, "post:ListProvider")
 }
 
-type DeviceController struct {
+type LedController struct {
 	beego.Controller
 }
 
 // 查询设备列表
-func (this *DeviceController) List() {
+func (this *LedController) List() {
 	var ob models.PageQuery
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 
@@ -38,7 +38,7 @@ func (this *DeviceController) List() {
 }
 
 // 添加设备
-func (this *DeviceController) Add() {
+func (this *LedController) Add() {
 	var ob led.Device
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 	err := led.AddDevie(&ob)
@@ -55,7 +55,7 @@ func (this *DeviceController) Add() {
 }
 
 // 更新设备信息
-func (this *DeviceController) Update() {
+func (this *LedController) Update() {
 	var ob led.Device
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 	err := led.UpdateDevice(&ob)
@@ -71,7 +71,7 @@ func (this *DeviceController) Update() {
 }
 
 // 删除设备
-func (this *DeviceController) Delete() {
+func (this *LedController) Delete() {
 	var ob led.Device
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 	led.DeleteDevice(&ob)
@@ -80,7 +80,7 @@ func (this *DeviceController) Delete() {
 }
 
 // 查询所有厂商
-func (this *DeviceController) ListProvider() {
+func (this *LedController) ListProvider() {
 	pros := operates.AllProvierId()
 	this.Data["json"] = &pros
 	this.ServeJSON()

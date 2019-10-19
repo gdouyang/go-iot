@@ -26,9 +26,9 @@ define({
     save(){
       this.$refs.creteForm.validate((valid)=>{
         if (valid) {
-          let url = '/device/add';
+          let url = '/led/add';
           if(this.isEdit) {
-            url = '/device/update'
+            url = '/led/update'
           }
           fetch(url, {
             method: 'POST', // or 'PUT'
@@ -56,7 +56,7 @@ define({
       this.createForm = JSON.parse(this.emptyFormData);
     },
     getAllProvider(){
-      fetch("/device/listProvider", {
+      fetch("/led/listProvider", {
         method: 'POST', // or 'PUT'
         body: "",
         headers: new Headers({
