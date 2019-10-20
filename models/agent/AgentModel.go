@@ -11,7 +11,7 @@ import (
 )
 
 type Agent struct {
-	Id           string `json:"id"` //ID
+	Id           int    `json:"id"` //ID
 	Sn           string `json:"sn"` //SN
 	Name         string `json:"name"`
 	OnlineStatus string `json:"onlineStatus"` //在线状态
@@ -22,7 +22,7 @@ func init() {
 	defer db.Close()
 	_, err := db.Exec(`
 		CREATE TABLE agent (
-	    id_ VARCHAR(32) PRIMARY KEY,
+	    id_ INTEGER PRIMARY KEY AUTOINCREMENT,
 	    sn_ VARCHAR(64) NULL,
 	    name_ VARCHAR(64) NULL,
 		online_status_ VARCHAR(10) NULL,
@@ -55,12 +55,12 @@ func ListAgent(page *models.PageQuery) (*models.PageResult, error) {
 	defer db.Close()
 	sql := "SELECT id_,sn_,name_,online_status_ FROM agent "
 	countSql := "SELECT count(*) from agent"
-	id := dev.Id
+	sn := dev.Sn
 	params := make([]interface{}, 0)
-	if id != "" {
-		sql += " where id_ like ?"
-		countSql += " where id_ like ?"
-		params = append(params, id)
+	if sn != "" {
+		sql += " where sn_ like ?"
+		countSql += " where sn_ like ?"
+		params = append(params, sn)
 	}
 	sql += " limit ? offset ?"
 	params = append(params, page.PageSize, page.PageOffset())
@@ -70,7 +70,8 @@ func ListAgent(page *models.PageQuery) (*models.PageResult, error) {
 	}
 	var result []Agent
 	var (
-		Id, Sn, Name, OnlineStatus string
+		Id                     int
+		Sn, Name, OnlineStatus string
 	)
 	defer rows.Close()
 	for rows.Next() {
@@ -97,11 +98,11 @@ func ListAgent(page *models.PageQuery) (*models.PageResult, error) {
 }
 
 func AddAgent(ob *Agent) error {
-	rs, err := GetAgent(ob.Id)
+	rs, err := GetAgent(ob.Sn)
 	if err != nil {
 		return err
 	}
-	if rs.Id != "" {
+	if rs.Sn != "" {
 		return errors.New("Agent已存在!")
 	}
 	//插入数据
@@ -125,7 +126,7 @@ func UpdateAgent(ob *Agent) error {
 	db, _ := getDb()
 	defer db.Close()
 	stmt, err := db.Prepare(`
-	update agent  set sn_=?,name_=? where id_=?
+	update agent set sn_=?,name_=? where id_=?
 	`)
 	if err != nil {
 		return err
@@ -173,17 +174,18 @@ func DeleteAgent(ob *Agent) {
 	}
 }
 
-func GetAgent(agentId string) (Agent, error) {
+func GetAgent(sn string) (Agent, error) {
 	var result Agent
 	db, _ := getDb()
 	defer db.Close()
-	sql := "SELECT id_,sn_,name_,online_status_ FROM agent where id_ = ?"
-	rows, err := db.Query(sql, agentId)
+	sql := "SELECT id_,sn_,name_,online_status_ FROM agent where sn_ = ?"
+	rows, err := db.Query(sql, sn)
 	if err != nil {
 		return result, err
 	}
 	var (
-		Id, Sn, Name, OnlineStatus string
+		Id                     int
+		Sn, Name, OnlineStatus string
 	)
 	defer rows.Close()
 	for rows.Next() {

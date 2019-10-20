@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go-iot/models"
+	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
 	"go-iot/provider/utils"
 
@@ -75,8 +76,8 @@ func (this *AgentWebSocket) Join() {
 			if !ok {
 				agent.SN = sn
 				subscribers[sn] = agent
-				evt := operates.DeviceOnlineStatus{OnlineStatus: models.ONLINE, Sn: sn, Provider: providerId}
-				operates.FireOnlineStatus(evt)
+				evt := operates.DeviceOnlineStatus{OnlineStatus: models.ONLINE, Sn: sn, Type: providerId}
+				modelfactory.FireOnlineStatus(evt)
 				beego.Info("agent connected, len:", len(subscribers))
 			}
 		} else {
@@ -103,8 +104,8 @@ func (this *AgentWebSocket) Join() {
 		} else {
 			c.Close()
 		}
-		evt := operates.DeviceOnlineStatus{OnlineStatus: models.OFFLINE, Sn: sn, Provider: providerId}
-		operates.FireOnlineStatus(evt)
+		evt := operates.DeviceOnlineStatus{OnlineStatus: models.OFFLINE, Sn: sn, Type: providerId}
+		modelfactory.FireOnlineStatus(evt)
 	}()
 }
 

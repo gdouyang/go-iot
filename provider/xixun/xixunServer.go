@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"go-iot/models"
+	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
 	"go-iot/provider/utils"
 	"net/http"
@@ -80,7 +81,7 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 				led.SN = sn
 				subscribers[sn] = led
 				evt := operates.DeviceOnlineStatus{OnlineStatus: models.ONLINE, Sn: sn, Provider: providerId}
-				operates.FireOnlineStatus(evt)
+				modelfactory.FireOnlineStatus(evt)
 				beego.Info("led connected, connection len:", len(subscribers))
 			}
 		} else {
@@ -108,7 +109,7 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 			c.Close()
 		}
 		evt := operates.DeviceOnlineStatus{OnlineStatus: models.OFFLINE, Sn: sn, Provider: providerId}
-		operates.FireOnlineStatus(evt)
+		modelfactory.FireOnlineStatus(evt)
 	}()
 }
 

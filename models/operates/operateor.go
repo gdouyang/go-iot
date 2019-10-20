@@ -6,22 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/models"
-	"go-iot/models/led"
-
-	"github.com/astaxie/beego"
 )
-
-func init() {
-	// 监听设备在线状态，并修改数据库中的状态
-	go func() {
-		// 处理在线状态事件
-		for {
-			o := <-onlineChannel
-			beego.Info("UpdateOnlineStatus")
-			led.UpdateOnlineStatus(o.OnlineStatus, o.Sn, o.Provider)
-		}
-	}()
-}
 
 type Device struct {
 	Id       string `json:"id"` //设备ID
@@ -33,8 +18,7 @@ type Device struct {
 
 // 厂商map
 var (
-	providerMap   = map[string]IProvider{}
-	onlineChannel = make(chan DeviceOnlineStatus, 10)
+	providerMap = map[string]IProvider{}
 )
 
 // 注册厂商
@@ -75,11 +59,7 @@ type DeviceOnlineStatus struct {
 	Sn           string
 	Provider     string
 	OnlineStatus string // onLine offLine
-}
-
-// 发布在线状态事件
-func FireOnlineStatus(o DeviceOnlineStatus) {
-	onlineChannel <- o
+	Type         string
 }
 
 type OperResp struct {
