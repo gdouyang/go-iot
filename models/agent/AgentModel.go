@@ -112,7 +112,11 @@ func AddAgent(ob *Agent) error {
 	INSERT INTO agent(sn_, name_, online_status_) values(?,?,?)
 	`)
 
-	_, err = stmt.Exec(ob.Sn, ob.Name, models.OFFLINE)
+	if len(ob.OnlineStatus) == 0 {
+		ob.OnlineStatus = models.OFFLINE
+	}
+
+	_, err = stmt.Exec(ob.Sn, ob.Name, ob.OnlineStatus)
 	if err != nil {
 		return err
 	}
@@ -141,22 +145,22 @@ func UpdateAgent(ob *Agent) error {
 
 // 根据SN与provider来更新设备在线状态
 func UpdateOnlineStatus(onlineStatus string, sn string) error {
-	//更新数据
-	db, _ := getDb()
-	defer db.Close()
-	stmt, err := db.Prepare(`
-	update agent 
-	set online_status_ = ?
-	where sn_ = ?
-	`)
+	var ob Agent = Agent{Sn: sn, Name: sn, OnlineStatus: onlineStatus}
+	err := AddAgent(&ob)
 	if err != nil {
-		return err
-	}
+		//更新数据
+		db, _ := getDb()
+		defer db.Close()
+		stmt, err := db.Prepare("update agent set online_status_ = ? where sn_ = ?")
+		if err != nil {
+			return err
+		}
 
-	_, err = stmt.Exec(onlineStatus, sn)
-	if err != nil {
-		beego.Error("update fail", err)
-		return err
+		_, err = stmt.Exec(onlineStatus, sn)
+		if err != nil {
+			beego.Error("update fail", err)
+			return err
+		}
 	}
 	return nil
 }

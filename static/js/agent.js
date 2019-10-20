@@ -56,8 +56,8 @@ function(agentAdd) {
       </div>
       <div class="text item">
         <my-table url="/agent/list" ref="mainTable">
-          <el-table-column prop="id" label="ID" width="140"/>
-          <el-table-column prop="sn" label="SN" width="120"/>
+          <el-table-column prop="id" label="ID" width="70"/>
+          <el-table-column prop="sn" label="SN" min-width="120"/>
           <el-table-column prop="name" label="名称"/>
           <el-table-column prop="onlineStatus" label="在线状态">
             <template slot-scope="scope">

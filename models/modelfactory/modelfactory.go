@@ -18,7 +18,10 @@ func init() {
 			o := <-onlineChannel
 			beego.Info("UpdateOnlineStatus")
 			if o.Type == "agent" {
-				agent.UpdateOnlineStatus(o.OnlineStatus, o.Sn)
+				err := agent.UpdateOnlineStatus(o.OnlineStatus, o.Sn)
+				if err != nil {
+					beego.Error(err.Error())
+				}
 			} else {
 				led.UpdateOnlineStatus(o.OnlineStatus, o.Sn, o.Provider)
 			}
