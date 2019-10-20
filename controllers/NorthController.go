@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"go-iot/agent"
 	"go-iot/models"
 	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
@@ -36,10 +37,20 @@ func (this *NorthController) Open() {
 		if err != nil {
 			this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 		} else {
-			var switchOper operates.ISwitchOper
-			switchOper = p.(operates.ISwitchOper)
-			operResp := switchOper.Switch(ob, device)
-			this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+			if len(device.Agent) > 0 {
+				text, _ := json.Marshal(ob)
+				res, err := agent.SendCommand(device.Agent, string(text))
+				if err != nil {
+					this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+				} else {
+					this.Data["json"] = models.JsonResp{Success: true, Msg: res}
+				}
+			} else {
+				var switchOper operates.ISwitchOper
+				switchOper = p.(operates.ISwitchOper)
+				operResp := switchOper.Switch(ob, device)
+				this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+			}
 		}
 	}
 

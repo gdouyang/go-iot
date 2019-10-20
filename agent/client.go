@@ -50,6 +50,8 @@ func conn() {
 		}
 
 		fmt.Printf("received: %s\n", message)
+		ping := `{"result":"` + agent_sn + `"}`
+		conn.WriteMessage(websocket.TextMessage, []byte(ping))
 	}
 }
 
