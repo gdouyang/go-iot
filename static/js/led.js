@@ -1,6 +1,6 @@
 define(["components/led_add", "components/switchOpt", "components/lightOpt", 
-"xixunled/ledFileUpload", "xixunled/screenshot","xixunled/ledPlay"], 
-function(ledAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay) {
+"xixunled/ledFileUpload", "xixunled/screenshot","xixunled/ledPlay","xixunled/msgPublish"], 
+function(ledAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay, msgPublish) {
   return {
     components:{
       'add-dialog': ledAdd,
@@ -8,7 +8,8 @@ function(ledAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay) {
       'light-opt': lightOpt,
       'led-file-upload': ledFileUpload,
       'screenshot': screenshot,
-	  'ledPlay':ledPlay,
+      'ledPlay':ledPlay,
+      'msgPublish':msgPublish,
     },
     data: function () {
       return {
@@ -23,6 +24,11 @@ function(ledAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay) {
       openDialog(data, isEdit){
         this.$nextTick(()=>{
           this.$refs.addDialog.openDialog(data, isEdit);
+        })
+      },
+      openMsg(data){
+        this.$nextTick(()=>{
+          this.$refs.msgDialog.open(data.id);
         })
       },
       searchList(){
@@ -83,12 +89,14 @@ function(ledAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay) {
               <light-opt :deviceId="scope.row.id"/>
               <screenshot :deviceId="scope.row.id"/>
               <led-file-upload :deviceId="scope.row.id"/>
-			  <ledPlay :deviceId="scope.row.id"/>
+			        <ledPlay :deviceId="scope.row.id"/>
+              <el-button type="text" size="small" @click="openMsg(scope.row)">消息发布</el-button>
             </template>
           </el-table-column>
         </my-table>
       </div>
       <add-dialog ref="addDialog" @success="searchList()"></add-dialog>
+      <msgPublish ref="msgDialog"/>
       </el-card>
     ` 
   }

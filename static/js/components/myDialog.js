@@ -1,6 +1,7 @@
 Vue.component('my-dialog', {
     props:{
-        title: ""
+        title: "",
+        width: null
     },
     data(){
         return {
@@ -34,7 +35,7 @@ Vue.component('my-dialog', {
 	template: `
     <div>
       <el-dialog :title="title" :visible.sync="dialogVisible" @close="onClose"
-        :close-on-click-modal="false">
+        :close-on-click-modal="false" :append-to-body="true" :width="width">
         <slot></slot>
         <span slot="footer" class="dialog-footer">
           <el-button @click="close()">取 消</el-button>
