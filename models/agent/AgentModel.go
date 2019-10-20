@@ -109,11 +109,10 @@ func AddAgent(ob *Agent) error {
 	db, _ := getDb()
 	defer db.Close()
 	stmt, _ := db.Prepare(`
-	INSERT INTO agent(id_, sn_, name_, online_status_) 
-	values(?,?,?,?)
+	INSERT INTO agent(sn_, name_, online_status_) values(?,?,?)
 	`)
 
-	_, err = stmt.Exec(ob.Id, ob.Sn, ob.Name, models.OFFLINE)
+	_, err = stmt.Exec(ob.Sn, ob.Name, models.OFFLINE)
 	if err != nil {
 		return err
 	}

@@ -63,17 +63,10 @@ define([],function(){
         <el-form label-position="right" label-width="80px" size="mini" :model="createForm" ref="creteForm">
           <el-row>
             <el-col :span="12">
-              <el-form-item label="ID" prop="id" :rules="[{ required: true, message: '不能为空'}]">
-                <el-input v-model="createForm.id" ></el-input>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
               <el-form-item label="SN" prop="sn" :rules="[{ required: true, message: '不能为空'}]">
                 <el-input v-model="createForm.sn"></el-input>
               </el-form-item>
             </el-col>
-          </el-row>
-          <el-row>
             <el-col :span="12">
               <el-form-item label="名称" prop="name" :rules="[{ required: true, message: '不能为空'}]">
                 <el-input v-model="createForm.name"></el-input>
