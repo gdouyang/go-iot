@@ -27,8 +27,13 @@ function(led, echows, Restful, material, agent) {
     new Vue({
       el: '#app',
       router: router,
+      mounted () {
+        window.onresize = ()=>{
+          this.elMainStyle.height = document.documentElement.clientHeight+'px'
+        }
+      },
       data: function() {
-        return { 
+        return {
           visible: false,
           elMainStyle:{
             height: document.documentElement.clientHeight+'px'
