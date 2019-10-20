@@ -10,7 +10,9 @@ define({
       }
     },
     created(){
-      
+      if(this.value){
+        this.labelValue = this.value;
+      }
     },
     mounted(){
       this.$refs.mainTable.search()
@@ -37,7 +39,7 @@ define({
       <div>
         <my-table url="/agent/list" ref="mainTable" :selectable="false" @done-load="loadDong">
           <el-table-column prop="id" label="ID"/>
-          <el-table-column prop="name" label="sn"/>
+          <el-table-column prop="sn" label="sn" width="110"/>
           <el-table-column prop="name" label="名称"/>
           <el-table-column label="操作">
             <template slot-scope="scope">

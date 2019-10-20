@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"go-iot/models"
 	"go-iot/models/agent"
+	"net/http"
 
 	"github.com/astaxie/beego"
 )
@@ -13,6 +14,7 @@ func init() {
 	beego.Router("/agent/add", &AgentController{}, "post:Add")
 	beego.Router("/agent/update", &AgentController{}, "post:Update")
 	beego.Router("/agent/delete", &AgentController{}, "post:Delete")
+	beego.Router("/agent/get/:id", &AgentController{}, "post:Get")
 }
 
 type AgentController struct {
@@ -79,5 +81,16 @@ func (this *AgentController) Delete() {
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 	agent.DeleteAgent(&ob)
 	this.Data["json"] = &ob
+	this.ServeJSON()
+}
+
+func (this *AgentController) Get() {
+	agentId := this.Ctx.Input.Param(":id")
+	agent, err := agent.GetAgent(agentId)
+	if err != nil {
+		http.Error(this.Ctx.ResponseWriter, "Agent Not found", 404)
+		return
+	}
+	this.Data["json"] = &agent
 	this.ServeJSON()
 }
