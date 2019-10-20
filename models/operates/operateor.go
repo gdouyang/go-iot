@@ -28,6 +28,7 @@ type Device struct {
 	Sn       string `json:"sn"` //设备SN
 	Name     string `json:"name"`
 	Provider string `json:"provider"` //厂商
+	Agent    string `json:"agent"`    //
 }
 
 // 厂商map

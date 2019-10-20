@@ -11,6 +11,6 @@ func GetDevice(id string) (operates.Device, error) {
 	if err != nil {
 		return dev, err
 	}
-	dev = operates.Device{Id: l.Id, Sn: l.Sn, Name: l.Name, Provider: l.Provider}
+	dev = operates.Device{Id: l.Id, Sn: l.Sn, Name: l.Name, Provider: l.Provider, Agent: l.Agent}
 	return dev, nil
 }
