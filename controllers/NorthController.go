@@ -39,7 +39,8 @@ func (this *NorthController) Open() {
 		} else {
 			if len(device.Agent) > 0 {
 				text, _ := json.Marshal(ob)
-				res, err := agent.SendCommand(device.Agent, string(text))
+				req := agent.AgentRequrt{SN: device.Sn, Data: text}
+				res, err := agent.SendCommand(device.Agent, req)
 				if err != nil {
 					this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 				} else {

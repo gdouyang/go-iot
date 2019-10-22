@@ -29,6 +29,13 @@ type AgentClient struct {
 	Resp     string          // 命令返回
 }
 
+// Agent消息请求
+type AgentRequrt struct {
+	SN   string          // 设备SN
+	Oper string          // 操作标识
+	Data json.RawMessage // 请求数据
+}
+
 // 心跳
 type breath struct {
 	Sn string `json:"sn"`
@@ -110,15 +117,19 @@ func (this *AgentWebSocket) Join() {
 }
 
 // 发送命令给Agent，并等待响应
-func SendCommand(sn string, command string) (string, error) {
+func SendCommand(sn string, command AgentRequrt) (string, error) {
 	agent, ok := subscribers[sn]
 	if ok {
+		data, err := json.Marshal(command)
+		if err != nil {
+			return "", err
+		}
 		// LED没有返回的情况需要处理超时
 		go checkTimeout(agent)
 		// 把当前请求等待,等待接口返回
 		agent.Cond.L.Lock()
 		beego.Info("agent send command", command)
-		agent.Conn.WriteMessage(1, []byte(command))
+		agent.Conn.WriteMessage(websocket.BinaryMessage, data)
 		agent.Cond.Wait()
 		agent.Cond.L.Unlock()
 		beego.Info("agent.Resp", &agent.Resp, agent.Resp)

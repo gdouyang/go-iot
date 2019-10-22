@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"time"
@@ -23,6 +24,11 @@ var (
 	agent_server_ip string
 	agent_sn        string
 )
+
+type AgentResponse struct {
+	Result  string `json:"result"`
+	Success bool   `json:"success"`
+}
 
 // 连接iot中心管理端
 func conn() {
@@ -50,8 +56,14 @@ func conn() {
 		}
 
 		fmt.Printf("received: %s\n", message)
-		ping := `{"result":"` + agent_sn + `"}`
-		conn.WriteMessage(websocket.TextMessage, []byte(ping))
+		resp := AgentResponse{Result: agent_sn, Success: true}
+		data, err := json.Marshal(resp)
+		if err != nil {
+			ping := `{"result":"` + err.Error() + `","Success":false}`
+			conn.WriteMessage(websocket.BinaryMessage, []byte(ping))
+		} else {
+			conn.WriteMessage(websocket.BinaryMessage, data)
+		}
 	}
 }
 
