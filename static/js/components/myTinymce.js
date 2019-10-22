@@ -154,15 +154,21 @@ Vue.component('my-tinymce', {
         type: Boolean
       }
     },
+    activated() {
+      this.init()
+    },
     mounted () {
       this.init()
     },
     beforeDestroy () {
       // 销毁tinymce
       this.$emit('on-destroy')
-      window.tinymce.remove(`$#{this.Id}`)
+      this.destroy()
     },
     methods: {
+       destroy(){
+        window.tinymce.remove(`#${this.Id}`)
+       },
        init () {
         const self = this
         

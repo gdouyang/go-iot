@@ -18,4 +18,20 @@
     -webkit-transform: rotateZ(0);
     transform: rotateZ(0);
 }
-  
+.el-dialog__header {
+    padding: 15px 15px 10px;
+    border-bottom: 1px solid #e2e2e2;
+}
+.el-dialog__body{
+    padding: 15px;
+}
+.el-dialog__footer{
+    padding: 10px;
+    border-top: 1px solid #e2e2e2;
+}
+.el-input__inner{
+    padding: 0px 8px;
+}
+.text-info{
+    color:#909399;
+}
