@@ -15,7 +15,9 @@ func init() {
 	ns := beego.NewNamespace("/north/control/xixun/v1",
 		beego.NSRouter("/:id/screenShot", &XiXunLedController{}, "post:ScreenShot"),
 		beego.NSRouter("/:id/fileUpload", &XiXunLedController{}, "post:FileUpload"),
-		beego.NSRouter("/:id/ledPlay", &XiXunLedController{}, "post:LedPlay"))
+		beego.NSRouter("/:id/ledPlay", &XiXunLedController{}, "post:LedPlay"),
+		beego.NSRouter("/:id/msgPublish", &XiXunLedController{}, "post:MsgPublish"),
+		beego.NSRouter("/:id/msgClear", &XiXunLedController{}, "post:Clear"))
 	beego.AddNamespace(ns)
 }
 
@@ -119,6 +121,36 @@ func (this *XiXunLedController) LedPlay() {
 			operResp := ProviderImplXiXunLed.PlayZip(filename, device.Sn)
 			this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
 		}
+	}
+	this.ServeJSON()
+}
+
+/*获取本机的消息*/
+func (this *XiXunLedController) MsgPublish() {
+	deviceId := this.Ctx.Input.Param(":id")
+	beego.Info("deviceId=", deviceId)
+	param := MsgParam{}
+	json.Unmarshal(this.Ctx.Input.RequestBody, &param)
+
+	device, err := led.GetDevice(deviceId)
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+	} else {
+		operResp := ProviderImplXiXunLed.MsgPublish(device.Sn, param)
+		this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+	}
+	this.ServeJSON()
+}
+
+/*清除本机的消息*/
+func (this *XiXunLedController) Clear() {
+	deviceId := this.Ctx.Input.Param(":id")
+	device, err := led.GetDevice(deviceId)
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+	} else {
+		operResp := ProviderImplXiXunLed.Clear(device.Sn)
+		this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
 	}
 	this.ServeJSON()
 }

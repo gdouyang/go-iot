@@ -8,7 +8,6 @@ import (
 	models "go-iot/models"
 	operates "go-iot/models/operates"
 	"io/ioutil"
-	"net"
 	"os"
 	"strings"
 
@@ -197,50 +196,44 @@ func (this ProviderXiXunLed) ScreenShot(sn string) operates.OperResp {
 	return rsp
 }
 
-// 下发实时消息
-
-func externalIP() (net.IP, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil, err
-	}
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 {
-			continue // interface down
-		}
-		if iface.Flags&net.FlagLoopback != 0 {
-			continue // loopback interface
-		}
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return nil, err
-		}
-		for _, addr := range addrs {
-			ip := getIpFromAddr(addr)
-			if ip == nil {
-				continue
-			}
-			return ip, nil
-		}
-	}
-	return nil, errors.New("connected to the network?")
+//下发滚动文字
+type MsgParam struct {
+	Type      string `json:"type"`
+	Method    string `json:"method"`
+	Num       int    `json:"num"`
+	Html      string `json:"html"`
+	Interval  int    `json:"interval"`
+	Direction string `json:"direction"`
+	Align     string `json:"align"`
 }
 
-func getIpFromAddr(addr net.Addr) net.IP {
-	var ip net.IP
-	switch v := addr.(type) {
-	case *net.IPNet:
-		ip = v.IP
-	case *net.IPAddr:
-		ip = v.IP
+func (this ProviderXiXunLed) MsgPublish(sn string, msg MsgParam) operates.OperResp {
+	var rsp operates.OperResp
+	msg.Type = "invokeBuildInJs"
+	msg.Method = "scrollMarquee"
+	abc, _ := json.Marshal(msg)
+	resp, err := SendCommand(sn, string(abc))
+	if err != nil {
+		rsp.Msg = err.Error()
+		rsp.Success = false
+		return rsp
 	}
-	if ip == nil || ip.IsLoopback() {
-		return nil
-	}
-	ip = ip.To4()
-	if ip == nil {
-		return nil // not an ipv4 address
-	}
+	rsp.Msg = resp
+	rsp.Success = true
+	return rsp
+}
 
-	return ip
+//清除顶层
+func (this ProviderXiXunLed) Clear(sn string) operates.OperResp {
+	var rsp operates.OperResp
+	abc := `{"type":"clear"}`
+	resp, err := SendCommand(sn, abc)
+	if err != nil {
+		rsp.Msg = err.Error()
+		rsp.Success = false
+		return rsp
+	}
+	rsp.Msg = resp
+	rsp.Success = true
+	return rsp
 }
