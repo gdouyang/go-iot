@@ -56,14 +56,24 @@ func conn() {
 		}
 
 		fmt.Printf("received: %s\n", message)
-		resp := AgentResponse{Result: agent_sn, Success: true}
+		var request AgentRequest
+		err = json.Unmarshal(message, &request)
+		resp := AgentResponse{Result: "", Success: true}
+		if err != nil {
+			resp.Result = err.Error()
+		} else {
+			msg, err := processRequest(request)
+			if err != nil {
+				resp.Result = err.Error()
+			} else {
+				resp.Result = msg
+			}
+		}
 		data, err := json.Marshal(resp)
 		if err != nil {
-			ping := `{"result":"` + err.Error() + `","Success":false}`
-			conn.WriteMessage(websocket.BinaryMessage, []byte(ping))
-		} else {
-			conn.WriteMessage(websocket.BinaryMessage, data)
+			data = []byte(`{"result":"` + err.Error() + `","Success":false}`)
 		}
+		conn.WriteMessage(websocket.BinaryMessage, data)
 	}
 }
 

@@ -21,6 +21,13 @@ var (
 	providerMap = map[string]IProvider{}
 )
 
+const (
+	// 开关
+	OPER_OPEN = "open"
+	// 调光
+	OPER_LIGHT = "light"
+)
+
 // 注册厂商
 func RegisterProvider(id string, provider IProvider) {
 	_, ok := providerMap[id]

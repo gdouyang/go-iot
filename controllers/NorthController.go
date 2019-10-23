@@ -27,7 +27,8 @@ func (this *NorthController) Open() {
 	deviceId := this.Ctx.Input.Param(":id")
 	beego.Info("deviceId=", deviceId)
 	var ob []models.SwitchStatus
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
+	byteReq := this.Ctx.Input.RequestBody
+	json.Unmarshal(byteReq, &ob)
 
 	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
@@ -38,14 +39,9 @@ func (this *NorthController) Open() {
 			this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 		} else {
 			if len(device.Agent) > 0 {
-				text, _ := json.Marshal(ob)
-				req := agent.AgentRequrt{SN: device.Sn, Data: text}
-				res, err := agent.SendCommand(device.Agent, req)
-				if err != nil {
-					this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
-				} else {
-					this.Data["json"] = models.JsonResp{Success: true, Msg: res}
-				}
+				req := agent.NewRequest(device.Id, device.Sn, device.Provider, operates.OPER_OPEN, byteReq)
+				res := agent.SendCommand(device.Agent, req)
+				this.Data["json"] = res
 			} else {
 				var switchOper operates.ISwitchOper
 				switchOper = p.(operates.ISwitchOper)
@@ -63,7 +59,9 @@ func (this *NorthController) Light() {
 	deviceId := this.Ctx.Input.Param(":id")
 	beego.Info("deviceId=", deviceId)
 	var ob map[string]int
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
+	byteReq := this.Ctx.Input.RequestBody
+	json.Unmarshal(byteReq, &ob)
+
 	value := ob["value"]
 	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
@@ -73,10 +71,16 @@ func (this *NorthController) Light() {
 		if err != nil {
 			this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 		} else {
-			var lightOper operates.ILightOper
-			lightOper = p.(operates.ILightOper)
-			operResp := lightOper.Light(value, device)
-			this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+			if len(device.Agent) > 0 {
+				req := agent.NewRequest(device.Id, device.Sn, device.Provider, operates.OPER_LIGHT, byteReq)
+				res := agent.SendCommand(device.Agent, req)
+				this.Data["json"] = res
+			} else {
+				var lightOper operates.ILightOper
+				lightOper = p.(operates.ILightOper)
+				operResp := lightOper.Light(value, device)
+				this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+			}
 		}
 	}
 

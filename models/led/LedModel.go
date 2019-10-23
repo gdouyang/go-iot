@@ -210,3 +210,25 @@ func GetDevice(deviceId string) (Device, error) {
 	}
 	return result, nil
 }
+
+func GetDeviceByProvider(sn, provider string) (Device, error) {
+	var result Device
+	db, _ := getDb()
+	defer db.Close()
+	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM led where sn_ = ? and provider_ = ?"
+	rows, err := db.Query(sql, sn, provider)
+	if err != nil {
+		return result, err
+	}
+	var (
+		Id, Sn, Name, Provider, Type, Model, OnlineStatus, Agent string
+	)
+	defer rows.Close()
+	for rows.Next() {
+		rows.Scan(&Id, &Sn, &Name, &Provider, &Type, &Model, &OnlineStatus, &Agent)
+		result = Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
+			Type: Type, Model: Model, OnlineStatus: OnlineStatus, Agent: Agent}
+		break
+	}
+	return result, nil
+}

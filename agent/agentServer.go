@@ -2,7 +2,6 @@ package agent
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"sync"
 	"time"
@@ -30,10 +29,16 @@ type AgentClient struct {
 }
 
 // Agent消息请求
-type AgentRequrt struct {
-	SN   string          // 设备SN
-	Oper string          // 操作标识
-	Data json.RawMessage // 请求数据
+type AgentRequest struct {
+	DeviceId string          // 设备Id
+	SN       string          // 设备SN
+	Provider string          // 厂商
+	Oper     string          // 操作标识
+	Data     json.RawMessage // 请求数据
+}
+
+func NewRequest(devId, sn, provider, oper string, data json.RawMessage) AgentRequest {
+	return AgentRequest{DeviceId: devId, SN: sn, Provider: provider, Oper: oper, Data: data}
 }
 
 // 心跳
@@ -117,12 +122,12 @@ func (this *AgentWebSocket) Join() {
 }
 
 // 发送命令给Agent，并等待响应
-func SendCommand(sn string, command AgentRequrt) (string, error) {
+func SendCommand(sn string, command AgentRequest) models.JsonResp {
 	agent, ok := subscribers[sn]
 	if ok {
 		data, err := json.Marshal(command)
 		if err != nil {
-			return "", err
+			return models.JsonResp{Success: false, Msg: err.Error()}
 		}
 		// LED没有返回的情况需要处理超时
 		go checkTimeout(agent)
@@ -133,9 +138,9 @@ func SendCommand(sn string, command AgentRequrt) (string, error) {
 		agent.Cond.Wait()
 		agent.Cond.L.Unlock()
 		beego.Info("agent.Resp", &agent.Resp, agent.Resp)
-		return agent.Resp, nil
+		return models.JsonResp{Success: true, Msg: agent.Resp}
 	}
-	return "", errors.New(sn + "没有在线")
+	return models.JsonResp{Success: false, Msg: sn + "没有在线"}
 }
 
 // 没有返回的情况需要处理超时
