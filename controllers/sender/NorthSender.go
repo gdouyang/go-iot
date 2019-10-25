@@ -8,10 +8,13 @@ import (
 )
 
 type NorthSender struct {
+	// 是否检查有Agent
 	CheckAgent bool
-	AgentFunc  func(device operates.Device) models.JsonResp
+	// 当设备通过Agent上线时执行此方法，把命令下发给Agent让Agent再下发给设备
+	AgentFunc func(device operates.Device) models.JsonResp
 }
 
+// 开关操作
 func (this NorthSender) Open(byteReq []byte, deviceId string) models.JsonResp {
 	var ob []models.SwitchStatus
 	json.Unmarshal(byteReq, &ob)
@@ -36,6 +39,7 @@ func (this NorthSender) Open(byteReq []byte, deviceId string) models.JsonResp {
 	}
 }
 
+// 调光操作
 func (this NorthSender) Light(byteReq []byte, deviceId string) models.JsonResp {
 	var ob map[string]int
 	json.Unmarshal(byteReq, &ob)
