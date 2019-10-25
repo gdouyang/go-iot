@@ -35,8 +35,8 @@ Vue.component('my-tinymce', {
           
           // CONFIG
 
-          forced_root_block: 'p',
-          force_p_newlines: true,
+          forced_root_block: '',
+          force_p_newlines: false,
           importcss_append: true,
 
         // CONFIG: ContentStyle 这块很重要， 在最后呈现的页面也要写入这个基本样式保证前后一致， `table`和`img`的问题基本就靠这个来填坑了
