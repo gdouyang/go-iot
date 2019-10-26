@@ -1,10 +1,14 @@
-package xixun
+package xixuncontroller
 
 import (
 	"encoding/json"
+	"go-iot/agent"
 	"go-iot/models"
 	"go-iot/models/led"
 	"go-iot/models/material"
+	"go-iot/models/operates"
+	"go-iot/provider/xixun"
+	"go-iot/provider/xixun/sender"
 	"strconv"
 	"strings"
 
@@ -28,14 +32,16 @@ type XiXunLedController struct {
 // LED截图
 func (this *XiXunLedController) ScreenShot() {
 	deviceId := this.Ctx.Input.Param(":id")
-	beego.Info("deviceId=", deviceId)
-	device, err := led.GetDevice(deviceId)
-	if err != nil {
-		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
-	} else {
-		operResp := ProviderImplXiXunLed.ScreenShot(device.Sn)
-		this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+
+	byteReq := []byte{}
+	xSender := sender.XixunSender{CheckAgent: true}
+	xSender.AgentFunc = func(device operates.Device) models.JsonResp {
+		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.SCREEN_SHOT, byteReq)
+		res := agent.SendCommand(device.Agent, req)
+		return res
 	}
+
+	this.Data["json"] = xSender.ScreenShot(deviceId)
 
 	this.ServeJSON()
 }
@@ -64,7 +70,7 @@ func (this *XiXunLedController) FileUpload() {
 				if index != -1 {
 					filename = filename[index+1:]
 				}
-				operResp := ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+material.Id, filename)
+				operResp := xixun.ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+material.Id, filename)
 				msg += operResp.Msg
 			} else {
 				msg += err.Error()
@@ -107,7 +113,7 @@ func (this *XiXunLedController) LedPlay() {
 				beego.Error(err)
 			}
 			beego.Info(filename)
-			leg, err := ProviderImplXiXunLed.FileLength(filename, device.Sn)
+			leg, err := xixun.ProviderImplXiXunLed.FileLength(filename, device.Sn)
 			if err != nil {
 				this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 				this.ServeJSON()
@@ -118,7 +124,7 @@ func (this *XiXunLedController) LedPlay() {
 				this.ServeJSON()
 			}
 			//如果长度一致，就发起播放
-			operResp := ProviderImplXiXunLed.PlayZip(filename, device.Sn)
+			operResp := xixun.ProviderImplXiXunLed.PlayZip(filename, device.Sn)
 			this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
 		}
 	}
@@ -129,14 +135,14 @@ func (this *XiXunLedController) LedPlay() {
 func (this *XiXunLedController) MsgPublish() {
 	deviceId := this.Ctx.Input.Param(":id")
 	beego.Info("deviceId=", deviceId)
-	param := MsgParam{}
+	param := xixun.MsgParam{}
 	json.Unmarshal(this.Ctx.Input.RequestBody, &param)
 
 	device, err := led.GetDevice(deviceId)
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
-		operResp := ProviderImplXiXunLed.MsgPublish(device.Sn, param)
+		operResp := xixun.ProviderImplXiXunLed.MsgPublish(device.Sn, param)
 		this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
 	}
 	this.ServeJSON()
@@ -149,7 +155,7 @@ func (this *XiXunLedController) Clear() {
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
-		operResp := ProviderImplXiXunLed.Clear(device.Sn)
+		operResp := xixun.ProviderImplXiXunLed.Clear(device.Sn)
 		this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
 	}
 	this.ServeJSON()
