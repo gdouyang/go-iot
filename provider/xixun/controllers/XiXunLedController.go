@@ -33,7 +33,7 @@ type XiXunLedController struct {
 func (this *XiXunLedController) ScreenShot() {
 	deviceId := this.Ctx.Input.Param(":id")
 
-	byteReq := []byte{}
+	byteReq := []byte("{}")
 	xSender := sender.XixunSender{CheckAgent: true}
 	xSender.AgentFunc = func(device operates.Device) models.JsonResp {
 		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.SCREEN_SHOT, byteReq)
