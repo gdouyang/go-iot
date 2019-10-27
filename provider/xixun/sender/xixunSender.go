@@ -9,6 +9,7 @@ import (
 
 var (
 	SCREEN_SHOT = "xixunScreenShot"
+	MSG_CLEAR   = "xixunMsgClear"
 )
 
 type XixunSender struct {
@@ -32,4 +33,19 @@ func (this XixunSender) ScreenShot(deviceId string) models.JsonResp {
 		}
 	}
 
+}
+
+/*清除本机的消息*/
+func (this XixunSender) ClearScreenText(deviceId string) models.JsonResp {
+	device, err := modelfactory.GetDevice(deviceId)
+	if err != nil {
+		return models.JsonResp{Success: false, Msg: err.Error()}
+	} else {
+		if this.CheckAgent && len(device.Agent) > 0 {
+			return this.AgentFunc(device)
+		} else {
+			operResp := xixun.ProviderImplXiXunLed.Clear(device.Sn)
+			return models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+		}
+	}
 }

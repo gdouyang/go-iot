@@ -25,6 +25,8 @@ func processRequest(request AgentRequest) (string, error) {
 		resp = northSender.Light(request.Data, request.DeviceId)
 	} else if request.Oper == xixunsender.SCREEN_SHOT {
 		resp = xixunSender.ScreenShot(request.DeviceId)
+	} else if request.Oper == xixunsender.MSG_CLEAR {
+		resp = xixunSender.ClearScreenText(request.DeviceId)
 	}
 	if !resp.Success {
 		return "", errors.New(resp.Msg)

@@ -151,12 +151,13 @@ func (this *XiXunLedController) MsgPublish() {
 /*清除本机的消息*/
 func (this *XiXunLedController) Clear() {
 	deviceId := this.Ctx.Input.Param(":id")
-	device, err := led.GetDevice(deviceId)
-	if err != nil {
-		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
-	} else {
-		operResp := xixun.ProviderImplXiXunLed.Clear(device.Sn)
-		this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+	byteReq := []byte("{}")
+	xSender := sender.XixunSender{CheckAgent: true}
+	xSender.AgentFunc = func(device operates.Device) models.JsonResp {
+		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.MSG_CLEAR, byteReq)
+		res := agent.SendCommand(device.Agent, req)
+		return res
 	}
+	this.Data["json"] = xSender.ClearScreenText(deviceId)
 	this.ServeJSON()
 }
