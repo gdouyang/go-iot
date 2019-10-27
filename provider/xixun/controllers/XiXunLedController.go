@@ -134,17 +134,16 @@ func (this *XiXunLedController) LedPlay() {
 /*获取本机的消息*/
 func (this *XiXunLedController) MsgPublish() {
 	deviceId := this.Ctx.Input.Param(":id")
-	beego.Info("deviceId=", deviceId)
-	param := xixun.MsgParam{}
-	json.Unmarshal(this.Ctx.Input.RequestBody, &param)
 
-	device, err := led.GetDevice(deviceId)
-	if err != nil {
-		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
-	} else {
-		operResp := xixun.ProviderImplXiXunLed.MsgPublish(device.Sn, param)
-		this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+	data := this.Ctx.Input.RequestBody
+	xSender := sender.XixunSender{CheckAgent: true}
+	xSender.AgentFunc = func(device operates.Device) models.JsonResp {
+		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.MSG_PUBLISH, data)
+		res := agent.SendCommand(device.Agent, req)
+		return res
 	}
+	this.Data["json"] = xSender.MsgPublish(data, deviceId)
+
 	this.ServeJSON()
 }
 
