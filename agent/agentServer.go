@@ -25,7 +25,7 @@ type AgentClient struct {
 	Conn     *websocket.Conn // websocket连接
 	Cond     *sync.Cond      // 同步调用的condition
 	respChan chan int        // 命令响应Channel
-	Resp     string          // 命令返回
+	Resp     models.JsonResp // 命令返回
 }
 
 // Agent消息请求
@@ -97,7 +97,9 @@ func (this *AgentWebSocket) Join() {
 			if ok {
 				beego.Info("agent response -----> ", agent.SN, "mssageType:", mt, "message :", resp)
 				l.Cond.L.Lock()
-				l.Resp = resp // 返回响应消息
+				aResp := models.JsonResp{}
+				json.Unmarshal(message, &aResp)
+				l.Resp = aResp // 返回响应消息
 				l.Cond.Signal()
 				l.Cond.L.Unlock()
 				l.respChan <- 1
@@ -138,7 +140,7 @@ func SendCommand(sn string, command AgentRequest) models.JsonResp {
 		agent.Cond.Wait()
 		agent.Cond.L.Unlock()
 		beego.Info("agent.Resp", &agent.Resp, agent.Resp)
-		return models.JsonResp{Success: true, Msg: agent.Resp}
+		return agent.Resp
 	}
 	return models.JsonResp{Success: false, Msg: sn + "没有在线"}
 }
@@ -151,7 +153,7 @@ func checkTimeout(agent *AgentClient) {
 	case <-time.Tick(time.Second * 20):
 		agent.Cond.L.Lock()
 		beego.Info("send command has timeout")
-		agent.Resp = "timeout"
+		agent.Resp = models.JsonResp{Success: false, Msg: "agent timeout"}
 		agent.Cond.Signal()
 		agent.Cond.L.Unlock()
 	}

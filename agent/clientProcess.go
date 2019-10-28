@@ -36,7 +36,7 @@ func processRequest(request AgentRequest) (string, error) {
 		resp = ledSender.Update(request.Data)
 	}
 	if !resp.Success {
-		return "", errors.New(resp.Msg)
+		return "", errors.New("Agent" + resp.Msg)
 	}
 	return resp.Msg, nil
 }

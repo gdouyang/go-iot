@@ -26,7 +26,7 @@ var (
 )
 
 type AgentResponse struct {
-	Result  string `json:"result"`
+	Msg     string `json:"msg"`
 	Success bool   `json:"success"`
 }
 
@@ -58,20 +58,21 @@ func conn() {
 		fmt.Printf("received: %s\n", message)
 		var request AgentRequest
 		err = json.Unmarshal(message, &request)
-		resp := AgentResponse{Result: "", Success: true}
+		resp := AgentResponse{Msg: "", Success: true}
 		if err != nil {
-			resp.Result = err.Error()
+			resp.Msg = err.Error()
 		} else {
 			msg, err := processRequest(request)
 			if err != nil {
-				resp.Result = err.Error()
+				resp.Success = false
+				resp.Msg = err.Error()
 			} else {
-				resp.Result = msg
+				resp.Msg = msg
 			}
 		}
 		data, err := json.Marshal(resp)
 		if err != nil {
-			data = []byte(`{"result":"` + err.Error() + `","Success":false}`)
+			data = []byte(`{"msg":"` + err.Error() + `","Success":false}`)
 		}
 		conn.WriteMessage(websocket.BinaryMessage, data)
 	}
