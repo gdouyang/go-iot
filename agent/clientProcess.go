@@ -11,6 +11,7 @@ import (
 
 var (
 	northSender northsender.NorthSender
+	ledSender   northsender.LedSender
 	xixunSender xixunsender.XixunSender
 )
 
@@ -29,6 +30,10 @@ func processRequest(request AgentRequest) (string, error) {
 		resp = xixunSender.ClearScreenText(request.DeviceId)
 	} else if request.Oper == xixunsender.MSG_PUBLISH {
 		resp = xixunSender.MsgPublish(request.Data, request.DeviceId)
+	} else if request.Oper == northsender.LED_ADD {
+		resp = ledSender.Add(request.Data)
+	} else if request.Oper == northsender.LED_UPDATE {
+		resp = ledSender.Update(request.Data)
 	}
 	if !resp.Success {
 		return "", errors.New(resp.Msg)

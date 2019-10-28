@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"encoding/json"
+	"go-iot/agent"
+	"go-iot/controllers/sender"
 	"go-iot/models"
 	"go-iot/models/led"
 	"go-iot/models/operates"
@@ -39,34 +41,30 @@ func (this *LedController) List() {
 
 // 添加设备
 func (this *LedController) Add() {
-	var ob led.Device
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-	err := led.AddDevie(&ob)
+	data := this.Ctx.Input.RequestBody
 
-	var resp models.JsonResp
-	resp.Success = true
-	resp.Msg = "添加成功!"
-	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+	ledSender := sender.LedSender{CheckAgent: true}
+	ledSender.AgentFunc = func(device led.Device) models.JsonResp {
+		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.LED_ADD, data)
+		res := agent.SendCommand(device.Agent, req)
+		return res
 	}
-	this.Data["json"] = &resp
+
+	this.Data["json"] = ledSender.Add(data)
 	this.ServeJSON()
 }
 
 // 更新设备信息
 func (this *LedController) Update() {
-	var ob led.Device
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-	err := led.UpdateDevice(&ob)
-	var resp models.JsonResp
-	resp.Success = true
-	resp.Msg = "修改成功!"
-	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+	data := this.Ctx.Input.RequestBody
+
+	ledSender := sender.LedSender{CheckAgent: true}
+	ledSender.AgentFunc = func(device led.Device) models.JsonResp {
+		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.LED_UPDATE, data)
+		res := agent.SendCommand(device.Agent, req)
+		return res
 	}
-	this.Data["json"] = &resp
+	this.Data["json"] = ledSender.Update(data)
 	this.ServeJSON()
 }
 
