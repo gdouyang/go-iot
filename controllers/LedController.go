@@ -70,10 +70,14 @@ func (this *LedController) Update() {
 
 // 删除设备
 func (this *LedController) Delete() {
-	var ob led.Device
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-	led.DeleteDevice(&ob)
-	this.Data["json"] = &ob
+	data := this.Ctx.Input.RequestBody
+	ledSender := sender.LedSender{CheckAgent: true}
+	ledSender.AgentFunc = func(device led.Device) models.JsonResp {
+		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.LED_DELETE, data)
+		res := agent.SendCommand(device.Agent, req)
+		return res
+	}
+	this.Data["json"] = ledSender.Delete(data)
 	this.ServeJSON()
 }
 

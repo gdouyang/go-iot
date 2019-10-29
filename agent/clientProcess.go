@@ -34,6 +34,8 @@ func processRequest(request AgentRequest) (string, error) {
 		resp = ledSender.Add(request.Data)
 	} else if request.Oper == northsender.LED_UPDATE {
 		resp = ledSender.Update(request.Data)
+	} else if request.Oper == northsender.LED_DELETE {
+		resp = ledSender.Update(request.Data)
 	}
 	if !resp.Success {
 		return "", errors.New("Agent" + resp.Msg)

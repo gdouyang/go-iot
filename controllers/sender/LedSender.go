@@ -9,6 +9,7 @@ import (
 var (
 	LED_ADD    = "ledAdd"
 	LED_UPDATE = "ledUpdate"
+	LED_DELETE = "ledDelete"
 )
 
 type LedSender struct {
@@ -60,5 +61,29 @@ func (this LedSender) Update(data []byte) models.JsonResp {
 			return aResp
 		}
 	}
+	return resp
+}
+
+func (this LedSender) Delete(data []byte) models.JsonResp {
+	var ob led.Device
+	err := json.Unmarshal(data, &ob)
+	if err != nil {
+		return models.JsonResp{Success: false, Msg: err.Error()}
+	}
+
+	if this.CheckAgent && len(ob.Agent) > 0 {
+		aResp := this.AgentFunc(ob)
+		if !aResp.Success {
+			return aResp
+		}
+	}
+	err = led.DeleteDevice(&ob)
+	var resp models.JsonResp
+	resp.Success = true
+	resp.Msg = "删除成功!"
+	if err != nil {
+		return models.JsonResp{Success: false, Msg: err.Error()}
+	}
+
 	return resp
 }

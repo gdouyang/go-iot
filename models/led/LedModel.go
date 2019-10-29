@@ -177,7 +177,7 @@ func UpdateOnlineStatus(onlineStatus string, sn string, provider string) error {
 	return nil
 }
 
-func DeleteDevice(ob *Device) {
+func DeleteDevice(ob *Device) error {
 	//更新数据
 	db, _ := getDb()
 	defer db.Close()
@@ -186,7 +186,9 @@ func DeleteDevice(ob *Device) {
 	_, err := stmt.Exec(ob.Id)
 	if err != nil {
 		beego.Error("delete fail", err)
+		return err
 	}
+	return nil
 }
 
 func GetDevice(deviceId string) (Device, error) {
