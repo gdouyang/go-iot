@@ -51,8 +51,8 @@ function(ledAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay, msgPubl
           }).then(data => {
             this.searchList();
             this.$message({
-              type: 'success',
-              message: '删除成功!'
+               type: data.success ? 'success' : 'error',
+               message: data.msg
             });
           })
         })
