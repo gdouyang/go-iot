@@ -18,7 +18,18 @@ func init() {
 	beego.Router("/led/update", &LedController{}, "post:Update")
 	beego.Router("/led/delete", &LedController{}, "post:Delete")
 	beego.Router("/led/listProvider", &LedController{}, "post:ListProvider")
+
 }
+
+var (
+	ledSender sender.LedSender = sender.LedSender{
+		CheckAgent: true,
+		AgentFunc: func(device led.Device, oper string, data []byte) models.JsonResp {
+			req := agent.NewRequest(device.Id, device.Sn, device.Provider, oper, data)
+			res := agent.SendCommand(device.Agent, req)
+			return res
+		}}
+)
 
 type LedController struct {
 	beego.Controller
@@ -43,13 +54,6 @@ func (this *LedController) List() {
 func (this *LedController) Add() {
 	data := this.Ctx.Input.RequestBody
 
-	ledSender := sender.LedSender{CheckAgent: true}
-	ledSender.AgentFunc = func(device led.Device) models.JsonResp {
-		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.LED_ADD, data)
-		res := agent.SendCommand(device.Agent, req)
-		return res
-	}
-
 	this.Data["json"] = ledSender.Add(data)
 	this.ServeJSON()
 }
@@ -58,12 +62,6 @@ func (this *LedController) Add() {
 func (this *LedController) Update() {
 	data := this.Ctx.Input.RequestBody
 
-	ledSender := sender.LedSender{CheckAgent: true}
-	ledSender.AgentFunc = func(device led.Device) models.JsonResp {
-		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.LED_UPDATE, data)
-		res := agent.SendCommand(device.Agent, req)
-		return res
-	}
 	this.Data["json"] = ledSender.Update(data)
 	this.ServeJSON()
 }
@@ -71,12 +69,7 @@ func (this *LedController) Update() {
 // 删除设备
 func (this *LedController) Delete() {
 	data := this.Ctx.Input.RequestBody
-	ledSender := sender.LedSender{CheckAgent: true}
-	ledSender.AgentFunc = func(device led.Device) models.JsonResp {
-		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.LED_DELETE, data)
-		res := agent.SendCommand(device.Agent, req)
-		return res
-	}
+
 	this.Data["json"] = ledSender.Delete(data)
 	this.ServeJSON()
 }
