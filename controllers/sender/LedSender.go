@@ -6,7 +6,7 @@ import (
 	"go-iot/models/led"
 )
 
-var (
+const (
 	LED_ADD    = "ledAdd"
 	LED_UPDATE = "ledUpdate"
 	LED_DELETE = "ledDelete"

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"go-iot/agent"
 	"go-iot/models"
 	"go-iot/models/material"
 	"strconv"
@@ -17,6 +18,7 @@ func init() {
 	beego.Router("/material/add", &MaterialController{}, "post:Add")
 	beego.Router("/material/update", &MaterialController{}, "post:Add")
 	beego.Router("/material/delete", &MaterialController{}, "post:Delete")
+	beego.Router("/material/sendToAgent/:id", &MaterialController{}, "post:SendToAgent")
 }
 
 type MaterialController struct {
@@ -94,4 +96,27 @@ func (this *MaterialController) Delete() {
 	material.DeleteMaterial(&ob)
 	this.Data["json"] = &ob
 	this.ServeJSON()
+}
+
+func (this *MaterialController) SendToAgent() {
+	id := this.Ctx.Input.Param(":id")
+	agentSn := this.Ctx.Input.Param(":agentSn")
+	var resp *models.JsonResp
+	defer func() {
+		this.Data["json"] = &resp
+		this.ServeJSON()
+	}()
+	material, err := material.GetMaterialById(id)
+	if err != nil {
+		resp = &models.JsonResp{Success: false, Msg: err.Error()}
+	} else {
+		data, err := json.Marshal(material)
+		if err != nil {
+			resp = &models.JsonResp{Success: false, Msg: err.Error()}
+		} else {
+			req := agent.NewRequest("", "", "", "material", data)
+			res := agent.SendCommand(agentSn, req)
+			resp = &res
+		}
+	}
 }
