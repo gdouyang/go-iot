@@ -6,6 +6,8 @@ define({
       value(newVal, oldVal){
         if(!newVal){
           this.labelValue = '';
+        }else{
+          this.labelValue = newVal;
         }
       }
     },
