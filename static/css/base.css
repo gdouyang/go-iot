@@ -35,3 +35,16 @@
 .text-info{
     color:#909399;
 }
+
+.el-table td, .el-table th {
+    padding: 8px 0px;
+}
+.el-table .cell{
+    line-height: 18px;
+}
+.el-table .cell, .el-table th div, .el-table--border td:first-child .cell, .el-table--border th:first-child .cell{
+    padding-left: 5px;
+}
+.el-table .cell, .el-table th div{
+    padding-right: 5px;
+}
