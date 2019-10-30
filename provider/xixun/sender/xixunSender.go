@@ -8,7 +8,7 @@ import (
 	"go-iot/provider/xixun"
 )
 
-var (
+const (
 	SCREEN_SHOT = "xixunScreenShot"
 	MSG_CLEAR   = "xixunMsgClear"
 	MSG_PUBLISH = "xixunMsgPublish"
