@@ -6,17 +6,25 @@ require.config({
         echows: 'echows',
         material: 'material',
         agent: 'agent',
+        mediaTransport: 'mediaTransport',
+        mediaServer: 'mediaServer',
+        instance: 'instance',
+        camera: 'camera'
     }
 });
 
-require(['led', 'echows', 'restful', 'material', 'agent'], 
-function(led, echows, Restful, material, agent) {
+require(['led', 'echows', 'restful', 'material', 'agent','mediaTransport','mediaServer','instance','camera'], 
+function(led, echows, Restful, material, agent,mediaTransport,mediaServer,instance,camera) {
   const routes = [
       { path: '/echows', component: echows },
       { path: '/restful', component: Restful },
       { path: '/led', component: led },
       { path: '/material', component: material },
       { path: '/agent', component: agent },
+      { path: '/mediaTransport', component: mediaTransport },
+      { path: '/mediaServer', component: mediaServer },
+      { path: '/instance', component: instance },
+      { path: '/camera', component: camera }
     ]
     
     // 3. 创建 router 实例，然后传 `routes` 配置
@@ -77,6 +85,18 @@ Vue.component('my-menu', {
         <i class="el-icon-files"></i>
         <span slot="title">素材</span>
       </el-menu-item>
+      <el-submenu index="3">
+        <template slot="title">
+          <i class="el-icon-mobile-phone"></i>
+          <span slot="title">监控中心</span>
+        </template>
+        <el-menu-item-group>
+          <el-menu-item index="mediaTransport">推流实例</el-menu-item>
+          <el-menu-item index="mediaServer">流媒体服务</el-menu-item>
+          <el-menu-item index="instance">链路管理</el-menu-item>
+          <el-menu-item index="camera">监控设备</el-menu-item>
+        </el-menu-item-group>
+      </el-submenu>
     </el-menu>
 	`
 });
