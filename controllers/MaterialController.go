@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"go-iot/agent"
+	"go-iot/controllers/sender"
 	"go-iot/models"
 	"go-iot/models/material"
 	"strconv"
@@ -114,7 +115,7 @@ func (this *MaterialController) SendToAgent() {
 		if err != nil {
 			resp = &models.JsonResp{Success: false, Msg: err.Error()}
 		} else {
-			req := agent.NewRequest("", "", "", "material", data)
+			req := agent.NewRequest("", "", "", sender.MATERIAL_DOWNLOAD, data)
 			res := agent.SendCommand(agentSn, req)
 			resp = &res
 		}

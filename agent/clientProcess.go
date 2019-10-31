@@ -12,6 +12,7 @@ import (
 var (
 	northSender northsender.NorthSender
 	ledSender   northsender.LedSender
+	mSender     northsender.MaterialSender
 	xixunSender xixunsender.XixunSender
 )
 
@@ -36,6 +37,8 @@ func processRequest(request AgentRequest) (string, error) {
 		resp = ledSender.Update(request.Data)
 	} else if request.Oper == northsender.LED_DELETE {
 		resp = ledSender.Update(request.Data)
+	} else if request.Oper == northsender.MATERIAL_DOWNLOAD {
+		resp = mSender.Download(request.Data)
 	}
 	if !resp.Success {
 		return "", errors.New("Agent" + resp.Msg)
