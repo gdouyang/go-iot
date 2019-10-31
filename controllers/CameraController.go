@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"go-iot/models"
 	"go-iot/models/camera"
-	"go-iot/models/operates"
+	"strconv"
 
 	"github.com/astaxie/beego"
 )
@@ -15,7 +15,7 @@ func init() {
 	beego.Router("/camera/add", &CameraController{}, "post:Add")
 	beego.Router("/camera/update", &CameraController{}, "post:Update")
 	beego.Router("/camera/delete", &CameraController{}, "post:Delete")
-	beego.Router("/camera/listProvider", &CameraController{}, "post:ListProvider")
+	beego.Router("/camera/detail/:id", &CameraController{}, "get:GetCamera")
 }
 
 type CameraController struct {
@@ -41,8 +41,12 @@ func (this *CameraController) Add() {
 	data := this.Ctx.Input.RequestBody
 	ob := camera.Camera{}
 	json.Unmarshal(data, &ob)
-
-	this.Data["json"] = camera.AddCamera(&ob)
+	//add
+	err := camera.AddCamera(&ob)
+	this.Data["json"] = models.JsonResp{Success: true, Msg: "添加成功"}
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+	}
 	this.ServeJSON()
 }
 
@@ -66,9 +70,20 @@ func (this *CameraController) Delete() {
 	this.ServeJSON()
 }
 
-// 查询所有厂商
-func (this *CameraController) ListProvider() {
-	pros := operates.AllProvierId()
-	this.Data["json"] = &pros
+// 获取设备
+func (this *CameraController) GetCamera() {
+	id := this.Ctx.Input.Param(":id")
+	cid, err := strconv.Atoi(id)
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: "无效查询"}
+		this.ServeJSON()
+	}
+	ob, err := camera.GetCameraByID(cid)
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+	} else {
+		this.Data["json"] = &ob
+	}
 	this.ServeJSON()
+
 }

@@ -18,6 +18,7 @@ type Camera struct {
 	RtspPort     int    `json:"rtspPort"`
 	OnvifPort    int    `json:"onvifPort"`
 	Provider     string `json:"provider"`
+	Model        string `json:"model"`
 	AuthUser     string `json:"authUser"`
 	AuthPass     string `json:"authPass"`
 	OnvifUser    string `json:"onvifUser"`
@@ -36,6 +37,7 @@ func init() {
 		rtsp_port_ INTEGER NULL,
 		onvif_port_ INTEGER NULL,
 		provider_ VARCHAR(32) NULL,
+		model_ VARCHAR(32) NULL,
 		auth_user VARCHAR(32) NULL,
 		auth_pass_ VARCHAR(256) NULL,
 		onvif_user_ VARCHAR(32) NULL,
@@ -118,14 +120,28 @@ func AddCamera(ob *Camera) error {
 	db, _ := getDb()
 	defer db.Close()
 	stmt, _ := db.Prepare(`
-	INSERT INTO camera(sn_, name_, online_status_) values(?,?,?)
+		insert into camera (
+	    sn_ ,
+		name_ ,
+		host_ ,
+		rtsp_port_ ,
+		onvif_port_ ,
+		provider_ ,
+		model_,
+		auth_user ,
+		auth_pass_ ,
+		onvif_user_ ,
+		onvif_pass_ ,
+		online_status_ 
+		) 
+		values (?,?,?,?,?,?,?,?,?,?,?,?)
 	`)
 
 	if len(ob.OnlineStatus) == 0 {
 		ob.OnlineStatus = models.OFFLINE
 	}
 
-	_, err = stmt.Exec(ob.Sn, ob.Name, ob.OnlineStatus)
+	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Host, ob.RtspPort, ob.OnvifPort, ob.Provider, ob.Model, ob.AuthUser, ob.AuthPass, ob.OnvifUser, ob.OnvifPass, ob.OnlineStatus)
 	if err != nil {
 		return err
 	}
@@ -138,13 +154,24 @@ func UpdateCamera(ob *Camera) error {
 	db, _ := getDb()
 	defer db.Close()
 	stmt, err := db.Prepare(`
-	update camera set sn_=?,name_=? where id_=?
+		update camera set
+			sn_ =?,
+			name_ =?,
+			host_ =?,
+			rtsp_port_ =?,
+			onvif_port_ =?,
+			provider_ =?,
+			auth_user =?,
+			auth_pass_ =?,
+			onvif_user_ =?,
+			onvif_pass_ =?
+ 		where id_=?
 	`)
 	if err != nil {
 		return err
 	}
 
-	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Id)
+	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Host, ob.RtspPort, ob.OnvifPort, ob.Provider, ob.Model, ob.AuthUser, ob.AuthPass, ob.OnvifUser, ob.OnvifPass, ob.OnlineStatus, ob.Id)
 	if err != nil {
 		beego.Error("update fail", err)
 		return err
@@ -191,19 +218,61 @@ func GetCamera(sn string) (Camera, error) {
 	var result Camera
 	db, _ := getDb()
 	defer db.Close()
-	sql := "SELECT id_,sn_,name_,online_status_ FROM camera where sn_ = ?"
+	sql := `select
+		    sn_ ,
+			name_ ,
+			host_ ,
+			rtsp_port_ ,
+			onvif_port_ ,
+			provider_ ,
+			auth_user ,
+			auth_pass_ ,
+			onvif_user_ ,
+			onvif_pass_ 
+			from camera where sn_ = ? `
 	rows, err := db.Query(sql, sn)
 	if err != nil {
 		return result, err
 	}
 	var (
-		Id                     int
-		Sn, Name, OnlineStatus string
+		Id, OnvifPort, RtspPort                       int
+		Sn, Name, OnlineStatus, Host, Provider, Model string
+		AuthUser, AuthPass, OnvifUser, OnvifPass      string
 	)
 	defer rows.Close()
 	for rows.Next() {
-		rows.Scan(&Id, &Sn, &Name, &OnlineStatus)
-		result = Camera{Id: Id, Sn: Sn, Name: Name, OnlineStatus: OnlineStatus}
+		rows.Scan(&Id, &Sn, &Name, &Host, &RtspPort, &OnvifPort, &Provider, &Model, &AuthUser, &AuthPass, &OnvifUser, &OnvifPass, &OnlineStatus)
+		result = Camera{Id: Id, Sn: Sn, Name: Name, OnlineStatus: OnlineStatus, Host: Host, RtspPort: RtspPort, OnvifPort: OnvifPort, Provider: Provider, Model: Model, AuthUser: AuthUser, AuthPass: AuthPass, OnvifUser: OnvifUser, OnvifPass: OnvifPass}
+		break
+	}
+	return result, nil
+}
+
+func GetCameraByID(id int) (*Camera, error) {
+	var result = new(Camera)
+	db, _ := getDb()
+	defer db.Close()
+	sql := `select
+		    sn_ ,
+			name_ ,
+			host_ ,
+			rtsp_port_ ,
+			onvif_port_ ,
+			provider_ ,
+			model_,
+			auth_user ,
+			auth_pass_ ,
+			onvif_user_ ,
+			onvif_pass_ 
+			from camera where id_ = ? `
+	rows, err := db.Query(sql, id)
+	if err != nil {
+		return result, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		rows.Scan(&result.Sn, &result.Name, &result.Host, &result.RtspPort, &result.OnvifPort, &result.Provider, &result.Model, &result.AuthUser, &result.AuthPass, &result.OnvifUser, &result.OnvifPass)
 		break
 	}
 	return result, nil
