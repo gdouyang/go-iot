@@ -32,7 +32,7 @@ func (this *IpCameraController) Play() {
 
 	byteReq := []byte("{}")
 	xSender := sender.XixunSender{CheckAgent: true}
-	xSender.AgentFunc = func(device operates.Device) models.JsonResp {
+	xSender.SendAgent = func(device operates.Device) models.JsonResp {
 		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.SCREEN_SHOT, byteReq)
 		res := agent.SendCommand(device.Agent, req)
 		return res

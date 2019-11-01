@@ -2,11 +2,9 @@ package xixuncontroller
 
 import (
 	"encoding/json"
-	"go-iot/agent"
 	"go-iot/models"
 	"go-iot/models/led"
 	"go-iot/models/material"
-	"go-iot/models/operates"
 	"go-iot/provider/xixun"
 	"go-iot/provider/xixun/sender"
 	"strconv"
@@ -33,13 +31,7 @@ type XiXunLedController struct {
 func (this *XiXunLedController) ScreenShot() {
 	deviceId := this.Ctx.Input.Param(":id")
 
-	byteReq := []byte("{}")
 	xSender := sender.XixunSender{CheckAgent: true}
-	xSender.AgentFunc = func(device operates.Device) models.JsonResp {
-		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.SCREEN_SHOT, byteReq)
-		res := agent.SendCommand(device.Agent, req)
-		return res
-	}
 
 	this.Data["json"] = xSender.ScreenShot(deviceId)
 
@@ -137,11 +129,6 @@ func (this *XiXunLedController) MsgPublish() {
 
 	data := this.Ctx.Input.RequestBody
 	xSender := sender.XixunSender{CheckAgent: true}
-	xSender.AgentFunc = func(device operates.Device) models.JsonResp {
-		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.MSG_PUBLISH, data)
-		res := agent.SendCommand(device.Agent, req)
-		return res
-	}
 	this.Data["json"] = xSender.MsgPublish(data, deviceId)
 
 	this.ServeJSON()
@@ -150,13 +137,7 @@ func (this *XiXunLedController) MsgPublish() {
 /*清除本机的消息*/
 func (this *XiXunLedController) Clear() {
 	deviceId := this.Ctx.Input.Param(":id")
-	byteReq := []byte("{}")
 	xSender := sender.XixunSender{CheckAgent: true}
-	xSender.AgentFunc = func(device operates.Device) models.JsonResp {
-		req := agent.NewRequest(device.Id, device.Sn, device.Provider, sender.MSG_CLEAR, byteReq)
-		res := agent.SendCommand(device.Agent, req)
-		return res
-	}
 	this.Data["json"] = xSender.ClearScreenText(deviceId)
 	this.ServeJSON()
 }

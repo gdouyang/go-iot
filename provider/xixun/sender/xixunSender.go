@@ -36,8 +36,13 @@ func init() {
 type XixunSender struct {
 	// 是否检查有Agent
 	CheckAgent bool
-	// 当设备通过Agent上线时执行此方法，把命令下发给Agent让Agent再下发给设备
-	AgentFunc func(device operates.Device) models.JsonResp
+}
+
+// 当设备通过Agent上线时执行此方法，把命令下发给Agent让Agent再下发给设备
+func (this XixunSender) SendAgent(device operates.Device, oper string, data []byte) models.JsonResp {
+	req := agent.NewRequest(device.Id, device.Sn, device.Provider, oper, data)
+	res := agent.SendCommand(device.Agent, req)
+	return res
 }
 
 // LED截图
@@ -48,7 +53,7 @@ func (this XixunSender) ScreenShot(deviceId string) models.JsonResp {
 	}
 
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.AgentFunc(device)
+		return this.SendAgent(device, SCREEN_SHOT, []byte("{}"))
 	}
 
 	operResp := xixun.ProviderImplXiXunLed.ScreenShot(device.Sn)
@@ -63,7 +68,7 @@ func (this XixunSender) MsgPublish(data []byte, deviceId string) models.JsonResp
 	}
 
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.AgentFunc(device)
+		return this.SendAgent(device, MSG_PUBLISH, data)
 	}
 	param := xixun.MsgParam{}
 	err = json.Unmarshal(data, &param)
@@ -82,7 +87,7 @@ func (this XixunSender) ClearScreenText(deviceId string) models.JsonResp {
 	}
 
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.AgentFunc(device)
+		return this.SendAgent(device, MSG_CLEAR, []byte("{}"))
 	}
 
 	operResp := xixun.ProviderImplXiXunLed.Clear(device.Sn)
