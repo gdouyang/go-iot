@@ -41,21 +41,21 @@ func (this NorthSender) Open(data []byte, deviceId string) models.JsonResp {
 	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
 		return models.JsonResp{Success: false, Msg: err.Error()}
-	} else {
-		p, err := operates.GetProvider(device.Provider)
-		if err != nil {
-			return models.JsonResp{Success: false, Msg: err.Error()}
-		} else {
-			if this.CheckAgent && len(device.Agent) > 0 {
-				return this.SendAgent(device, operates.OPER_OPEN, data)
-			} else {
-				var switchOper operates.ISwitchOper
-				switchOper = p.(operates.ISwitchOper)
-				operResp := switchOper.Switch(ob, device)
-				return models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
-			}
-		}
 	}
+	if this.CheckAgent && len(device.Agent) > 0 {
+		return this.SendAgent(device, operates.OPER_OPEN, data)
+	}
+	p, err := operates.GetProvider(device.Provider)
+	if err != nil {
+		return models.JsonResp{Success: false, Msg: err.Error()}
+	}
+	var switchOper operates.ISwitchOper
+	switchOper, ok := p.(operates.ISwitchOper)
+	if !ok {
+		return models.JsonResp{Success: false, Msg: "厂商没有开关功能"}
+	}
+	operResp := switchOper.Switch(ob, device)
+	return models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
 }
 
 // 调光操作
@@ -67,20 +67,19 @@ func (this NorthSender) Light(data []byte, deviceId string) models.JsonResp {
 	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
 		return models.JsonResp{Success: false, Msg: err.Error()}
-	} else {
-		p, err := operates.GetProvider(device.Provider)
-		if err != nil {
-			return models.JsonResp{Success: false, Msg: err.Error()}
-		} else {
-			if this.CheckAgent && len(device.Agent) > 0 {
-				return this.SendAgent(device, operates.OPER_LIGHT, data)
-			} else {
-				var lightOper operates.ILightOper
-				lightOper = p.(operates.ILightOper)
-				operResp := lightOper.Light(value, device)
-				return models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
-			}
-		}
 	}
-
+	if this.CheckAgent && len(device.Agent) > 0 {
+		return this.SendAgent(device, operates.OPER_LIGHT, data)
+	}
+	p, err := operates.GetProvider(device.Provider)
+	if err != nil {
+		return models.JsonResp{Success: false, Msg: err.Error()}
+	}
+	var lightOper operates.ILightOper
+	lightOper, ok := p.(operates.ILightOper)
+	if !ok {
+		return models.JsonResp{Success: false, Msg: "厂商没有调光功能"}
+	}
+	operResp := lightOper.Light(value, device)
+	return models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
 }
