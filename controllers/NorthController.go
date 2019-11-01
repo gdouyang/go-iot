@@ -2,10 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
-	"go-iot/agent"
 	"go-iot/controllers/sender"
-	"go-iot/models"
-	"go-iot/models/operates"
 
 	"github.com/astaxie/beego"
 )
@@ -18,6 +15,10 @@ func init() {
 	beego.AddNamespace(ns)
 }
 
+var (
+	northSender sender.NorthSender = sender.NorthSender{CheckAgent: true}
+)
+
 type NorthController struct {
 	beego.Controller
 }
@@ -26,13 +27,7 @@ type NorthController struct {
 func (this *NorthController) Open() {
 	deviceId := this.Ctx.Input.Param(":id")
 	byteReq := this.Ctx.Input.RequestBody
-	sender := sender.NorthSender{CheckAgent: true}
-	sender.AgentFunc = func(device operates.Device) models.JsonResp {
-		req := agent.NewRequest(device.Id, device.Sn, device.Provider, operates.OPER_OPEN, byteReq)
-		res := agent.SendCommand(device.Agent, req)
-		return res
-	}
-	this.Data["json"] = sender.Open(byteReq, deviceId)
+	this.Data["json"] = northSender.Open(byteReq, deviceId)
 	this.ServeJSON()
 }
 
@@ -41,13 +36,7 @@ func (this *NorthController) Light() {
 	deviceId := this.Ctx.Input.Param(":id")
 	byteReq := this.Ctx.Input.RequestBody
 
-	sender := sender.NorthSender{CheckAgent: true}
-	sender.AgentFunc = func(device operates.Device) models.JsonResp {
-		req := agent.NewRequest(device.Id, device.Sn, device.Provider, operates.OPER_LIGHT, byteReq)
-		res := agent.SendCommand(device.Agent, req)
-		return res
-	}
-	this.Data["json"] = sender.Light(byteReq, deviceId)
+	this.Data["json"] = northSender.Light(byteReq, deviceId)
 	this.ServeJSON()
 }
 
