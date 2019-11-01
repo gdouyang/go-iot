@@ -15,7 +15,7 @@ func init() {
 		return res
 	})
 
-	agent.RegProcessFunc(operates.OPER_OPEN, func(request agent.AgentRequest) models.JsonResp {
+	agent.RegProcessFunc(operates.OPER_LIGHT, func(request agent.AgentRequest) models.JsonResp {
 		res := northSender.Light(request.Data, request.DeviceId)
 		return res
 	})
