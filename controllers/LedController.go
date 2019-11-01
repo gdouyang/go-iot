@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"go-iot/agent"
 	"go-iot/controllers/sender"
 	"go-iot/models"
 	"go-iot/models/led"
@@ -22,13 +21,7 @@ func init() {
 }
 
 var (
-	ledSender sender.LedSender = sender.LedSender{
-		CheckAgent: true,
-		AgentFunc: func(device led.Device, oper string, data []byte) models.JsonResp {
-			req := agent.NewRequest(device.Id, device.Sn, device.Provider, oper, data)
-			res := agent.SendCommand(device.Agent, req)
-			return res
-		}}
+	ledSender sender.LedSender = sender.LedSender{CheckAgent: true}
 )
 
 type LedController struct {
