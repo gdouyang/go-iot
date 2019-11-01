@@ -3,6 +3,7 @@ package camera
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"go-iot/models"
 
 	"github.com/astaxie/beego"
@@ -63,7 +64,6 @@ func getDb() (*sql.DB, error) {
 
 // 分页查询
 func ListCamera(page *models.PageQuery) (*models.PageResult, error) {
-	var pr *models.PageResult
 	var dev Camera
 	json.Unmarshal(page.Condition, &dev)
 
@@ -75,9 +75,9 @@ func ListCamera(page *models.PageQuery) (*models.PageResult, error) {
 	sn := dev.Sn
 	params := make([]interface{}, 0)
 	if sn != "" {
-		sql += " where sn_ like ?"
-		countSql += " where sn_ like ?"
-		params = append(params, sn)
+		sql += ` where sn_ like ?`
+		countSql += ` where sn_ like ?`
+		params = append(params, fmt.Sprintf("%%%s%%", sn))
 	}
 	sql += " limit ? offset ?"
 	params = append(params, page.PageSize, page.PageOffset())
@@ -85,17 +85,12 @@ func ListCamera(page *models.PageQuery) (*models.PageResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	var result []Camera
-	var (
-		Id                     int
-		Sn, Name, OnlineStatus string
-	)
+	var result []*Camera
 	defer rows.Close()
 	for rows.Next() {
-		rows.Scan(&Id, &Sn, &Name, &OnlineStatus)
-
-		camera := Camera{Id: Id, Sn: Sn, Name: Name, OnlineStatus: OnlineStatus}
-		result = append(result, camera)
+		var c = new(Camera)
+		rows.Scan(&c.Id, &c.Sn, &c.Name, &c.OnlineStatus)
+		result = append(result, c)
 	}
 
 	rows, err = db.Query(countSql, params...)
@@ -106,12 +101,10 @@ func ListCamera(page *models.PageQuery) (*models.PageResult, error) {
 	defer rows.Close()
 	for rows.Next() {
 		rows.Scan(&count)
-		break
 	}
 
-	pr = &models.PageResult{PageSize: page.PageSize, PageNum: page.PageNum, Total: count, List: result}
-
-	return pr, nil
+	pr := models.PageResult{PageSize: page.PageSize, PageNum: page.PageNum, Total: count, List: result}
+	return &pr, nil
 }
 
 func AddCamera(ob *Camera) error {
@@ -149,7 +142,7 @@ func AddCamera(ob *Camera) error {
 	return nil
 }
 
-func UpdateCamera(ob *Camera) error {
+func UpdateCamera(id string, ob *Camera) error {
 	//更新数据
 	db, _ := getDb()
 	defer db.Close()
@@ -161,6 +154,7 @@ func UpdateCamera(ob *Camera) error {
 			rtsp_port_ =?,
 			onvif_port_ =?,
 			provider_ =?,
+			model_=?,
 			auth_user =?,
 			auth_pass_ =?,
 			onvif_user_ =?,
@@ -171,7 +165,7 @@ func UpdateCamera(ob *Camera) error {
 		return err
 	}
 
-	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Host, ob.RtspPort, ob.OnvifPort, ob.Provider, ob.Model, ob.AuthUser, ob.AuthPass, ob.OnvifUser, ob.OnvifPass, ob.OnlineStatus, ob.Id)
+	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Host, ob.RtspPort, ob.OnvifPort, ob.Provider, ob.Model, ob.AuthUser, ob.AuthPass, ob.OnvifUser, ob.OnvifPass, id)
 	if err != nil {
 		beego.Error("update fail", err)
 		return err

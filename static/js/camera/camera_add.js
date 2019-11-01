@@ -6,6 +6,7 @@ define(['components/agent_select'], function(agentSelect){
     data: function () {
       return {
         isEdit: false,
+        id:0,
         createForm: {sn: '', name: '',provider:'',type:'camera',model:'',host:'',rtspPort:'',onvifPort:'',model:'',authUser:'',authPass:'',onvifUser:'',onvifPass:''},
         providerList: ["HIKVISION","UNV","HUAWEI"],
 		modelList: ["IPC","NVR4300","IVS","5800"],
@@ -20,19 +21,20 @@ define(['components/agent_select'], function(agentSelect){
       }
     },
     methods: {
-      openDialog(data, isEdit){
+      openDialog(data, isEdit,id){
         this.$refs.addDialog.open();
         this.isEdit = isEdit;
+        this.id = id
         if(data){
           this.createForm = data;
         }
       },
       save(){
-        this.$refs.creteForm.validate((valid)=>{
+        this.$refs.createForm.validate((valid)=>{
           if (valid) {
             let url = '/camera/add';
             if(this.isEdit) {
-              url = '/camera/update'
+              url = '/camera/update/' + this.id
             }
             fetch(url, {
               method: 'POST', // or 'PUT'
@@ -56,17 +58,22 @@ define(['components/agent_select'], function(agentSelect){
         })
       },
       handleClose(){
-        this.$refs.creteForm.clearValidate();
+        this.$refs.createForm.clearValidate();
         this.createForm = JSON.parse(this.emptyFormData);
       }
     },
     template: `
       <my-dialog :title="title" ref="addDialog" @close="handleClose" @confirm="save()">
-        <el-form label-position="right" label-width="80px" size="mini" :model="createForm" ref="creteForm">
+        <el-form label-position="right" label-width="80px" size="mini" :model="createForm" ref="createForm">
           <el-row>
             <el-col :span="12">
               <el-form-item label="SN" prop="sn" :rules="[{ required: true, message: '不能为空'}]">
                 <el-input v-model="createForm.sn"></el-input>
+              </el-form-item>
+            </el-col>
+			<el-col :span="12">
+              <el-form-item label="Agent" prop="agent">
+                <agentSelect v-model="createForm.agent"/>
               </el-form-item>
             </el-col>
           </el-row>
@@ -95,15 +102,15 @@ define(['components/agent_select'], function(agentSelect){
                 </el-form-item>
           </el-col>
 			    <el-col :span="12">
-			          <el-form-item label="IP地址" prop="host" :rules="[{ required: true, message: '不能为空'}]">
+			          <el-form-item label="IP地址" prop="host" :rules="[{required: true, message: '不能为空'}]">
                 <el-input v-model="createForm.host"></el-input>
               </el-form-item>
           </el-col>
           </el-row>
           <el-row>
           <el-col :span="12">
-			          <el-form-item label="RTST端口" prop="rtspPort" :rules="[{ required: true, message: '不能为空'}]">
-                <el-input v-model="createForm.rtspPort"></el-input>
+			          <el-form-item label="RTST端口" prop="rtspPort">
+                <el-input-number :min="1" :max="65535" v-model="createForm.rtspPort"></el-input>
               </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -119,8 +126,8 @@ define(['components/agent_select'], function(agentSelect){
               </el-form-item>
 			</el-col>
 			<el-col :span="12">
-			<el-form-item label="ONVIF端口" prop="onvifPort" :rules="[{ required: true, message: '不能为空'}]">
-                <el-input v-model="createForm.onvifPort"></el-input>
+			<el-form-item label="ONVIF端口" prop="onvifPort">
+                <el-input-number :min="1" :max="65535" v-model="createForm.onvifPort"></el-input>
               </el-form-item>
 			</el-col>
       </el-row>
@@ -136,13 +143,6 @@ define(['components/agent_select'], function(agentSelect){
               </el-form-item>
               </el-col>
       </el-row>
-      <el-row>
-            <el-col :span="12">
-              <el-form-item label="Agent" prop="agent">
-                <agentSelect v-model="createForm.agent"/>
-              </el-form-item>
-            </el-col>
-          </el-row>
         </el-form>
       </my-dialog>
     ` 

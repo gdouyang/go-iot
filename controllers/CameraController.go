@@ -13,7 +13,7 @@ import (
 func init() {
 	beego.Router("/camera/list", &CameraController{}, "post:List")
 	beego.Router("/camera/add", &CameraController{}, "post:Add")
-	beego.Router("/camera/update", &CameraController{}, "post:Update")
+	beego.Router("/camera/update/:id", &CameraController{}, "post:Update")
 	beego.Router("/camera/delete", &CameraController{}, "post:Delete")
 	beego.Router("/camera/detail/:id", &CameraController{}, "get:GetCamera")
 }
@@ -24,7 +24,7 @@ type CameraController struct {
 
 // 查询设备列表
 func (this *CameraController) List() {
-	var ob models.PageQuery
+	ob := models.PageQuery{}
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 	res, err := camera.ListCamera(&ob)
 	if err != nil {
@@ -52,11 +52,17 @@ func (this *CameraController) Add() {
 
 // 更新设备信息
 func (this *CameraController) Update() {
+	id := this.Ctx.Input.Param(":id")
 	data := this.Ctx.Input.RequestBody
 	ob := camera.Camera{}
 	json.Unmarshal(data, &ob)
 
-	this.Data["json"] = camera.UpdateCamera(&ob)
+	err := camera.UpdateCamera(id, &ob)
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+		this.ServeJSON()
+	}
+	this.Data["json"] = models.JsonResp{Success: true, Msg: "更新成功"}
 	this.ServeJSON()
 }
 

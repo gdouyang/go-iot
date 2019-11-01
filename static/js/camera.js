@@ -7,16 +7,16 @@ function(cameraAdd) {
     data: function () {
       return {
         tableData: [],
-        searchParam:{id:''}
+        searchParam:{sn:''}
       }
     },
     mounted(){
       this.searchList();
     },
     methods: {
-      openDialog(data, isEdit){
+      openDialog(data, isEdit,id){
         this.$nextTick(()=>{
-          this.$refs.addDialog.openDialog(data, isEdit);
+          this.$refs.addDialog.openDialog(data, isEdit,id);
         })
       },
       searchList(){
@@ -36,7 +36,7 @@ function(cameraAdd) {
               message: '查找的设备已经不存在了'
             });
           } else {
-            this.openDialog(data,true);
+            this.openDialog(data,true,cameraid);
           }
         })
       },
@@ -67,10 +67,10 @@ function(cameraAdd) {
     template: `
       <el-card class="box-card">
       <div slot="header" class="clearfix">
-        <span>ID</span>
-        <el-input v-model="searchParam.id" @keyup.native.enter="searchList" style="width:200px;"></el-input>
+        <span>设备SN</span>
+        <el-input v-model="searchParam.sn" @keyup.native.enter="searchList" style="width:200px;"></el-input>
         <el-button type="text" @click="searchList">查询</el-button>
-        <el-button type="text" @click="openDialog(null, false)">添加</el-button>
+        <el-button type="text" @click="openDialog(null, false,null)">添加</el-button>
       </div>
       <div class="text item">
         <my-table url="/camera/list" ref="mainTable">
