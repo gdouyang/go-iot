@@ -3,43 +3,27 @@ package agent
 import (
 	"errors"
 
-	northsender "go-iot/controllers/sender"
 	"go-iot/models"
-	"go-iot/models/operates"
-	xixunsender "go-iot/provider/xixun/sender"
 )
 
 var (
-	northSender northsender.NorthSender
-	ledSender   northsender.LedSender
-	mSender     northsender.MaterialSender
-	xixunSender xixunsender.XixunSender
+	processMap map[string]func(request AgentRequest) models.JsonResp = map[string]func(request AgentRequest) models.JsonResp{}
 )
+
+func RegProcessMap(oper string, process func(request AgentRequest) models.JsonResp) {
+	processMap[oper] = process
+}
 
 func processRequest(request AgentRequest) (string, error) {
 	if len(request.Provider) == 0 {
 		return "", errors.New("厂商不能为空")
 	}
+	processFunc, ok := processMap[request.Oper]
 	var resp models.JsonResp
-	if request.Oper == operates.OPER_OPEN {
-		resp = northSender.Open(request.Data, request.DeviceId)
-	} else if request.Oper == operates.OPER_LIGHT {
-		resp = northSender.Light(request.Data, request.DeviceId)
-	} else if request.Oper == xixunsender.SCREEN_SHOT {
-		resp = xixunSender.ScreenShot(request.DeviceId)
-	} else if request.Oper == xixunsender.MSG_CLEAR {
-		resp = xixunSender.ClearScreenText(request.DeviceId)
-	} else if request.Oper == xixunsender.MSG_PUBLISH {
-		resp = xixunSender.MsgPublish(request.Data, request.DeviceId)
-	} else if request.Oper == northsender.LED_ADD {
-		resp = ledSender.Add(request.Data)
-	} else if request.Oper == northsender.LED_UPDATE {
-		resp = ledSender.Update(request.Data)
-	} else if request.Oper == northsender.LED_DELETE {
-		resp = ledSender.Update(request.Data)
-	} else if request.Oper == northsender.MATERIAL_DOWNLOAD {
-		resp = mSender.Download(request.Data)
+	if ok {
+		resp = processFunc(request)
 	}
+
 	if !resp.Success {
 		return "", errors.New("Agent" + resp.Msg)
 	}

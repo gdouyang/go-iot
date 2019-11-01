@@ -2,6 +2,7 @@ package sender
 
 import (
 	"encoding/json"
+	"go-iot/agent"
 	"go-iot/models"
 	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
@@ -13,6 +14,24 @@ const (
 	MSG_CLEAR   = "xixunMsgClear"
 	MSG_PUBLISH = "xixunMsgPublish"
 )
+
+func init() {
+	xixunSender := XixunSender{}
+	agent.RegProcessMap(SCREEN_SHOT, func(request agent.AgentRequest) models.JsonResp {
+		res := xixunSender.ScreenShot(request.DeviceId)
+		return res
+	})
+
+	agent.RegProcessMap(MSG_CLEAR, func(request agent.AgentRequest) models.JsonResp {
+		res := xixunSender.ClearScreenText(request.DeviceId)
+		return res
+	})
+
+	agent.RegProcessMap(MSG_PUBLISH, func(request agent.AgentRequest) models.JsonResp {
+		res := xixunSender.MsgPublish(request.Data, request.DeviceId)
+		return res
+	})
+}
 
 type XixunSender struct {
 	// 是否检查有Agent

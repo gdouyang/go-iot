@@ -2,6 +2,7 @@ package sender
 
 import (
 	"encoding/json"
+	"go-iot/agent"
 	"go-iot/models"
 	"go-iot/models/led"
 )
@@ -11,6 +12,24 @@ const (
 	LED_UPDATE = "ledUpdate"
 	LED_DELETE = "ledDelete"
 )
+
+func init() {
+	ledSender := LedSender{}
+	agent.RegProcessMap(LED_ADD, func(request agent.AgentRequest) models.JsonResp {
+		res := ledSender.Add(request.Data)
+		return res
+	})
+
+	agent.RegProcessMap(LED_UPDATE, func(request agent.AgentRequest) models.JsonResp {
+		res := ledSender.Update(request.Data)
+		return res
+	})
+
+	agent.RegProcessMap(LED_DELETE, func(request agent.AgentRequest) models.JsonResp {
+		res := ledSender.Delete(request.Data)
+		return res
+	})
+}
 
 type LedSender struct {
 	// 是否检查有Agent

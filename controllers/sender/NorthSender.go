@@ -2,10 +2,24 @@ package sender
 
 import (
 	"encoding/json"
+	"go-iot/agent"
 	"go-iot/models"
 	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
 )
+
+func init() {
+	northSender := NorthSender{}
+	agent.RegProcessMap(operates.OPER_OPEN, func(request agent.AgentRequest) models.JsonResp {
+		res := northSender.Open(request.Data, request.DeviceId)
+		return res
+	})
+
+	agent.RegProcessMap(operates.OPER_OPEN, func(request agent.AgentRequest) models.JsonResp {
+		res := northSender.Light(request.Data, request.DeviceId)
+		return res
+	})
+}
 
 type NorthSender struct {
 	// 是否检查有Agent

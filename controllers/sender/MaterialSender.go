@@ -2,6 +2,7 @@ package sender
 
 import (
 	"encoding/json"
+	"go-iot/agent"
 	"go-iot/models"
 	"go-iot/models/material"
 	"io/ioutil"
@@ -14,6 +15,14 @@ import (
 const (
 	MATERIAL_DOWNLOAD = "materialDownload"
 )
+
+func init() {
+	mSender := MaterialSender{}
+	agent.RegProcessMap(MATERIAL_DOWNLOAD, func(request agent.AgentRequest) models.JsonResp {
+		res := mSender.Download(request.Data)
+		return res
+	})
+}
 
 type MaterialSender struct {
 }
