@@ -52,6 +52,7 @@ func (this ProviderXiXunLed) Switch(status []models.SwitchStatus, device operate
 			rsp.Msg = err.Error()
 		} else {
 			rsp.Msg = resp
+			rsp.Success = true
 		}
 
 	}
@@ -68,6 +69,7 @@ func (this ProviderXiXunLed) Light(value int, device operates.Device) operates.O
 		rsp.Msg = err.Error()
 	} else {
 		rsp.Msg = resp
+		rsp.Success = true
 	}
 	return rsp
 }
@@ -82,6 +84,7 @@ func (this ProviderXiXunLed) Volume(value int, sn string) operates.OperResp {
 		rsp.Msg = err.Error()
 	} else {
 		rsp.Msg = resp
+		rsp.Success = true
 	}
 	return rsp
 }
@@ -96,6 +99,7 @@ func (this ProviderXiXunLed) FileUpload(sn string, url string, filename string) 
 		rsp.Msg = err.Error()
 	} else {
 		rsp.Msg = resp
+		rsp.Success = true
 	}
 	return rsp
 }
