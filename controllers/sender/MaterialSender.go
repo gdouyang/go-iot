@@ -18,7 +18,7 @@ const (
 
 func init() {
 	mSender := MaterialSender{}
-	agent.RegProcessMap(MATERIAL_DOWNLOAD, func(request agent.AgentRequest) models.JsonResp {
+	agent.RegProcessFunc(MATERIAL_DOWNLOAD, func(request agent.AgentRequest) models.JsonResp {
 		res := mSender.Download(request.Data)
 		return res
 	})

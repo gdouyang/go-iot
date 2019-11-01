@@ -10,7 +10,10 @@ var (
 	processMap map[string]func(request AgentRequest) models.JsonResp = map[string]func(request AgentRequest) models.JsonResp{}
 )
 
-func RegProcessMap(oper string, process func(request AgentRequest) models.JsonResp) {
+// 注册Agent处理函数，当控制层下发命令给Agent时Agent把相应指令发给具体厂商设备执行
+// oper 操作项
+// process 处理函数
+func RegProcessFunc(oper string, process func(request AgentRequest) models.JsonResp) {
 	processMap[oper] = process
 }
 

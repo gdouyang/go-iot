@@ -17,17 +17,17 @@ const (
 
 func init() {
 	xixunSender := XixunSender{}
-	agent.RegProcessMap(SCREEN_SHOT, func(request agent.AgentRequest) models.JsonResp {
+	agent.RegProcessFunc(SCREEN_SHOT, func(request agent.AgentRequest) models.JsonResp {
 		res := xixunSender.ScreenShot(request.DeviceId)
 		return res
 	})
 
-	agent.RegProcessMap(MSG_CLEAR, func(request agent.AgentRequest) models.JsonResp {
+	agent.RegProcessFunc(MSG_CLEAR, func(request agent.AgentRequest) models.JsonResp {
 		res := xixunSender.ClearScreenText(request.DeviceId)
 		return res
 	})
 
-	agent.RegProcessMap(MSG_PUBLISH, func(request agent.AgentRequest) models.JsonResp {
+	agent.RegProcessFunc(MSG_PUBLISH, func(request agent.AgentRequest) models.JsonResp {
 		res := xixunSender.MsgPublish(request.Data, request.DeviceId)
 		return res
 	})

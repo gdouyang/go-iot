@@ -15,17 +15,17 @@ const (
 
 func init() {
 	ledSender := LedSender{}
-	agent.RegProcessMap(LED_ADD, func(request agent.AgentRequest) models.JsonResp {
+	agent.RegProcessFunc(LED_ADD, func(request agent.AgentRequest) models.JsonResp {
 		res := ledSender.Add(request.Data)
 		return res
 	})
 
-	agent.RegProcessMap(LED_UPDATE, func(request agent.AgentRequest) models.JsonResp {
+	agent.RegProcessFunc(LED_UPDATE, func(request agent.AgentRequest) models.JsonResp {
 		res := ledSender.Update(request.Data)
 		return res
 	})
 
-	agent.RegProcessMap(LED_DELETE, func(request agent.AgentRequest) models.JsonResp {
+	agent.RegProcessFunc(LED_DELETE, func(request agent.AgentRequest) models.JsonResp {
 		res := ledSender.Delete(request.Data)
 		return res
 	})
