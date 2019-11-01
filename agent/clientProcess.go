@@ -25,7 +25,7 @@ func processRequest(request AgentRequest) (string, error) {
 	}
 
 	if !resp.Success {
-		return "", errors.New("Agent" + resp.Msg)
+		return "", errors.New("Agent[" + resp.Msg + "]")
 	}
 	return resp.Msg, nil
 }
