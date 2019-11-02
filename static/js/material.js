@@ -1,8 +1,9 @@
-define(["components/material_add"], 
-function(materialAdd) {
+define(["components/material_add", "components/material_sync_agent"], 
+function(materialAdd, SyncAgent) {
   return {
     components:{
       'add-dialog': materialAdd,
+      'sync-agent': SyncAgent
     },
     data: function () {
       return {
@@ -68,6 +69,7 @@ function(materialAdd) {
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
               <el-button type="text" size="small" @click="download(scope.row)">下载</el-button>
+              <sync-agent :id="scope.row.id"/>
             </template>
           </el-table-column>
         </my-table>
