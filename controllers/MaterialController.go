@@ -6,6 +6,7 @@ import (
 	"go-iot/controllers/sender"
 	"go-iot/models"
 	"go-iot/models/material"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -19,7 +20,7 @@ func init() {
 	beego.Router("/material/add", &MaterialController{}, "post:Add")
 	beego.Router("/material/update", &MaterialController{}, "post:Add")
 	beego.Router("/material/delete", &MaterialController{}, "post:Delete")
-	beego.Router("/material/sendToAgent/:id", &MaterialController{}, "post:SendToAgent")
+	beego.Router("/material/sendToAgent/:id/:agentSn", &MaterialController{}, "post:SendToAgent")
 }
 
 type MaterialController struct {
@@ -66,13 +67,13 @@ func (this *MaterialController) Add() {
 		if index != -1 {
 			fileName = fileName[:index] + strconv.Itoa(int(time.Now().Unix())) + fileName[index:]
 		}
-		filePath := "/files/" + fileName
-		err = this.SaveToFile("uploadname", "."+filePath)
+		os.Mkdir("./files", os.ModePerm)
+		err = this.SaveToFile("uploadname", "./files/"+filePath)
 		if err != nil {
 			resp.Msg = err.Error()
 			return
 		}
-		ob.Path = filePath
+		ob.Path = fileName
 		ob.Size = strconv.FormatInt(h.Size, 10)
 	}
 	if len(ob.Id) > 0 {
@@ -115,7 +116,7 @@ func (this *MaterialController) SendToAgent() {
 		if err != nil {
 			resp = &models.JsonResp{Success: false, Msg: err.Error()}
 		} else {
-			req := agent.NewRequest("", "", "", sender.MATERIAL_DOWNLOAD, data)
+			req := agent.NewRequest("", "", "agent", sender.MATERIAL_DOWNLOAD, data)
 			res := agent.SendCommand(agentSn, req)
 			resp = &res
 		}

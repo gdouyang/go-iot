@@ -47,7 +47,7 @@ function(materialAdd, SyncAgent) {
         })
       },
       download(data){
-        document.location.href = `/file/${data.id}`;
+        document.location.href = `/file/${data.path}`;
       }
     },
     template: `

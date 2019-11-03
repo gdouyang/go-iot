@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"os"
 	"sync"
 	"time"
 )
@@ -60,4 +61,15 @@ func Uuid() int {
 	defer uuidLock.Unlock()
 	uuid += 1
 	return uuid
+}
+
+func FileExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
 }
