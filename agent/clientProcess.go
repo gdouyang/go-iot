@@ -19,7 +19,7 @@ func RegProcessFunc(oper string, process func(request AgentRequest) models.JsonR
 
 func processRequest(request AgentRequest) (string, error) {
 	if len(request.Provider) == 0 {
-		return "", errors.New("厂商不能为空")
+		return "", errors.New("Agent[厂商不能为空]")
 	}
 	processFunc, ok := processMap[request.Oper]
 	var resp models.JsonResp

@@ -1,5 +1,6 @@
 define({
     props:{
+      id: null
     },
     watch: {
     },
@@ -18,6 +19,20 @@ define({
         this.agentList = datas
       },
       select(data){
+        fetch(`/material/sendToAgent/${this.id}/${data.sn}`, {
+          method: 'POST',
+          body: '',
+          headers: new Headers({
+            'Content-Type': 'application/json'
+          })
+        }).then(res => {
+          return res.json()
+        }).then(data => {
+          this.$message({
+            type: data.success ? 'success' : 'error',
+            message: data.msg ? data.msg : '发送成功!'
+          });
+        })
       },
     },
     template: `
