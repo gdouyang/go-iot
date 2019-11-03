@@ -136,6 +136,7 @@ func (this ProviderXiXunLed) FileDrop(filename string, sn string) operates.OperR
 		rsp.Msg = err.Error()
 	} else {
 		rsp.Msg = resp
+		rsp.Success = true
 	}
 	return rsp
 }
@@ -150,6 +151,7 @@ func (this ProviderXiXunLed) PlayZip(filename string, sn string) operates.OperRe
 		rsp.Msg = err.Error()
 	} else {
 		rsp.Msg = resp
+		rsp.Success = true
 	}
 	return rsp
 }

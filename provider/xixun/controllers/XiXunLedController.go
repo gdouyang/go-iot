@@ -45,33 +45,35 @@ func (this *XiXunLedController) FileUpload() {
 	var param map[string]string
 	json.Unmarshal(this.Ctx.Input.RequestBody, &param)
 
+	defer func() {
+		this.ServeJSON()
+	}()
+
 	device, err := led.GetDevice(deviceId)
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
-	} else {
-		ids := param["ids"]
-		materialIds := strings.Split(ids, ",")
-		serverUrl := param["serverUrl"]
-		serverUrl += "/file/"
-		msg := ""
-		for _, id := range materialIds {
-			material, err := material.GetMaterialById(id)
-			if err == nil {
-				filename := material.Path
-				index := strings.LastIndex(material.Path, "/")
-				if index != -1 {
-					filename = filename[index+1:]
-				}
-				operResp := xixun.ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+material.Path, filename)
-				msg += operResp.Msg
-			} else {
-				msg += err.Error()
-			}
-		}
-		this.Data["json"] = models.JsonResp{Success: true, Msg: msg}
+		return
 	}
-
-	this.ServeJSON()
+	ids := param["ids"]
+	materialIds := strings.Split(ids, ",")
+	serverUrl := param["serverUrl"]
+	serverUrl += "/file/"
+	msg := ""
+	for _, id := range materialIds {
+		material, err := material.GetMaterialById(id)
+		if err == nil {
+			filename := material.Path
+			index := strings.LastIndex(material.Path, "/")
+			if index != -1 {
+				filename = filename[index+1:]
+			}
+			operResp := xixun.ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+material.Path, filename)
+			msg += operResp.Msg
+		} else {
+			msg += err.Error()
+		}
+	}
+	this.Data["json"] = models.JsonResp{Success: true, Msg: msg}
 }
 
 /*
@@ -85,42 +87,45 @@ func (this *XiXunLedController) LedPlay() {
 	var param map[string]string
 	json.Unmarshal(this.Ctx.Input.RequestBody, &param)
 
+	defer func() {
+		this.ServeJSON()
+	}()
 	device, err := led.GetDevice(deviceId)
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
-	} else {
-		ids := param["ids"]
-		serverUrl := param["serverUrl"]
-		serverUrl += "/file/"
-		material, err := material.GetMaterialById(ids)
-		if err == nil {
-			filename := material.Path
-			index := strings.LastIndex(material.Path, "/")
-			if index != -1 {
-				filename = filename[index+1:]
-			}
-			// 查看文件长度，并与远程对比
-			length, err := strconv.ParseInt(material.Size, 10, 64)
-			if err != nil {
-				beego.Error(err)
-			}
-			beego.Info(filename)
-			leg, err := xixun.ProviderImplXiXunLed.FileLength(filename, device.Sn)
-			if err != nil {
-				this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
-				this.ServeJSON()
-			}
-			if length != leg {
-				//长度不一致，则返回，让重新上传
-				this.Data["json"] = models.JsonResp{Success: false, Msg: "文件长度不一致，文件没有上传成功"}
-				this.ServeJSON()
-			}
-			//如果长度一致，就发起播放
-			operResp := xixun.ProviderImplXiXunLed.PlayZip(filename, device.Sn)
-			this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
-		}
+		return
 	}
-	this.ServeJSON()
+	ids := param["ids"]
+	serverUrl := param["serverUrl"]
+	serverUrl += "/file/"
+	material, err := material.GetMaterialById(ids)
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+	}
+	filename := material.Path
+	index := strings.LastIndex(material.Path, "/")
+	if index != -1 {
+		filename = filename[index+1:]
+	}
+	// 查看文件长度，并与远程对比
+	length, err := strconv.ParseInt(material.Size, 10, 64)
+	if err != nil {
+		beego.Error(err)
+	}
+	beego.Info(filename)
+	leg, err := xixun.ProviderImplXiXunLed.FileLength(filename, device.Sn)
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+		return
+	}
+	if length != leg {
+		//长度不一致，则返回，让重新上传
+		this.Data["json"] = models.JsonResp{Success: false, Msg: "文件长度不一致，文件没有上传成功"}
+		return
+	}
+	//如果长度一致，就发起播放
+	operResp := xixun.ProviderImplXiXunLed.PlayZip(filename, device.Sn)
+	this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
 }
 
 /*获取本机的消息*/
