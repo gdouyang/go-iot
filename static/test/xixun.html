@@ -43,35 +43,51 @@
         this.msgList = [];
       },
       init(timeout){
-        setTimeout(() => {
-          try{
-            this.socket = new WebSocket('ws://localhost:7078/');
-            // Message received on the socket
-            this.socket.onmessage = (event => {
-                var content = event.data;
-                this.msgList.push({content: content})
-                this.socket.send(JSON.stringify({success:'true'}))
-            })
-            this.socket.onopen = (event => {
-              this.msgList.push({content: "connect success"})
-              this.heart(500)
-            })
-            this.socket.onclose = (event => {
-              this.msgList.push({content: "close"})
+        if(this.socket){
+          this.socket.close()
+          this.socket = null;
+        }
+        try{
+          this.socket = new WebSocket('ws://localhost:7078/');
+          // Message received on the socket
+          this.socket.onmessage = (event => {
+              var content = event.data;
+              this.msgList.push({content: content})
+              this.socket.send(JSON.stringify({success:'true'}))
+          })
+          this.socket.onopen = (event => {
+            this.msgList.push({content: "connect success"})
+            if(this.timeout){
+              clearTimeout(this.timeout)
+            }
+            this.heart(500)
+          })
+          this.socket.onclose = (event => {
+            this.msgList.push({content: "close"})
+            setTimeout(() => {
               this.init()
-            })
-          }catch (e){
-            console.error(e)
-            this.init()
-          }
-        }, timeout?timeout:5000);
+            }, 10000)
+          })
+        }catch (e){
+          console.error(e)
+          setTimeout(() => {
+              this.init()
+            }, 10000)
+        }
       },
       heart(timeout) {
-        setTimeout(() => {
-          this.socket.send(JSON.stringify({cardId:'ld00002'}))
-          this.heart()
+        this.timeout = setTimeout(() => {
+          if(this.socket && this.socket.readyState == this.socket.OPEN){
+            this.socket.send(JSON.stringify({cardId:'ld00002'}))
+            if(this.timeout){
+              clearTimeout(this.timeout)
+            }
+            this.heart()
+          }
         }, timeout ? timeout : 20000);
-      }
+      },
+
+
     }
   })
 </script>
