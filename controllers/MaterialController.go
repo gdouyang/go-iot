@@ -68,7 +68,7 @@ func (this *MaterialController) Add() {
 			fileName = fileName[:index] + strconv.Itoa(int(time.Now().Unix())) + fileName[index:]
 		}
 		os.Mkdir("./files", os.ModePerm)
-		err = this.SaveToFile("uploadname", "./files/"+filePath)
+		err = this.SaveToFile("uploadname", "./files/"+fileName)
 		if err != nil {
 			resp.Msg = err.Error()
 			return

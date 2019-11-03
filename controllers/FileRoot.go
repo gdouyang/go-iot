@@ -1,13 +1,14 @@
 package controllers
 
 import (
-	"go-iot/models/material"
+	"go-iot/provider/utils"
+	"net/http"
 
 	"github.com/astaxie/beego"
 )
 
 func init() {
-	beego.Router("/file/?:id", &FileRootController{}, "get:File")
+	beego.Router("/file/?:name", &FileRootController{}, "get:File")
 }
 
 type FileRootController struct {
@@ -16,17 +17,13 @@ type FileRootController struct {
 
 // 下载素材
 func (this *FileRootController) File() {
-	id := this.Ctx.Input.Param(":id")
+	name := this.Ctx.Input.Param(":name")
 
-	ob, err := material.GetMaterialById(id)
-	if err != nil {
-		beego.Error(err.Error())
-	}
-
-	if len(ob.Id) == 0 {
-		this.Ctx.Output.SetStatus(404)
+	path := "./files/" + name
+	exists, _ := utils.FileExists(path)
+	if !exists {
+		http.Error(this.Ctx.ResponseWriter, "file not found", 404)
 	} else {
-		this.Ctx.Output.Download("." + ob.Path)
+		this.Ctx.Output.Download(path)
 	}
-
 }

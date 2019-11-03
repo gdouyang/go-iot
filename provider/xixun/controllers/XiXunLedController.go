@@ -62,7 +62,7 @@ func (this *XiXunLedController) FileUpload() {
 				if index != -1 {
 					filename = filename[index+1:]
 				}
-				operResp := xixun.ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+material.Id, filename)
+				operResp := xixun.ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+material.Path, filename)
 				msg += operResp.Msg
 			} else {
 				msg += err.Error()
