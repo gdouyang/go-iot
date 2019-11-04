@@ -1,6 +1,7 @@
 package xixun
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -217,7 +218,14 @@ func (this ProviderXiXunLed) MsgPublish(sn string, msg MsgParam) operates.OperRe
 	var rsp operates.OperResp
 	msg.Type = "invokeBuildInJs"
 	msg.Method = "scrollMarquee"
-	abc, _ := json.Marshal(msg)
+	bf := bytes.NewBuffer([]byte{})
+	jsonEncoder := json.NewEncoder(bf)
+	jsonEncoder.SetEscapeHTML(false)
+	err := jsonEncoder.Encode(msg)
+	if err != nil {
+		return operates.OperResp{Success: false, Msg: err.Error()}
+	}
+	abc := bf.Bytes()
 	resp, err := SendCommand(sn, string(abc))
 	if err != nil {
 		rsp.Msg = err.Error()

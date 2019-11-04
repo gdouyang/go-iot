@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"sync"
@@ -127,10 +128,14 @@ func (this *AgentWebSocket) Join() {
 func SendCommand(sn string, command AgentRequest) models.JsonResp {
 	agent, ok := subscribers[sn]
 	if ok {
-		data, err := json.Marshal(command)
+		bf := bytes.NewBuffer([]byte{})
+		jsonEncoder := json.NewEncoder(bf)
+		jsonEncoder.SetEscapeHTML(false)
+		err := jsonEncoder.Encode(command)
 		if err != nil {
 			return models.JsonResp{Success: false, Msg: err.Error()}
 		}
+		data := bf.Bytes()
 		// LED没有返回的情况需要处理超时
 		go checkTimeout(agent)
 		// 把当前请求等待,等待接口返回
