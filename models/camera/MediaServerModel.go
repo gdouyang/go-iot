@@ -122,7 +122,7 @@ func GetServerStatus(srs string) ([]*MediaServer, error) {
 func SetServerStatus(status string, name string) error {
 	db, _ := getDb()
 	defer db.Close()
-	sql := `update videoserver set status_ = ? where name_ = ?`
+	sql := `update videoserver set status_ = ? where type_ = ?`
 	_, err := db.Exec(sql, status, name)
 	if err != nil {
 		return err

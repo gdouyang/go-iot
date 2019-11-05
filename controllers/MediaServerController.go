@@ -7,11 +7,21 @@ import (
 	"go-iot/server"
 
 	"github.com/astaxie/beego"
+	"github.com/gwuhaolin/livego/configure"
 )
+
+var liveServer *server.LiveMedia
 
 // 流媒体服务
 func init() {
 	// 初始启动
+	livecfg := new(configure.Application)
+	livecfg.Appname = "live"
+	livecfg.Liveon = "on"
+	livecfg.Hlson = "on"
+	configure.RtmpServercfg.Server = []configure.Application{*livecfg}
+	liveServer = server.NEW()
+	liveServer.ResumeAll()
 	//健康检查
 	beego.Router("/mediasrs/list", &MediaServerController{}, "post:List")
 	beego.Router("/mediasrs/startall", &MediaServerController{}, "put:StartAll")
@@ -39,14 +49,13 @@ func (this *MediaServerController) List() {
 }
 
 func (this *MediaServerController) StartAll() {
-	beego.Info("start all")
-	server.Start("all")
+	liveServer.Start("all")
 	this.Data["json"] = models.JsonResp{Success: true, Msg: "操作完成，稍候查看状态"}
 	this.ServeJSON()
 }
 
 func (this *MediaServerController) StopAll() {
-	err := server.StopAll()
+	err := liveServer.StopAll()
 	if err != nil {
 		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 		this.ServeJSON()
