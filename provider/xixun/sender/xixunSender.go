@@ -6,7 +6,7 @@ import (
 	"go-iot/models"
 	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
-	"go-iot/provider/xixun"
+	xixun "go-iot/provider/xixun/base"
 	"strings"
 )
 

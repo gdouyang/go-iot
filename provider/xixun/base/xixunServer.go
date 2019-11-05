@@ -1,5 +1,5 @@
 // XiXun服务器提供WebSocket服务控制设备
-package xixun
+package base
 
 import (
 	"encoding/json"

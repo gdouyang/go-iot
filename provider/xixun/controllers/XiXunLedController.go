@@ -5,7 +5,7 @@ import (
 	"go-iot/models"
 	"go-iot/models/led"
 	"go-iot/models/material"
-	"go-iot/provider/xixun"
+	xixun "go-iot/provider/xixun/base"
 	"go-iot/provider/xixun/sender"
 	"strconv"
 	"strings"
