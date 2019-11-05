@@ -41,39 +41,12 @@ func (this *XiXunLedController) ScreenShot() {
 // LED播放文件上传
 func (this *XiXunLedController) FileUpload() {
 	deviceId := this.Ctx.Input.Param(":id")
-	beego.Info("deviceId=", deviceId)
-	var param map[string]string
-	json.Unmarshal(this.Ctx.Input.RequestBody, &param)
+	data := this.Ctx.Input.RequestBody
 
-	defer func() {
-		this.ServeJSON()
-	}()
+	xSender := sender.XixunSender{CheckAgent: true}
+	this.Data["json"] = xSender.FileUpload(data, deviceId)
 
-	device, err := led.GetDevice(deviceId)
-	if err != nil {
-		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
-		return
-	}
-	ids := param["ids"]
-	materialIds := strings.Split(ids, ",")
-	serverUrl := param["serverUrl"]
-	serverUrl += "/file/"
-	msg := ""
-	for _, id := range materialIds {
-		material, err := material.GetMaterialById(id)
-		if err == nil {
-			filename := material.Path
-			index := strings.LastIndex(material.Path, "/")
-			if index != -1 {
-				filename = filename[index+1:]
-			}
-			operResp := xixun.ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+material.Path, filename)
-			msg += operResp.Msg
-		} else {
-			msg += err.Error()
-		}
-	}
-	this.Data["json"] = models.JsonResp{Success: true, Msg: msg}
+	this.ServeJSON()
 }
 
 /*

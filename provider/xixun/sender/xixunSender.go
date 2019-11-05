@@ -7,11 +7,13 @@ import (
 	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
 	"go-iot/provider/xixun"
+	"strings"
 )
 
 const (
 	SCREEN_SHOT = "xixunScreenShot"
 	MSG_CLEAR   = "xixunMsgClear"
+	FILE_UPLOAD = "xixunFileUpload"
 	MSG_PUBLISH = "xixunMsgPublish"
 )
 
@@ -29,6 +31,10 @@ func init() {
 
 	agent.RegProcessFunc(MSG_PUBLISH, func(request agent.AgentRequest) models.JsonResp {
 		res := xixunSender.MsgPublish(request.Data, request.DeviceId)
+		return res
+	})
+	agent.RegProcessFunc(FILE_UPLOAD, func(request agent.AgentRequest) models.JsonResp {
+		res := xixunSender.FileUpload(request.Data, request.DeviceId)
 		return res
 	})
 }
@@ -58,6 +64,29 @@ func (this XixunSender) ScreenShot(deviceId string) models.JsonResp {
 
 	operResp := xixun.ProviderImplXiXunLed.ScreenShot(device.Sn)
 	return models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+}
+
+// LED播放文件上传
+func (this XixunSender) FileUpload(data []byte, deviceId string) models.JsonResp {
+	device, err := modelfactory.GetDevice(deviceId)
+	if err != nil {
+		return models.JsonResp{Success: false, Msg: err.Error()}
+	}
+	if this.CheckAgent && len(device.Agent) > 0 {
+		return this.SendAgent(device, FILE_UPLOAD, data)
+	}
+	var param map[string]string
+	json.Unmarshal(data, &param)
+	paths := param["paths"]
+	materialPaths := strings.Split(paths, ",")
+	serverUrl := param["serverUrl"]
+	serverUrl += "/file/"
+	msg := ""
+	for _, path := range materialPaths {
+		operResp := xixun.ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+path, path)
+		msg += operResp.Msg
+	}
+	return models.JsonResp{Success: true, Msg: msg}
 }
 
 // 发布消息
