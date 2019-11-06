@@ -1,14 +1,7 @@
 package xixuncontroller
 
 import (
-	"encoding/json"
-	"go-iot/models"
-	"go-iot/models/led"
-	"go-iot/models/material"
-	xixun "go-iot/provider/xixun/base"
 	"go-iot/provider/xixun/sender"
-	"strconv"
-	"strings"
 
 	"github.com/astaxie/beego"
 )
@@ -56,49 +49,10 @@ func (this *XiXunLedController) FileUpload() {
 */
 func (this *XiXunLedController) LedPlay() {
 	deviceId := this.Ctx.Input.Param(":id")
-	beego.Info("deviceId=", deviceId)
-	var param map[string]string
-	json.Unmarshal(this.Ctx.Input.RequestBody, &param)
+	data := this.Ctx.Input.RequestBody
 
-	defer func() {
-		this.ServeJSON()
-	}()
-	device, err := led.GetDevice(deviceId)
-	if err != nil {
-		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
-		return
-	}
-	ids := param["ids"]
-	serverUrl := param["serverUrl"]
-	serverUrl += "/file/"
-	material, err := material.GetMaterialById(ids)
-	if err != nil {
-		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
-	}
-	filename := material.Path
-	index := strings.LastIndex(material.Path, "/")
-	if index != -1 {
-		filename = filename[index+1:]
-	}
-	// 查看文件长度，并与远程对比
-	length, err := strconv.ParseInt(material.Size, 10, 64)
-	if err != nil {
-		beego.Error(err)
-	}
-	beego.Info(filename)
-	leg, err := xixun.ProviderImplXiXunLed.FileLength(filename, device.Sn)
-	if err != nil {
-		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
-		return
-	}
-	if length != leg {
-		//长度不一致，则返回，让重新上传
-		this.Data["json"] = models.JsonResp{Success: false, Msg: "文件长度不一致，文件没有上传成功"}
-		return
-	}
-	//如果长度一致，就发起播放
-	operResp := xixun.ProviderImplXiXunLed.PlayZip(filename, device.Sn)
-	this.Data["json"] = models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+	xSender := sender.XixunSender{CheckAgent: true}
+	this.Data["json"] = xSender.LedPlay(data, deviceId)
 }
 
 /*获取本机的消息*/
