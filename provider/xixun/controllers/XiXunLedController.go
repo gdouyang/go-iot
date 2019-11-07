@@ -53,6 +53,7 @@ func (this *XiXunLedController) LedPlay() {
 
 	xSender := sender.XixunSender{CheckAgent: true}
 	this.Data["json"] = xSender.LedPlay(data, deviceId)
+	this.ServeJSON()
 }
 
 /*获取本机的消息*/
