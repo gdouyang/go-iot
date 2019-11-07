@@ -1,10 +1,4 @@
-package utils
-
-import (
-	"os"
-	"sync"
-	"time"
-)
+package util
 
 var MbTable = []uint16{
 	0X0000, 0XC0C1, 0XC181, 0X0140, 0XC301, 0X03C0, 0X0280, 0XC241,
@@ -49,27 +43,4 @@ func CheckSum(data []byte) (back []byte) {
 		crc16 ^= MbTable[n]
 	}
 	return []byte{byte(crc16), byte(crc16 >> 8)}
-}
-
-var uuid int = int(time.Now().Unix())
-
-var uuidLock sync.Mutex
-
-// 获取UUID
-func Uuid() int {
-	uuidLock.Lock()
-	defer uuidLock.Unlock()
-	uuid += 1
-	return uuid
-}
-
-func FileExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return true, err
 }
