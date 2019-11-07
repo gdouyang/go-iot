@@ -10,7 +10,7 @@ import (
 	"go-iot/models"
 	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
-	"go-iot/provider/utils"
+	"go-iot/provider/util"
 
 	"github.com/astaxie/beego"
 	"github.com/gorilla/websocket"
@@ -72,7 +72,7 @@ func (this *AgentWebSocket) Join() {
 	var sn string
 
 	var l sync.Mutex
-	agent := &AgentClient{uid: utils.Uuid(), SN: sn, Conn: c, Cond: sync.NewCond(&l), respChan: make(chan int, 2)}
+	agent := &AgentClient{uid: util.Uuid(), SN: sn, Conn: c, Cond: sync.NewCond(&l), respChan: make(chan int, 2)}
 	for {
 		mt, message, err := c.ReadMessage()
 		if err != nil {
@@ -144,7 +144,7 @@ func SendCommand(sn string, command AgentRequest) models.JsonResp {
 		agent.Conn.WriteMessage(websocket.BinaryMessage, data)
 		agent.Cond.Wait()
 		agent.Cond.L.Unlock()
-		beego.Info("agent.Resp", &agent.Resp, agent.Resp)
+		beego.Info("agent.Resp", agent.Resp)
 		return agent.Resp
 	}
 	return models.JsonResp{Success: false, Msg: sn + "没有在线"}

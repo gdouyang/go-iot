@@ -1,7 +1,7 @@
 package shunzhou
 
 import (
-	"go-iot/provider/utils"
+	"go-iot/provider/util"
 )
 
 type Shuncom_Lamp struct {
@@ -54,7 +54,7 @@ func (ms *Shuncom_Lamp) Open() []byte {
 	mp = append(mp, ms.Head, ms.Len)
 	mp = append(mp, ms.Addr...)
 	mp = append(mp, ms.Port, ms.Act)
-	ma := utils.CheckSum(mp)
+	ma := util.CheckSum(mp)
 	mp = append(mp, ma[0], ma[1])
 	return mp
 }
@@ -68,7 +68,7 @@ func (ms *Shuncom_Lamp) Close() []byte {
 	mp = append(mp, ms.Head, ms.Len)
 	mp = append(mp, ms.Addr...)
 	mp = append(mp, ms.Port, ms.Act)
-	ma := utils.CheckSum(mp)
+	ma := util.CheckSum(mp)
 	mp = append(mp, ma[0], ma[1])
 	return mp
 }
@@ -82,7 +82,7 @@ func (ms *Shuncom_Lamp) Regulate() []byte {
 	mp = append(mp, ms.Head, ms.Len)
 	mp = append(mp, ms.Addr...)
 	mp = append(mp, ms.Port, ms.Act)
-	ma := utils.CheckSum(mp)
+	ma := util.CheckSum(mp)
 	mp = append(mp, ma[0], ma[1])
 	return mp
 }

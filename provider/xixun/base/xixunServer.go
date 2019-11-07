@@ -12,7 +12,7 @@ import (
 	"go-iot/models"
 	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
-	"go-iot/provider/utils"
+	"go-iot/provider/util"
 	"net/http"
 	"sync"
 	"time"
@@ -63,7 +63,7 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 	var sn string
 
 	var l sync.Mutex
-	led := &XixunLED{uid: utils.Uuid(), SN: sn, Conn: c, Cond: sync.NewCond(&l), respChan: make(chan int, 2)}
+	led := &XixunLED{uid: util.Uuid(), SN: sn, Conn: c, Cond: sync.NewCond(&l), respChan: make(chan int, 2)}
 	for {
 		mt, message, err := c.ReadMessage()
 		if err != nil {
@@ -125,7 +125,7 @@ func SendCommand(sn string, command string) (string, error) {
 		led.Conn.WriteMessage(1, []byte(command))
 		led.Cond.Wait()
 		led.Cond.L.Unlock()
-		beego.Info("led.Resp", &led.Resp, led.Resp)
+		beego.Info("led.Resp", led.Resp)
 		return led.Resp, nil
 	}
 	return "", errors.New(sn + "没有在线")
