@@ -2,14 +2,15 @@ package sender
 
 import (
 	"encoding/json"
+	"fmt"
 	"go-iot/agent"
 	"go-iot/models"
-	"go-iot/models/material"
 	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
 	xixun "go-iot/provider/xixun/base"
-	"strconv"
 	"strings"
+
+	"go-iot/provider/util"
 )
 
 const (
@@ -111,30 +112,19 @@ func (this XixunSender) LedPlay(data []byte, deviceId string) models.JsonResp {
 	}
 	var param map[string]string
 	json.Unmarshal(data, &param)
-	ids := param["ids"]
+	paths := param["paths"]
 	serverUrl := param["serverUrl"]
 	serverUrl += "/file/"
-	material, err := material.GetMaterialById(ids)
-	if err != nil {
-		return models.JsonResp{Success: false, Msg: err.Error()}
-	}
-	filename := material.Path
-	index := strings.LastIndex(material.Path, "/")
-	if index != -1 {
-		filename = filename[index+1:]
-	}
+	filename := paths
 	// 查看文件长度，并与远程对比
-	length, err := strconv.ParseInt(material.Size, 10, 64)
-	if err != nil {
-		return models.JsonResp{Success: false, Msg: err.Error()}
-	}
+	fileSize := util.FileSize("./files/" + paths)
 	leg, err := xixun.ProviderImplXiXunLed.FileLength(filename, device.Sn)
 	if err != nil {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
-	if length != leg {
+	if fileSize != leg {
 		//长度不一致，则返回，让重新上传
-		return models.JsonResp{Success: false, Msg: "文件长度不一致，文件没有上传成功"}
+		return models.JsonResp{Success: false, Msg: fmt.Sprintf("文件长度不一致，文件没有上传成功 %s %s", fileSize, leg)}
 	}
 	//如果长度一致，就发起播放
 	operResp := xixun.ProviderImplXiXunLed.PlayZip(filename, device.Sn)

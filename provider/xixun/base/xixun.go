@@ -1,13 +1,13 @@
 package base
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	models "go-iot/models"
 	operates "go-iot/models/operates"
+	"go-iot/provider/util"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -218,14 +218,10 @@ func (this ProviderXiXunLed) MsgPublish(sn string, msg MsgParam) operates.OperRe
 	var rsp operates.OperResp
 	msg.Type = "invokeBuildInJs"
 	msg.Method = "scrollMarquee"
-	bf := bytes.NewBuffer([]byte{})
-	jsonEncoder := json.NewEncoder(bf)
-	jsonEncoder.SetEscapeHTML(false)
-	err := jsonEncoder.Encode(msg)
+	abc, err := util.JsonEncoderHTML(msg)
 	if err != nil {
 		return operates.OperResp{Success: false, Msg: err.Error()}
 	}
-	abc := bf.Bytes()
 	resp, err := SendCommand(sn, string(abc))
 	if err != nil {
 		rsp.Msg = err.Error()

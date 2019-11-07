@@ -12,8 +12,8 @@ define({
     },
     methods: {
       ledPlay(){
-        let idArray = this.$refs.table.getCheckData("id");
-        if(idArray.length != 1){
+        let pathArray = this.$refs.table.getCheckData("path");
+        if(pathArray.length != 1){
           this.$message({
             type: 'error',
             message: '请选择一个需要播放的素材'
@@ -24,7 +24,7 @@ define({
           method: 'POST',
           body: JSON.stringify({
             serverUrl: this.serverUrl,
-            ids: idArray.join(',')
+            paths: pathArray.join(',')
           }),
           headers: new Headers({
             'Content-Type': 'application/json'

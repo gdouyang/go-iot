@@ -52,8 +52,18 @@
           // Message received on the socket
           this.socket.onmessage = (event => {
               var content = event.data;
+              var resp = {success:'true'}
+              try{
+                req = JSON.parse(content)
+                if(req.type == "getLocalFileLength"){
+                  resp._type = "success"
+                  resp.length = 32139
+                }
+              }catch{
+
+              }
               this.msgList.push({content: content})
-              this.socket.send(JSON.stringify({success:'true'}))
+              this.socket.send(JSON.stringify(resp))
           })
           this.socket.onopen = (event => {
             this.msgList.push({content: "connect success"})
