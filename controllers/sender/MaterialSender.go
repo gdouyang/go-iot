@@ -5,10 +5,11 @@ import (
 	"go-iot/agent"
 	"go-iot/models"
 	"go-iot/models/material"
-	"go-iot/provider/utils"
+	"go-iot/provider/util"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/astaxie/beego"
 )
@@ -46,7 +47,17 @@ func (this MaterialSender) Download(data []byte) models.JsonResp {
 	body, _ := ioutil.ReadAll(res.Body)
 	os.Mkdir("./files", os.ModePerm)
 	path := "./files/" + m.Path
-	exist, _ := utils.FileExists(path)
+	exist, _ := util.FileExists(path)
+	if exist {
+		fileSize := util.FileSize(path)
+		length, err := strconv.ParseInt(m.Size, 10, 64)
+		if err != nil {
+			return models.JsonResp{Success: false, Msg: err.Error()}
+		}
+		if fileSize != length {
+			exist = false
+		}
+	}
 	if !exist {
 		err = ioutil.WriteFile(path, body, os.ModePerm)
 		if err != nil {
