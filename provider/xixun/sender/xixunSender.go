@@ -91,6 +91,13 @@ func (this XixunSender) FileUpload(data []byte, deviceId string) models.JsonResp
 	serverUrl += "/file/"
 	msg := ""
 	for _, path := range materialPaths {
+		exist, err := util.FileExists("./files/" + path)
+		if err != nil {
+			msg += err.Error()
+		}
+		if !exist {
+			msg += path + "文件不存在"
+		}
 		operResp := xixun.ProviderImplXiXunLed.FileUpload(device.Sn, serverUrl+path, path)
 		msg += operResp.Msg
 	}
@@ -113,9 +120,14 @@ func (this XixunSender) LedPlay(data []byte, deviceId string) models.JsonResp {
 	var param map[string]string
 	json.Unmarshal(data, &param)
 	paths := param["paths"]
-	serverUrl := param["serverUrl"]
-	serverUrl += "/file/"
 	filename := paths
+	exist, err := util.FileExists("./files/" + paths)
+	if err != nil {
+		return models.JsonResp{Success: false, Msg: err.Error()}
+	}
+	if !exist {
+		return models.JsonResp{Success: false, Msg: paths + "文件不存在"}
+	}
 	// 查看文件长度，并与远程对比
 	fileSize := util.FileSize("./files/" + paths)
 	leg, err := xixun.ProviderImplXiXunLed.FileLength(filename, device.Sn)
@@ -124,7 +136,7 @@ func (this XixunSender) LedPlay(data []byte, deviceId string) models.JsonResp {
 	}
 	if fileSize != leg {
 		//长度不一致，则返回，让重新上传
-		return models.JsonResp{Success: false, Msg: fmt.Sprintf("文件长度不一致，文件没有上传成功 %s %s", fileSize, leg)}
+		return models.JsonResp{Success: false, Msg: fmt.Sprintf("文件长度不一致 本地[%d] 远程[%d]", fileSize, leg)}
 	}
 	//如果长度一致，就发起播放
 	operResp := xixun.ProviderImplXiXunLed.PlayZip(filename, device.Sn)
