@@ -23,7 +23,7 @@ define({
         fetch(`/north/control/xixun/v1/${this.deviceId}/ledPlay`, {
           method: 'POST',
           body: JSON.stringify({
-            serverUrl: this.serverUrl,
+            // serverUrl: this.serverUrl,
             paths: pathArray.join(',')
           }),
           headers: new Headers({
@@ -49,7 +49,6 @@ define({
           <el-table-column prop="path" label="路径" width="120" show-overflow-tooltip/>
         </my-table>
       </div>
-      <el-input v-model="serverUrl" size="mini" style="width:200px;"/>
       <el-button type="text" @click="ledPlay">播放zip</el-button>
     </el-popover>
     ` 
