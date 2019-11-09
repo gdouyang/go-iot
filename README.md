@@ -18,7 +18,12 @@ go版本的iot管理项目
 
 #### 北向接口说明
 
-设备开关`/north/control/{deviceId}/switch`
+设备开关`/north/control/{deviceId}/switch` index第几个开关，status[open, close] 开关
 ```
 [{index:0,status:"close"}]
+```
+
+调光`/north/control/{deviceId}/light` value 亮度
+```
+{value:100}
 ```
