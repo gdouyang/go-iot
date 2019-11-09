@@ -12,20 +12,22 @@ import (
 	"github.com/gwuhaolin/livego/protocol/rtmp"
 )
 
-var stream = new(rtmp.RtmpStream)
-var hlserver = new(hls.Server)
-
 // var HlsListen, RtmpListen, FlvListen net.Listener
 var err error
 
 type LiveMedia struct {
+	Stream     *rtmp.RtmpStream
+	Hlsserver  *hls.Server
+	Flvserver  *httpflv.Server
+	Rtmpserver *rtmp.Server
 	HlsListen  net.Listener
 	RtmpListen net.Listener
 	FlvListen  net.Listener
 }
 
 func NEW() *LiveMedia {
-	return new(LiveMedia)
+	liveMedia := LiveMedia{Hlsserver: new(hls.Server), Stream: rtmp.NewRtmpStream()}
+	return &liveMedia
 }
 
 func (this *LiveMedia) Start(srs string) {
@@ -42,30 +44,27 @@ func (this *LiveMedia) Start(srs string) {
 		if strings.EqualFold("rtmp", sa.Type) {
 			if this.RtmpListen == nil {
 				beego.Info("RTMP server listen address : ", sa.Port)
-				if stream == nil {
-					stream = rtmp.NewRtmpStream()
-				}
-				if hlserver != nil {
-					this.startRtmp(stream, hlserver, fmt.Sprintf(":%d", sa.Port))
+				if this.HlsListen != nil {
+					this.startRtmp(this.Stream, this.Hlsserver, fmt.Sprintf(":%d", sa.Port))
 					continue
 				}
-				this.startRtmp(stream, nil, fmt.Sprintf(":%d", sa.Port))
+				this.startRtmp(this.Stream, nil, fmt.Sprintf(":%d", sa.Port))
 			}
 		}
 		if strings.EqualFold("flv", sa.Type) {
 			if this.FlvListen == nil {
 				beego.Info("HTTP-FLV server listen address : ", sa.Port)
-				if stream == nil {
-					stream = rtmp.NewRtmpStream()
+				if this.Stream == nil {
+					this.Stream = rtmp.NewRtmpStream()
 				}
-				this.startHTTPFlv(stream, fmt.Sprintf(":%d", sa.Port))
+				this.startHTTPFlv(this.Stream, fmt.Sprintf(":%d", sa.Port))
 			}
 		}
 		if strings.EqualFold("hls", sa.Type) {
 			if this.HlsListen == nil {
 				beego.Info("HLS server listen address : ", sa.Port)
-				if stream == nil {
-					stream = rtmp.NewRtmpStream()
+				if this.Stream == nil {
+					this.Stream = rtmp.NewRtmpStream()
 				}
 				this.startHls(fmt.Sprintf(":%d", sa.Port))
 			}
@@ -85,26 +84,23 @@ func (this *LiveMedia) ResumeAll() {
 		if strings.EqualFold("on", sa.Status) {
 			if strings.EqualFold("rtmp", sa.Type) {
 				beego.Info("RTMP server listen address : ", sa.Port)
-				if stream == nil {
-					stream = rtmp.NewRtmpStream()
-				}
-				if hlserver != nil {
-					this.startRtmp(stream, hlserver, fmt.Sprintf(":%d", sa.Port))
+				if this.HlsListen != nil {
+					this.startRtmp(this.Stream, this.Hlsserver, fmt.Sprintf(":%d", sa.Port))
 					continue
 				}
-				this.startRtmp(stream, nil, fmt.Sprintf(":%d", sa.Port))
+				this.startRtmp(this.Stream, nil, fmt.Sprintf(":%d", sa.Port))
 			}
 			if strings.EqualFold("flv", sa.Type) {
 				beego.Info("HTTP-FLV server listen address : ", sa.Port)
-				if stream == nil {
-					stream = rtmp.NewRtmpStream()
+				if this.Stream == nil {
+					this.Stream = rtmp.NewRtmpStream()
 				}
-				this.startHTTPFlv(stream, fmt.Sprintf(":%d", sa.Port))
+				this.startHTTPFlv(this.Stream, fmt.Sprintf(":%d", sa.Port))
 			}
 			if strings.EqualFold("hls", sa.Type) {
 				beego.Info("HLS server listen address : ", sa.Port)
-				if stream == nil {
-					stream = rtmp.NewRtmpStream()
+				if this.Stream == nil {
+					this.Stream = rtmp.NewRtmpStream()
 				}
 				this.startHls(fmt.Sprintf(":%d", sa.Port))
 			}
@@ -131,15 +127,14 @@ func (this *LiveMedia) StopAll() error {
 	return nil
 }
 
-func (this *LiveMedia) startHls(addr string) *hls.Server {
+func (this *LiveMedia) startHls(addr string) {
 	this.HlsListen, err = net.Listen("tcp", addr)
 	if err != nil {
 		beego.Error(err)
 		this.HlsListen = nil
-		return nil
+		return
 	}
 
-	hlsServer := hls.NewServer()
 	defer func() {
 		if r := recover(); r != nil {
 			beego.Error("HLS server panic: ", r)
@@ -147,9 +142,9 @@ func (this *LiveMedia) startHls(addr string) *hls.Server {
 	}()
 	beego.Error("HLS listen On", addr)
 	camera.SetServerStatus("on", "hls")
-	go hlsServer.Serve(this.HlsListen)
+	go this.Hlsserver.Serve(this.HlsListen)
 	// update live status
-	return hlsServer
+	return
 }
 
 func (this *LiveMedia) startRtmp(stream *rtmp.RtmpStream, hlsServer *hls.Server, addr string) {
@@ -160,14 +155,14 @@ func (this *LiveMedia) startRtmp(stream *rtmp.RtmpStream, hlsServer *hls.Server,
 		return
 	}
 
-	var rtmpServer *rtmp.Server
-
-	if hlsServer == nil {
-		rtmpServer = rtmp.NewRtmpServer(stream, nil)
-		beego.Info("hls server disable....")
-	} else {
-		rtmpServer = rtmp.NewRtmpServer(stream, hlsServer)
-		beego.Info("hls server enable....")
+	if this.Rtmpserver == nil {
+		if hlsServer == nil {
+			this.Rtmpserver = rtmp.NewRtmpServer(stream, nil)
+			beego.Info("hls server disable....")
+		} else {
+			this.Rtmpserver = rtmp.NewRtmpServer(stream, hlsServer)
+			beego.Info("hls server enable....")
+		}
 	}
 
 	defer func() {
@@ -177,7 +172,7 @@ func (this *LiveMedia) startRtmp(stream *rtmp.RtmpStream, hlsServer *hls.Server,
 	}()
 	beego.Info("RTMP Listen On", addr)
 	camera.SetServerStatus("on", "rtmp")
-	go rtmpServer.Serve(this.RtmpListen)
+	go this.Rtmpserver.Serve(this.RtmpListen)
 }
 
 func (this *LiveMedia) startHTTPFlv(stream *rtmp.RtmpStream, addr string) {
@@ -188,7 +183,9 @@ func (this *LiveMedia) startHTTPFlv(stream *rtmp.RtmpStream, addr string) {
 		return
 	}
 
-	hdlServer := httpflv.NewServer(stream)
+	if this.Flvserver == nil {
+		this.Flvserver = httpflv.NewServer(stream)
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			beego.Error("HTTP-FLV server panic: ", r)
@@ -197,7 +194,7 @@ func (this *LiveMedia) startHTTPFlv(stream *rtmp.RtmpStream, addr string) {
 	}()
 	beego.Info("HTTP-FLV listen On", addr)
 	camera.SetServerStatus("on", "flv")
-	go hdlServer.Serve(this.FlvListen)
+	go this.Flvserver.Serve(this.FlvListen)
 }
 
 func (this *LiveMedia) stop(abc string) error {

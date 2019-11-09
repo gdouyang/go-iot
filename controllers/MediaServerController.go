@@ -15,11 +15,8 @@ var liveServer *server.LiveMedia
 // 流媒体服务
 func init() {
 	// 初始启动
-	livecfg := new(configure.Application)
-	livecfg.Appname = "live"
-	livecfg.Liveon = "on"
-	livecfg.Hlson = "on"
-	configure.RtmpServercfg.Server = []configure.Application{*livecfg}
+	aee := `{"server": [{"appname": "live","liveon": "on","hlson": "on"}]}`
+	json.Unmarshal([]byte(aee), &configure.RtmpServercfg)
 	liveServer = server.NEW()
 	liveServer.ResumeAll()
 	//健康检查
