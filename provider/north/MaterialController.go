@@ -1,9 +1,9 @@
-package controllers
+package north
 
 import (
 	"encoding/json"
 	"go-iot/agent"
-	"go-iot/controllers/sender"
+	"go-iot/provider/north/sender"
 	"go-iot/models"
 	"go-iot/models/material"
 	"os"

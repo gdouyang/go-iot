@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "go-iot/controllers"
+	_ "go-iot/provider/north"
 
 	_ "go-iot/agent"
 	_ "go-iot/provider/shunzhou"

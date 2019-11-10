@@ -1,4 +1,4 @@
-package controllers
+package north
 
 import (
 	"container/list"

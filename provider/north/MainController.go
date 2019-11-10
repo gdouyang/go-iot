@@ -1,4 +1,4 @@
-package controllers
+package north
 
 import (
 	"github.com/astaxie/beego"
