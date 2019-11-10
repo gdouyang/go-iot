@@ -17,7 +17,13 @@ func init() {
 	}
 	agent_server_ip = beego.AppConfig.String("agent_server_ip")
 	agent_sn = beego.AppConfig.String("agent_sn")
-	go conn()
+	go func() {
+		for {
+			time.Sleep(time.Second * 5)
+			conn()
+			time.Sleep(time.Second * 15)
+		}
+	}()
 }
 
 var (
@@ -35,23 +41,22 @@ func conn() {
 	if len(agent_server_ip) == 0 {
 		beego.Error("agent_server_ip len is 0")
 	}
-	time.Sleep(time.Second * 10)
 	u := url.URL{Scheme: "ws", Host: agent_server_ip, Path: "/agetn/ws"}
 
 	var dialer *websocket.Dialer
 
 	conn, _, err := dialer.Dial(u.String(), nil)
 	if err != nil {
-		fmt.Println(err)
+		beego.Error("iot-center connection fail [", err, "]")
 		return
 	}
-	beego.Info("iot center server connected")
+	beego.Info("iot-center server connected")
 	go heartbeat(conn)
 
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			fmt.Println("read:", err)
+			beego.Error("read:", err)
 			return
 		}
 
