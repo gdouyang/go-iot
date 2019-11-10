@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"go-iot/models"
 	"go-iot/models/camera"
-	"go-iot/server"
+	"go-iot/provider/server"
 
 	"github.com/astaxie/beego"
 	"github.com/gwuhaolin/livego/configure"
