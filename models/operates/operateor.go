@@ -86,3 +86,8 @@ type ILightOper interface {
 	// value 0-100
 	Light(value int, device Device) OperResp
 }
+
+//  在线状态
+type IOnlineStatus interface {
+	GetOnlineStatus(device Device) OperResp
+}

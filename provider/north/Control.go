@@ -11,7 +11,7 @@ func init() {
 	ns := beego.NewNamespace("/north/control",
 		beego.NSRouter("/:id/switch", &Control{}, "post:Open"),
 		beego.NSRouter("/:id/light", &Control{}, "post:Light"),
-		beego.NSRouter("/status", &Control{}, "post:Status"))
+		beego.NSRouter("/:id/get/online-status", &Control{}, "post:Status"))
 	beego.AddNamespace(ns)
 }
 
