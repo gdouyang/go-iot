@@ -1,11 +1,12 @@
-define(["components/led_add", "components/switchOpt", "components/lightOpt", 
+define(["components/led_add", "components/switchOpt", "components/lightOpt", "components/onLineStatusOpt", 
 "xixunled/ledFileUpload", "xixunled/screenshot","xixunled/ledPlay","xixunled/msgPublish"], 
-function(ledAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay, msgPublish) {
+function(ledAdd, switchOpt, lightOpt, onLineStatusOpt, ledFileUpload, screenshot,ledPlay, msgPublish) {
   return {
     components:{
       'add-dialog': ledAdd,
       'switch-opt': switchOpt,
       'light-opt': lightOpt,
+      'onLineStatusOpt': onLineStatusOpt,
       'led-file-upload': ledFileUpload,
       'screenshot': screenshot,
       'ledPlay':ledPlay,
@@ -86,6 +87,7 @@ function(ledAdd, switchOpt, lightOpt, ledFileUpload, screenshot,ledPlay, msgPubl
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
+              <onLineStatusOpt :deviceId="scope.row.id"/>
               <switch-opt :deviceId="scope.row.id"/>
               <light-opt :deviceId="scope.row.id"/>
               <screenshot :deviceId="scope.row.id"/>

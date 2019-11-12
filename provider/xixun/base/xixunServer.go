@@ -113,6 +113,15 @@ func upgradeWs(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
+// 获取在线状态
+func GetOnlineStatus(sn string) string {
+	_, ok := subscribers[sn]
+	if ok {
+		return models.ONLINE
+	}
+	return models.OFFLINE
+}
+
 // 发送命令给Led，等待Led给出响应后返回
 func SendCommand(sn string, command string) (string, error) {
 	led, ok := subscribers[sn]

@@ -21,13 +21,6 @@ var (
 	providerMap = map[string]IProvider{}
 )
 
-const (
-	// 开关
-	OPER_OPEN = "open"
-	// 调光
-	OPER_LIGHT = "light"
-)
-
 // 注册厂商
 func RegisterProvider(id string, provider IProvider) {
 	_, ok := providerMap[id]
@@ -88,6 +81,8 @@ type ILightOper interface {
 }
 
 //  在线状态
-type IOnlineStatus interface {
-	GetOnlineStatus(device Device) OperResp
+type IOnlineStatusOper interface {
+	// 获取在线状态
+	// 返回 onLine/offLine
+	GetOnlineStatus(device Device) string
 }

@@ -8,15 +8,28 @@ import (
 	"go-iot/models/operates"
 )
 
+const (
+	// 开关
+	OPER_OPEN = "open"
+	// 调光
+	OPER_LIGHT = "light"
+	//
+	OPER_GET_ONLINESTATUS = "getOnlineStatus"
+)
+
 func init() {
 	northSender := NorthSender{}
-	agent.RegProcessFunc(operates.OPER_OPEN, func(request agent.AgentRequest) models.JsonResp {
+	agent.RegProcessFunc(OPER_OPEN, func(request agent.AgentRequest) models.JsonResp {
 		res := northSender.Open(request.Data, request.DeviceId)
 		return res
 	})
 
-	agent.RegProcessFunc(operates.OPER_LIGHT, func(request agent.AgentRequest) models.JsonResp {
+	agent.RegProcessFunc(OPER_LIGHT, func(request agent.AgentRequest) models.JsonResp {
 		res := northSender.Light(request.Data, request.DeviceId)
+		return res
+	})
+	agent.RegProcessFunc(OPER_GET_ONLINESTATUS, func(request agent.AgentRequest) models.JsonResp {
+		res := northSender.GetOnlineStatus(request.DeviceId)
 		return res
 	})
 }
@@ -43,7 +56,7 @@ func (this NorthSender) Open(data []byte, deviceId string) models.JsonResp {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.SendAgent(device, operates.OPER_OPEN, data)
+		return this.SendAgent(device, OPER_OPEN, data)
 	}
 	p, err := operates.GetProvider(device.Provider)
 	if err != nil {
@@ -69,7 +82,7 @@ func (this NorthSender) Light(data []byte, deviceId string) models.JsonResp {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.SendAgent(device, operates.OPER_LIGHT, data)
+		return this.SendAgent(device, OPER_LIGHT, data)
 	}
 	p, err := operates.GetProvider(device.Provider)
 	if err != nil {
@@ -82,4 +95,36 @@ func (this NorthSender) Light(data []byte, deviceId string) models.JsonResp {
 	}
 	operResp := lightOper.Light(value, device)
 	return models.JsonResp{Success: operResp.Success, Msg: operResp.Msg}
+}
+
+// 获取在线状态
+func (this NorthSender) GetOnlineStatus(deviceId string) models.JsonResp {
+	device, err := modelfactory.GetDevice(deviceId)
+	if err != nil {
+		return models.JsonResp{Success: false, Msg: err.Error()}
+	}
+	status := models.OFFLINE
+	defer func() {
+		if status == models.OFFLINE || status == models.ONLINE {
+			// 更新在线状态
+			evt := operates.DeviceOnlineStatus{OnlineStatus: status, Sn: device.Sn, Provider: device.Provider}
+			modelfactory.FireOnlineStatus(evt)
+		}
+	}()
+	if this.CheckAgent && len(device.Agent) > 0 {
+		resp := this.SendAgent(device, OPER_GET_ONLINESTATUS, []byte("{}"))
+		status = resp.Msg
+		return resp
+	}
+	p, err := operates.GetProvider(device.Provider)
+	if err != nil {
+		return models.JsonResp{Success: false, Msg: err.Error()}
+	}
+	var oper operates.IOnlineStatusOper
+	oper, ok := p.(operates.IOnlineStatusOper)
+	if !ok {
+		return models.JsonResp{Success: false, Msg: "厂商没有获取在线状态功能"}
+	}
+	status = oper.GetOnlineStatus(device)
+	return models.JsonResp{Success: true, Msg: status}
 }

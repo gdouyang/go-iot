@@ -75,6 +75,11 @@ func (this ProviderXiXunLed) Light(value int, device operates.Device) operates.O
 	return rsp
 }
 
+// 获取在线状态
+func (this ProviderXiXunLed) GetOnlineStatus(device operates.Device) string {
+	return GetOnlineStatus(device.Sn)
+}
+
 // Led 音量
 func (this ProviderXiXunLed) Volume(value int, sn string) operates.OperResp {
 	var rsp operates.OperResp

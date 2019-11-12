@@ -1,7 +1,6 @@
 package north
 
 import (
-	"encoding/json"
 	"go-iot/provider/north/sender"
 
 	"github.com/astaxie/beego"
@@ -42,9 +41,7 @@ func (this *Control) Light() {
 
 // 状态查询
 func (this *Control) Status() {
-	var ob map[string]interface{}
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-
-	this.Data["json"] = &ob
+	deviceId := this.Ctx.Input.Param(":id")
+	this.Data["json"] = northSender.GetOnlineStatus(deviceId)
 	this.ServeJSON()
 }
