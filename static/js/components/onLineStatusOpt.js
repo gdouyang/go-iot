@@ -23,6 +23,7 @@ define({
             type: data.success ? 'success' : 'error',
             message: data.msg
           });
+          this.$emit("success")
         })
       },
     },
@@ -30,6 +31,5 @@ define({
       <el-button type="text" size="small" @click="getOnlineStatus">
       刷新状态
       </el-button>
-    </el-dropdown>
     ` 
   });

@@ -87,7 +87,7 @@ function(ledAdd, switchOpt, lightOpt, onLineStatusOpt, ledFileUpload, screenshot
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
               <el-button type="text" size="small" @click="deleteRecord(scope.row)">删除</el-button>
-              <onLineStatusOpt :deviceId="scope.row.id"/>
+              <onLineStatusOpt :deviceId="scope.row.id" @success="searchList()"/>
               <switch-opt :deviceId="scope.row.id"/>
               <light-opt :deviceId="scope.row.id"/>
               <screenshot :deviceId="scope.row.id"/>
