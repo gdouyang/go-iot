@@ -27,7 +27,7 @@ define({
       },
     },
     template: `
-      <el-button type="text" @click="getOnlineStatus">
+      <el-button type="text" size="small" @click="getOnlineStatus">
       刷新状态
       </el-button>
     </el-dropdown>
