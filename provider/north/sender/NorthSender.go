@@ -105,15 +105,15 @@ func (this NorthSender) GetOnlineStatus(deviceId string) models.JsonResp {
 	}
 	status := models.OFFLINE
 	defer func() {
-		if status == models.OFFLINE || status == models.ONLINE {
-			// 更新在线状态
-			evt := operates.DeviceOnlineStatus{OnlineStatus: status, Sn: device.Sn, Provider: device.Provider}
-			modelfactory.FireOnlineStatus(evt)
-		}
+		// 更新在线状态
+		evt := operates.DeviceOnlineStatus{OnlineStatus: status, Sn: device.Sn, Provider: device.Provider}
+		modelfactory.FireOnlineStatus(evt)
 	}()
 	if this.CheckAgent && len(device.Agent) > 0 {
 		resp := this.SendAgent(device, OPER_GET_ONLINESTATUS, []byte("{}"))
-		status = resp.Msg
+		if len(resp.Data) > 0 {
+			status = string(resp.Data)
+		}
 		return resp
 	}
 	p, err := operates.GetProvider(device.Provider)
@@ -126,5 +126,5 @@ func (this NorthSender) GetOnlineStatus(deviceId string) models.JsonResp {
 		return models.JsonResp{Success: false, Msg: "厂商没有获取在线状态功能"}
 	}
 	status = oper.GetOnlineStatus(device)
-	return models.JsonResp{Success: true, Msg: status}
+	return models.JsonResp{Success: true, Msg: status, Data: []byte(status)}
 }

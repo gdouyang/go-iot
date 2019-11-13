@@ -44,8 +44,9 @@ type PageQuery struct {
 }
 
 type JsonResp struct {
-	Msg     string `json:"msg"`
-	Success bool   `json:"success"`
+	Msg     string          `json:"msg"`
+	Success bool            `json:"success"`
+	Data    json.RawMessage `json:"data"`
 }
 
 // 得到数据偏移，默认数据从0开始
