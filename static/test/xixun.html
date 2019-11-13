@@ -11,6 +11,9 @@
     <el-card class="box-card">
     <div slot="header" class="clearfix">
       <span>XiXunLed设备模拟</span>
+      <el-tooltip class="item" effect="dark" content="文件长度" placement="top-start">
+        <el-input style="width:100px;" size="mini" v-model.number="fileSize"></el-input>
+      </el-tooltip>
       <el-button style="float: right; padding: 3px 0" type="text" @click="clear">清空消息面板</el-button>
     </div>
     <div class="text item" style="height: 500px; overflow: auto;">
@@ -32,7 +35,8 @@
       return {
         socket: null,
         msg: null,
-        msgList: []
+        msgList: [],
+        fileSize: 32139
       }
     },
     mounted(){
@@ -57,7 +61,7 @@
                 req = JSON.parse(content)
                 if(req.type == "getLocalFileLength"){
                   resp._type = "success"
-                  resp.length = 32139
+                  resp.length = parseInt(this.fileSize)
                 }
               }catch{
 
