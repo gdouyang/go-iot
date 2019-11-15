@@ -1,4 +1,4 @@
-package north
+package server
 
 import (
 	"container/list"
@@ -10,6 +10,10 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/gorilla/websocket"
 )
+
+func PushNorth(msg string) {
+	publish <- newEvent(models.EVENT_MESSAGE, msg)
+}
 
 // 创建事件
 func newEvent(ep models.EventType, msg string) models.Event {
@@ -112,7 +116,7 @@ func broadcastWebSocket(event models.Event) {
 	}
 
 	if subscribers.Len() < 1 {
-		echoToBrowers("无NorthWebSocket订阅:" + event.Content)
+		EchoToBrower("无NorthWebSocket订阅:" + event.Content)
 		return
 	}
 
@@ -123,7 +127,7 @@ func broadcastWebSocket(event models.Event) {
 		if ws != nil {
 			if ws.WriteMessage(websocket.TextMessage, data) == nil {
 				content := "向[" + suber.Addr + "]推送:" + event.Content
-				echoToBrowers(content)
+				EchoToBrower(content)
 			} else {
 				// User disconnected.
 				unsubscribe <- sub.Value.(Subscriber).Addr
@@ -133,7 +137,7 @@ func broadcastWebSocket(event models.Event) {
 }
 
 // 北向接口消息输出到浏览器
-func echoToBrowers(data string) {
+func EchoToBrower(data string) {
 	bytedata := []byte(data)
 	for sub := echoSubscribers.Front(); sub != nil; sub = sub.Next() {
 		// Immediately send event to WebSocket users.

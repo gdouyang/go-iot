@@ -1,4 +1,4 @@
-package north
+package server
 
 import (
 	"net/http"
@@ -22,7 +22,7 @@ type NorthWebSocketController struct {
 // 推送北向WebSocket信息
 func (this *NorthWebSocketController) PushNorth() {
 	msg := this.GetString("msg")
-	publish <- newEvent(models.EVENT_MESSAGE, msg)
+	PushNorth(msg)
 }
 
 // 加入方法

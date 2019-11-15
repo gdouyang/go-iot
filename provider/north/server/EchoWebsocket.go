@@ -1,4 +1,4 @@
-package north
+package server
 
 import (
 	"net/http"
