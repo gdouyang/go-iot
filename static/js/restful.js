@@ -3,17 +3,33 @@ define(function() {
   return {
     data: function () {
       return {
-        msgList: [{
-          content: 'websocket connected!'
-        },{
-          content: '消息提示的文案1'
-        }]
+        msgList: []
       }
+    },
+    mounted(){
+      this.init();
     },
     methods: {
       clear() {
         this.msgList = [];
-      }
+      },
+      init(){
+        // Create a socket
+        this.socket = new WebSocket('ws://' + window.location.host + '/ws/echo');
+        // Message received on the socket
+        this.socket.onmessage = (event => {
+            var content = event.data;
+            if(content) {
+              this.msgList.push({content: content});
+            }
+        })
+        this.socket.onopen = (event => {
+          this.msgList.push({content: 'echo websocket connected '+ new Date()})
+        })
+        this.socket.onclose = (event => {
+          this.msgList.push({content: 'echo websocket close '+ new Date()})
+        })
+      },
     },
     template: `
       <el-card class="box-card">

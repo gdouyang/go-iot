@@ -73,6 +73,7 @@ func (this NorthSender) Open(data []byte, deviceId string) models.JsonResp {
 
 // 调光操作
 func (this NorthSender) Light(data []byte, deviceId string) models.JsonResp {
+	echoToBrower(string(data))
 	var ob map[string]int
 	json.Unmarshal(data, &ob)
 

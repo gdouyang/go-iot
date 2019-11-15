@@ -25,8 +25,10 @@ type Control struct {
 // 设备开关
 func (this *Control) Open() {
 	deviceId := this.Ctx.Input.Param(":id")
-	byteReq := this.Ctx.Input.RequestBody
-	this.Data["json"] = northSender.Open(byteReq, deviceId)
+	data := this.Ctx.Input.RequestBody
+
+	echoToBrower(this.Ctx.Input.IP() + "->" + string(data))
+	this.Data["json"] = northSender.Open(data, deviceId)
 	this.ServeJSON()
 }
 
