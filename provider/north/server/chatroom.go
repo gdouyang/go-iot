@@ -2,7 +2,7 @@ package server
 
 import (
 	"container/list"
-	"encoding/json"
+	"go-iot/provider/util"
 	"time"
 
 	"go-iot/models"
@@ -109,7 +109,7 @@ func chatroom() {
 
 // 广播发送给WebSocket用户
 func broadcastWebSocket(event models.Event) {
-	data, err := json.Marshal(event)
+	data, err := util.JsonEncoderHTML(event)
 	if err != nil {
 		beego.Error("Fail to marshal event:", err)
 		return
@@ -143,7 +143,7 @@ type EchoMsg struct {
 
 // 北向接口消息输出到浏览器
 func EchoToBrower(msg EchoMsg) {
-	bytedata, _ := json.Marshal(msg)
+	bytedata, _ := util.JsonEncoderHTML(msg)
 	for sub := echoSubscribers.Front(); sub != nil; sub = sub.Next() {
 		// Immediately send event to WebSocket users.
 		ws := sub.Value.(Subscriber).Conn

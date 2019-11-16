@@ -19,15 +19,16 @@ define(function() {
         // Message received on the socket
         this.socket.onmessage = (event => {
             var content = event.data;
-            if(content) {
-              this.msgList.push({content: content});
+            var data = JSON.parse(content)
+            if(data.type == 'restful') {
+              this.msgList.push({content: data.msg});
             }
         })
         this.socket.onopen = (event => {
-          this.msgList.push({content: 'echo websocket connected '+ new Date()})
+          this.msgList.push({content: 'connected at ['+ new Date()+']'})
         })
         this.socket.onclose = (event => {
-          this.msgList.push({content: 'echo websocket close '+ new Date()})
+          this.msgList.push({content: 'closed at ['+ new Date()+']'})
         })
       },
     },
