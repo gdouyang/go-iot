@@ -116,7 +116,7 @@ func broadcastWebSocket(event models.Event) {
 	}
 
 	if subscribers.Len() < 1 {
-		EchoToBrower("无NorthWebSocket订阅:" + event.Content)
+		EchoToBrower(EchoMsg{Msg: "无NorthWebSocket订阅:" + event.Content, Type: "northws"})
 		return
 	}
 
@@ -127,7 +127,7 @@ func broadcastWebSocket(event models.Event) {
 		if ws != nil {
 			if ws.WriteMessage(websocket.TextMessage, data) == nil {
 				content := "向[" + suber.Addr + "]推送:" + event.Content
-				EchoToBrower(content)
+				EchoToBrower(EchoMsg{Msg: content, Type: "northws"})
 			} else {
 				// User disconnected.
 				unsubscribe <- sub.Value.(Subscriber).Addr
@@ -136,9 +136,14 @@ func broadcastWebSocket(event models.Event) {
 	}
 }
 
+type EchoMsg struct {
+	Msg  string `json:"msg"`
+	Type string `json:"type"`
+}
+
 // 北向接口消息输出到浏览器
-func EchoToBrower(data string) {
-	bytedata := []byte(data)
+func EchoToBrower(msg EchoMsg) {
+	bytedata, _ := json.Marshal(msg)
 	for sub := echoSubscribers.Front(); sub != nil; sub = sub.Next() {
 		// Immediately send event to WebSocket users.
 		ws := sub.Value.(Subscriber).Conn

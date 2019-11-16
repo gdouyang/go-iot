@@ -5,5 +5,5 @@ import (
 )
 
 func echoToBrower(msg string) {
-	northserver.EchoToBrower(msg)
+	northserver.EchoToBrower(northserver.EchoMsg{Msg: msg, Type: "restful"})
 }
