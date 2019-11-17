@@ -21,24 +21,25 @@ const (
 func init() {
 	northSender := NorthSender{}
 	agent.RegProcessFunc(OPER_OPEN, func(request agent.AgentRequest) models.JsonResp {
-		var iotReq models.IotRequest
-		json.Unmarshal(request.Data, &iotReq)
-		res := northSender.Open(iotReq, request.DeviceId)
+		res := northSender.Open(parseIotReq(request), request.DeviceId)
 		return res
 	})
 
 	agent.RegProcessFunc(OPER_LIGHT, func(request agent.AgentRequest) models.JsonResp {
-		var iotReq models.IotRequest
-		json.Unmarshal(request.Data, &iotReq)
-		res := northSender.Light(iotReq, request.DeviceId)
+		res := northSender.Light(parseIotReq(request), request.DeviceId)
 		return res
 	})
 	agent.RegProcessFunc(OPER_GET_ONLINESTATUS, func(request agent.AgentRequest) models.JsonResp {
-		var iotReq models.IotRequest
-		json.Unmarshal(request.Data, &iotReq)
-		res := northSender.GetOnlineStatus(iotReq, request.DeviceId)
+		res := northSender.GetOnlineStatus(parseIotReq(request), request.DeviceId)
 		return res
 	})
+}
+
+// 将AgentRequest中的Data转换成IotRequest
+func parseIotReq(agentReq agent.AgentRequest) models.IotRequest {
+	var iotReq models.IotRequest
+	json.Unmarshal(agentReq.Data, &iotReq)
+	return iotReq
 }
 
 type NorthSender struct {
