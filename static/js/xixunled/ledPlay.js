@@ -44,9 +44,9 @@ define({
       <el-button type="text" size="small" slot="reference">播放</el-button>
       <div>
         <my-table url="/material/list" ref="table" :selectable="true">
-          <el-table-column prop="id" label="ID"/>
-          <el-table-column prop="name" label="名称"/>
-          <el-table-column prop="path" label="路径" width="120" show-overflow-tooltip/>
+          <el-table-column prop="id" label="ID" width="50"/>
+          <el-table-column prop="name" label="名称" width="100"/>
+          <el-table-column prop="path" label="路径" width="180" show-overflow-tooltip/>
         </my-table>
       </div>
       <el-button type="text" @click="ledPlay">播放zip</el-button>
