@@ -2,8 +2,15 @@
     padding: 9px 0px;
     font-size: 12px;
 }
+.cursor-pointer{
+    cursor: pointer;
+}
+
 .cursor-pointer input{
     cursor: pointer;
+}
+.cursor-pointer:hover.el-input__icon{
+    color: gray;
 }
 .el-input__icon.el-icon-arrow-up{
     -webkit-transition: -webkit-transform .3s;

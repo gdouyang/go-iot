@@ -1,6 +1,7 @@
 define({
     props:{
-      value:{required:true}
+      value:{required:true},
+      clearable:{default:true}
     },
     watch: {
       value(newVal, oldVal){
@@ -15,7 +16,9 @@ define({
       return {
         labelValue: '',
         visible:false,
-        agentList:[]
+        agentList:[],
+        showArrow: true,
+        showClose: false
       }
     },
     created(){
@@ -37,13 +40,27 @@ define({
         this.labelValue = data.sn
         this.visible = false;
         this.$emit('input', data.sn)
+      },
+      iconSwitch(){
+        if(this.clearable && this.value){
+          this.showArrow = !this.showArrow;
+          this.showClose = !this.showClose;
+        }
+      },
+      clear(){
+        this.labelValue = ''
+        this.$emit('input', '')
+        this.iconSwitch()
       }
     },
     template: `
     <el-popover placement="bottom" width="420" v-model="visible">
-      <el-input slot="reference" v-model="labelValue" :readonly="true" class="cursor-pointer" @click="handlerClick">
-      <i slot="suffix" class="el-input__icon el-icon-arrow-up" 
-        :class="{'is-reverse': visible}"></i>
+      <el-input slot="reference" v-model="labelValue" :readonly="true" class="cursor-pointer" @click="handlerClick" 
+      @mouseenter.native="iconSwitch" @mouseleave.native="iconSwitch">
+      <span slot="suffix">
+        <i class="el-input__icon el-icon-arrow-up" :class="{'is-reverse': visible}" v-show="showArrow"></i>
+        <i class="el-input__icon el-icon-circle-close cursor-pointer" v-if="showClose" @click.self.stop="clear"></i>
+      </span>
       </el-input>
       <div>
         <my-table url="/agent/list" ref="mainTable" :selectable="false" @done-load="loadDong">
