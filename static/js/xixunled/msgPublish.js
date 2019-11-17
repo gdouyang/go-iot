@@ -62,41 +62,43 @@ define({
     	<el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="140px" class="demo-ruleForm">
 		 <el-row>
 		  <el-col :span="6">
-			<el-form-item label="步进间隔时间(ms)" prop="interval">
-	          <el-input v-model="ruleForm.interval"></el-input>
-	        </el-form-item>
+			  <el-form-item label="步进间隔时间(ms)" prop="interval">
+          <el-input v-model="ruleForm.interval" size="mini"></el-input>
+        </el-form-item>
 		  </el-col>
-          <el-col :span="6">
-			<el-form-item label="步进距离(px)" prop="step">
-				<el-input-number v-model="ruleForm.step" :min="1" :max="10"></el-input-number>
-        	</el-form-item>
+      <el-col :span="6">
+        <el-form-item label="步进距离(px)" prop="step">
+          <el-input-number v-model="ruleForm.step" :min="1" :max="10" size="mini"></el-input-number>
+        </el-form-item>
 		  </el-col>
-          <el-col :span="6">
-	        <el-form-item label="位置" prop="align">
-	          <el-select v-model="ruleForm.align" placeholder="请选择位置">
-	            <el-option label="垂直顶端" value="top"></el-option>
-	            <el-option label="垂直居中" value="center"></el-option>
-	            <el-option label="垂直底部" value="bottom"></el-option>
-	          </el-select>
-	        </el-form-item>
+      <el-col :span="6">
+        <el-form-item label="位置" prop="align">
+          <el-select v-model="ruleForm.align" placeholder="请选择位置" size="mini">
+            <el-option label="垂直顶端" value="top"></el-option>
+            <el-option label="垂直居中" value="center"></el-option>
+            <el-option label="垂直底部" value="bottom"></el-option>
+          </el-select>
+        </el-form-item>
 		  </el-col>
 		  <el-col :span="6">
         <el-form-item label="移动方向" prop="direction">
-          <el-select v-model="ruleForm.direction" placeholder="请选择方向">
+          <el-select v-model="ruleForm.direction" placeholder="请选择方向" size="mini">
             <el-option label="向左移动" value="left"></el-option>
             <el-option label="向右移动" value="rigth"></el-option>
           </el-select>
         </el-form-item>
-		  </el-col>
+      </el-col>
+     </el-row>
+		 <el-row>
       <el-col :span="12">
         <el-form-item label="播放次数" prop="num" label-width="140px" >
-          <el-input-number v-model="ruleForm.num" :min="-1"></el-input-number>
+          <el-input-number v-model="ruleForm.num" :min="-1" size="mini"></el-input-number>
           <span class="text-info">-1为永久，0为停止</span>
         </el-form-item>
       </el-col>
       <el-col :span="12">
         <el-form-item>
-          <el-button @click="clean" type="primary">清除本机上消息</el-button>
+          <el-button @click="clean" type="primary" size="mini">清除本机上消息</el-button>
         </el-form-item>
       </el-col>		
      </el-row>
