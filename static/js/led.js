@@ -24,7 +24,7 @@ function(ledAdd, switchOpt, lightOpt, onLineStatusOpt, ledFileUpload, screenshot
     methods: {
       openDialog(data, isEdit){
         this.$nextTick(()=>{
-          this.$refs.addDialog.openDialog(data, isEdit);
+          this.$refs.addDialog.openDialog(JSON.parse(JSON.stringify(data)), isEdit);
         })
       },
       openMsg(data){
