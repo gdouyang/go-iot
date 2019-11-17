@@ -48,3 +48,6 @@
 .el-table .cell, .el-table th div{
     padding-right: 5px;
 }
+.el-alert{
+    word-break: break-all;
+}
