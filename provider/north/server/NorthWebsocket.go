@@ -3,8 +3,6 @@ package server
 import (
 	"net/http"
 
-	"go-iot/models"
-
 	"github.com/astaxie/beego"
 	"github.com/gorilla/websocket"
 )
@@ -44,7 +42,7 @@ func (this *NorthWebSocketController) Join() {
 	}
 
 	// Join.
-	addr := Join(models.NORTH, evt, ws)
+	addr := Join(NORTH, evt, ws)
 	defer Leave(addr)
 
 	// Message receive loop.

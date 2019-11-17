@@ -5,19 +5,35 @@ import (
 	"go-iot/provider/util"
 	"time"
 
-	"go-iot/models"
-
 	"github.com/astaxie/beego"
 	"github.com/gorilla/websocket"
 )
 
+type EventType int
+
+const (
+	EVENT_JOIN = iota
+	EVENT_LEAVE
+	EVENT_MESSAGE
+
+	ECHO  = "echo"  // 浏览器使用
+	NORTH = "north" // 北向接口使用
+)
+
+type Event struct {
+	Type      EventType // JOIN, LEAVE, MESSAGE
+	Addr      string
+	Timestamp int // Unix timestamp (secs)
+	Content   string
+}
+
 func PushNorth(msg string) {
-	publish <- newEvent(models.EVENT_MESSAGE, msg)
+	publish <- newEvent(EVENT_MESSAGE, msg)
 }
 
 // 创建事件
-func newEvent(ep models.EventType, msg string) models.Event {
-	return models.Event{ep, "", int(time.Now().Unix()), msg}
+func newEvent(ep EventType, msg string) Event {
+	return Event{ep, "", int(time.Now().Unix()), msg}
 }
 
 // 加入
@@ -50,7 +66,7 @@ var (
 	// Channel for exit users.
 	unsubscribe = make(chan string, 10)
 	// Send events here to publish them.
-	publish         = make(chan models.Event, 10)
+	publish         = make(chan Event, 10)
 	subscribers     = list.New()
 	echoSubscribers = list.New()
 )
@@ -61,10 +77,10 @@ func chatroom() {
 		select {
 		case sub := <-subscribe:
 			switch sub.Type {
-			case models.ECHO:
+			case ECHO:
 				echoSubscribers.PushBack(sub) // Add user to the end of list.
 				beego.Info("New echo user:", sub.Addr, ";WebSocket:", sub.Conn != nil)
-			case models.NORTH:
+			case NORTH:
 				subscribers.PushBack(sub) // Add user to the end of list.
 				beego.Info("New north user:", sub.Addr, ";WebSocket:", sub.Conn != nil)
 			default:
@@ -74,7 +90,7 @@ func chatroom() {
 		case event := <-publish:
 			broadcastWebSocket(event)
 
-			if event.Type == models.EVENT_MESSAGE {
+			if event.Type == EVENT_MESSAGE {
 				beego.Info("Message from", event.Addr, ";Content:", event.Content)
 			}
 		case unsub := <-unsubscribe:
@@ -108,7 +124,7 @@ func chatroom() {
 }
 
 // 广播发送给WebSocket用户
-func broadcastWebSocket(event models.Event) {
+func broadcastWebSocket(event Event) {
 	data, err := util.JsonEncoderHTML(event)
 	if err != nil {
 		beego.Error("Fail to marshal event:", err)

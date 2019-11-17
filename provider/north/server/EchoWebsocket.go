@@ -3,8 +3,6 @@ package server
 import (
 	"net/http"
 
-	"go-iot/models"
-
 	"github.com/astaxie/beego"
 	"github.com/gorilla/websocket"
 )
@@ -32,7 +30,7 @@ func (this *EchoWebSocketController) Join() {
 	}
 
 	// Join.
-	addr := Join(models.ECHO, "", ws)
+	addr := Join(ECHO, "", ws)
 	defer Leave(addr)
 
 	// Message receive loop.
