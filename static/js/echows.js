@@ -48,7 +48,7 @@ define(function() {
       <el-card class="box-card">
       <div slot="header" class="clearfix">
         <span>WebSocket</span>
-        <el-input v-model="msg" @keyup.native.enter="postConecnt" style="width:200px;"></el-input>
+        <el-input v-model="msg" @keyup.native.enter="postConecnt" style="width:200px;" size="mini"></el-input>
         <el-button style="float: right; padding: 3px 0" type="text" @click="clear">清空消息面板</el-button>
       </div>
       <div class="text item" style="height: 500px; overflow: auto;">

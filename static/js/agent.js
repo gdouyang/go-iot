@@ -50,7 +50,7 @@ function(agentAdd) {
       <el-card class="box-card">
       <div slot="header" class="clearfix">
         <span>Agent列表</span>
-        <el-input v-model="searchParam.id" @keyup.native.enter="searchList" style="width:200px;"></el-input>
+        <el-input v-model="searchParam.id" @keyup.native.enter="searchList" style="width:200px;" size="mini"></el-input>
         <el-button type="text" @click="searchList">查询</el-button>
         <el-button type="text" @click="openDialog(null, false)">添加</el-button>
       </div>
