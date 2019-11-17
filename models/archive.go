@@ -43,19 +43,25 @@ type PageQuery struct {
 	Condition json.RawMessage `json:"condition"`
 }
 
+// 得到数据偏移，默认数据从0开始
+func (this *PageQuery) PageOffset() int {
+	return (this.PageNum - 1) * this.PageSize
+}
+
 type JsonResp struct {
 	Msg     string          `json:"msg"`
 	Success bool            `json:"success"`
 	Data    json.RawMessage `json:"data"`
 }
 
-// 得到数据偏移，默认数据从0开始
-func (this *PageQuery) PageOffset() int {
-	return (this.PageNum - 1) * this.PageSize
-}
-
 // 开关状态
 type SwitchStatus struct {
 	Index  int    //第几路开关从0开始
 	Status string //状态open,close
+}
+
+type IotRequest struct {
+	Url  string          `json:"url"`
+	Ip   string          `json:"ip"`
+	Data json.RawMessage `json:"data"`
 }

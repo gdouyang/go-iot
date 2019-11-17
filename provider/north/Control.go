@@ -1,6 +1,7 @@
 package north
 
 import (
+	"go-iot/models"
 	"go-iot/provider/north/sender"
 
 	"github.com/astaxie/beego"
@@ -27,23 +28,24 @@ func (this *Control) Open() {
 	deviceId := this.Ctx.Input.Param(":id")
 	data := this.Ctx.Input.RequestBody
 
-	echoToBrower(this.Ctx.Input.IP() + "->" + string(data))
-	this.Data["json"] = northSender.Open(data, deviceId)
+	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Data: data, Url: this.Ctx.Input.URL()}
+	this.Data["json"] = northSender.Open(request, deviceId)
 	this.ServeJSON()
 }
 
 // 设备调光
 func (this *Control) Light() {
 	deviceId := this.Ctx.Input.Param(":id")
-	byteReq := this.Ctx.Input.RequestBody
-
-	this.Data["json"] = northSender.Light(byteReq, deviceId)
+	data := this.Ctx.Input.RequestBody
+	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Data: data, Url: this.Ctx.Input.URL()}
+	this.Data["json"] = northSender.Light(request, deviceId)
 	this.ServeJSON()
 }
 
 // 状态查询
 func (this *Control) Status() {
 	deviceId := this.Ctx.Input.Param(":id")
-	this.Data["json"] = northSender.GetOnlineStatus(deviceId)
+	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL()}
+	this.Data["json"] = northSender.GetOnlineStatus(request, deviceId)
 	this.ServeJSON()
 }

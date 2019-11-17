@@ -6,6 +6,7 @@ import (
 	"go-iot/models"
 	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
+	"go-iot/provider/util"
 )
 
 const (
@@ -20,16 +21,22 @@ const (
 func init() {
 	northSender := NorthSender{}
 	agent.RegProcessFunc(OPER_OPEN, func(request agent.AgentRequest) models.JsonResp {
-		res := northSender.Open(request.Data, request.DeviceId)
+		var iotReq models.IotRequest
+		json.Unmarshal(request.Data, &iotReq)
+		res := northSender.Open(iotReq, request.DeviceId)
 		return res
 	})
 
 	agent.RegProcessFunc(OPER_LIGHT, func(request agent.AgentRequest) models.JsonResp {
-		res := northSender.Light(request.Data, request.DeviceId)
+		var iotReq models.IotRequest
+		json.Unmarshal(request.Data, &iotReq)
+		res := northSender.Light(iotReq, request.DeviceId)
 		return res
 	})
 	agent.RegProcessFunc(OPER_GET_ONLINESTATUS, func(request agent.AgentRequest) models.JsonResp {
-		res := northSender.GetOnlineStatus(request.DeviceId)
+		var iotReq models.IotRequest
+		json.Unmarshal(request.Data, &iotReq)
+		res := northSender.GetOnlineStatus(iotReq, request.DeviceId)
 		return res
 	})
 }
@@ -40,14 +47,17 @@ type NorthSender struct {
 }
 
 // 当设备通过Agent上线时执行此方法，把命令下发给Agent让Agent再下发给设备
-func (this NorthSender) SendAgent(device operates.Device, oper string, data []byte) models.JsonResp {
+func (this NorthSender) SendAgent(device operates.Device, oper string, iotReq models.IotRequest) models.JsonResp {
+	data, _ := util.JsonEncoderHTML(iotReq)
 	req := agent.NewRequest(device.Id, device.Sn, device.Provider, oper, data)
 	res := agent.SendCommand(device.Agent, req)
 	return res
 }
 
 // 开关操作
-func (this NorthSender) Open(data []byte, deviceId string) models.JsonResp {
+func (this NorthSender) Open(iotReq models.IotRequest, deviceId string) models.JsonResp {
+	echoToBrower(iotReq)
+	data := iotReq.Data
 	var ob []models.SwitchStatus
 	json.Unmarshal(data, &ob)
 
@@ -56,7 +66,7 @@ func (this NorthSender) Open(data []byte, deviceId string) models.JsonResp {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.SendAgent(device, OPER_OPEN, data)
+		return this.SendAgent(device, OPER_OPEN, iotReq)
 	}
 	p, err := operates.GetProvider(device.Provider)
 	if err != nil {
@@ -72,8 +82,9 @@ func (this NorthSender) Open(data []byte, deviceId string) models.JsonResp {
 }
 
 // 调光操作
-func (this NorthSender) Light(data []byte, deviceId string) models.JsonResp {
-	echoToBrower(string(data))
+func (this NorthSender) Light(iotReq models.IotRequest, deviceId string) models.JsonResp {
+	echoToBrower(iotReq)
+	data := iotReq.Data
 	var ob map[string]int
 	json.Unmarshal(data, &ob)
 
@@ -83,7 +94,7 @@ func (this NorthSender) Light(data []byte, deviceId string) models.JsonResp {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.SendAgent(device, OPER_LIGHT, data)
+		return this.SendAgent(device, OPER_LIGHT, iotReq)
 	}
 	p, err := operates.GetProvider(device.Provider)
 	if err != nil {
@@ -99,7 +110,8 @@ func (this NorthSender) Light(data []byte, deviceId string) models.JsonResp {
 }
 
 // 获取在线状态
-func (this NorthSender) GetOnlineStatus(deviceId string) models.JsonResp {
+func (this NorthSender) GetOnlineStatus(iotReq models.IotRequest, deviceId string) models.JsonResp {
+	echoToBrower(iotReq)
 	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
 		return models.JsonResp{Success: false, Msg: err.Error()}
@@ -111,7 +123,7 @@ func (this NorthSender) GetOnlineStatus(deviceId string) models.JsonResp {
 		modelfactory.FireOnlineStatus(evt)
 	}()
 	if this.CheckAgent && len(device.Agent) > 0 {
-		resp := this.SendAgent(device, OPER_GET_ONLINESTATUS, []byte("{}"))
+		resp := this.SendAgent(device, OPER_GET_ONLINESTATUS, iotReq)
 		if len(resp.Data) > 0 {
 			status = string(resp.Data)
 		}
