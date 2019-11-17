@@ -6,7 +6,6 @@ import (
 	"go-iot/models"
 	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
-	"go-iot/provider/util"
 )
 
 const (
@@ -21,25 +20,18 @@ const (
 func init() {
 	northSender := NorthSender{}
 	agent.RegProcessFunc(OPER_OPEN, func(request agent.AgentRequest) models.JsonResp {
-		res := northSender.Open(parseIotReq(request), request.DeviceId)
+		res := northSender.Open(request.Data, request.DeviceId)
 		return res
 	})
 
 	agent.RegProcessFunc(OPER_LIGHT, func(request agent.AgentRequest) models.JsonResp {
-		res := northSender.Light(parseIotReq(request), request.DeviceId)
+		res := northSender.Light(request.Data, request.DeviceId)
 		return res
 	})
 	agent.RegProcessFunc(OPER_GET_ONLINESTATUS, func(request agent.AgentRequest) models.JsonResp {
-		res := northSender.GetOnlineStatus(parseIotReq(request), request.DeviceId)
+		res := northSender.GetOnlineStatus(request.Data, request.DeviceId)
 		return res
 	})
-}
-
-// 将AgentRequest中的Data转换成IotRequest
-func parseIotReq(agentReq agent.AgentRequest) models.IotRequest {
-	var iotReq models.IotRequest
-	json.Unmarshal(agentReq.Data, &iotReq)
-	return iotReq
 }
 
 type NorthSender struct {
@@ -48,8 +40,7 @@ type NorthSender struct {
 }
 
 // 当设备通过Agent上线时执行此方法，把命令下发给Agent让Agent再下发给设备
-func (this NorthSender) SendAgent(device operates.Device, oper string, iotReq models.IotRequest) models.JsonResp {
-	data, _ := util.JsonEncoderHTML(iotReq)
+func (this NorthSender) SendAgent(device operates.Device, oper string, data models.IotRequest) models.JsonResp {
 	req := agent.NewRequest(device.Id, device.Sn, device.Provider, oper, data)
 	res := agent.SendCommand(device.Agent, req)
 	return res

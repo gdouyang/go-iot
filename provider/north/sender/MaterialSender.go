@@ -29,7 +29,8 @@ func init() {
 type MaterialSender struct {
 }
 
-func (this MaterialSender) Download(data []byte) models.JsonResp {
+func (this MaterialSender) Download(iotReq models.IotRequest) models.JsonResp {
+	data := iotReq.Data
 	var m material.Material
 	json.Unmarshal(data, &m)
 

@@ -30,9 +30,9 @@ define(['components/agent_select'], function(agentSelect){
       save(){
         this.$refs.creteForm.validate((valid)=>{
           if (valid) {
-            let url = '/led/add';
+            let url = '/north/led/add';
             if(this.isEdit) {
-              url = '/led/update'
+              url = '/north/led/update'
             }
             fetch(url, {
               method: 'POST', // or 'PUT'

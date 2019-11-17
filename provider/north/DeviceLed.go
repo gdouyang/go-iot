@@ -2,10 +2,10 @@ package north
 
 import (
 	"encoding/json"
-	"go-iot/provider/north/sender"
 	"go-iot/models"
 	"go-iot/models/led"
 	"go-iot/models/operates"
+	"go-iot/provider/north/sender"
 
 	"github.com/astaxie/beego"
 )
@@ -13,9 +13,9 @@ import (
 // 设备管理
 func init() {
 	beego.Router("/led/list", &LedController{}, "post:List")
-	beego.Router("/led/add", &LedController{}, "post:Add")
-	beego.Router("/led/update", &LedController{}, "post:Update")
-	beego.Router("/led/delete", &LedController{}, "post:Delete")
+	beego.Router("/north/led/add", &LedController{}, "post:Add")
+	beego.Router("/north/led/update", &LedController{}, "post:Update")
+	beego.Router("/north/led/delete", &LedController{}, "post:Delete")
 	beego.Router("/led/listProvider", &LedController{}, "post:ListProvider")
 
 }
@@ -46,24 +46,24 @@ func (this *LedController) List() {
 // 添加设备
 func (this *LedController) Add() {
 	data := this.Ctx.Input.RequestBody
-
-	this.Data["json"] = ledSender.Add(data)
+	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
+	this.Data["json"] = ledSender.Add(request)
 	this.ServeJSON()
 }
 
 // 更新设备信息
 func (this *LedController) Update() {
 	data := this.Ctx.Input.RequestBody
-
-	this.Data["json"] = ledSender.Update(data)
+	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
+	this.Data["json"] = ledSender.Update(request)
 	this.ServeJSON()
 }
 
 // 删除设备
 func (this *LedController) Delete() {
 	data := this.Ctx.Input.RequestBody
-
-	this.Data["json"] = ledSender.Delete(data)
+	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
+	this.Data["json"] = ledSender.Delete(request)
 	this.ServeJSON()
 }
 

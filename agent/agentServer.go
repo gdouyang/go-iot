@@ -30,14 +30,14 @@ type AgentClient struct {
 
 // Agent消息请求
 type AgentRequest struct {
-	DeviceId string          // 设备Id
-	SN       string          // 设备SN
-	Provider string          // 厂商
-	Oper     string          // 操作标识
-	Data     json.RawMessage // 请求数据
+	DeviceId string            // 设备Id
+	SN       string            // 设备SN
+	Provider string            // 厂商
+	Oper     string            // 操作标识
+	Data     models.IotRequest // 请求数据
 }
 
-func NewRequest(devId, sn, provider, oper string, data json.RawMessage) AgentRequest {
+func NewRequest(devId, sn, provider, oper string, data models.IotRequest) AgentRequest {
 	return AgentRequest{DeviceId: devId, SN: sn, Provider: provider, Oper: oper, Data: data}
 }
 

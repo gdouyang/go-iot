@@ -41,7 +41,7 @@ function(ledAdd, switchOpt, lightOpt, onLineStatusOpt, ledFileUpload, screenshot
           cancelButtonText: '取消',
           type: 'warning'
         }).then(() => {
-          fetch('/led/delete', {
+          fetch('/north/led/delete', {
             method: 'POST',
             body: JSON.stringify(data),
             headers: new Headers({

@@ -1,6 +1,7 @@
 package xixuncontroller
 
 import (
+	"go-iot/models"
 	"go-iot/provider/xixun/sender"
 
 	"github.com/astaxie/beego"
@@ -25,8 +26,8 @@ func (this *XiXunLedController) ScreenShot() {
 	deviceId := this.Ctx.Input.Param(":id")
 
 	xSender := sender.XixunSender{CheckAgent: true}
-
-	this.Data["json"] = xSender.ScreenShot(deviceId)
+	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL()}
+	this.Data["json"] = xSender.ScreenShot(request, deviceId)
 
 	this.ServeJSON()
 }
@@ -37,7 +38,8 @@ func (this *XiXunLedController) FileUpload() {
 	data := this.Ctx.Input.RequestBody
 
 	xSender := sender.XixunSender{CheckAgent: true}
-	this.Data["json"] = xSender.FileUpload(data, deviceId)
+	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
+	this.Data["json"] = xSender.FileUpload(request, deviceId)
 
 	this.ServeJSON()
 }
@@ -52,7 +54,8 @@ func (this *XiXunLedController) LedPlay() {
 	data := this.Ctx.Input.RequestBody
 
 	xSender := sender.XixunSender{CheckAgent: true}
-	this.Data["json"] = xSender.LedPlay(data, deviceId)
+	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
+	this.Data["json"] = xSender.LedPlay(request, deviceId)
 	this.ServeJSON()
 }
 
@@ -62,7 +65,8 @@ func (this *XiXunLedController) MsgPublish() {
 
 	data := this.Ctx.Input.RequestBody
 	xSender := sender.XixunSender{CheckAgent: true}
-	this.Data["json"] = xSender.MsgPublish(data, deviceId)
+	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
+	this.Data["json"] = xSender.MsgPublish(request, deviceId)
 
 	this.ServeJSON()
 }
@@ -71,6 +75,7 @@ func (this *XiXunLedController) MsgPublish() {
 func (this *XiXunLedController) Clear() {
 	deviceId := this.Ctx.Input.Param(":id")
 	xSender := sender.XixunSender{CheckAgent: true}
-	this.Data["json"] = xSender.ClearScreenText(deviceId)
+	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL()}
+	this.Data["json"] = xSender.ClearScreenText(request, deviceId)
 	this.ServeJSON()
 }

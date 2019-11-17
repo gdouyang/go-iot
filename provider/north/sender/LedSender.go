@@ -37,13 +37,15 @@ type LedSender struct {
 }
 
 // 当设备通过Agent上线时执行此方法，把命令下发给Agent让Agent再下发给设备
-func (this LedSender) SendAgent(device led.Device, oper string, data []byte) models.JsonResp {
+func (this LedSender) SendAgent(device led.Device, oper string, data models.IotRequest) models.JsonResp {
 	req := agent.NewRequest(device.Id, device.Sn, device.Provider, oper, data)
 	res := agent.SendCommand(device.Agent, req)
 	return res
 }
 
-func (this LedSender) Add(data []byte) models.JsonResp {
+func (this LedSender) Add(iotReq models.IotRequest) models.JsonResp {
+	echoToBrower(iotReq)
+	data := iotReq.Data
 	var ob led.Device
 	err := json.Unmarshal(data, &ob)
 	if err != nil {
@@ -57,7 +59,7 @@ func (this LedSender) Add(data []byte) models.JsonResp {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
 	if this.CheckAgent && len(ob.Agent) > 0 {
-		aResp := this.SendAgent(ob, LED_ADD, data)
+		aResp := this.SendAgent(ob, LED_ADD, iotReq)
 		if !aResp.Success {
 			return aResp
 		}
@@ -65,7 +67,9 @@ func (this LedSender) Add(data []byte) models.JsonResp {
 	return resp
 }
 
-func (this LedSender) Update(data []byte) models.JsonResp {
+func (this LedSender) Update(iotReq models.IotRequest) models.JsonResp {
+	echoToBrower(iotReq)
+	data := iotReq.Data
 	var ob led.Device
 	err := json.Unmarshal(data, &ob)
 	if err != nil {
@@ -80,7 +84,7 @@ func (this LedSender) Update(data []byte) models.JsonResp {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
 	if this.CheckAgent && len(ob.Agent) > 0 {
-		aResp := this.SendAgent(ob, LED_UPDATE, data)
+		aResp := this.SendAgent(ob, LED_UPDATE, iotReq)
 		if !aResp.Success {
 			return aResp
 		}
@@ -88,7 +92,9 @@ func (this LedSender) Update(data []byte) models.JsonResp {
 	return resp
 }
 
-func (this LedSender) Delete(data []byte) models.JsonResp {
+func (this LedSender) Delete(iotReq models.IotRequest) models.JsonResp {
+	echoToBrower(iotReq)
+	data := iotReq.Data
 	var ob led.Device
 	err := json.Unmarshal(data, &ob)
 	if err != nil {
@@ -96,7 +102,7 @@ func (this LedSender) Delete(data []byte) models.JsonResp {
 	}
 
 	if this.CheckAgent && len(ob.Agent) > 0 {
-		aResp := this.SendAgent(ob, LED_DELETE, data)
+		aResp := this.SendAgent(ob, LED_DELETE, iotReq)
 		if !aResp.Success {
 			return aResp
 		}

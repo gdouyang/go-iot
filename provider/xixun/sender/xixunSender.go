@@ -24,12 +24,12 @@ const (
 func init() {
 	xixunSender := XixunSender{}
 	agent.RegProcessFunc(SCREEN_SHOT, func(request agent.AgentRequest) models.JsonResp {
-		res := xixunSender.ScreenShot(request.DeviceId)
+		res := xixunSender.ScreenShot(request.Data, request.DeviceId)
 		return res
 	})
 
 	agent.RegProcessFunc(MSG_CLEAR, func(request agent.AgentRequest) models.JsonResp {
-		res := xixunSender.ClearScreenText(request.DeviceId)
+		res := xixunSender.ClearScreenText(request.Data, request.DeviceId)
 		return res
 	})
 
@@ -53,21 +53,22 @@ type XixunSender struct {
 }
 
 // 当设备通过Agent上线时执行此方法，把命令下发给Agent让Agent再下发给设备
-func (this XixunSender) SendAgent(device operates.Device, oper string, data []byte) models.JsonResp {
+func (this XixunSender) SendAgent(device operates.Device, oper string, data models.IotRequest) models.JsonResp {
 	req := agent.NewRequest(device.Id, device.Sn, device.Provider, oper, data)
 	res := agent.SendCommand(device.Agent, req)
 	return res
 }
 
 // LED截图
-func (this XixunSender) ScreenShot(deviceId string) models.JsonResp {
+func (this XixunSender) ScreenShot(iotReq models.IotRequest, deviceId string) models.JsonResp {
+	echoToBrower(iotReq)
 	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
 
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.SendAgent(device, SCREEN_SHOT, []byte("{}"))
+		return this.SendAgent(device, SCREEN_SHOT, iotReq)
 	}
 
 	operResp := xixun.ProviderImplXiXunLed.ScreenShot(device.Sn)
@@ -75,13 +76,15 @@ func (this XixunSender) ScreenShot(deviceId string) models.JsonResp {
 }
 
 // LED播放文件上传
-func (this XixunSender) FileUpload(data []byte, deviceId string) models.JsonResp {
+func (this XixunSender) FileUpload(iotReq models.IotRequest, deviceId string) models.JsonResp {
+	echoToBrower(iotReq)
+	data := iotReq.Data
 	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.SendAgent(device, FILE_UPLOAD, data)
+		return this.SendAgent(device, FILE_UPLOAD, iotReq)
 	}
 	var param map[string]string
 	json.Unmarshal(data, &param)
@@ -109,13 +112,15 @@ func (this XixunSender) FileUpload(data []byte, deviceId string) models.JsonResp
 业务1：制定MP4播放素材列表，并点播 (待定)
 业务2：查看内部存储里面zip文件是否存在，不存在则调用文件下发，然后再发起播放
 */
-func (this XixunSender) LedPlay(data []byte, deviceId string) models.JsonResp {
+func (this XixunSender) LedPlay(iotReq models.IotRequest, deviceId string) models.JsonResp {
+	echoToBrower(iotReq)
+	data := iotReq.Data
 	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.SendAgent(device, LED_PLAY, data)
+		return this.SendAgent(device, LED_PLAY, iotReq)
 	}
 	var param map[string]string
 	json.Unmarshal(data, &param)
@@ -144,14 +149,16 @@ func (this XixunSender) LedPlay(data []byte, deviceId string) models.JsonResp {
 }
 
 // 发布消息
-func (this XixunSender) MsgPublish(data []byte, deviceId string) models.JsonResp {
+func (this XixunSender) MsgPublish(iotReq models.IotRequest, deviceId string) models.JsonResp {
+	echoToBrower(iotReq)
+	data := iotReq.Data
 	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
 
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.SendAgent(device, MSG_PUBLISH, data)
+		return this.SendAgent(device, MSG_PUBLISH, iotReq)
 	}
 	param := xixun.MsgParam{}
 	err = json.Unmarshal(data, &param)
@@ -163,14 +170,15 @@ func (this XixunSender) MsgPublish(data []byte, deviceId string) models.JsonResp
 }
 
 /*清除本机的消息*/
-func (this XixunSender) ClearScreenText(deviceId string) models.JsonResp {
+func (this XixunSender) ClearScreenText(iotReq models.IotRequest, deviceId string) models.JsonResp {
+	echoToBrower(iotReq)
 	device, err := modelfactory.GetDevice(deviceId)
 	if err != nil {
 		return models.JsonResp{Success: false, Msg: err.Error()}
 	}
 
 	if this.CheckAgent && len(device.Agent) > 0 {
-		return this.SendAgent(device, MSG_CLEAR, []byte("{}"))
+		return this.SendAgent(device, MSG_CLEAR, iotReq)
 	}
 
 	operResp := xixun.ProviderImplXiXunLed.Clear(device.Sn)

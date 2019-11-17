@@ -3,9 +3,9 @@ package north
 import (
 	"encoding/json"
 	"go-iot/agent"
-	"go-iot/provider/north/sender"
 	"go-iot/models"
 	"go-iot/models/material"
+	"go-iot/provider/north/sender"
 	"os"
 	"strconv"
 	"strings"
@@ -116,7 +116,8 @@ func (this *MaterialController) SendToAgent() {
 		if err != nil {
 			resp = &models.JsonResp{Success: false, Msg: err.Error()}
 		} else {
-			req := agent.NewRequest("", "", "agent", sender.MATERIAL_DOWNLOAD, data)
+			request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
+			req := agent.NewRequest("", "", "agent", sender.MATERIAL_DOWNLOAD, request)
 			res := agent.SendCommand(agentSn, req)
 			resp = &res
 		}
