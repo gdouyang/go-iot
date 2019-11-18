@@ -9,12 +9,13 @@ require.config({
         mediaTransport: 'mediaTransport',
         mediaServer: 'mediaServer',
         instance: 'instance',
-        camera: 'camera'
+        camera: 'camera',
+        plan: 'plan',
     }
 });
 
-require(['led', 'echows', 'restful', 'material', 'agent','mediaTransport','mediaServer','instance','camera'], 
-function(led, echows, Restful, material, agent,mediaTransport,mediaServer,instance,camera) {
+require(['led', 'echows', 'restful', 'material', 'agent','mediaTransport','mediaServer','instance','camera', 'plan'], 
+function(led, echows, Restful, material, agent,mediaTransport,mediaServer,instance,camera,plan) {
   const routes = [
       { path: '/echows', component: echows },
       { path: '/restful', component: Restful },
@@ -24,7 +25,8 @@ function(led, echows, Restful, material, agent,mediaTransport,mediaServer,instan
       { path: '/mediaTransport', component: mediaTransport },
       { path: '/mediaServer', component: mediaServer },
       { path: '/instance', component: instance },
-      { path: '/camera', component: camera }
+      { path: '/camera', component: camera },
+      { path: '/plan', component: plan },
     ]
     
     // 3. 创建 router 实例，然后传 `routes` 配置
@@ -84,6 +86,10 @@ Vue.component('my-menu', {
       <el-menu-item index="material">
         <i class="el-icon-files"></i>
         <span slot="title">素材</span>
+      </el-menu-item>
+      <el-menu-item index="plan">
+        <i class="el-icon-files"></i>
+        <span slot="title">计划</span>
       </el-menu-item>
       <el-submenu index="3">
         <template slot="title">
