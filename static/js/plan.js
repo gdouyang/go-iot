@@ -28,7 +28,7 @@ function(planAdd) {
           cancelButtonText: '取消',
           type: 'warning'
         }).then(() => {
-          fetch('/material/delete', {
+          fetch('/north/plan/delete', {
             method: 'POST',
             body: JSON.stringify(data),
             headers: new Headers({
@@ -55,7 +55,7 @@ function(planAdd) {
         <el-button type="text" @click="openDialog(null, false)">添加</el-button>
       </div>
       <div class="text item">
-        <my-table url="/plan/list" ref="mainTable">
+        <my-table url="/north/plan/list" ref="mainTable">
           <el-table-column prop="id" label="ID" width="140"/>
           <el-table-column prop="name" label="名称"/>
           <el-table-column prop="type" label="类型"/>

@@ -1,17 +1,19 @@
 package north
 
 import (
+	"encoding/json"
 	"go-iot/models"
+	"go-iot/models/plan"
 
 	"github.com/astaxie/beego"
 )
 
 func init() {
-	ns := beego.NewNamespace("/north/plan/v1",
+	ns := beego.NewNamespace("/north/plan",
 		beego.NSRouter("/list", &PlanController{}, "post:List"),
 		beego.NSRouter("/add", &PlanController{}, "post:Add"),
-		beego.NSRouter("/update", &PlanController{}, "post:Update"),
-		beego.AddNamespace(ns))
+		beego.NSRouter("/update", &PlanController{}, "post:Update"))
+	beego.AddNamespace(ns)
 }
 
 type PlanController struct {
@@ -23,7 +25,12 @@ func (this *PlanController) List() {
 	var ob models.PageQuery
 	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
 
-	this.Data["json"] = models.JsonResp{Success: false, Msg: ""}
+	rest, err := plan.ListPlan(&ob)
+	if err != nil {
+		this.Data["json"] = models.JsonResp{Success: false, Msg: ""}
+	} else {
+		this.Data["json"] = rest
+	}
 	this.ServeJSON()
 }
 
