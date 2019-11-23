@@ -108,18 +108,18 @@ func AddPlan(ob *Plan) error {
 	if err != nil {
 		return err
 	}
-	if rs.Id == 0 {
+	if rs.Name != "" {
 		return errors.New("Plan已存在!")
 	}
 	//插入数据
 	db, _ := getDb()
 	defer db.Close()
 	stmt, _ := db.Prepare(`
-	INSERT INTO plan(name_, type_, startTime_,endTime_, cron_, created_) 
-	values(?,?,?,?,?)
+	INSERT INTO plan(name_, type_, startTime_,endTime_, cron_, actions_, created_) 
+	values(?,?,?,?,?,?,datetime('now'))
 	`)
 
-	_, err = stmt.Exec(ob.Name, ob.Type, ob.StartTime, ob.EndTime, ob.Cron, "datetime('now')")
+	_, err = stmt.Exec(ob.Name, ob.Type, ob.StartTime, ob.EndTime, ob.Cron, ob.Actions)
 	if err != nil {
 		return err
 	}

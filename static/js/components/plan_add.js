@@ -42,10 +42,11 @@ define({
           if(this.isEdit) {
             url = '/north/plan/update'
           }
+          this.createForm.actions = JSON.stringify(this.actions);
           let request = new Request(url, {
               method: 'POST',
               credentials: 'include',
-              body: this.createForm,
+              body: JSON.stringify(this.createForm),
           });
           fetch(request)
           .then(res => res.json())
@@ -94,7 +95,7 @@ define({
           </el-col>
           <el-col :span="12">
             <el-form-item label="结束时间" prop="endTime" :rules="[{ required: true, message: '不能为空'}]">
-              <el-input v-model="createForm.startTime"></el-input>
+              <el-input v-model="createForm.endTime"></el-input>
             </el-form-item>
           </el-col>
         </el-row>

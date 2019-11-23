@@ -36,17 +36,20 @@ func (this *PlanController) List() {
 
 // 添加
 func (this *PlanController) Add() {
-	// var ob agent.Agent
-	// json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-	// var resp models.JsonResp
-	// resp.Success = true
-	// defer func() {
-	// 	this.Data["json"] = &resp
-	// 	this.ServeJSON()
-	// }()
-	// var err error
+	var ob plan.Plan
+	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
+	var resp models.JsonResp
+	resp.Success = true
+	defer func() {
+		this.Data["json"] = &resp
+		this.ServeJSON()
+	}()
+	err := plan.AddPlan(&ob)
+	resp.Msg = "添加成功!"
+	if err != nil {
+		resp.Msg = err.Error()
+	}
 
-	// resp.Msg = "添加成功!"
 }
 func (this *PlanController) Update() {
 	// var ob agent.Agent
