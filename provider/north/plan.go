@@ -71,20 +71,17 @@ func (this *PlanController) Delete() {
 }
 
 func (this *PlanController) Update() {
-	// var ob agent.Agent
-	// json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
-	// var resp models.JsonResp
-	// resp.Success = true
-	// defer func() {
-	// 	this.Data["json"] = &resp
-	// 	this.ServeJSON()
-	// }()
-	// var err error
-	// resp.Msg = "修改成功!"
-	// // 保存入库
-	// err = agent.UpdateAgent(&ob)
-	// if err != nil {
-	// 	resp.Msg = err.Error()
-	// 	resp.Success = false
-	// }
+	var ob plan.Plan
+	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
+	var resp models.JsonResp
+	resp.Success = true
+	defer func() {
+		this.Data["json"] = &resp
+		this.ServeJSON()
+	}()
+	err := plan.UpdatePlan(&ob)
+	resp.Msg = "修改成功!"
+	if err != nil {
+		resp.Msg = err.Error()
+	}
 }

@@ -173,7 +173,6 @@ func UpdatePlan(ob *Plan) error {
 
 	_, err = stmt.Exec(params...)
 	if err != nil {
-		beego.Error("update fail", err)
 		return err
 	}
 	return nil
