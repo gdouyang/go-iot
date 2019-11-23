@@ -127,6 +127,18 @@ func AddPlan(ob *Plan) error {
 	return nil
 }
 
+func DeletePlan(ob *Plan) error {
+	db, _ := getDb()
+	defer db.Close()
+	stmt, _ := db.Prepare("delete from plan where id_=?")
+
+	_, err := stmt.Exec(ob.Id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // 更新Plan
 func UpdatePlan(ob *Plan) error {
 	//更新数据

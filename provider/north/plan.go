@@ -12,6 +12,7 @@ func init() {
 	ns := beego.NewNamespace("/north/plan",
 		beego.NSRouter("/list", &PlanController{}, "post:List"),
 		beego.NSRouter("/add", &PlanController{}, "post:Add"),
+		beego.NSRouter("/delete", &PlanController{}, "post:Delete"),
 		beego.NSRouter("/update", &PlanController{}, "post:Update"))
 	beego.AddNamespace(ns)
 }
@@ -49,8 +50,26 @@ func (this *PlanController) Add() {
 	if err != nil {
 		resp.Msg = err.Error()
 	}
-
 }
+
+// 删除
+func (this *PlanController) Delete() {
+	data := this.Ctx.Input.RequestBody
+	var ob plan.Plan
+	json.Unmarshal(data, &ob)
+
+	var resp models.JsonResp
+	resp.Success = true
+
+	err := plan.DeletePlan(&ob)
+	resp.Msg = "删除成功!"
+	if err != nil {
+		resp.Msg = err.Error()
+	}
+	this.Data["json"] = resp
+	this.ServeJSON()
+}
+
 func (this *PlanController) Update() {
 	// var ob agent.Agent
 	// json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
