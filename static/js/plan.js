@@ -59,6 +59,9 @@ function(planAdd) {
           <el-table-column prop="id" label="ID" width="140"/>
           <el-table-column prop="name" label="名称"/>
           <el-table-column prop="type" label="类型"/>
+          <el-table-column prop="startTime" label="开始时间"/>
+          <el-table-column prop="endTime" label="结束时间"/>
+          <el-table-column prop="cron" label="Cron"/>
           <el-table-column label="操作" :width="200" fixed="right">
             <template slot-scope="scope">
               <el-button @click="openDialog(scope.row, true)" type="text" size="small">编辑</el-button>
