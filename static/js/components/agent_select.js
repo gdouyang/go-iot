@@ -12,6 +12,9 @@ define({
         }
       }
     },
+    directives:{
+      Clickoutside: ELEMENT.Select.directives.Clickoutside
+    },
     data: function () {
       return {
         labelValue: '',
@@ -54,7 +57,7 @@ define({
       }
     },
     template: `
-    <el-popover placement="bottom" width="420" v-model="visible">
+    <el-popover placement="bottom" width="420" v-model="visible" v-clickoutside="handlerClick">
       <el-input slot="reference" v-model="labelValue" :readonly="true" class="cursor-pointer" @click="handlerClick" 
       @mouseenter.native="iconSwitch" @mouseleave.native="iconSwitch">
       <span slot="suffix">
