@@ -36,6 +36,9 @@ define({
       handlerClick(){
         this.visible = !this.visible;
       },
+      handleClose() {
+        this.visible = false;
+      },
       loadDong(datas){
         this.agentList = datas
       },
@@ -57,22 +60,22 @@ define({
       }
     },
     template: `
-    <el-popover placement="bottom" width="420" v-model="visible" v-clickoutside="handlerClick">
-      <el-input slot="reference" v-model="labelValue" :readonly="true" class="cursor-pointer" @click="handlerClick" 
+    <el-popover placement="bottom" width="420" v-model="visible">
+      <el-input slot="reference" v-model="labelValue" :readonly="true" class="cursor-pointer" v-clickoutside="handleClose" 
       @mouseenter.native="iconSwitch" @mouseleave.native="iconSwitch">
       <span slot="suffix">
         <i class="el-input__icon el-icon-arrow-up" :class="{'is-reverse': visible}" v-show="showArrow"></i>
         <i class="el-input__icon el-icon-circle-close cursor-pointer" v-if="showClose" @click.self.stop="clear"></i>
       </span>
       </el-input>
-      <div>
+      <div @click.stop="handlerClick">
         <my-table url="/agent/list" ref="mainTable" :selectable="false" @done-load="loadDong">
           <el-table-column prop="id" label="ID" width="50"/>
           <el-table-column prop="sn" label="sn" width="150"/>
           <el-table-column prop="name" label="名称" width="150"/>
           <el-table-column label="操作" width="70">
             <template slot-scope="scope">
-              <el-button @click="select(scope.row)" type="text" size="small">选择</el-button>
+              <el-button @click.stop="select(scope.row)" type="text" size="small">选择</el-button>
             </template>
           </el-table-column>
         </my-table>
