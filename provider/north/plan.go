@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"go-iot/models"
 	"go-iot/models/plan"
+	task "go-iot/provider/north/plan"
 
 	"github.com/astaxie/beego"
 )
@@ -47,6 +48,7 @@ func (this *PlanController) Add() {
 	}()
 	err := plan.AddPlan(&ob)
 	resp.Msg = "添加成功!"
+	task.AddTask(ob)
 	if err != nil {
 		resp.Msg = err.Error()
 	}
@@ -80,6 +82,7 @@ func (this *PlanController) Update() {
 		this.ServeJSON()
 	}()
 	err := plan.UpdatePlan(&ob)
+	task.AddTask(ob)
 	resp.Msg = "修改成功!"
 	if err != nil {
 		resp.Msg = err.Error()
