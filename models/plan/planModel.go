@@ -7,6 +7,7 @@ import (
 	"go-iot/models"
 
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/toolbox"
 )
 
 type Plan struct {
@@ -39,6 +40,7 @@ func init() {
 	} else {
 		beego.Info("table Plan create success")
 	}
+	runPlan()
 }
 
 func getDb() (*sql.DB, error) {
@@ -47,6 +49,34 @@ func getDb() (*sql.DB, error) {
 		beego.Info("open sqlite fail")
 	}
 	return db, err
+}
+
+func runPlan() {
+	//查询数据
+	db, _ := getDb()
+	defer db.Close()
+	sql := "SELECT id_,name_,type_,startTime_,endTime_,cron_ FROM plan "
+	rows, err := db.Query(sql)
+	if err != nil {
+		beego.Error(err)
+		return
+	}
+	var result []Plan
+	var (
+		Id                                   int
+		Name, Type, StartTime, EndTime, Cron string
+	)
+	defer rows.Close()
+	for rows.Next() {
+		rows.Scan(&Id, &Name, &Type, &StartTime, &EndTime, &Cron)
+
+		m := Plan{Id: Id, Name: Name, Type: Type, StartTime: StartTime, EndTime: EndTime, Cron: Cron}
+		result = append(result, m)
+	}
+
+	for _, p := range result {
+		AddTask(p)
+	}
 }
 
 // 分页查询Plan
@@ -123,6 +153,7 @@ func AddPlan(ob *Plan) error {
 	if err != nil {
 		return err
 	}
+	AddTask(*ob)
 
 	return nil
 }
@@ -175,6 +206,7 @@ func UpdatePlan(ob *Plan) error {
 	if err != nil {
 		return err
 	}
+	AddTask(*ob)
 	return nil
 }
 
@@ -199,4 +231,23 @@ func GetPlanByName(name string) (Plan, error) {
 		break
 	}
 	return result, nil
+}
+
+func AddTask(plan Plan) (err error) {
+	defer func() {
+		beego.Error("defer caller")
+		if e := recover(); e != nil {
+			beego.Error(e)
+			err = errors.New(e.(string))
+		}
+	}()
+	toolbox.DeleteTask(plan.Name)
+	tk := toolbox.NewTask(plan.Name, plan.Cron, func() error {
+		beego.Info(plan)
+		return nil
+	})
+
+	toolbox.StartTask()
+	toolbox.AddTask(tk.Taskname, tk)
+	return nil
 }
