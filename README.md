@@ -23,8 +23,6 @@ goiot
 2. 执行Get命令下载依赖包
 3. 执行BuildAndRun
 
-项目使用了go-sqlite3由于go-sqlite3使用了cgo在Windows环境中需要安装gcc进行编译
-
 #### 北向接口说明
 
 docs/北向接口.md
