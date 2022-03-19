@@ -3,22 +3,23 @@ package north
 import (
 	"encoding/json"
 	"go-iot/models"
+
 	"go-iot/models/plan"
 
-	"github.com/astaxie/beego"
+	"github.com/beego/beego/v2/server/web"
 )
 
 func init() {
-	ns := beego.NewNamespace("/north/plan",
-		beego.NSRouter("/list", &PlanController{}, "post:List"),
-		beego.NSRouter("/add", &PlanController{}, "post:Add"),
-		beego.NSRouter("/delete", &PlanController{}, "post:Delete"),
-		beego.NSRouter("/update", &PlanController{}, "post:Update"))
-	beego.AddNamespace(ns)
+	ns := web.NewNamespace("/north/plan",
+		web.NSRouter("/list", &PlanController{}, "post:List"),
+		web.NSRouter("/add", &PlanController{}, "post:Add"),
+		web.NSRouter("/delete", &PlanController{}, "post:Delete"),
+		web.NSRouter("/update", &PlanController{}, "post:Update"))
+	web.AddNamespace(ns)
 }
 
 type PlanController struct {
-	beego.Controller
+	web.Controller
 }
 
 // 查询列表

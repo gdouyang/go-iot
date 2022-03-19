@@ -1,14 +1,12 @@
-package led
+package models
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 
 	"go-iot/models"
 
-	"github.com/astaxie/beego"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/beego/beego/v2/core/logs"
 )
 
 // 设备
@@ -25,35 +23,25 @@ type Device struct {
 }
 
 func init() {
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	_, err := db.Exec(`
-		CREATE TABLE led (
+		CREATE TABLE IF NOT EXISTS device (
 	    id_ VARCHAR(32) PRIMARY KEY,
-	    sn_ VARCHAR(64) NULL,
 	    name_ VARCHAR(64) NULL,
-		provider_ VARCHAR(32) NULL,
-		type_ VARCHAR(32) NULL,
-		model_ VARCHAR(32) NULL,
-		online_status_ VARCHAR(10) NULL,
-		switch_status_ VARCHAR(128) NULL,
-		agent_ VARCHAR(32) NULL,
-	    created_ DATE NULL
+			type_ VARCHAR(32) NULL,
+			model_ VARCHAR(32) NULL,
+			online_status_ VARCHAR(10) NULL,
+			switch_status_ VARCHAR(128) NULL,
+			agent_ VARCHAR(32) NULL,
+			created_ DATE NULL
 		);
 	`)
 	if err != nil {
-		beego.Info("table led create fail:", err)
+		logs.Info("table led create fail:", err)
 	} else {
-		beego.Info("table led create success")
+		logs.Info("table led create success")
 	}
-}
-
-func getDb() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "./db/led.db")
-	if err != nil {
-		beego.Info("open sqlite fail")
-	}
-	return db, err
 }
 
 // 分页查询设备
@@ -63,7 +51,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	json.Unmarshal(page.Condition, &dev)
 
 	//查询数据
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM led "
 	countSql := "SELECT count(*) from led"
@@ -119,7 +107,7 @@ func AddDevie(ob *Device) error {
 		return errors.New("设备已存在!")
 	}
 	//插入数据
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	stmt, _ := db.Prepare(`
 	INSERT INTO led(id_, sn_, name_, provider_, type_, model_, online_status_, agent_) 
@@ -136,7 +124,7 @@ func AddDevie(ob *Device) error {
 
 func UpdateDevice(ob *Device) error {
 	//更新数据
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	stmt, err := db.Prepare(`
 	update led 
@@ -149,7 +137,7 @@ func UpdateDevice(ob *Device) error {
 
 	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Provider, ob.Type, ob.Agent, ob.Id)
 	if err != nil {
-		beego.Error("update fail", err)
+		logs.Error("update fail", err)
 		return err
 	}
 	return nil
@@ -158,7 +146,7 @@ func UpdateDevice(ob *Device) error {
 // 根据SN与provider来更新设备在线状态
 func UpdateOnlineStatus(onlineStatus string, sn string, provider string) error {
 	//更新数据
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	stmt, err := db.Prepare(`
 	update led 
@@ -171,7 +159,7 @@ func UpdateOnlineStatus(onlineStatus string, sn string, provider string) error {
 
 	_, err = stmt.Exec(onlineStatus, sn, provider)
 	if err != nil {
-		beego.Error("update fail", err)
+		logs.Error("update fail", err)
 		return err
 	}
 	return nil
@@ -179,13 +167,13 @@ func UpdateOnlineStatus(onlineStatus string, sn string, provider string) error {
 
 func DeleteDevice(ob *Device) error {
 	//更新数据
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	stmt, _ := db.Prepare("delete from led where id_=?")
 
 	_, err := stmt.Exec(ob.Id)
 	if err != nil {
-		beego.Error("delete fail", err)
+		logs.Error("delete fail", err)
 		return err
 	}
 	return nil
@@ -193,7 +181,7 @@ func DeleteDevice(ob *Device) error {
 
 func GetDevice(deviceId string) (Device, error) {
 	var result Device
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM led where id_ = ?"
 	rows, err := db.Query(sql, deviceId)
@@ -215,7 +203,7 @@ func GetDevice(deviceId string) (Device, error) {
 
 func GetDeviceByProvider(sn, provider string) (Device, error) {
 	var result Device
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM led where sn_ = ? and provider_ = ?"
 	rows, err := db.Query(sql, sn, provider)

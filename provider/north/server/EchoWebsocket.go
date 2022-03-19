@@ -3,17 +3,18 @@ package server
 import (
 	"net/http"
 
-	"github.com/astaxie/beego"
+	"github.com/beego/beego/v2/core/logs"
+	"github.com/beego/beego/v2/server/web"
 	"github.com/gorilla/websocket"
 )
 
 func init() {
-	beego.Router("/ws/echo", &EchoWebSocketController{}, "get:Join")
+	web.Router("/ws/echo", &EchoWebSocketController{}, "get:Join")
 }
 
 // EchoWebSocketController处理浏览器的Echo WebSocket请求.
 type EchoWebSocketController struct {
-	beego.Controller
+	web.Controller
 }
 
 // 加入方法
@@ -25,7 +26,7 @@ func (this *EchoWebSocketController) Join() {
 		http.Error(this.Ctx.ResponseWriter, "Not a websocket handshake", 400)
 		return
 	} else if err != nil {
-		beego.Error("Cannot setup WebSocket connection:", err)
+		logs.Error("Cannot setup WebSocket connection:", err)
 		return
 	}
 
@@ -39,7 +40,7 @@ func (this *EchoWebSocketController) Join() {
 		if err != nil {
 			return
 		}
-		beego.Info("read message:", string(p))
+		logs.Info("read message:", string(p))
 		// publish <- newEvent(models.EVENT_MESSAGE, addr, string(p), models.TARGET_ECHO)
 	}
 }

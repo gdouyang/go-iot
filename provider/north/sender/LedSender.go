@@ -2,9 +2,8 @@ package sender
 
 import (
 	"encoding/json"
-	"go-iot/agent"
 	"go-iot/models"
-	"go-iot/models/led"
+	led "go-iot/models/device"
 )
 
 const (
@@ -14,21 +13,21 @@ const (
 )
 
 func init() {
-	ledSender := LedSender{}
-	agent.RegProcessFunc(LED_ADD, func(request agent.AgentRequest) models.JsonResp {
-		res := ledSender.Add(request.Data)
-		return res
-	})
+	// ledSender := LedSender{}
+	// agent.RegProcessFunc(LED_ADD, func(request agent.AgentRequest) models.JsonResp {
+	// 	res := ledSender.Add(request.Data)
+	// 	return res
+	// })
 
-	agent.RegProcessFunc(LED_UPDATE, func(request agent.AgentRequest) models.JsonResp {
-		res := ledSender.Update(request.Data)
-		return res
-	})
+	// agent.RegProcessFunc(LED_UPDATE, func(request agent.AgentRequest) models.JsonResp {
+	// 	res := ledSender.Update(request.Data)
+	// 	return res
+	// })
 
-	agent.RegProcessFunc(LED_DELETE, func(request agent.AgentRequest) models.JsonResp {
-		res := ledSender.Delete(request.Data)
-		return res
-	})
+	// agent.RegProcessFunc(LED_DELETE, func(request agent.AgentRequest) models.JsonResp {
+	// 	res := ledSender.Delete(request.Data)
+	// 	return res
+	// })
 }
 
 type LedSender struct {
@@ -38,13 +37,13 @@ type LedSender struct {
 
 // 当设备通过Agent上线时执行此方法，把命令下发给Agent让Agent再下发给设备
 func (this LedSender) SendAgent(device led.Device, oper string, data models.IotRequest) models.JsonResp {
-	req := agent.NewRequest(device.Id, device.Sn, device.Provider, oper, data)
-	res := agent.SendCommand(device.Agent, req)
-	return res
+	// req := agent.NewRequest(device.Id, device.Sn, device.Provider, oper, data)
+	// res := agent.SendCommand(device.Agent, req)
+	return models.JsonResp{}
 }
 
 func (this LedSender) Add(iotReq models.IotRequest) models.JsonResp {
-	echoToBrower(iotReq)
+	// echoToBrower(iotReq)
 	data := iotReq.Data
 	var ob led.Device
 	err := json.Unmarshal(data, &ob)

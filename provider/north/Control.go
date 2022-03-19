@@ -4,15 +4,15 @@ import (
 	"go-iot/models"
 	"go-iot/provider/north/sender"
 
-	"github.com/astaxie/beego"
+	"github.com/beego/beego/v2/server/web"
 )
 
 func init() {
-	ns := beego.NewNamespace("/north/control",
-		beego.NSRouter("/:id/switch", &Control{}, "post:Open"),
-		beego.NSRouter("/:id/light", &Control{}, "post:Light"),
-		beego.NSRouter("/:id/get/online-status", &Control{}, "post:Status"))
-	beego.AddNamespace(ns)
+	ns := web.NewNamespace("/north/control",
+		web.NSRouter("/:id/switch", &Control{}, "post:Open"),
+		web.NSRouter("/:id/light", &Control{}, "post:Light"),
+		web.NSRouter("/:id/get/online-status", &Control{}, "post:Status"))
+	web.AddNamespace(ns)
 }
 
 var (
@@ -20,7 +20,7 @@ var (
 )
 
 type Control struct {
-	beego.Controller
+	web.Controller
 }
 
 // 设备开关

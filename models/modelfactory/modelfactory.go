@@ -1,11 +1,10 @@
 package modelfactory
 
 import (
-	"go-iot/models/agent"
-	"go-iot/models/led"
+	led "go-iot/models/device"
 	"go-iot/models/operates"
 
-	"github.com/astaxie/beego"
+	"github.com/beego/beego/v2/core/logs"
 )
 
 var onlineChannel = make(chan operates.DeviceOnlineStatus, 10)
@@ -16,12 +15,12 @@ func init() {
 		// 处理在线状态事件
 		for {
 			o := <-onlineChannel
-			beego.Info("UpdateOnlineStatus")
+			logs.Info("UpdateOnlineStatus")
 			if o.Type == "agent" {
-				err := agent.UpdateOnlineStatus(o.OnlineStatus, o.Sn)
-				if err != nil {
-					beego.Error(err.Error())
-				}
+				// err := agent.UpdateOnlineStatus(o.OnlineStatus, o.Sn)
+				// if err != nil {
+				// 	logs.Error(err.Error())
+				// }
 			} else {
 				led.UpdateOnlineStatus(o.OnlineStatus, o.Sn, o.Provider)
 			}

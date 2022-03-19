@@ -3,20 +3,20 @@ package north
 import (
 	"encoding/json"
 	"go-iot/models"
-	"go-iot/models/led"
+	led "go-iot/models/device"
 	"go-iot/models/operates"
 	"go-iot/provider/north/sender"
 
-	"github.com/astaxie/beego"
+	"github.com/beego/beego/v2/server/web"
 )
 
 // 设备管理
 func init() {
-	beego.Router("/led/list", &LedController{}, "post:List")
-	beego.Router("/north/led/add", &LedController{}, "post:Add")
-	beego.Router("/north/led/update", &LedController{}, "post:Update")
-	beego.Router("/north/led/delete", &LedController{}, "post:Delete")
-	beego.Router("/led/listProvider", &LedController{}, "post:ListProvider")
+	web.Router("/led/list", &LedController{}, "post:List")
+	web.Router("/north/led/add", &LedController{}, "post:Add")
+	web.Router("/north/led/update", &LedController{}, "post:Update")
+	web.Router("/north/led/delete", &LedController{}, "post:Delete")
+	web.Router("/led/listProvider", &LedController{}, "post:ListProvider")
 
 }
 
@@ -25,7 +25,7 @@ var (
 )
 
 type LedController struct {
-	beego.Controller
+	web.Controller
 }
 
 // 查询设备列表

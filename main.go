@@ -3,13 +3,9 @@ package main
 import (
 	_ "go-iot/provider/north"
 
-	_ "go-iot/agent"
-	_ "go-iot/provider/shunzhou"
-	_ "go-iot/provider/xixun"
-
-	"github.com/astaxie/beego"
+	"github.com/beego/beego/v2/server/web"
 )
 
 func main() {
-	beego.Run()
+	web.Run()
 }

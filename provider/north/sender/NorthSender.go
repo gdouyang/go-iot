@@ -2,7 +2,6 @@ package sender
 
 import (
 	"encoding/json"
-	"go-iot/agent"
 	"go-iot/models"
 	"go-iot/models/modelfactory"
 	"go-iot/models/operates"
@@ -18,20 +17,20 @@ const (
 )
 
 func init() {
-	northSender := NorthSender{}
-	agent.RegProcessFunc(OPER_OPEN, func(request agent.AgentRequest) models.JsonResp {
-		res := northSender.Open(request.Data, request.DeviceId)
-		return res
-	})
+	// northSender := NorthSender{}
+	// agent.RegProcessFunc(OPER_OPEN, func(request agent.AgentRequest) models.JsonResp {
+	// 	res := northSender.Open(request.Data, request.DeviceId)
+	// 	return res
+	// })
 
-	agent.RegProcessFunc(OPER_LIGHT, func(request agent.AgentRequest) models.JsonResp {
-		res := northSender.Light(request.Data, request.DeviceId)
-		return res
-	})
-	agent.RegProcessFunc(OPER_GET_ONLINESTATUS, func(request agent.AgentRequest) models.JsonResp {
-		res := northSender.GetOnlineStatus(request.Data, request.DeviceId)
-		return res
-	})
+	// agent.RegProcessFunc(OPER_LIGHT, func(request agent.AgentRequest) models.JsonResp {
+	// 	res := northSender.Light(request.Data, request.DeviceId)
+	// 	return res
+	// })
+	// agent.RegProcessFunc(OPER_GET_ONLINESTATUS, func(request agent.AgentRequest) models.JsonResp {
+	// 	res := northSender.GetOnlineStatus(request.Data, request.DeviceId)
+	// 	return res
+	// })
 }
 
 type NorthSender struct {
@@ -41,9 +40,9 @@ type NorthSender struct {
 
 // 当设备通过Agent上线时执行此方法，把命令下发给Agent让Agent再下发给设备
 func (this NorthSender) SendAgent(device operates.Device, oper string, data models.IotRequest) models.JsonResp {
-	req := agent.NewRequest(device.Id, device.Sn, device.Provider, oper, data)
-	res := agent.SendCommand(device.Agent, req)
-	return res
+	// req := agent.NewRequest(device.Id, device.Sn, device.Provider, oper, data)
+	// res := agent.SendCommand(device.Agent, req)
+	return models.JsonResp{}
 }
 
 // 开关操作

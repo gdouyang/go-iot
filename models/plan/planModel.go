@@ -1,13 +1,13 @@
 package plan
 
 import (
-	"database/sql"
+	"context"
 	"encoding/json"
 	"errors"
 	"go-iot/models"
 
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/toolbox"
+	"github.com/beego/beego/v2/core/logs"
+	"github.com/beego/beego/v2/task"
 )
 
 type Plan struct {
@@ -21,44 +21,36 @@ type Plan struct {
 }
 
 func init() {
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	_, err := db.Exec(`
-		CREATE TABLE plan (
-	    id_ INTEGER PRIMARY KEY AUTOINCREMENT,
+		CREATE TABLE IF NOT EXISTS  plan (
+	    id_ INTEGER PRIMARY KEY AUTO_INCREMENT,
 	    name_ VARCHAR(64) NULL,
-		type_ VARCHAR(32) NULL,
-		startTime_ VARCHAR(128) NULL,
-		endTime_ VARCHAR(32) NULL,
-		cron_ VARCHAR(32) NULL,
-		actions_ TEXT NULL,
+			type_ VARCHAR(32) NULL,
+			startTime_ VARCHAR(128) NULL,
+			endTime_ VARCHAR(32) NULL,
+			cron_ VARCHAR(32) NULL,
+			actions_ TEXT NULL,
 	    created_ DATE NULL
 		);
 	`)
 	if err != nil {
-		beego.Info("table Plan create fail:", err)
+		logs.Info("table Plan create fail:", err)
 	} else {
-		beego.Info("table Plan create success")
+		logs.Info("table Plan create success")
 	}
 	runPlan()
 }
 
-func getDb() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "./db/plan.db")
-	if err != nil {
-		beego.Info("open sqlite fail")
-	}
-	return db, err
-}
-
 func runPlan() {
 	//查询数据
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	sql := "SELECT id_,name_,type_,startTime_,endTime_,cron_ FROM plan "
 	rows, err := db.Query(sql)
 	if err != nil {
-		beego.Error(err)
+		logs.Error(err)
 		return
 	}
 	var result []Plan
@@ -86,7 +78,7 @@ func ListPlan(page *models.PageQuery) (*models.PageResult, error) {
 	json.Unmarshal(page.Condition, &dev)
 
 	//查询数据
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	sql := "SELECT id_,name_,type_,startTime_,endTime_,cron_ FROM plan "
 	countSql := "SELECT count(*) from plan"
@@ -142,7 +134,7 @@ func AddPlan(ob *Plan) error {
 		return errors.New("Plan已存在!")
 	}
 	//插入数据
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	stmt, _ := db.Prepare(`
 	INSERT INTO plan(name_, type_, startTime_,endTime_, cron_, actions_, created_) 
@@ -159,7 +151,7 @@ func AddPlan(ob *Plan) error {
 }
 
 func DeletePlan(ob *Plan) error {
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	stmt, _ := db.Prepare("delete from plan where id_=?")
 
@@ -173,7 +165,7 @@ func DeletePlan(ob *Plan) error {
 // 更新Plan
 func UpdatePlan(ob *Plan) error {
 	//更新数据
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	params := make([]interface{}, 0)
 
@@ -213,7 +205,7 @@ func UpdatePlan(ob *Plan) error {
 // 根据name查询Plan
 func GetPlanByName(name string) (Plan, error) {
 	var result Plan
-	db, _ := getDb()
+	db, _ := models.GetDb()
 	defer db.Close()
 	sql := "SELECT id_,name_,type_ FROM plan where name_ = ?"
 	rows, err := db.Query(sql, name)
@@ -235,19 +227,19 @@ func GetPlanByName(name string) (Plan, error) {
 
 func AddTask(plan Plan) (err error) {
 	defer func() {
-		beego.Error("defer caller")
+		logs.Error("defer caller")
 		if e := recover(); e != nil {
-			beego.Error(e)
+			logs.Error(e)
 			err = errors.New(e.(string))
 		}
 	}()
-	toolbox.DeleteTask(plan.Name)
-	tk := toolbox.NewTask(plan.Name, plan.Cron, func() error {
-		beego.Info(plan)
+	task.DeleteTask(plan.Name)
+	tk := task.NewTask(plan.Name, plan.Cron, func(ctx context.Context) error {
+		logs.Info(plan)
 		return nil
 	})
 
-	toolbox.StartTask()
-	toolbox.AddTask(tk.Taskname, tk)
+	task.StartTask()
+	task.AddTask(tk.Taskname, tk)
 	return nil
 }

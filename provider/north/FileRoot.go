@@ -4,15 +4,15 @@ import (
 	"go-iot/provider/util"
 	"net/http"
 
-	"github.com/astaxie/beego"
+	"github.com/beego/beego/v2/server/web"
 )
 
 func init() {
-	beego.Router("/file/?:name", &FileRootController{}, "get:File")
+	web.Router("/file/?:name", &FileRootController{}, "get:File")
 }
 
 type FileRootController struct {
-	beego.Controller
+	web.Controller
 }
 
 // 下载素材

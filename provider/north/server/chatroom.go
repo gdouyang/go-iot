@@ -5,7 +5,7 @@ import (
 	"go-iot/provider/util"
 	"time"
 
-	"github.com/astaxie/beego"
+	"github.com/beego/beego/v2/core/logs"
 	"github.com/gorilla/websocket"
 )
 
@@ -39,7 +39,7 @@ func newEvent(ep EventType, msg string) Event {
 // 加入
 func Join(type_ string, evt string, ws *websocket.Conn) string {
 	if len(type_) == 0 {
-		beego.Error("type can not be null echo or north")
+		logs.Error("type can not be null echo or north")
 	}
 	addr := ws.RemoteAddr().String()
 	subscribe <- Subscriber{Type: type_, Evt: evt, Addr: addr, Conn: ws}
@@ -79,19 +79,19 @@ func chatroom() {
 			switch sub.Type {
 			case ECHO:
 				echoSubscribers.PushBack(sub) // Add user to the end of list.
-				beego.Info("New echo user:", sub.Addr, ";WebSocket:", sub.Conn != nil)
+				logs.Info("New echo user:", sub.Addr, ";WebSocket:", sub.Conn != nil)
 			case NORTH:
 				subscribers.PushBack(sub) // Add user to the end of list.
-				beego.Info("New north user:", sub.Addr, ";WebSocket:", sub.Conn != nil)
+				logs.Info("New north user:", sub.Addr, ";WebSocket:", sub.Conn != nil)
 			default:
 				Leave(sub.Addr)
-				beego.Error("Type not persent(echo or north)")
+				logs.Error("Type not persent(echo or north)")
 			}
 		case event := <-publish:
 			broadcastWebSocket(event)
 
 			if event.Type == EVENT_MESSAGE {
-				beego.Info("Message from", event.Addr, ";Content:", event.Content)
+				logs.Info("Message from", event.Addr, ";Content:", event.Content)
 			}
 		case unsub := <-unsubscribe:
 			for sub := subscribers.Front(); sub != nil; sub = sub.Next() {
@@ -101,7 +101,7 @@ func chatroom() {
 					ws := sub.Value.(Subscriber).Conn
 					if ws != nil {
 						ws.Close()
-						beego.Error("NorthWebSocket closed:", unsub)
+						logs.Error("NorthWebSocket closed:", unsub)
 					}
 					// publish <- newEvent(models.EVENT_LEAVE, unsub, "", ) // Publish a LEAVE event.
 					break
@@ -114,7 +114,7 @@ func chatroom() {
 					ws := sub.Value.(Subscriber).Conn
 					if ws != nil {
 						ws.Close()
-						beego.Error("EchoWebSocket closed:", unsub)
+						logs.Error("EchoWebSocket closed:", unsub)
 					}
 					break
 				}
@@ -127,7 +127,7 @@ func chatroom() {
 func broadcastWebSocket(event Event) {
 	data, err := util.JsonEncoderHTML(event)
 	if err != nil {
-		beego.Error("Fail to marshal event:", err)
+		logs.Error("Fail to marshal event:", err)
 		return
 	}
 
