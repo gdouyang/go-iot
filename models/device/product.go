@@ -9,44 +9,20 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-// 产品
-type Product struct {
-	Id       string `json:"id"` //产品ID
-	Name     string `json:"name"`
-	Provider string `json:"provider"` //厂商
-	Type     string `json:"type"`
-}
-
 func init() {
-	db, _ := models.GetDb()
-	defer db.Close()
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS product (
-	    id_ VARCHAR(32) PRIMARY KEY COMMENT '',
-	    name_ VARCHAR(64) NULL COMMENT '',
-			type_ VARCHAR(32) NULL COMMENT '',
-			model_ VARCHAR(32) NULL COMMENT '',
-			create_time_ DATETIME NULL COMMENT '创建时间'
-		);
-	`)
-	if err != nil {
-		logs.Info("table led create fail:", err)
-	} else {
-		logs.Info("table led create success")
-	}
 }
 
 // 分页查询设备
 func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 	var pr *models.PageResult
-	var dev Device
+	var dev models.Product
 	json.Unmarshal(page.Condition, &dev)
 
 	//查询数据
 	db, _ := models.GetDb()
 	defer db.Close()
-	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM led "
-	countSql := "SELECT count(*) from led"
+	sql := "SELECT * FROM prodect "
+	countSql := "SELECT count(*) from prodect"
 	id := dev.Id
 	params := make([]interface{}, 0)
 	if id != "" {
@@ -60,17 +36,17 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	var result []Device
+	var result []models.Product
 	var (
-		Id, Sn, Name, Provider, Type, Model, OnlineStatus, Agent string
+		Id, Name, Type string
 	)
 	defer rows.Close()
 	for rows.Next() {
-		rows.Scan(&Id, &Sn, &Name,
-			&Provider, &Type, &Model, &OnlineStatus, &Agent)
+		rows.Scan(&Id, &Name,
+			&Type)
 
-		device := Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
-			Type: Type, Model: Model, OnlineStatus: OnlineStatus, Agent: Agent}
+		device := models.Product{Id: Id, Name: Name,
+			Type: Type}
 		result = append(result, device)
 	}
 
@@ -90,7 +66,7 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 	return pr, nil
 }
 
-func AddProduct(ob *Device) error {
+func AddProduct(ob *models.Product) error {
 	rs, err := GetDevice(ob.Id)
 	if err != nil {
 		return err
@@ -102,11 +78,11 @@ func AddProduct(ob *Device) error {
 	db, _ := models.GetDb()
 	defer db.Close()
 	stmt, _ := db.Prepare(`
-	INSERT INTO led(id_, sn_, name_, provider_, type_, model_, online_status_, agent_) 
-	values(?,?,?,?,?,?,?,?)
+	INSERT INTO product(id_, name_, type_id_, create_time_ ) 
+	values(?,?,?, now())
 	`)
 
-	_, err = stmt.Exec(ob.Id, ob.Sn, ob.Name, ob.Provider, ob.Type, ob.Model, models.OFFLINE, ob.Agent)
+	_, err = stmt.Exec(ob.Id, ob.Name, ob.Type)
 	if err != nil {
 		return err
 	}
@@ -114,20 +90,20 @@ func AddProduct(ob *Device) error {
 	return nil
 }
 
-func UpdateProduct(ob *Device) error {
+func UpdateProduct(ob *models.Product) error {
 	//更新数据
 	db, _ := models.GetDb()
 	defer db.Close()
 	stmt, err := db.Prepare(`
 	update led 
-	set sn_=?,name_=?,provider_=?,type_=?,agent_=?
+	set name_=?, type_=?
 	where id_=?
 	`)
 	if err != nil {
 		return err
 	}
 
-	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Provider, ob.Type, ob.Agent, ob.Id)
+	_, err = stmt.Exec(ob.Name, ob.Type, ob.Id)
 	if err != nil {
 		logs.Error("update fail", err)
 		return err
@@ -135,7 +111,7 @@ func UpdateProduct(ob *Device) error {
 	return nil
 }
 
-func DeleteProduct(ob *Device) error {
+func DeleteProduct(ob *models.Product) error {
 	//更新数据
 	db, _ := models.GetDb()
 	defer db.Close()
@@ -149,23 +125,23 @@ func DeleteProduct(ob *Device) error {
 	return nil
 }
 
-func GetProduct(deviceId string) (Device, error) {
-	var result Device
+func GetProduct(id string) (models.Product, error) {
+	var result models.Product
 	db, _ := models.GetDb()
 	defer db.Close()
-	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM led where id_ = ?"
-	rows, err := db.Query(sql, deviceId)
+	sql := "SELECT * FROM product where id_ = ?"
+	rows, err := db.Query(sql, id)
 	if err != nil {
 		return result, err
 	}
 	var (
-		Id, Sn, Name, Provider, Type, Model, OnlineStatus, Agent string
+		Id, Name, Type string
 	)
 	defer rows.Close()
 	for rows.Next() {
-		rows.Scan(&Id, &Sn, &Name, &Provider, &Type, &Model, &OnlineStatus, &Agent)
-		result = Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
-			Type: Type, Model: Model, OnlineStatus: OnlineStatus, Agent: Agent}
+		rows.Scan(&Id, &Name, &Type)
+		result = models.Product{Id: Id, Name: Name,
+			Type: Type}
 		break
 	}
 	return result, nil

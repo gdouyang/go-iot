@@ -9,45 +9,13 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-// 设备
-type Device struct {
-	Id           string                `json:"id"` //设备ID
-	Sn           string                `json:"sn"` //设备SN
-	Name         string                `json:"name"`
-	Provider     string                `json:"provider"` //厂商
-	Type         string                `json:"type"`
-	Model        string                `json:"model"`
-	OnlineStatus string                `json:"onlineStatus"` //在线状态
-	SwitchStatus []models.SwitchStatus `json:"switchStatus"`
-	Agent        string                `json:"agent"`
-}
-
 func init() {
-	db, _ := models.GetDb()
-	defer db.Close()
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS device (
-	    id_ VARCHAR(32) PRIMARY KEY,
-	    name_ VARCHAR(64) NULL,
-			type_ VARCHAR(32) NULL,
-			model_ VARCHAR(32) NULL,
-			online_status_ VARCHAR(10) NULL,
-			switch_status_ VARCHAR(128) NULL,
-			agent_ VARCHAR(32) NULL,
-			created_ DATE NULL
-		);
-	`)
-	if err != nil {
-		logs.Info("table led create fail:", err)
-	} else {
-		logs.Info("table led create success")
-	}
 }
 
 // 分页查询设备
 func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	var pr *models.PageResult
-	var dev Device
+	var dev models.Device
 	json.Unmarshal(page.Condition, &dev)
 
 	//查询数据
@@ -68,7 +36,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	var result []Device
+	var result []models.Device
 	var (
 		Id, Sn, Name, Provider, Type, Model, OnlineStatus, Agent string
 	)
@@ -77,7 +45,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 		rows.Scan(&Id, &Sn, &Name,
 			&Provider, &Type, &Model, &OnlineStatus, &Agent)
 
-		device := Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
+		device := models.Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
 			Type: Type, Model: Model, OnlineStatus: OnlineStatus, Agent: Agent}
 		result = append(result, device)
 	}
@@ -98,7 +66,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	return pr, nil
 }
 
-func AddDevie(ob *Device) error {
+func AddDevie(ob *models.Device) error {
 	rs, err := GetDevice(ob.Id)
 	if err != nil {
 		return err
@@ -122,7 +90,7 @@ func AddDevie(ob *Device) error {
 	return nil
 }
 
-func UpdateDevice(ob *Device) error {
+func UpdateDevice(ob *models.Device) error {
 	//更新数据
 	db, _ := models.GetDb()
 	defer db.Close()
@@ -165,7 +133,7 @@ func UpdateOnlineStatus(onlineStatus string, sn string, provider string) error {
 	return nil
 }
 
-func DeleteDevice(ob *Device) error {
+func DeleteDevice(ob *models.Device) error {
 	//更新数据
 	db, _ := models.GetDb()
 	defer db.Close()
@@ -179,8 +147,8 @@ func DeleteDevice(ob *Device) error {
 	return nil
 }
 
-func GetDevice(deviceId string) (Device, error) {
-	var result Device
+func GetDevice(deviceId string) (models.Device, error) {
+	var result models.Device
 	db, _ := models.GetDb()
 	defer db.Close()
 	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM led where id_ = ?"
@@ -194,15 +162,15 @@ func GetDevice(deviceId string) (Device, error) {
 	defer rows.Close()
 	for rows.Next() {
 		rows.Scan(&Id, &Sn, &Name, &Provider, &Type, &Model, &OnlineStatus, &Agent)
-		result = Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
+		result = models.Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
 			Type: Type, Model: Model, OnlineStatus: OnlineStatus, Agent: Agent}
 		break
 	}
 	return result, nil
 }
 
-func GetDeviceByProvider(sn, provider string) (Device, error) {
-	var result Device
+func GetDeviceByProvider(sn, provider string) (models.Device, error) {
+	var result models.Device
 	db, _ := models.GetDb()
 	defer db.Close()
 	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM led where sn_ = ? and provider_ = ?"
@@ -216,7 +184,7 @@ func GetDeviceByProvider(sn, provider string) (Device, error) {
 	defer rows.Close()
 	for rows.Next() {
 		rows.Scan(&Id, &Sn, &Name, &Provider, &Type, &Model, &OnlineStatus, &Agent)
-		result = Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
+		result = models.Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
 			Type: Type, Model: Model, OnlineStatus: OnlineStatus, Agent: Agent}
 		break
 	}
