@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"go-iot/models"
 	device "go-iot/models/device"
-	"go-iot/models/operates"
 
 	"github.com/beego/beego/v2/server/web"
 )
@@ -57,12 +56,5 @@ func (this *ProductController) Delete() {
 	data := this.Ctx.Input.RequestBody
 	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
 	this.Data["json"] = ledSender.Delete(request)
-	this.ServeJSON()
-}
-
-// 查询所有厂商
-func (this *ProductController) ListProvider() {
-	pros := operates.AllProvierId()
-	this.Data["json"] = &pros
 	this.ServeJSON()
 }

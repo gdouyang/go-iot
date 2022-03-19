@@ -3,9 +3,11 @@ package models
 import (
 	"encoding/json"
 	"errors"
+	"time"
 
 	"go-iot/models"
 
+	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/core/logs"
 )
 
@@ -19,48 +21,35 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	json.Unmarshal(page.Condition, &dev)
 
 	//查询数据
-	db, _ := models.GetDb()
-	defer db.Close()
-	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM device "
-	countSql := "SELECT count(*) from led"
+	o := orm.NewOrm()
+	qs := o.QueryTable("device")
+
 	id := dev.Id
-	params := make([]interface{}, 0)
-	if id != "" {
-		sql += " where id_ like ?"
-		countSql += " where id_ like ?"
-		params = append(params, id)
+	if len(id) > 0 {
+		qs.Filter("id", id)
 	}
-	sql += " limit ? offset ?"
-	params = append(params, page.PageSize, page.PageOffset())
-	rows, err := db.Query(sql, params...)
+	if len(dev.Name) > 0 {
+		qs.Filter("name__contains", dev.Name)
+	}
+	qs.Offset(page.PageOffset())
+	qs.Limit(page.PageSize)
+
+	count, err := qs.Count()
 	if err != nil {
 		return nil, err
 	}
-	var result []models.Device
-	var (
-		Id, Sn, Name, Provider, Type, Model, OnlineStatus, Agent string
-	)
-	defer rows.Close()
-	for rows.Next() {
-		rows.Scan(&Id, &Sn, &Name,
-			&Provider, &Type, &Model, &OnlineStatus, &Agent)
 
-		device := models.Device{Id: Id, Name: Name, OnlineStatus: OnlineStatus}
-		result = append(result, device)
-	}
-
-	rows, err = db.Query(countSql, params...)
+	var result []models.Product
+	_, err = qs.All(&result)
 	if err != nil {
 		return nil, err
 	}
-	var count int64 = 0
-	defer rows.Close()
-	for rows.Next() {
-		rows.Scan(&count)
-		break
-	}
 
-	pr = &models.PageResult{page.PageSize, page.PageNum, count, result}
+	pr = &models.PageResult{
+		PageSize: page.PageSize,
+		PageNum:  page.PageNum,
+		Total:    count,
+		List:     result}
 
 	return pr, nil
 }
@@ -70,39 +59,23 @@ func AddDevie(ob *models.Device) error {
 	if err != nil {
 		return err
 	}
-	if rs.Id != "" {
+	if len(rs.Id) > 0 {
 		return errors.New("设备已存在!")
 	}
 	//插入数据
-	db, _ := models.GetDb()
-	defer db.Close()
-	stmt, _ := db.Prepare(`
-	INSERT INTO led(id_, sn_, name_, provider_, type_, model_, online_status_, agent_) 
-	values(?,?,?,?,?,?,?,?)
-	`)
-
-	_, err = stmt.Exec(ob.Id, ob.Name, models.OFFLINE)
+	o := orm.NewOrm()
+	ob.CreateTime = time.Now()
+	_, err = o.Insert(ob)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
 func UpdateDevice(ob *models.Device) error {
 	//更新数据
-	db, _ := models.GetDb()
-	defer db.Close()
-	stmt, err := db.Prepare(`
-	update led 
-	set sn_=?,name_=?,provider_=?,type_=?,agent_=?
-	where id_=?
-	`)
-	if err != nil {
-		return err
-	}
-
-	_, err = stmt.Exec(ob.Name, ob.Id)
+	o := orm.NewOrm()
+	_, err := o.Update(ob, "Name")
 	if err != nil {
 		logs.Error("update fail", err)
 		return err
@@ -111,20 +84,20 @@ func UpdateDevice(ob *models.Device) error {
 }
 
 // 根据SN与provider来更新设备在线状态
-func UpdateOnlineStatus(onlineStatus string, sn string, provider string) error {
+func UpdateOnlineStatus(onlineStatus string, id string) error {
 	//更新数据
 	db, _ := models.GetDb()
 	defer db.Close()
 	stmt, err := db.Prepare(`
-	update led 
+	update device 
 	set online_status_ = ?
-	where sn_ = ? and provider_ = ?
+	where id_ = ?
 	`)
 	if err != nil {
 		return err
 	}
 
-	_, err = stmt.Exec(onlineStatus, sn, provider)
+	_, err = stmt.Exec(onlineStatus, id)
 	if err != nil {
 		logs.Error("update fail", err)
 		return err
@@ -133,12 +106,8 @@ func UpdateOnlineStatus(onlineStatus string, sn string, provider string) error {
 }
 
 func DeleteDevice(ob *models.Device) error {
-	//更新数据
-	db, _ := models.GetDb()
-	defer db.Close()
-	stmt, _ := db.Prepare("delete from led where id_=?")
-
-	_, err := stmt.Exec(ob.Id)
+	o := orm.NewOrm()
+	_, err := o.Delete(ob)
 	if err != nil {
 		logs.Error("delete fail", err)
 		return err
@@ -147,43 +116,14 @@ func DeleteDevice(ob *models.Device) error {
 }
 
 func GetDevice(deviceId string) (models.Device, error) {
-	var result models.Device
-	db, _ := models.GetDb()
-	defer db.Close()
-	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM led where id_ = ?"
-	rows, err := db.Query(sql, deviceId)
-	if err != nil {
-		return result, err
+	o := orm.NewOrm()
+	p := models.Device{Id: deviceId}
+	err := o.Read(&p)
+	if err == orm.ErrNoRows {
+		return models.Device{}, err
+	} else if err == orm.ErrMissPK {
+		return models.Device{}, err
+	} else {
+		return p, nil
 	}
-	var (
-		Id, Sn, Name, Provider, Type, Model, OnlineStatus, Agent string
-	)
-	defer rows.Close()
-	for rows.Next() {
-		rows.Scan(&Id, &Sn, &Name, &Provider, &Type, &Model, &OnlineStatus, &Agent)
-		result = models.Device{Id: Id, Name: Name, OnlineStatus: OnlineStatus}
-		break
-	}
-	return result, nil
-}
-
-func GetDeviceByProvider(sn, provider string) (models.Device, error) {
-	var result models.Device
-	db, _ := models.GetDb()
-	defer db.Close()
-	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM led where sn_ = ? and provider_ = ?"
-	rows, err := db.Query(sql, sn, provider)
-	if err != nil {
-		return result, err
-	}
-	var (
-		Id, Name, Model, OnlineStatus string
-	)
-	defer rows.Close()
-	for rows.Next() {
-		rows.Scan(&Id, &Name, &Model, &OnlineStatus)
-		result = models.Device{Id: Id, Name: Name, OnlineStatus: OnlineStatus}
-		break
-	}
-	return result, nil
 }

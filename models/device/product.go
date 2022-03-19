@@ -25,8 +25,11 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 	qs := o.QueryTable("product")
 
 	id := dev.Id
-	if id != "" {
-		qs.Filter("name__contains", id)
+	if len(id) > 0 {
+		qs.Filter("id", id)
+	}
+	if len(dev.Name) > 0 {
+		qs.Filter("name__contains", dev.Name)
 	}
 	qs.Offset(page.PageOffset())
 	qs.Limit(page.PageSize)
@@ -42,7 +45,11 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 		return nil, err
 	}
 
-	pr = &models.PageResult{page.PageSize, page.PageNum, count, result}
+	pr = &models.PageResult{
+		PageSize: page.PageSize,
+		PageNum:  page.PageNum,
+		Total:    count,
+		List:     result}
 
 	return pr, nil
 }

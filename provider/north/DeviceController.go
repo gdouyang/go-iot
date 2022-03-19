@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"go-iot/models"
 	led "go-iot/models/device"
-	"go-iot/models/operates"
 	"go-iot/provider/north/sender"
 
 	"github.com/beego/beego/v2/server/web"
@@ -16,7 +15,6 @@ func init() {
 	web.Router("/north/led/add", &LedController{}, "post:Add")
 	web.Router("/north/led/update", &LedController{}, "post:Update")
 	web.Router("/north/led/delete", &LedController{}, "post:Delete")
-	web.Router("/led/listProvider", &LedController{}, "post:ListProvider")
 
 }
 
@@ -64,12 +62,5 @@ func (this *LedController) Delete() {
 	data := this.Ctx.Input.RequestBody
 	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
 	this.Data["json"] = ledSender.Delete(request)
-	this.ServeJSON()
-}
-
-// 查询所有厂商
-func (this *LedController) ListProvider() {
-	pros := operates.AllProvierId()
-	this.Data["json"] = &pros
 	this.ServeJSON()
 }
