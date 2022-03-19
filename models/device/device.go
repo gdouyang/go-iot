@@ -21,7 +21,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	//查询数据
 	db, _ := models.GetDb()
 	defer db.Close()
-	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM led "
+	sql := "SELECT id_,sn_,name_,provider_,type_,model_,online_status_,agent_ FROM device "
 	countSql := "SELECT count(*) from led"
 	id := dev.Id
 	params := make([]interface{}, 0)
@@ -45,8 +45,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 		rows.Scan(&Id, &Sn, &Name,
 			&Provider, &Type, &Model, &OnlineStatus, &Agent)
 
-		device := models.Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
-			Type: Type, Model: Model, OnlineStatus: OnlineStatus, Agent: Agent}
+		device := models.Device{Id: Id, Name: Name, OnlineStatus: OnlineStatus}
 		result = append(result, device)
 	}
 
@@ -54,7 +53,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	count := 0
+	var count int64 = 0
 	defer rows.Close()
 	for rows.Next() {
 		rows.Scan(&count)
@@ -82,7 +81,7 @@ func AddDevie(ob *models.Device) error {
 	values(?,?,?,?,?,?,?,?)
 	`)
 
-	_, err = stmt.Exec(ob.Id, ob.Sn, ob.Name, ob.Provider, ob.Type, ob.Model, models.OFFLINE, ob.Agent)
+	_, err = stmt.Exec(ob.Id, ob.Name, models.OFFLINE)
 	if err != nil {
 		return err
 	}
@@ -103,7 +102,7 @@ func UpdateDevice(ob *models.Device) error {
 		return err
 	}
 
-	_, err = stmt.Exec(ob.Sn, ob.Name, ob.Provider, ob.Type, ob.Agent, ob.Id)
+	_, err = stmt.Exec(ob.Name, ob.Id)
 	if err != nil {
 		logs.Error("update fail", err)
 		return err
@@ -162,8 +161,7 @@ func GetDevice(deviceId string) (models.Device, error) {
 	defer rows.Close()
 	for rows.Next() {
 		rows.Scan(&Id, &Sn, &Name, &Provider, &Type, &Model, &OnlineStatus, &Agent)
-		result = models.Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
-			Type: Type, Model: Model, OnlineStatus: OnlineStatus, Agent: Agent}
+		result = models.Device{Id: Id, Name: Name, OnlineStatus: OnlineStatus}
 		break
 	}
 	return result, nil
@@ -179,13 +177,12 @@ func GetDeviceByProvider(sn, provider string) (models.Device, error) {
 		return result, err
 	}
 	var (
-		Id, Sn, Name, Provider, Type, Model, OnlineStatus, Agent string
+		Id, Name, Model, OnlineStatus string
 	)
 	defer rows.Close()
 	for rows.Next() {
-		rows.Scan(&Id, &Sn, &Name, &Provider, &Type, &Model, &OnlineStatus, &Agent)
-		result = models.Device{Id: Id, Sn: Sn, Name: Name, Provider: Provider,
-			Type: Type, Model: Model, OnlineStatus: OnlineStatus, Agent: Agent}
+		rows.Scan(&Id, &Name, &Model, &OnlineStatus)
+		result = models.Device{Id: Id, Name: Name, OnlineStatus: OnlineStatus}
 		break
 	}
 	return result, nil

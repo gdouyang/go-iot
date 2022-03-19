@@ -19,6 +19,10 @@ func init() {
 	orm.RunSyncdb("default", false, true)
 }
 
+func GetQb() (orm.QueryBuilder, error) {
+	return orm.NewQueryBuilder("mysql")
+}
+
 func GetDb() (*sql.DB, error) {
 	db, _ := sql.Open("mysql", "root:root@(192.168.31.197:3306)/go-iot")
 	err := db.Ping() //连接数据库

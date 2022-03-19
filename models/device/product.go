@@ -3,9 +3,11 @@ package models
 import (
 	"encoding/json"
 	"errors"
+	"time"
 
 	"go-iot/models"
 
+	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/core/logs"
 )
 
@@ -19,46 +21,25 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 	json.Unmarshal(page.Condition, &dev)
 
 	//查询数据
-	db, _ := models.GetDb()
-	defer db.Close()
-	sql := "SELECT * FROM prodect "
-	countSql := "SELECT count(*) from prodect"
+	o := orm.NewOrm()
+	qs := o.QueryTable("product")
+
 	id := dev.Id
-	params := make([]interface{}, 0)
 	if id != "" {
-		sql += " where id_ like ?"
-		countSql += " where id_ like ?"
-		params = append(params, id)
+		qs.Filter("name__contains", id)
 	}
-	sql += " limit ? offset ?"
-	params = append(params, page.PageSize, page.PageOffset())
-	rows, err := db.Query(sql, params...)
+	qs.Offset(page.PageOffset())
+	qs.Limit(page.PageSize)
+
+	count, err := qs.Count()
 	if err != nil {
 		return nil, err
 	}
+
 	var result []models.Product
-	var (
-		Id, Name, Type string
-	)
-	defer rows.Close()
-	for rows.Next() {
-		rows.Scan(&Id, &Name,
-			&Type)
-
-		device := models.Product{Id: Id, Name: Name,
-			Type: Type}
-		result = append(result, device)
-	}
-
-	rows, err = db.Query(countSql, params...)
+	_, err = qs.All(&result)
 	if err != nil {
 		return nil, err
-	}
-	count := 0
-	defer rows.Close()
-	for rows.Next() {
-		rows.Scan(&count)
-		break
 	}
 
 	pr = &models.PageResult{page.PageSize, page.PageNum, count, result}
@@ -67,43 +48,27 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 }
 
 func AddProduct(ob *models.Product) error {
-	rs, err := GetDevice(ob.Id)
+	rs, err := GetProduct(ob.Id)
 	if err != nil {
 		return err
 	}
-	if rs.Id != "" {
+	if len(rs.Id) > 0 {
 		return errors.New("设备已存在!")
 	}
 	//插入数据
-	db, _ := models.GetDb()
-	defer db.Close()
-	stmt, _ := db.Prepare(`
-	INSERT INTO product(id_, name_, type_id_, create_time_ ) 
-	values(?,?,?, now())
-	`)
-
-	_, err = stmt.Exec(ob.Id, ob.Name, ob.Type)
+	o := orm.NewOrm()
+	ob.CreateTime = time.Now()
+	_, err = o.Insert(ob)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
 func UpdateProduct(ob *models.Product) error {
 	//更新数据
-	db, _ := models.GetDb()
-	defer db.Close()
-	stmt, err := db.Prepare(`
-	update led 
-	set name_=?, type_=?
-	where id_=?
-	`)
-	if err != nil {
-		return err
-	}
-
-	_, err = stmt.Exec(ob.Name, ob.Type, ob.Id)
+	o := orm.NewOrm()
+	_, err := o.Update(ob, "Name", "TypeId")
 	if err != nil {
 		logs.Error("update fail", err)
 		return err
@@ -112,12 +77,8 @@ func UpdateProduct(ob *models.Product) error {
 }
 
 func DeleteProduct(ob *models.Product) error {
-	//更新数据
-	db, _ := models.GetDb()
-	defer db.Close()
-	stmt, _ := db.Prepare("delete from led where id_=?")
-
-	_, err := stmt.Exec(ob.Id)
+	o := orm.NewOrm()
+	_, err := o.Delete(ob)
 	if err != nil {
 		logs.Error("delete fail", err)
 		return err
@@ -126,23 +87,16 @@ func DeleteProduct(ob *models.Product) error {
 }
 
 func GetProduct(id string) (models.Product, error) {
-	var result models.Product
-	db, _ := models.GetDb()
-	defer db.Close()
-	sql := "SELECT * FROM product where id_ = ?"
-	rows, err := db.Query(sql, id)
-	if err != nil {
-		return result, err
+
+	o := orm.NewOrm()
+
+	p := models.Product{Id: id}
+	err := o.Read(&p)
+	if err == orm.ErrNoRows {
+		return models.Product{}, err
+	} else if err == orm.ErrMissPK {
+		return models.Product{}, err
+	} else {
+		return p, nil
 	}
-	var (
-		Id, Name, Type string
-	)
-	defer rows.Close()
-	for rows.Next() {
-		rows.Scan(&Id, &Name, &Type)
-		result = models.Product{Id: Id, Name: Name,
-			Type: Type}
-		break
-	}
-	return result, nil
 }

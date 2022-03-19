@@ -112,7 +112,7 @@ func ListPlan(page *models.PageQuery) (*models.PageResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	count := 0
+	var count int64 = 0
 	defer rows.Close()
 	for rows.Next() {
 		rows.Scan(&count)

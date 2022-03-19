@@ -15,7 +15,7 @@ const (
 type PageResult struct {
 	PageSize int         `json:"pageSize"`
 	PageNum  int         `json:"pageNum"`
-	Total    int         `json:"total"`
+	Total    int64       `json:"total"`
 	List     interface{} `json:"list"`
 }
 

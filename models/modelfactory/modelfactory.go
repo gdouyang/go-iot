@@ -39,7 +39,7 @@ func GetDevice(id string) (operates.Device, error) {
 	if err != nil {
 		return dev, err
 	}
-	dev = operates.Device{Id: l.Id, Sn: l.Sn, Name: l.Name, Provider: l.Provider, Agent: l.Agent}
+	dev = operates.Device{Id: l.Id, Name: l.Name}
 	return dev, nil
 }
 
@@ -49,6 +49,6 @@ func GetDeviceByProvider(sn, provider string) (operates.Device, error) {
 	if err != nil {
 		return dev, err
 	}
-	dev = operates.Device{Id: l.Id, Sn: l.Sn, Name: l.Name, Provider: l.Provider, Agent: l.Agent}
+	dev = operates.Device{Id: l.Id, Name: l.Name}
 	return dev, nil
 }
