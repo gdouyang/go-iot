@@ -18,12 +18,9 @@
 package mqttproxy
 
 import (
-	"bytes"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"net"
-	"net/http"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -44,9 +41,8 @@ type (
 		clients  map[string]*Client
 		tlsCfg   *tls.Config
 
-		sessMgr   *SessionManager
-		topicMgr  *TopicManager
-		memberURL func(string, string) ([]string, error)
+		sessMgr  *SessionManager
+		topicMgr *TopicManager
 
 		// done is the channel for shutdowning this proxy.
 		done      chan struct{}
@@ -74,14 +70,13 @@ type (
 	}
 )
 
-func newBroker(spec *Spec, memberURL func(string, string) ([]string, error)) *Broker {
+func NewBroker(spec *Spec) *Broker {
 	broker := &Broker{
-		egName:    spec.EGName,
-		name:      spec.Name,
-		spec:      spec,
-		clients:   make(map[string]*Client),
-		memberURL: memberURL,
-		done:      make(chan struct{}),
+		egName:  spec.EGName,
+		name:    spec.Name,
+		spec:    spec,
+		clients: make(map[string]*Client),
+		done:    make(chan struct{}),
 	}
 
 	err := broker.setListener()
@@ -322,34 +317,6 @@ func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 		}
 		client.session = b.sessMgr.newSessionFromConn(connect)
 	}
-}
-
-func (b *Broker) requestTransfer(egName, name string, data HTTPJsonData, header http.Header) {
-	urls, err := b.memberURL(egName, name)
-	if err != nil {
-		logs.Error("eg %v find urls for other egs failed:%v", b.egName, err)
-		return
-	}
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		logs.Error("json data marshal failed: %v", err)
-		return
-	}
-	for _, url := range urls {
-		req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
-		req.Header = header.Clone()
-		if err != nil {
-			logs.Error("make new request failed: %v", err)
-			continue
-		}
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			logs.Error("http client send msg failed:%v", err)
-		} else {
-			resp.Body.Close()
-		}
-	}
-	logs.Debug("eg %v http transfer data %v to %v", b.egName, data, urls)
 }
 
 func (b *Broker) sendMsgToClient(topic string, payload []byte, qos byte) {

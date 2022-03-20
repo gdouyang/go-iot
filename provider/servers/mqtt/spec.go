@@ -64,25 +64,12 @@ type (
 		EGName               string        `yaml:"-"`
 		Name                 string        `yaml:"-"`
 		Port                 uint16        `yaml:"port" jsonschema:"required"`
-		BackendType          string        `yaml:"backendType" jsonschema:"required"`
 		UseTLS               bool          `yaml:"useTLS" jsonschema:"omitempty"`
 		Certificate          []Certificate `yaml:"certificate" jsonschema:"omitempty"`
 		TopicCacheSize       int           `yaml:"topicCacheSize" jsonschema:"omitempty"`
 		MaxAllowedConnection int           `yaml:"maxAllowedConnection" jsonschema:"omitempty"`
 		ConnectionLimit      *RateLimit    `yaml:"connectionLimit" jsonschema:"omitempty"`
 		ClientPublishLimit   *RateLimit    `yaml:"clientPublishLimit" jsonschema:"omitempty"`
-		Rules                []*Rule       `yaml:"rules" jsonschema:"omitempty"`
-	}
-
-	// Rule used to route MQTT packets to different pipelines
-	Rule struct {
-		When     *When  `yaml:"when" jsonschema:"omitempty"`
-		Pipeline string `yaml:"pipeline" jsonschema:"omitempty"`
-	}
-
-	// When is used to check if MQTT packet match this pipeline
-	When struct {
-		PacketType PacketType `yaml:"packetType" jsonschema:"omitempty"`
 	}
 
 	// RateLimit describes rate limit for connection or publish.
