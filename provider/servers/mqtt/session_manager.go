@@ -61,14 +61,18 @@ func (sm *SessionManager) doStore() {
 			return
 		case kv := <-sm.storeCh:
 			logs.Debug("session manager store session %v", kv.key)
-			sess := sm.newSessionFromYaml(&kv.value)
-			if sess != nil {
+			sess := &Session{}
+			sess.broker = sm.broker
+			sess.storeCh = sm.storeCh
+			sess.done = make(chan struct{})
+			sess.pending = make(map[uint16]*Message)
+			sess.pendingQueue = []uint16{}
+
+			sess.info = &SessionInfo{}
+			err := sess.decode(kv.value)
+			if err == nil {
 				sm.sessionMap.Store(sess.info.ClientID, sess)
 			}
-			// err := sm.store.put(sessionStoreKey(kv.key), kv.value)
-			// if err != nil {
-			// 	logs.Error("put session %v into storage failed: %v", kv.key, err)
-			// }
 		}
 	}
 }

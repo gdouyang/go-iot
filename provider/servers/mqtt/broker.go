@@ -21,7 +21,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -41,8 +40,7 @@ type (
 		clients  map[string]*Client
 		tlsCfg   *tls.Config
 
-		sessMgr  *SessionManager
-		topicMgr *TopicManager
+		sessMgr *SessionManager
 
 		// done is the channel for shutdowning this proxy.
 		done      chan struct{}
@@ -85,19 +83,8 @@ func NewBroker(spec *Spec) *Broker {
 		return nil
 	}
 
-	if spec.TopicCacheSize <= 0 {
-		spec.TopicCacheSize = 100000
-	}
-	broker.topicMgr = newTopicManager(spec.TopicCacheSize)
 	broker.sessMgr = newSessionManager(broker)
 	go broker.run()
-	// ch, closeFunc, err := broker.sessMgr.store.watchDelete(sessionStoreKey(""))
-	// if err != nil {
-	// 	logs.Error("get watcher for session failed, %v", err)
-	// }
-	// if ch != nil {
-	// 	go broker.watchDelete(ch, func(){})
-	// }
 	return broker
 }
 
@@ -124,49 +111,6 @@ func (b *Broker) setListener() error {
 	b.tlsCfg = cfg
 	b.listener = l
 	return err
-}
-
-func (b *Broker) reconnectWatcher() {
-	if b.closed() {
-		return
-	}
-
-	// check event during reconnect
-	clients := []*Client{}
-	b.Lock()
-	for sessionID, client := range b.clients {
-		if ok := b.sessMgr.get(sessionID); ok != nil {
-			clients = append(clients, client)
-		}
-	}
-	b.Unlock()
-
-	for _, c := range clients {
-		c.close()
-	}
-}
-
-func (b *Broker) watchDelete(ch <-chan map[string]*string, closeFunc func()) {
-	defer closeFunc()
-	for {
-		select {
-		case <-b.done:
-			return
-		case m := <-ch:
-			if m == nil {
-				go b.reconnectWatcher()
-				return
-			}
-			for k, v := range m {
-				if v != nil {
-					continue
-				}
-				clientID := strings.TrimPrefix(k, sessionStoreKey(""))
-				logs.Debug("client %v recv delete watch %v", clientID, v)
-				go b.deleteSession(clientID)
-			}
-		}
-	}
 }
 
 func (b *Broker) deleteSession(clientID string) {
@@ -294,13 +238,6 @@ func (b *Broker) handleConn(conn net.Conn) {
 	}
 
 	client.session.updateEGName(b.egName, b.name)
-	topics, qoss, _ := client.session.allSubscribes()
-	if len(topics) > 0 {
-		err = b.topicMgr.subscribe(topics, qoss, client.info.cid)
-		if err != nil {
-			logs.Error("client %v use previous session topics %v to subscribe failed: %v", client.info.cid, topics, err)
-		}
-	}
 	go client.writeLoop()
 	client.readLoop()
 }
@@ -316,27 +253,6 @@ func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 			prevSess.close()
 		}
 		client.session = b.sessMgr.newSessionFromConn(connect)
-	}
-}
-
-func (b *Broker) sendMsgToClient(topic string, payload []byte, qos byte) {
-	subscribers, _ := b.topicMgr.findSubscribers(topic)
-	logs.Debug("eg %v send topic %v to client %v", b.egName, topic, subscribers)
-	if subscribers == nil {
-		logs.Error("eg %v not find subscribers for topic %s", b.egName, topic)
-		return
-	}
-
-	for clientID, subQoS := range subscribers {
-		if subQoS < qos {
-			return
-		}
-		client := b.getClient(clientID)
-		if client == nil {
-			logs.Debug("client %v not on broker %v in eg %v", clientID, b.name, b.egName)
-		} else {
-			client.session.publish(topic, payload, qos)
-		}
 	}
 }
 

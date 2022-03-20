@@ -224,8 +224,9 @@ func (c *Client) close() {
 	}
 	logs.Debug("client %v connection close", c.info.cid)
 	atomic.StoreInt32(&c.statusFlag, Disconnected)
-	close(c.done)
+	close(c.done) // 删除
 	c.session.close()
+	c.broker.deleteSession(c.info.cid)
 	c.Unlock()
 
 }
@@ -236,9 +237,6 @@ func (c *Client) disconnected() bool {
 
 func (c *Client) closeAndDelSession() {
 	c.broker.sessMgr.delLocal(c.info.cid)
-
-	topics, _, _ := c.session.allSubscribes()
-	c.broker.topicMgr.unsubscribe(topics, c.info.cid)
 
 	c.close()
 }
@@ -286,11 +284,6 @@ func processSubscribe(c *Client, p packets.ControlPacket) {
 	packet := p.(*packets.SubscribePacket)
 	logs.Debug("client %s subscribe %v with qos %v", c.info.cid, packet.Topics, packet.Qoss)
 
-	err := c.broker.topicMgr.subscribe(packet.Topics, packet.Qoss, c.info.cid)
-	if err != nil {
-		logs.Error("client %v subscribe %v failed: %v", c.info.cid, packet.Topics, err)
-		return
-	}
 	c.session.subscribe(packet.Topics, packet.Qoss)
 
 	suback := packets.NewControlPacket(packets.Suback).(*packets.SubackPacket)
@@ -307,10 +300,6 @@ func processUnsubscribe(c *Client, p packets.ControlPacket) {
 
 	logs.Debug("client %s processUnsubscribe %v", c.info.cid, packet.Topics)
 
-	err := c.broker.topicMgr.unsubscribe(packet.Topics, c.info.cid)
-	if err != nil {
-		logs.Error("client %v unsubscribe %v failed: %v", c.info.cid, packet.Topics, err)
-	}
 	c.session.unsubscribe(packet.Topics)
 
 	unsuback := packets.NewControlPacket(packets.Unsuback).(*packets.UnsubackPacket)

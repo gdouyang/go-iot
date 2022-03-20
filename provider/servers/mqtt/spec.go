@@ -66,7 +66,6 @@ type (
 		Port                 uint16        `yaml:"port" jsonschema:"required"`
 		UseTLS               bool          `yaml:"useTLS" jsonschema:"omitempty"`
 		Certificate          []Certificate `yaml:"certificate" jsonschema:"omitempty"`
-		TopicCacheSize       int           `yaml:"topicCacheSize" jsonschema:"omitempty"`
 		MaxAllowedConnection int           `yaml:"maxAllowedConnection" jsonschema:"omitempty"`
 		ConnectionLimit      *RateLimit    `yaml:"connectionLimit" jsonschema:"omitempty"`
 		ClientPublishLimit   *RateLimit    `yaml:"clientPublishLimit" jsonschema:"omitempty"`
