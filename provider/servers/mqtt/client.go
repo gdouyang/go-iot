@@ -225,6 +225,7 @@ func (c *Client) close() {
 	logs.Debug("client %v connection close", c.info.cid)
 	atomic.StoreInt32(&c.statusFlag, Disconnected)
 	close(c.done)
+	c.session.close()
 	c.Unlock()
 
 }

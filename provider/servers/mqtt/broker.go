@@ -362,45 +362,6 @@ func (b *Broker) mqttAPIPrefix(path string) string {
 	return fmt.Sprintf(path, b.name)
 }
 
-func (b *Broker) queryAllSessions(allSession map[string]string, query bool, page, pageSize int, topic string) *HTTPSessions {
-	res := &HTTPSessions{}
-	if !query {
-		for k := range allSession {
-			httpSession := &HTTPSession{
-				SessionID: strings.TrimPrefix(k, sessionStoreKey("")),
-			}
-			res.Sessions = append(res.Sessions, httpSession)
-		}
-		return res
-	}
-
-	index := 0
-	start := page*pageSize - pageSize
-	end := page * pageSize
-	for _, v := range allSession {
-		if index >= start && index < end {
-			session := &Session{}
-			session.info = &SessionInfo{}
-			session.decode(v)
-			for k := range session.info.Topics {
-				if strings.Contains(k, topic) {
-					httpSession := &HTTPSession{
-						SessionID: session.info.ClientID,
-						Topic:     k,
-					}
-					res.Sessions = append(res.Sessions, httpSession)
-					break
-				}
-			}
-		}
-		if index > end {
-			break
-		}
-		index++
-	}
-	return res
-}
-
 func (b *Broker) currentClients() map[string]struct{} {
 	ans := make(map[string]struct{})
 	b.Lock()
