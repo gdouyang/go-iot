@@ -22,7 +22,7 @@ func init() {
 				// 	logs.Error(err.Error())
 				// }
 			} else {
-				led.UpdateOnlineStatus(o.OnlineStatus, o.Sn, o.Provider)
+				led.UpdateOnlineStatus(o.OnlineStatus, o.Sn)
 			}
 		}
 	}()
@@ -45,10 +45,10 @@ func GetDevice(id string) (operates.Device, error) {
 
 func GetDeviceByProvider(sn, provider string) (operates.Device, error) {
 	var dev operates.Device
-	l, err := led.GetDeviceByProvider(sn, provider)
-	if err != nil {
-		return dev, err
-	}
-	dev = operates.Device{Id: l.Id, Name: l.Name}
+	// l, err := led.GetDeviceByProvider(sn, provider)
+	// if err != nil {
+	// 	return dev, err
+	// }
+	// dev = operates.Device{Id: l.Id, Name: l.Name}
 	return dev, nil
 }
