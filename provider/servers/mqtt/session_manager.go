@@ -85,23 +85,6 @@ func (sm *SessionManager) newSessionFromConn(connect *packets.ConnectPacket) *Se
 	return s
 }
 
-func (sm *SessionManager) newSessionFromYaml(str *string) *Session {
-	sess := &Session{}
-	sess.broker = sm.broker
-	sess.storeCh = sm.storeCh
-	sess.done = make(chan struct{})
-	sess.pending = make(map[uint16]*Message)
-	sess.pendingQueue = []uint16{}
-
-	sess.info = &SessionInfo{}
-	err := sess.decode(*str)
-	if err != nil {
-		return nil
-	}
-	go sess.backgroundResendPending()
-	return sess
-}
-
 func (sm *SessionManager) get(clientID string) *Session {
 	if val, ok := sm.sessionMap.Load(clientID); ok {
 		return val.(*Session)
