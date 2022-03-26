@@ -177,8 +177,8 @@ func (vm *WasmVM) importHostFuncs(linker *wasmtime.Linker) {
 	}
 
 	// request functions
-	defineFunc("host_req_get_real_ip", vm.hostGetClientID)
-	defineFunc("host_req_get_scheme", vm.hostGetUserName)
+	defineFunc("host_req_get_client_id", vm.hostGetClientID)
+	defineFunc("host_req_get_user_name", vm.hostGetUserName)
 
 	defineFunc("host_log", vm.hostLog)
 	defineFunc("host_get_unix_time_in_ms", vm.hostGetUnixTimeInMs)
