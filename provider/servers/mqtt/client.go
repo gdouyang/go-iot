@@ -121,7 +121,7 @@ func (c *Client) UserName() string {
 	return c.info.username
 }
 
-func newClient(connect *packets.ConnectPacket, broker *Broker, conn net.Conn, limitSpec *RateLimit) *Client {
+func newClient(connect *packets.ConnectPacket, broker *Broker, conn net.Conn) *Client {
 	var will *packets.PublishPacket
 	if connect.WillFlag {
 		will = packets.NewControlPacket(packets.Publish).(*packets.PublishPacket)

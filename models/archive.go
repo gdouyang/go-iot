@@ -9,6 +9,8 @@ const (
 	OFFLINE = "offLine" // 离线
 	OPEN    = "open"    // 开
 	CLOSE   = "close"   // 关
+	// MQTT
+	MQTT_BROKER = "MQTT_BROKER"
 )
 
 //分页结果

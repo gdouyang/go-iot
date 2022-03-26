@@ -13,7 +13,7 @@ func init() {
 	orm.RegisterDataBase("default", "mysql", "root:root@tcp(192.168.31.197:3306)/go-iot?charset=utf8&loc=Local")
 
 	// register model
-	orm.RegisterModel(new(Product), new(Device))
+	orm.RegisterModel(new(Product), new(Device), new(Network))
 
 	// create table
 	orm.RunSyncdb("default", false, true)

@@ -20,6 +20,7 @@ package mqttproxy
 import (
 	"crypto/tls"
 	"fmt"
+	"go-iot/models/network"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -34,7 +35,7 @@ type (
 		sync.RWMutex
 		egName string
 		name   string
-		spec   *Spec
+		spec   *network.MQTTProxySpec
 
 		listener net.Listener
 		clients  map[string]*Client
@@ -68,7 +69,7 @@ type (
 	}
 )
 
-func NewBroker(spec *Spec) *Broker {
+func NewBroker(spec *network.MQTTProxySpec) *Broker {
 	broker := &Broker{
 		egName:  spec.EGName,
 		name:    spec.Name,
@@ -94,7 +95,7 @@ func (b *Broker) setListener() error {
 	var cfg *tls.Config
 	addr := fmt.Sprintf(":%d", b.spec.Port)
 	if b.spec.UseTLS {
-		cfg, err = b.spec.tlsConfig()
+		cfg, err = b.spec.TlsConfig()
 		if err != nil {
 			return fmt.Errorf("invalid tls config for mqtt proxy: %v", err)
 		}
@@ -174,7 +175,7 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 		return nil, nil, false
 	}
 
-	client := newClient(connect, b, conn, b.spec.ClientPublishLimit)
+	client := newClient(connect, b, conn)
 	// check auth
 	authFail := false
 
