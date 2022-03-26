@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"go-iot/models/network"
+	"go-iot/provider/servers/mqtt/wasmhost"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -42,6 +43,8 @@ type (
 		tlsCfg   *tls.Config
 
 		sessMgr *SessionManager
+		// WashHost
+		wh *wasmhost.WasmHost
 
 		// done is the channel for shutdowning this proxy.
 		done      chan struct{}
@@ -49,7 +52,7 @@ type (
 	}
 )
 
-func NewBroker(spec *network.MQTTProxySpec) *Broker {
+func NewBroker(spec *network.MQTTProxySpec, wasmCode string) *Broker {
 	broker := &Broker{
 		egName:  spec.EGName,
 		name:    spec.Name,
@@ -65,6 +68,11 @@ func NewBroker(spec *network.MQTTProxySpec) *Broker {
 	}
 
 	broker.sessMgr = newSessionManager(broker)
+	broker.wh = wasmhost.NewWasmHost(&wasmhost.Spec{
+		MaxConcurrency: 10000,
+		Code:           wasmCode,
+		Timeout:        "100ms",
+	})
 	go broker.run()
 	return broker
 }

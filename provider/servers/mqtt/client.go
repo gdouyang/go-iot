@@ -241,6 +241,10 @@ func (c *Client) closeAndDelSession() {
 	c.close()
 }
 
+func (c *Client) Done() <-chan struct{} {
+	return c.done
+}
+
 func errorWrapper(errMsg string) processFnWithErr {
 	return func(c *Client, p packets.ControlPacket) error {
 		return errors.New(errMsg)

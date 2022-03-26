@@ -76,7 +76,7 @@ func (this *ServerController) Start() {
 		if nw.Type == models.MQTT_BROKER {
 			spec := &network.MQTTProxySpec{}
 			spec.FromJson(nw.Configuration)
-			broker := mqttproxy.NewBroker(spec)
+			broker := mqttproxy.NewBroker(spec, nw.Script)
 			if broker == nil {
 				logs.Error("broker %v start failed", spec.Name)
 				resp.Msg = "broker start failed"
