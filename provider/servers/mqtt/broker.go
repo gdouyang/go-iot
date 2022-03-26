@@ -47,26 +47,6 @@ type (
 		done      chan struct{}
 		closeFlag int32
 	}
-
-	// HTTPJsonData is json data received from http endpoint used to send back to clients
-	HTTPJsonData struct {
-		Topic       string `json:"topic"`
-		QoS         int    `json:"qos"`
-		Payload     string `json:"payload"`
-		Base64      bool   `json:"base64"`
-		Distributed bool   `json:"distributed"`
-	}
-
-	// HTTPSessions is json data used for session related operations, like get all sessions and delete some sessions
-	HTTPSessions struct {
-		Sessions []*HTTPSession `json:"sessions"`
-	}
-
-	// HTTPSession is json data used for session related operations, like get all sessions and delete some sessions
-	HTTPSession struct {
-		SessionID string `json:"sessionID"`
-		Topic     string `json:"topic"`
-	}
 )
 
 func NewBroker(spec *network.MQTTProxySpec) *Broker {
