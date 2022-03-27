@@ -136,7 +136,7 @@ func (wh *WasmHost) Init(spec *Spec) {
 	wh.reload(spec)
 }
 
-func (wh *WasmHost) Handle(ctx Context) (result string) {
+func (wh *WasmHost) Handle(ctx *MqttContext) (result string) {
 	// we must save the pool to a local variable for later use as it will be
 	// replaced when updating the wasm code
 	var pool *WasmVMPool

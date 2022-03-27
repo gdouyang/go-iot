@@ -145,6 +145,12 @@ func (vm *WasmVM) hostGetUserName() int32 {
 	return vm.writeStringToWasm(v)
 }
 
+func (vm *WasmVM) hostGetPayloadString() int32 {
+	return vm.writeStringToWasm(string(vm.ctx.GetPacket().Payload))
+}
+
+// misc functions 杂项功能
+
 func (vm *WasmVM) hostLog(level int32, addr int32) {
 	msg := vm.readStringFromWasm(addr)
 	switch level {
@@ -179,7 +185,9 @@ func (vm *WasmVM) importHostFuncs(linker *wasmtime.Linker) {
 	// request functions
 	defineFunc("host_req_get_client_id", vm.hostGetClientID)
 	defineFunc("host_req_get_user_name", vm.hostGetUserName)
+	defineFunc("host_req_get_payload_string", vm.hostGetPayloadString)
 
+	// misc functions
 	defineFunc("host_log", vm.hostLog)
 	defineFunc("host_get_unix_time_in_ms", vm.hostGetUnixTimeInMs)
 	defineFunc("host_rand", vm.hostRand)

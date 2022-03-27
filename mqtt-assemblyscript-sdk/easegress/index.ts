@@ -16,7 +16,7 @@
  */
 
 import {pointer, marshalString} from './marshal'
-import * as request from './request'
+import * as request from './client'
 
 
 class Program {
@@ -84,7 +84,7 @@ export {
 	createProgram,
 	registerProgramFactory,
 
-	request,
+	request as client,
 
 	addTag,
 	LogLevel,

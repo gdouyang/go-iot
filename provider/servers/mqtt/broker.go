@@ -69,7 +69,7 @@ func NewBroker(spec *network.MQTTProxySpec, wasmCode string) *Broker {
 
 	broker.sessMgr = newSessionManager(broker)
 	broker.wh = wasmhost.NewWasmHost(&wasmhost.Spec{
-		MaxConcurrency: 10000,
+		MaxConcurrency: 100,
 		Code:           wasmCode,
 		Timeout:        "100ms",
 	})

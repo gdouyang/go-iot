@@ -18,7 +18,7 @@
 // This exports all functions required by Easegress
 export * from '../../easegress/proxy'
 
-import { Program, parseDate, rand, getUnixTimeInMs, registerProgramFactory, request, log, LogLevel } from '../../easegress'
+import { Program, parseDate, rand, getUnixTimeInMs, registerProgramFactory, client, log, LogLevel } from '../../easegress'
 
 class FlashSale extends Program {
 	// startTime is the start time of the flash sale, unix timestamp in millisecond
@@ -55,6 +55,7 @@ class FlashSale extends Program {
 
 	run(): i32 {
 		log(LogLevel.Info, "wasm====" + getUnixTimeInMs().toString())
+		log(LogLevel.Info, "payload ===" + client.getPayloadString())
 		return 2
 	}
 }

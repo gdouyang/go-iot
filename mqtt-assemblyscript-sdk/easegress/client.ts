@@ -18,14 +18,20 @@
 import {pointer, marshalString, unmarshalString, marshalAllHeader, unmarshalAllHeader, marishalData, unmarshalData, unmarshalStringArray} from './marshal'
 
 @external("easegress", "host_req_get_client_id") declare function host_req_get_client_id(): pointer;
-export function getRealIp(): string {
+export function getClientId(): string {
 	let ptr = host_req_get_client_id()
 	return unmarshalString(ptr)
 }
 
 
 @external("easegress", "host_req_get_user_name") declare function host_req_get_user_name(): pointer;
-export function getScheme(): string {
+export function getUserName(): string {
 	let ptr = host_req_get_user_name()
+	return unmarshalString(ptr)
+}
+
+@external("easegress", "host_req_get_payload_string") declare function host_req_get_payload_string(): pointer;
+export function getPayloadString(): string {
+	let ptr = host_req_get_payload_string()
 	return unmarshalString(ptr)
 }
