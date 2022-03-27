@@ -142,6 +142,7 @@ func (wh *WasmHost) Handle(ctx Context) (result string) {
 	var pool *WasmVMPool
 	if p := wh.vmPool.Load(); p == nil {
 		// ctx.AddTag("wasm VM pool is not initialized")
+		logs.Warn("wasm VM pool is not initialized")
 		return resultOutOfVM
 	} else {
 		pool = p.(*WasmVMPool)
@@ -151,6 +152,7 @@ func (wh *WasmHost) Handle(ctx Context) (result string) {
 	vm := pool.Get()
 	if vm == nil {
 		// ctx.AddTag("failed to get a wasm VM")
+		logs.Warn("failed to get a wasm VM")
 		return resultOutOfVM
 	}
 	vm.ctx = ctx

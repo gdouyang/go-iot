@@ -1,0 +1,19 @@
+{
+  "name": "@megaease/eg-as-sdk",
+  "version": "0.3.0",
+  "description": "AssemblyScript SDK for Easegress",
+  "main": "easegress/index.ts",
+  "scripts": {
+    "test": "node tests",
+    "asbuild:flashsale": "asc examples/flashsale/index.ts --target release --use abort=",
+    "asbuild": "npm run asbuild:flashsale"
+  },
+  "author": "megaease",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@assemblyscript/loader": "^0.19.7"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.19.7"
+  }
+}

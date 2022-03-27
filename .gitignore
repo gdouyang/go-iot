@@ -1,3 +1,4 @@
 *.exe
 db/
 files/
+__debug_bin

@@ -19,6 +19,7 @@ package mqttproxy
 
 import (
 	"errors"
+	"go-iot/provider/servers/mqtt/wasmhost"
 	"net"
 	"reflect"
 	"sync"
@@ -270,6 +271,10 @@ func processPublish(c *Client, packet packets.ControlPacket) {
 	switch publish.Qos {
 	case QoS0:
 		// do nothing
+		c.broker.wh.Handle(&wasmhost.MqttContext{
+			Ctx:    c,
+			Packet: publish,
+		})
 	case QoS1:
 		puback := packets.NewControlPacket(packets.Puback).(*packets.PubackPacket)
 		puback.MessageID = publish.MessageID
