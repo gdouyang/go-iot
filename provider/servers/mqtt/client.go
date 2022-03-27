@@ -271,10 +271,6 @@ func processPublish(c *Client, packet packets.ControlPacket) {
 	switch publish.Qos {
 	case QoS0:
 		// do nothing
-		c.broker.wh.Handle(&wasmhost.MqttContext{
-			Ctx:    c,
-			Packet: publish,
-		})
 	case QoS1:
 		puback := packets.NewControlPacket(packets.Puback).(*packets.PubackPacket)
 		puback.MessageID = publish.MessageID
@@ -282,6 +278,11 @@ func processPublish(c *Client, packet packets.ControlPacket) {
 	case QoS2:
 		// not support yet
 	}
+	// 调用wasm host处理
+	c.broker.wh.Handle(&wasmhost.MqttContext{
+		Ctx:    c,
+		Packet: publish,
+	})
 }
 
 func processPuback(c *Client, packet packets.ControlPacket) {
