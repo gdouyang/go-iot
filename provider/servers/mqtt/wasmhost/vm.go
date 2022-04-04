@@ -141,6 +141,7 @@ type WasmVMPool struct {
 	engine *wasmtime.Engine
 	module *wasmtime.Module
 	params []string
+	total  int32
 }
 
 // NewWasmVMPool creates a wasm VM pool according the spec of 'host' which execute 'code'
@@ -160,6 +161,7 @@ func NewWasmVMPool(host *WasmHost, code []byte) (*WasmVMPool, error) {
 	}
 
 	p.chVM = make(chan *WasmVM, host.spec.MaxConcurrency)
+	p.total = host.spec.MaxConcurrency
 	for i := int32(0); i < host.spec.MaxConcurrency; i++ {
 		vm, e := newWasmVM(p.host, p.engine, p.module, p.params)
 		if e != nil {
@@ -184,6 +186,9 @@ func (p *WasmVMPool) Get() *WasmVM {
 		p.chVM <- nil
 		logs.Error("failed to create wasm VM: %v", e)
 		return nil
+	} else {
+		p.total++
+		logs.Info("create new vm")
 	}
 
 	return vm

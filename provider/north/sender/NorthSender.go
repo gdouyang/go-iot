@@ -115,9 +115,9 @@ func (this NorthSender) GetOnlineStatus(iotReq models.IotRequest, deviceId strin
 	}()
 	if this.CheckAgent && len(device.Agent) > 0 {
 		resp := this.SendAgent(device, OPER_GET_ONLINESTATUS, iotReq)
-		if len(resp.Data) > 0 {
-			status = string(resp.Data)
-		}
+		// if len(resp.Data) > 0 {
+		// 	status = string(resp.Data)
+		// }
 		return resp
 	}
 	p, err := operates.GetProvider(device.Provider)

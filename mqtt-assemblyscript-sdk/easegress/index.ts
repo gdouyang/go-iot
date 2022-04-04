@@ -77,6 +77,12 @@ function rand(): f64 {
 	return host_rand()
 }
 
+@external("easegress", "host_save_data") declare function host_save_data(str: pointer): void;
+function saveData(str: string): void {
+  let ptr = marshalString(str)
+	return host_save_data(ptr)
+}
+
 export {
 	parseDate,
 

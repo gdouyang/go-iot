@@ -226,7 +226,6 @@ func (b *Broker) handleConn(conn net.Conn) {
 		return
 	}
 
-	client.session.updateEGName(b.egName, b.name)
 	go client.writeLoop()
 	client.readLoop()
 }
@@ -275,6 +274,16 @@ func (b *Broker) currentClients() map[string]struct{} {
 	}
 	b.Unlock()
 	return ans
+}
+
+func (b *Broker) TotalConnection() int32 {
+	l := len(b.clients)
+	return int32(l)
+}
+
+func (b *Broker) TotalWasmVM() int32 {
+	l := b.wh.TotalNumbersOfVM()
+	return l
 }
 
 func (b *Broker) setClose() {

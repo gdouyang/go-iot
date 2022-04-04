@@ -229,3 +229,14 @@ func (wh *WasmHost) Status() interface{} {
 func (wh *WasmHost) Close() {
 	close(wh.chStop)
 }
+
+// VM实例总数
+func (wh *WasmHost) TotalNumbersOfVM() int32 {
+	var pool *WasmVMPool
+	if p := wh.vmPool.Load(); p == nil {
+		return int32(0)
+	} else {
+		pool = p.(*WasmVMPool)
+	}
+	return pool.total
+}

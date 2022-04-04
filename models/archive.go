@@ -34,9 +34,9 @@ func (this *PageQuery) PageOffset() int {
 }
 
 type JsonResp struct {
-	Msg     string          `json:"msg"`
-	Success bool            `json:"success"`
-	Data    json.RawMessage `json:"data"`
+	Msg     string      `json:"msg"`
+	Success bool        `json:"success"`
+	Data    interface{} `json:"data"`
 }
 
 // 开关状态

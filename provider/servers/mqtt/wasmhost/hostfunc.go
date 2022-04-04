@@ -173,6 +173,10 @@ func (vm *WasmVM) hostRand() float64 {
 	return rand.Float64()
 }
 
+func (p *WasmVM) saveData(str string) {
+
+}
+
 // importHostFuncs imports host functions into wasm so that user-developed wasm
 // code can call these functions to interoperate with host.
 func (vm *WasmVM) importHostFuncs(linker *wasmtime.Linker) {
@@ -191,4 +195,5 @@ func (vm *WasmVM) importHostFuncs(linker *wasmtime.Linker) {
 	defineFunc("host_log", vm.hostLog)
 	defineFunc("host_get_unix_time_in_ms", vm.hostGetUnixTimeInMs)
 	defineFunc("host_rand", vm.hostRand)
+	defineFunc("host_save_data", vm.saveData)
 }
