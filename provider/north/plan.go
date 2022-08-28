@@ -23,28 +23,28 @@ type PlanController struct {
 }
 
 // 查询列表
-func (this *PlanController) List() {
+func (ctl *PlanController) List() {
 	var ob models.PageQuery
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
 
 	rest, err := plan.ListPlan(&ob)
 	if err != nil {
-		this.Data["json"] = models.JsonResp{Success: false, Msg: ""}
+		ctl.Data["json"] = models.JsonResp{Success: false, Msg: ""}
 	} else {
-		this.Data["json"] = rest
+		ctl.Data["json"] = rest
 	}
-	this.ServeJSON()
+	ctl.ServeJSON()
 }
 
 // 添加
-func (this *PlanController) Add() {
+func (ctl *PlanController) Add() {
 	var ob plan.Plan
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
 	var resp models.JsonResp
 	resp.Success = true
 	defer func() {
-		this.Data["json"] = &resp
-		this.ServeJSON()
+		ctl.Data["json"] = &resp
+		ctl.ServeJSON()
 	}()
 	err := plan.AddPlan(&ob)
 	resp.Msg = "添加成功!"
@@ -54,8 +54,8 @@ func (this *PlanController) Add() {
 }
 
 // 删除
-func (this *PlanController) Delete() {
-	data := this.Ctx.Input.RequestBody
+func (ctl *PlanController) Delete() {
+	data := ctl.Ctx.Input.RequestBody
 	var ob plan.Plan
 	json.Unmarshal(data, &ob)
 
@@ -67,18 +67,18 @@ func (this *PlanController) Delete() {
 	if err != nil {
 		resp.Msg = err.Error()
 	}
-	this.Data["json"] = resp
-	this.ServeJSON()
+	ctl.Data["json"] = resp
+	ctl.ServeJSON()
 }
 
-func (this *PlanController) Update() {
+func (ctl *PlanController) Update() {
 	var ob plan.Plan
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
 	var resp models.JsonResp
 	resp.Success = true
 	defer func() {
-		this.Data["json"] = &resp
-		this.ServeJSON()
+		ctl.Data["json"] = &resp
+		ctl.ServeJSON()
 	}()
 	err := plan.UpdatePlan(&ob)
 	resp.Msg = "修改成功!"

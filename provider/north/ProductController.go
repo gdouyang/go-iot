@@ -21,40 +21,40 @@ type ProductController struct {
 }
 
 // 查询设备列表
-func (this *ProductController) List() {
+func (ctl *ProductController) List() {
 	var ob models.PageQuery
-	json.Unmarshal(this.Ctx.Input.RequestBody, &ob)
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
 
 	res, err := device.ListProduct(&ob)
 	if err != nil {
-		this.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+		ctl.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
 
-		this.Data["json"] = &res
+		ctl.Data["json"] = &res
 	}
-	this.ServeJSON()
+	ctl.ServeJSON()
 }
 
 // 添加设备
-func (this *ProductController) Add() {
-	data := this.Ctx.Input.RequestBody
-	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
-	this.Data["json"] = ledSender.Add(request)
-	this.ServeJSON()
+func (ctl *ProductController) Add() {
+	data := ctl.Ctx.Input.RequestBody
+	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Url: ctl.Ctx.Input.URL(), Data: data}
+	ctl.Data["json"] = ledSender.Add(request)
+	ctl.ServeJSON()
 }
 
 // 更新设备信息
-func (this *ProductController) Update() {
-	data := this.Ctx.Input.RequestBody
-	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
-	this.Data["json"] = ledSender.Update(request)
-	this.ServeJSON()
+func (ctl *ProductController) Update() {
+	data := ctl.Ctx.Input.RequestBody
+	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Url: ctl.Ctx.Input.URL(), Data: data}
+	ctl.Data["json"] = ledSender.Update(request)
+	ctl.ServeJSON()
 }
 
 // 删除设备
-func (this *ProductController) Delete() {
-	data := this.Ctx.Input.RequestBody
-	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL(), Data: data}
-	this.Data["json"] = ledSender.Delete(request)
-	this.ServeJSON()
+func (ctl *ProductController) Delete() {
+	data := ctl.Ctx.Input.RequestBody
+	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Url: ctl.Ctx.Input.URL(), Data: data}
+	ctl.Data["json"] = ledSender.Delete(request)
+	ctl.ServeJSON()
 }

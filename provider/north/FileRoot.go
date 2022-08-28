@@ -16,14 +16,14 @@ type FileRootController struct {
 }
 
 // 下载素材
-func (this *FileRootController) File() {
-	name := this.Ctx.Input.Param(":name")
+func (ctl *FileRootController) File() {
+	name := ctl.Ctx.Input.Param(":name")
 
 	path := "./files/" + name
 	exists, _ := util.FileExists(path)
 	if !exists {
-		http.Error(this.Ctx.ResponseWriter, "file not found", 404)
+		http.Error(ctl.Ctx.ResponseWriter, "file not found", 404)
 	} else {
-		this.Ctx.Output.Download(path)
+		ctl.Ctx.Output.Download(path)
 	}
 }

@@ -9,11 +9,17 @@ const (
 	OFFLINE = "offLine" // 离线
 	OPEN    = "open"    // 开
 	CLOSE   = "close"   // 关
-	// MQTT
+	// MQTT服务端
 	MQTT_BROKER = "MQTT_BROKER"
+	// TCP服务端
+	TCP_SERVER = "TCP_SERVER"
+	// HTTP服务端
+	HTTP_SERVER = "HTTP_SERVER"
+	// WebSocket服务端
+	WEBSOCKET_SERVER = "WEBSOCKET_SERVER"
 )
 
-//分页结果
+// 分页结果
 type PageResult struct {
 	PageSize int         `json:"pageSize"`
 	PageNum  int         `json:"pageNum"`
@@ -21,7 +27,7 @@ type PageResult struct {
 	List     interface{} `json:"list"`
 }
 
-//分页查询
+// 分页查询
 type PageQuery struct {
 	PageSize  int             `json:"pageSize"`
 	PageNum   int             `json:"pageNum"`

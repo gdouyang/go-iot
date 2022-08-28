@@ -24,28 +24,28 @@ type Control struct {
 }
 
 // 设备开关
-func (this *Control) Open() {
-	deviceId := this.Ctx.Input.Param(":id")
-	data := this.Ctx.Input.RequestBody
+func (ctl *Control) Open() {
+	deviceId := ctl.Ctx.Input.Param(":id")
+	data := ctl.Ctx.Input.RequestBody
 
-	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Data: data, Url: this.Ctx.Input.URL()}
-	this.Data["json"] = northSender.Open(request, deviceId)
-	this.ServeJSON()
+	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Data: data, Url: ctl.Ctx.Input.URL()}
+	ctl.Data["json"] = northSender.Open(request, deviceId)
+	ctl.ServeJSON()
 }
 
 // 设备调光
-func (this *Control) Light() {
-	deviceId := this.Ctx.Input.Param(":id")
-	data := this.Ctx.Input.RequestBody
-	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Data: data, Url: this.Ctx.Input.URL()}
-	this.Data["json"] = northSender.Light(request, deviceId)
-	this.ServeJSON()
+func (ctl *Control) Light() {
+	deviceId := ctl.Ctx.Input.Param(":id")
+	data := ctl.Ctx.Input.RequestBody
+	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Data: data, Url: ctl.Ctx.Input.URL()}
+	ctl.Data["json"] = northSender.Light(request, deviceId)
+	ctl.ServeJSON()
 }
 
 // 状态查询
-func (this *Control) Status() {
-	deviceId := this.Ctx.Input.Param(":id")
-	request := models.IotRequest{Ip: this.Ctx.Input.IP(), Url: this.Ctx.Input.URL()}
-	this.Data["json"] = northSender.GetOnlineStatus(request, deviceId)
-	this.ServeJSON()
+func (ctl *Control) Status() {
+	deviceId := ctl.Ctx.Input.Param(":id")
+	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Url: ctl.Ctx.Input.URL()}
+	ctl.Data["json"] = northSender.GetOnlineStatus(request, deviceId)
+	ctl.ServeJSON()
 }

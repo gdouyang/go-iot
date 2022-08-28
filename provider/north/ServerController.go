@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"go-iot/models"
 	"go-iot/models/network"
+	httpserver "go-iot/provider/servers/http"
 	mqttproxy "go-iot/provider/servers/mqtt"
+	tcpserver "go-iot/provider/servers/tcp"
+	websocketserver "go-iot/provider/servers/websocket"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/beego/beego/v2/server/web"
@@ -64,8 +67,6 @@ func (c *ServerController) Delete() {
 	c.ServeJSON()
 }
 
-var m = map[string]*mqttproxy.Broker{}
-
 func (c *ServerController) Start() {
 	id := c.Ctx.Input.Param(":id")
 	nw, err := network.GetNetwork(id)
@@ -75,18 +76,23 @@ func (c *ServerController) Start() {
 		resp.Msg = err.Error()
 		resp.Success = false
 	} else {
-		if nw.Type == models.MQTT_BROKER {
-			spec := &network.MQTTProxySpec{}
-			spec.FromJson(nw.Configuration)
-			broker := mqttproxy.NewBroker(spec, nw.Script)
-			if broker == nil {
-				logs.Error("broker %v start failed", spec.Name)
+		switch nw.Type {
+		case models.MQTT_BROKER:
+			success := mqttproxy.ServerStart(nw.Configuration, nw.Script)
+			if success {
+				resp.Msg = "broker start success"
+			} else {
 				resp.Msg = "broker start failed"
 				resp.Success = false
-			} else {
-				resp.Msg = "broker start success"
-				m[spec.Name] = broker
 			}
+		case models.TCP_SERVER:
+			tcpserver.ServerSocket()
+		case models.HTTP_SERVER:
+			httpserver.ServerStart()
+		case models.WEBSOCKET_SERVER:
+			websocketserver.ServerStart()
+		default:
+			logs.Error("unknow type %s", nw.Type)
 		}
 	}
 	c.Data["json"] = resp
@@ -101,15 +107,18 @@ func (c *ServerController) Meters() {
 		resp.Msg = err.Error()
 		resp.Success = false
 	} else {
-		spec := &network.MQTTProxySpec{}
-		spec.FromJson(nw.Configuration)
-		broker := m[spec.Name]
-		resp.Success = true
-		if broker != nil {
-			var rest = map[string]int32{}
-			rest["TotalConnection"] = broker.TotalConnection()
-			rest["TotalWasmVM"] = broker.TotalWasmVM()
-			resp.Data = rest
+		switch nw.Type {
+		case models.MQTT_BROKER:
+			rest := mqttproxy.Meters(nw.Configuration)
+			resp.Success = true
+			if rest != nil {
+				resp.Data = rest
+			}
+		case models.TCP_SERVER:
+		case models.HTTP_SERVER:
+		case models.WEBSOCKET_SERVER:
+		default:
+			logs.Error("unknow type %s", nw.Type)
 		}
 	}
 
