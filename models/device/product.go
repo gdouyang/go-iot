@@ -60,7 +60,7 @@ func AddProduct(ob *models.Product) error {
 		return err
 	}
 	if len(rs.Id) > 0 {
-		return errors.New("设备已存在!")
+		return errors.New("设备已存在")
 	}
 	//插入数据
 	o := orm.NewOrm()

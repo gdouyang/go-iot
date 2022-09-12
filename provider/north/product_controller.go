@@ -3,7 +3,7 @@ package north
 import (
 	"encoding/json"
 	"go-iot/models"
-	device "go-iot/models/device"
+	product "go-iot/models/device"
 
 	"github.com/beego/beego/v2/server/web"
 )
@@ -20,12 +20,12 @@ type ProductController struct {
 	web.Controller
 }
 
-// 查询设备列表
+// 查询型号列表
 func (ctl *ProductController) List() {
 	var ob models.PageQuery
 	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
 
-	res, err := device.ListProduct(&ob)
+	res, err := product.ListProduct(&ob)
 	if err != nil {
 		ctl.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
@@ -35,26 +35,26 @@ func (ctl *ProductController) List() {
 	ctl.ServeJSON()
 }
 
-// 添加设备
+// 添加型号
 func (ctl *ProductController) Add() {
-	data := ctl.Ctx.Input.RequestBody
-	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Url: ctl.Ctx.Input.URL(), Data: data}
-	ctl.Data["json"] = ledSender.Add(request)
+	var ob models.Product
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.Data["json"] = product.AddProduct(&ob)
 	ctl.ServeJSON()
 }
 
-// 更新设备信息
+// 更新型号信息
 func (ctl *ProductController) Update() {
-	data := ctl.Ctx.Input.RequestBody
-	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Url: ctl.Ctx.Input.URL(), Data: data}
-	ctl.Data["json"] = ledSender.Update(request)
+	var ob models.Product
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.Data["json"] = product.UpdateProduct(&ob)
 	ctl.ServeJSON()
 }
 
-// 删除设备
+// 删除型号
 func (ctl *ProductController) Delete() {
-	data := ctl.Ctx.Input.RequestBody
-	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Url: ctl.Ctx.Input.URL(), Data: data}
-	ctl.Data["json"] = ledSender.Delete(request)
+	var ob models.Product
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.Data["json"] = product.DeleteProduct(&ob)
 	ctl.ServeJSON()
 }

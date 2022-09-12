@@ -59,7 +59,7 @@ func AddNetWork(ob *models.Network) error {
 		return err
 	}
 	if len(rs.Id) > 0 {
-		return errors.New("配置已存在!")
+		return errors.New("配置已存在")
 	}
 	//插入数据
 	o := orm.NewOrm()

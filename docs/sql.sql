@@ -38,8 +38,13 @@ CREATE TABLE IF NOT EXISTS i_device (
   create_time_ DATETIME NULL COMMENT '创建时间'
 );
 
-CREATE TABLE IF NOT EXISTS i_server_port (
-  id_ bigint(20) PRIMARY KEY COMMENT '主键',
+CREATE TABLE IF NOT EXISTS i_network (
+  id_ bigint PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
+  name_ VARCHAR(64) NULL COMMENT '名称',
   port_ int NULL COMMENT '端口号',
-  product_id_ VARCHAR(32) NULL COMMENT '产品主键'
+  product_id_ VARCHAR(32) NULL COMMENT '产品主键',
+  configuration_ TEXT NULL COMMENT '网络配置',
+  script_ TEXT NULL COMMENT '编解码脚本',
+  create_id_ VARCHAR(32) NULL COMMENT '创建id',
+  create_time_ DATETIME NULL COMMENT '创建时间'
 );

@@ -54,13 +54,13 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	return pr, nil
 }
 
-func AddDevie(ob *models.Device) error {
+func AddDevice(ob *models.Device) error {
 	rs, err := GetDevice(ob.Id)
 	if err != nil {
 		return err
 	}
 	if len(rs.Id) > 0 {
-		return errors.New("设备已存在!")
+		return errors.New("设备已存在")
 	}
 	//插入数据
 	o := orm.NewOrm()

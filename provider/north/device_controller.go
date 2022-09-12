@@ -3,35 +3,32 @@ package north
 import (
 	"encoding/json"
 	"go-iot/models"
-	led "go-iot/models/device"
-	"go-iot/provider/north/sender"
+	device "go-iot/models/device"
 
 	"github.com/beego/beego/v2/server/web"
 )
 
 // 设备管理
 func init() {
-	web.Router("/led/list", &LedController{}, "post:List")
-	web.Router("/north/led/add", &LedController{}, "post:Add")
-	web.Router("/north/led/update", &LedController{}, "post:Update")
-	web.Router("/north/led/delete", &LedController{}, "post:Delete")
+	web.Router("/led/list", &DeviceController{}, "post:List")
+	web.Router("/north/led/add", &DeviceController{}, "post:Add")
+	web.Router("/north/led/update", &DeviceController{}, "post:Update")
+	web.Router("/north/led/delete", &DeviceController{}, "post:Delete")
 
 }
 
-var (
-	ledSender sender.LedSender = sender.LedSender{CheckAgent: true}
-)
+var ()
 
-type LedController struct {
+type DeviceController struct {
 	web.Controller
 }
 
 // 查询设备列表
-func (ctl *LedController) List() {
+func (ctl *DeviceController) List() {
 	var ob models.PageQuery
 	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
 
-	res, err := led.ListDevice(&ob)
+	res, err := device.ListDevice(&ob)
 	if err != nil {
 		ctl.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
@@ -42,25 +39,25 @@ func (ctl *LedController) List() {
 }
 
 // 添加设备
-func (ctl *LedController) Add() {
-	data := ctl.Ctx.Input.RequestBody
-	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Url: ctl.Ctx.Input.URL(), Data: data}
-	ctl.Data["json"] = ledSender.Add(request)
+func (ctl *DeviceController) Add() {
+	var ob models.Device
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.Data["json"] = device.AddDevice(&ob)
 	ctl.ServeJSON()
 }
 
 // 更新设备信息
-func (ctl *LedController) Update() {
-	data := ctl.Ctx.Input.RequestBody
-	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Url: ctl.Ctx.Input.URL(), Data: data}
-	ctl.Data["json"] = ledSender.Update(request)
+func (ctl *DeviceController) Update() {
+	var ob models.Device
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.Data["json"] = device.UpdateDevice(&ob)
 	ctl.ServeJSON()
 }
 
 // 删除设备
-func (ctl *LedController) Delete() {
-	data := ctl.Ctx.Input.RequestBody
-	request := models.IotRequest{Ip: ctl.Ctx.Input.IP(), Url: ctl.Ctx.Input.URL(), Data: data}
-	ctl.Data["json"] = ledSender.Delete(request)
+func (ctl *DeviceController) Delete() {
+	var ob models.Device
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.Data["json"] = device.DeleteDevice(&ob)
 	ctl.ServeJSON()
 }
