@@ -2,7 +2,8 @@ package codec
 
 // 会话信息
 type Session interface {
-	Send()
+	Send(msg interface{}) error
+	DisConnect() error
 }
 
 // 设备信息

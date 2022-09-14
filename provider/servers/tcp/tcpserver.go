@@ -2,16 +2,20 @@ package tcpserver
 
 import (
 	"fmt"
+	"go-iot/provider/codec"
 	"log"
 	"net"
 	"strings"
 )
+
+var m = map[string]codec.Session{}
 
 func connHandler(c net.Conn) {
 	//1.conn是否有效
 	if c == nil {
 		log.Panic("无效的 socket 连接")
 	}
+	m[c.LocalAddr().String()] = NewTcpSession(c)
 
 	//2.新建网络数据流存储结构
 	buf := make([]byte, 4096)
@@ -51,16 +55,16 @@ func connHandler(c net.Conn) {
 }
 
 // 开启serverSocket
-func ServerSocket() {
+func ServerSocket(config string, script string) {
+
+	spec := &TcpServerSpec{}
+	spec.FromJson(config)
 	//1.监听端口
-	server, err := net.Listen("tcp", ":8087")
+	server, err := net.Listen("tcp", spec.Host+":"+fmt.Sprint(spec.Port))
 
 	if err != nil {
 		fmt.Println("开启socket服务失败")
 	}
-
-	fmt.Println("正在开启 Server ...")
-
 	go func() {
 		for {
 			//2.接收来自 client 的连接,会阻塞
