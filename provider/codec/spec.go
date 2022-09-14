@@ -1,5 +1,18 @@
 package codec
 
+type DeviceManager struct {
+	m map[string]*Device
+}
+
+func (dm *DeviceManager) GetDevice(deviceId string) *Device {
+	device := dm.m[deviceId]
+	return device
+}
+
+func (dm *DeviceManager) PutDevice(deviceId string, device *Device) {
+	dm.m[deviceId] = device
+}
+
 // 会话信息
 type Session interface {
 	Send(msg interface{}) error
@@ -9,7 +22,7 @@ type Session interface {
 // 设备信息
 type Device interface {
 	// 获取会话
-	GetSession() (Session, error)
+	GetSession() (*Session, error)
 	GetData() map[string]interface{}
 	GetConfig() map[string]interface{}
 }
@@ -21,6 +34,7 @@ type Product interface {
 
 // 上下文
 type Context interface {
+	GetMessage() interface{}
 	// 获取设备操作
 	GetDevice() error
 	// 获取产品操作
@@ -43,4 +57,12 @@ type Codec interface {
 	OnDeviceUpdate(ctx Context) error
 	//
 	OnStateChecker(ctx Context) error
+}
+
+// productId
+var codecMap = map[string]Codec{}
+
+func GetCodec(productId string) Codec {
+	codec := codecMap[productId]
+	return codec
 }

@@ -9,7 +9,7 @@ import (
 
 func TestOtto(t *testing.T) {
 	vm := otto.New()
-	vm.Run(`function test() {return 1}`)
+	vm.Run(`function test(va) {return 1}`)
 	val, _ := vm.Call(`test`, nil)
 	str, _ := val.ToString()
 	fmt.Println("value = " + str)
