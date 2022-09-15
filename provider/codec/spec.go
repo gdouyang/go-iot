@@ -1,17 +1,9 @@
 package codec
 
-type DeviceManager struct {
-	m map[string]*Device
-}
-
-func (dm *DeviceManager) GetDevice(deviceId string) *Device {
-	device := dm.m[deviceId]
-	return device
-}
-
-func (dm *DeviceManager) PutDevice(deviceId string, device *Device) {
-	dm.m[deviceId] = device
-}
+import (
+	"go-iot/models"
+	"log"
+)
 
 // 会话信息
 type Session interface {
@@ -22,7 +14,7 @@ type Session interface {
 // 设备信息
 type Device interface {
 	// 获取会话
-	GetSession() (*Session, error)
+	GetSession() Session
 	GetData() map[string]interface{}
 	GetConfig() map[string]interface{}
 }
@@ -35,10 +27,11 @@ type Product interface {
 // 上下文
 type Context interface {
 	GetMessage() interface{}
+	GetSession() Session
 	// 获取设备操作
-	GetDevice() error
+	GetDevice() Device
 	// 获取产品操作
-	GetProduct() error
+	GetProduct() Product
 }
 
 // 编解码接口
@@ -49,14 +42,6 @@ type Codec interface {
 	Decode(ctx Context) error
 	// 编码
 	Encode(ctx Context) error
-	// 设备新增
-	OnDeviceCreate(ctx Context) error
-	// 设备删除
-	OnDeviceDelete(ctx Context) error
-	// 设备修改
-	OnDeviceUpdate(ctx Context) error
-	//
-	OnStateChecker(ctx Context) error
 }
 
 // productId
@@ -65,4 +50,18 @@ var codecMap = map[string]Codec{}
 func GetCodec(productId string) Codec {
 	codec := codecMap[productId]
 	return codec
+}
+
+var codecFactory = map[string]func(network models.Network) Codec{}
+
+func regCodecCreator(id string, creator func(network models.Network) Codec) {
+	_, ok := codecFactory[id]
+	if ok {
+		log.Panicln(id + " is exist")
+	}
+	codecFactory[id] = creator
+}
+
+func NewCodec(network models.Network) Codec {
+	return codecFactory[network.CodecId](network)
 }

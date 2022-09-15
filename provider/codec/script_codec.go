@@ -1,17 +1,26 @@
 package codec
 
 import (
+	"go-iot/models"
+
 	"github.com/robertkrimen/otto"
 )
 
-func NewScriptCodec(productId, script string) error {
+func init() {
+	regCodecCreator("script_codec", func(network models.Network) Codec {
+		codec, _ := newScriptCodec(network)
+		return codec
+	})
+}
+
+func newScriptCodec(network models.Network) (Codec, error) {
 	vm := otto.New()
-	_, err := vm.Run(script)
+	_, err := vm.Run(network.Script)
 	sc := &ScriptCodec{
-		script: script,
+		script: network.Script,
 		vm:     vm,
 	}
-	codecMap[productId] = sc
+	codecMap[network.ProductId] = sc
 
 	var val, _ = vm.Get("OnConnect")
 	sc.hasOnConnect = val.IsDefined()
@@ -28,7 +37,7 @@ func NewScriptCodec(productId, script string) error {
 	val, _ = vm.Get("OnStateChecker")
 	sc.hasOnStateChecker = val.IsDefined()
 
-	return err
+	return sc, err
 }
 
 // js脚本编解码
@@ -45,42 +54,42 @@ type ScriptCodec struct {
 }
 
 // 设备连接时
-func (codec *ScriptCodec) OnConnect(ctx *Context) error {
+func (codec *ScriptCodec) OnConnect(ctx Context) error {
 	codec.vm.Call("OnConnect", ctx)
 	return nil
 }
 
 // 设备解码
-func (codec *ScriptCodec) Decode(ctx *Context) error {
+func (codec *ScriptCodec) Decode(ctx Context) error {
 	codec.vm.Call("Decode", ctx)
 	return nil
 }
 
 // 编码
-func (codec *ScriptCodec) Encode(ctx *Context) error {
+func (codec *ScriptCodec) Encode(ctx Context) error {
 	codec.vm.Call("Encode", ctx)
 	return nil
 }
 
 // 设备新增
-func (codec *ScriptCodec) OnDeviceCreate(ctx *Context) error {
+func (codec *ScriptCodec) OnCreate(ctx Context) error {
 	codec.vm.Call("OnDeviceCreate", ctx)
 	return nil
 }
 
 // 设备删除
-func (codec *ScriptCodec) OnDeviceDelete(ctx *Context) error {
+func (codec *ScriptCodec) OnDelete(ctx Context) error {
 	codec.vm.Call("OnDeviceDelete", ctx)
 	return nil
 }
 
 // 设备修改
-func (codec *ScriptCodec) OnDeviceUpdate(ctx *Context) error {
+func (codec *ScriptCodec) OnUpdate(ctx Context) error {
 	codec.vm.Call("OnDeviceUpdate", ctx)
 	return nil
 }
 
-func (codec *ScriptCodec) OnStateChecker(ctx *Context) error {
+func (codec *ScriptCodec) OnStateChecker(ctx Context) error {
 	codec.vm.Call("OnStateChecker", ctx)
 	return nil
 }

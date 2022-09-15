@@ -86,7 +86,7 @@ func (c *ServerController) Start() {
 				resp.Success = false
 			}
 		case models.TCP_SERVER:
-			tcpserver.ServerSocket()
+			tcpserver.ServerSocket(nw)
 		case models.HTTP_SERVER:
 			httpserver.ServerStart()
 		case models.WEBSOCKET_SERVER:
