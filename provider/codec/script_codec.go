@@ -53,7 +53,8 @@ type ScriptCodec struct {
 
 // 设备连接时
 func (codec *ScriptCodec) OnConnect(ctx Context) error {
-	codec.vm.Call("OnConnect", ctx)
+	val, _ := codec.vm.Get("OnConnect")
+	val.Call(val, ctx)
 	return nil
 }
 
@@ -66,29 +67,34 @@ func (codec *ScriptCodec) Decode(ctx Context) error {
 
 // 编码
 func (codec *ScriptCodec) Encode(ctx Context) error {
-	codec.vm.Call("Encode", ctx)
+	val, _ := codec.vm.Get("Encode")
+	val.Call(val, ctx)
 	return nil
 }
 
 // 设备新增
 func (codec *ScriptCodec) OnCreate(ctx Context) error {
-	codec.vm.Call("OnDeviceCreate", ctx)
+	val, _ := codec.vm.Get("OnDeviceCreate")
+	val.Call(val, ctx)
 	return nil
 }
 
 // 设备删除
 func (codec *ScriptCodec) OnDelete(ctx Context) error {
-	codec.vm.Call("OnDeviceDelete", ctx)
+	val, _ := codec.vm.Get("OnDeviceDelete")
+	val.Call(val, ctx)
 	return nil
 }
 
 // 设备修改
 func (codec *ScriptCodec) OnUpdate(ctx Context) error {
-	codec.vm.Call("OnDeviceUpdate", ctx)
+	val, _ := codec.vm.Get("OnDeviceUpdate")
+	val.Call(val, ctx)
 	return nil
 }
 
 func (codec *ScriptCodec) OnStateChecker(ctx Context) error {
-	codec.vm.Call("OnStateChecker", ctx)
+	val, _ := codec.vm.Get("OnStateChecker")
+	val.Call(val, ctx)
 	return nil
 }
