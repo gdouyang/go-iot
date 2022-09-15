@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"go-iot/models"
 	"go-iot/models/network"
+	"go-iot/provider/codec"
 	httpserver "go-iot/provider/servers/http"
 	mqttproxy "go-iot/provider/servers/mqtt"
 	tcpserver "go-iot/provider/servers/tcp"
@@ -86,7 +87,16 @@ func (c *ServerController) Start() {
 				resp.Success = false
 			}
 		case models.TCP_SERVER:
-			tcpserver.ServerSocket(nw)
+			config := codec.Network{
+				Name:          nw.Name,
+				Port:          nw.Port,
+				ProductId:     nw.ProductId,
+				Configuration: nw.Configuration,
+				Script:        nw.Script,
+				Type:          nw.Type,
+				CodecId:       nw.CodecId,
+			}
+			tcpserver.ServerSocket(config)
 		case models.HTTP_SERVER:
 			httpserver.ServerStart()
 		case models.WEBSOCKET_SERVER:

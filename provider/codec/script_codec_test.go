@@ -2,7 +2,6 @@ package codec
 
 import (
 	"fmt"
-	"go-iot/models"
 	"testing"
 
 	"github.com/robertkrimen/otto"
@@ -21,13 +20,14 @@ func TestOtto(t *testing.T) {
 }
 
 func TestDecode(t *testing.T) {
-	var network models.Network = models.Network{
+	var network Network = Network{
 		ProductId: "test",
 		CodecId:   "script_codec",
 		Script: `function Decode(context) {
-  console.log(context)		
+  console.log("122")
+	console.log(JSON.stringify(context))
 }`,
 	}
 	codec := NewCodec(network)
-	codec.Decode(&MockContext{})
+	codec.Decode(&MockContext{DeviceId: "fff"})
 }

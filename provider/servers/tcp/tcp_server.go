@@ -2,7 +2,6 @@ package tcpserver
 
 import (
 	"fmt"
-	"go-iot/models"
 	"go-iot/provider/codec"
 	"log"
 	"net"
@@ -40,7 +39,7 @@ func connHandler(c net.Conn, productId string) {
 }
 
 // 开启serverSocket
-func ServerSocket(network models.Network) {
+func ServerSocket(network codec.Network) {
 
 	spec := &TcpServerSpec{}
 	spec.FromJson(network.Configuration)

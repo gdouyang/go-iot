@@ -1,19 +1,17 @@
 package codec
 
 import (
-	"go-iot/models"
-
 	"github.com/robertkrimen/otto"
 )
 
 func init() {
-	regCodecCreator("script_codec", func(network models.Network) Codec {
+	regCodecCreator("script_codec", func(network Network) Codec {
 		codec, _ := newScriptCodec(network)
 		return codec
 	})
 }
 
-func newScriptCodec(network models.Network) (Codec, error) {
+func newScriptCodec(network Network) (Codec, error) {
 	vm := otto.New()
 	_, err := vm.Run(network.Script)
 	sc := &ScriptCodec{
@@ -61,7 +59,8 @@ func (codec *ScriptCodec) OnConnect(ctx Context) error {
 
 // 设备解码
 func (codec *ScriptCodec) Decode(ctx Context) error {
-	codec.vm.Call("Decode", ctx)
+	val, _ := codec.vm.Get("Decode")
+	val.Call(val, ctx)
 	return nil
 }
 

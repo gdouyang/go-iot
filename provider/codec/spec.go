@@ -1,7 +1,6 @@
 package codec
 
 import (
-	"go-iot/models"
 	"log"
 )
 
@@ -44,6 +43,17 @@ type Codec interface {
 	Encode(ctx Context) error
 }
 
+// 网络配置
+type Network struct {
+	Name          string `json:"name"`
+	Port          uint16 `json:"port"`
+	ProductId     string `json:"productId"`
+	Configuration string `json:"configuration"`
+	Script        string `json:"script"`
+	Type          string `json:"type"`
+	CodecId       string `json:"codecId"`
+}
+
 type FuncInvokeContext struct {
 	message   interface{}
 	session   Session
@@ -76,9 +86,9 @@ func GetCodec(productId string) Codec {
 	return codec
 }
 
-var codecFactory = map[string]func(network models.Network) Codec{}
+var codecFactory = map[string]func(network Network) Codec{}
 
-func regCodecCreator(id string, creator func(network models.Network) Codec) {
+func regCodecCreator(id string, creator func(network Network) Codec) {
 	_, ok := codecFactory[id]
 	if ok {
 		log.Panicln(id + " is exist")
@@ -86,6 +96,6 @@ func regCodecCreator(id string, creator func(network models.Network) Codec) {
 	codecFactory[id] = creator
 }
 
-func NewCodec(network models.Network) Codec {
+func NewCodec(network Network) Codec {
 	return codecFactory[network.CodecId](network)
 }

@@ -1,8 +1,8 @@
 package codec
 
 type MockContext struct {
-	deviceId  string
-	productId string
+	DeviceId  string `json:"deviceId"`
+	ProductId string `json:"productId"`
 	Data      []byte
 	session   Session
 }
@@ -13,12 +13,12 @@ func (ctx *MockContext) GetMessage() interface{} {
 
 // 获取设备操作
 func (ctx *MockContext) GetDevice() Device {
-	return GetDeviceManager().GetDevice(ctx.deviceId)
+	return GetDeviceManager().GetDevice(ctx.DeviceId)
 }
 
 // 获取产品操作
 func (ctx *MockContext) GetProduct() Product {
-	return GetProductManager().GetProduct(ctx.productId)
+	return GetProductManager().GetProduct(ctx.ProductId)
 }
 
 func (ctx *MockContext) GetSession() Session {
