@@ -44,6 +44,30 @@ type Codec interface {
 	Encode(ctx Context) error
 }
 
+type FuncInvokeContext struct {
+	message   interface{}
+	session   Session
+	deviceId  string
+	productId string
+}
+
+func (ctx *FuncInvokeContext) GetMessage() interface{} {
+	return ctx.message
+}
+func (ctx *FuncInvokeContext) GetSession() Session {
+	return ctx.session
+}
+
+// 获取设备操作
+func (ctx *FuncInvokeContext) GetDevice() Device {
+	return GetDeviceManager().GetDevice(ctx.deviceId)
+}
+
+// 获取产品操作
+func (ctx *FuncInvokeContext) GetProduct() Product {
+	return GetProductManager().GetProduct(ctx.productId)
+}
+
 // productId
 var codecMap = map[string]Codec{}
 

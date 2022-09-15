@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"go-iot/models"
 	device "go-iot/models/device"
+	"go-iot/provider/codec"
+	"go-iot/provider/codec/msg"
 
 	"github.com/beego/beego/v2/server/web"
 )
@@ -14,10 +16,8 @@ func init() {
 	web.Router("/north/led/add", &DeviceController{}, "post:Add")
 	web.Router("/north/led/update", &DeviceController{}, "post:Update")
 	web.Router("/north/led/delete", &DeviceController{}, "post:Delete")
-
+	web.Router("/north/led/cmd-invoke", &DeviceController{}, "post:CmdInvoke")
 }
-
-var ()
 
 type DeviceController struct {
 	web.Controller
@@ -59,5 +59,18 @@ func (ctl *DeviceController) Delete() {
 	var ob models.Device
 	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
 	ctl.Data["json"] = device.DeleteDevice(&ob)
+	ctl.ServeJSON()
+}
+
+// 命令下发
+func (ctl *DeviceController) CmdInvoke() {
+	var ob msg.FuncInvoke
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	device, err := device.GetDevice(ob.DeviceId)
+	if err != nil {
+		ctl.Data["json"] = err
+	}
+	codec.DoFuncInvoke(device.ProductId, ob)
+	ctl.Data["json"] = ""
 	ctl.ServeJSON()
 }

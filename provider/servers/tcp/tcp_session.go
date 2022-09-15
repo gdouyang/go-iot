@@ -11,7 +11,12 @@ func NewTcpSession(conn net.Conn) codec.Session {
 }
 
 type tcpSession struct {
-	conn net.Conn
+	conn     net.Conn
+	deviceId string
+}
+
+func (s *tcpSession) SetDeviceId(deviceId string) {
+	codec.GetSessionManager().PutSession(deviceId, s)
 }
 
 func (s *tcpSession) Send(msg interface{}) error {

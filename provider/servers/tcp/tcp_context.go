@@ -6,6 +6,7 @@ type tcpContext struct {
 	deviceId  string
 	productId string
 	Data      []byte
+	session   codec.Session
 }
 
 func (ctx *tcpContext) GetMessage() interface{} {
@@ -23,5 +24,5 @@ func (ctx *tcpContext) GetProduct() codec.Product {
 }
 
 func (ctx *tcpContext) GetSession() codec.Session {
-	return codec.GetSessionManager().GetSession(ctx.deviceId)
+	return ctx.session
 }

@@ -8,21 +8,21 @@ import (
 	"net"
 )
 
-var m = map[string]codec.Session{}
-
 func connHandler(c net.Conn, productId string) {
 	//1.conn是否有效
 	if c == nil {
 		log.Panic("无效的 socket 连接")
 	}
-	m[c.LocalAddr().String()] = NewTcpSession(c)
+	session := NewTcpSession(c)
 
 	sc := codec.GetCodec(productId)
 
-	sc.OnConnect(&tcpContext{productId: productId})
+	context := &tcpContext{productId: productId, session: session}
+
+	sc.OnConnect(context)
 
 	//2.新建网络数据流存储结构
-	buf := make([]byte, 4096)
+	buf := make([]byte, 512)
 	//3.循环读取网络数据流
 	for {
 		//3.1 网络数据流读入 buffer
@@ -34,7 +34,8 @@ func connHandler(c net.Conn, productId string) {
 		}
 
 		data := buf[0:cnt]
-		sc.Decode(&tcpContext{Data: data, productId: productId})
+		context.Data = data
+		sc.Decode(context)
 	}
 }
 
