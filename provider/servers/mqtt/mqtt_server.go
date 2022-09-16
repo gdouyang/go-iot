@@ -1,15 +1,13 @@
 package mqttproxy
 
 import (
-	"go-iot/models/network"
-
 	"github.com/beego/beego/v2/core/logs"
 )
 
 var m = map[string]*Broker{}
 
 func ServerStart(config string, script string) bool {
-	spec := &network.MQTTProxySpec{}
+	spec := &MQTTProxySpec{}
 	spec.FromJson(config)
 	broker := NewBroker(spec, script)
 	if broker == nil {
@@ -22,7 +20,7 @@ func ServerStart(config string, script string) bool {
 }
 
 func Meters(config string) map[string]int32 {
-	spec := &network.MQTTProxySpec{}
+	spec := &MQTTProxySpec{}
 	spec.FromJson(config)
 	broker := m[spec.Name]
 	if broker != nil {

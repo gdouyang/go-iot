@@ -18,7 +18,10 @@
 package mqttproxy
 
 import (
+	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"go-iot/provider/servers"
 )
 
 const (
@@ -48,6 +51,39 @@ const (
 	// Unsubscribe is unsubscribe type of MQTT packet
 	Unsubscribe PacketType = "Unsubscribe"
 )
+
+type (
+	// Spec describes the MQTTProxy.
+	MQTTProxySpec struct {
+		EGName               string                `json:"egName"`
+		Name                 string                `json:"name"`
+		Port                 uint16                `json:"port"`
+		UseTLS               bool                  `json:"useTLS"`
+		Certificate          []servers.Certificate `json:"certificate"`
+		MaxAllowedConnection int                   `json:"maxAllowedConnection"`
+	}
+)
+
+func (spec *MQTTProxySpec) FromJson(str string) {
+	json.Unmarshal([]byte(str), spec)
+}
+
+func (spec *MQTTProxySpec) TlsConfig() (*tls.Config, error) {
+	var certificates []tls.Certificate
+
+	for _, c := range spec.Certificate {
+		cert, err := tls.X509KeyPair([]byte(c.Cert), []byte(c.Key))
+		if err != nil {
+			return nil, fmt.Errorf("generate x509 key pair for %s failed: %s ", c.Name, err)
+		}
+		certificates = append(certificates, cert)
+	}
+	if len(certificates) == 0 {
+		return nil, fmt.Errorf("none valid certs and secret")
+	}
+
+	return &tls.Config{Certificates: certificates}, nil
+}
 
 var pipelinePacketTypes = map[PacketType]struct{}{
 	Connect:     {},

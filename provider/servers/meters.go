@@ -1,4 +1,4 @@
-package meters;
+package servers
 
 type ServerMeter interface {
 	// 总连接数

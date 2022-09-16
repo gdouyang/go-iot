@@ -20,7 +20,6 @@ package mqttproxy
 import (
 	"crypto/tls"
 	"fmt"
-	"go-iot/models/network"
 	"go-iot/provider/servers/mqtt/wasmhost"
 	"net"
 	"sync"
@@ -36,7 +35,7 @@ type (
 		sync.RWMutex
 		egName string
 		name   string
-		spec   *network.MQTTProxySpec
+		spec   *MQTTProxySpec
 
 		listener net.Listener
 		clients  map[string]*Client
@@ -52,7 +51,7 @@ type (
 	}
 )
 
-func NewBroker(spec *network.MQTTProxySpec, wasmCode string) *Broker {
+func NewBroker(spec *MQTTProxySpec, wasmCode string) *Broker {
 	broker := &Broker{
 		egName:  spec.EGName,
 		name:    spec.Name,

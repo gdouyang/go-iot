@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"go-iot/models/network"
+	"go-iot/provider/servers"
 )
 
 type (
@@ -14,7 +14,7 @@ type (
 		Host                 string                `json:"host"`
 		Port                 uint16                `json:"port"`
 		UseTLS               bool                  `json:"useTLS"`
-		Certificate          []network.Certificate `json:"certificate"`
+		Certificate          []servers.Certificate `json:"certificate"`
 		MaxAllowedConnection int                   `json:"maxAllowedConnection"`
 	}
 )
