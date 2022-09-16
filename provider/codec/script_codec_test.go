@@ -23,11 +23,38 @@ func TestDecode(t *testing.T) {
 	var network Network = Network{
 		ProductId: "test",
 		CodecId:   "script_codec",
-		Script: `function Decode(context) {
+		Script: `
+function OnConnect(context) {
+  console.log(JSON.stringify(context))
+}
+function Decode(context) {
   console.log("122")
+  console.log(JSON.stringify(context))
+}
+function Encode(context) {
 	console.log(JSON.stringify(context))
-}`,
+}
+function OnDeviceCreate(context) {
+	console.log(JSON.stringify(context))
+}
+function OnDeviceDelete(context) {
+	console.log(JSON.stringify(context))
+}
+function OnDeviceUpdate(context) {
+	console.log(JSON.stringify(context))
+}
+function OnStateChecker(context) {
+	console.log(JSON.stringify(context))
+}
+`,
 	}
 	codec := NewCodec(network)
+	codec.OnConnect(&MockContext{DeviceId: "fff"})
 	codec.Decode(&MockContext{DeviceId: "fff"})
+	codec.Encode(&MockContext{DeviceId: "fff"})
+	switch m := codec.(type) {
+	case DeviceLifecycle:
+		m.OnCreate(&MockContext{DeviceId: "2222"})
+	default:
+	}
 }

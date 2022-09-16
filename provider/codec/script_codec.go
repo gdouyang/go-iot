@@ -21,80 +21,79 @@ func newScriptCodec(network Network) (Codec, error) {
 	codecMap[network.ProductId] = sc
 
 	var val, _ = vm.Get("OnConnect")
-	sc.hasOnConnect = val.IsDefined()
+	sc.onConnect = val
 	val, _ = vm.Get("Decode")
-	sc.hasDecode = val.IsDefined()
+	sc.decode = val
 	val, _ = vm.Get("Encode")
-	sc.hasEncode = val.IsDefined()
+	sc.encode = val
 	val, _ = vm.Get("OnDeviceCreate")
-	sc.hasOnDeviceCreate = val.IsDefined()
+	sc.onDeviceCreate = val
 	val, _ = vm.Get("OnDeviceDelete")
-	sc.hasOnDeviceDelete = val.IsDefined()
+	sc.onDeviceDelete = val
 	val, _ = vm.Get("OnDeviceUpdate")
-	sc.hasOnDeviceUpdate = val.IsDefined()
+	sc.onDeviceUpdate = val
 	val, _ = vm.Get("OnStateChecker")
-	sc.hasOnStateChecker = val.IsDefined()
+	sc.onStateChecker = val
 
 	return sc, err
 }
 
 // js脚本编解码
 type ScriptCodec struct {
-	script            string
-	vm                *otto.Otto
-	hasOnConnect      bool
-	hasDecode         bool
-	hasEncode         bool
-	hasOnDeviceCreate bool
-	hasOnDeviceDelete bool
-	hasOnDeviceUpdate bool
-	hasOnStateChecker bool
+	script         string
+	vm             *otto.Otto
+	onConnect      otto.Value
+	decode         otto.Value
+	encode         otto.Value
+	onDeviceCreate otto.Value
+	onDeviceDelete otto.Value
+	onDeviceUpdate otto.Value
+	onStateChecker otto.Value
 }
 
 // 设备连接时
 func (codec *ScriptCodec) OnConnect(ctx Context) error {
-	val, _ := codec.vm.Get("OnConnect")
-	val.Call(val, ctx)
+	funcInvoke(codec.onConnect, ctx)
 	return nil
 }
 
 // 设备解码
 func (codec *ScriptCodec) Decode(ctx Context) error {
-	val, _ := codec.vm.Get("Decode")
-	val.Call(val, ctx)
+	funcInvoke(codec.decode, ctx)
 	return nil
 }
 
 // 编码
 func (codec *ScriptCodec) Encode(ctx Context) error {
-	val, _ := codec.vm.Get("Encode")
-	val.Call(val, ctx)
+	funcInvoke(codec.encode, ctx)
 	return nil
 }
 
 // 设备新增
 func (codec *ScriptCodec) OnCreate(ctx Context) error {
-	val, _ := codec.vm.Get("OnDeviceCreate")
-	val.Call(val, ctx)
+	funcInvoke(codec.onDeviceCreate, ctx)
 	return nil
 }
 
 // 设备删除
 func (codec *ScriptCodec) OnDelete(ctx Context) error {
-	val, _ := codec.vm.Get("OnDeviceDelete")
-	val.Call(val, ctx)
+	funcInvoke(codec.onDeviceDelete, ctx)
 	return nil
 }
 
 // 设备修改
 func (codec *ScriptCodec) OnUpdate(ctx Context) error {
-	val, _ := codec.vm.Get("OnDeviceUpdate")
-	val.Call(val, ctx)
+	funcInvoke(codec.onDeviceUpdate, ctx)
 	return nil
 }
 
 func (codec *ScriptCodec) OnStateChecker(ctx Context) error {
-	val, _ := codec.vm.Get("OnStateChecker")
-	val.Call(val, ctx)
+	funcInvoke(codec.onStateChecker, ctx)
 	return nil
+}
+
+func funcInvoke(fn otto.Value, param interface{}) {
+	if fn.IsDefined() {
+		fn.Call(fn, param)
+	}
 }
