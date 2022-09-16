@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-func NewTcpSession(conn net.Conn) codec.Session {
+func newTcpSession(conn net.Conn) codec.Session {
 	session := &tcpSession{conn: conn}
 	return session
 }

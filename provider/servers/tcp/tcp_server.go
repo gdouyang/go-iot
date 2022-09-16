@@ -12,7 +12,7 @@ func connHandler(c net.Conn, productId string) {
 	if c == nil {
 		log.Panic("无效的 socket 连接")
 	}
-	session := NewTcpSession(c)
+	session := newTcpSession(c)
 
 	sc := codec.GetCodec(productId)
 

@@ -1,7 +1,8 @@
-package codec
+package codec_test
 
 import (
 	"fmt"
+	"go-iot/provider/codec"
 	"testing"
 
 	"github.com/robertkrimen/otto"
@@ -20,7 +21,7 @@ func TestOtto(t *testing.T) {
 }
 
 func TestDecode(t *testing.T) {
-	var network Network = Network{
+	var network codec.Network = codec.Network{
 		ProductId: "test",
 		CodecId:   "script_codec",
 		Script: `
@@ -48,13 +49,13 @@ function OnStateChecker(context) {
 }
 `,
 	}
-	codec := NewCodec(network)
-	codec.OnConnect(&MockContext{DeviceId: "fff"})
-	codec.Decode(&MockContext{DeviceId: "fff"})
-	codec.Encode(&MockContext{DeviceId: "fff"})
-	switch m := codec.(type) {
-	case DeviceLifecycle:
-		m.OnCreate(&MockContext{DeviceId: "2222"})
+	c := codec.NewCodec(network)
+	c.OnConnect(&codec.MockContext{DeviceId: "fff"})
+	c.Decode(&codec.MockContext{DeviceId: "fff"})
+	c.Encode(&codec.MockContext{DeviceId: "fff"})
+	switch m := c.(type) {
+	case codec.DeviceLifecycle:
+		m.OnCreate(&codec.MockContext{DeviceId: "2222"})
 	default:
 	}
 }
