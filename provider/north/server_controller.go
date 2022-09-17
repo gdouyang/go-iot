@@ -79,7 +79,8 @@ func (c *ServerController) Start() {
 	} else {
 		switch nw.Type {
 		case models.MQTT_BROKER:
-			success := mqttproxy.ServerStart(nw.Configuration, nw.Script)
+			config := convertCodecNetwork(nw)
+			success := mqttproxy.ServerStart(config)
 			if success {
 				resp.Msg = "broker start success"
 			} else {
@@ -87,15 +88,7 @@ func (c *ServerController) Start() {
 				resp.Success = false
 			}
 		case models.TCP_SERVER:
-			config := codec.Network{
-				Name:          nw.Name,
-				Port:          nw.Port,
-				ProductId:     nw.ProductId,
-				Configuration: nw.Configuration,
-				Script:        nw.Script,
-				Type:          nw.Type,
-				CodecId:       nw.CodecId,
-			}
+			config := convertCodecNetwork(nw)
 			tcpserver.ServerSocket(config)
 		case models.HTTP_SERVER:
 			httpserver.ServerStart()
@@ -107,6 +100,19 @@ func (c *ServerController) Start() {
 	}
 	c.Data["json"] = resp
 	c.ServeJSON()
+}
+
+func convertCodecNetwork(nw models.Network) codec.Network {
+	config := codec.Network{
+		Name:          nw.Name,
+		Port:          nw.Port,
+		ProductId:     nw.ProductId,
+		Configuration: nw.Configuration,
+		Script:        nw.Script,
+		Type:          nw.Type,
+		CodecId:       nw.CodecId,
+	}
+	return config
 }
 
 func (c *ServerController) Meters() {

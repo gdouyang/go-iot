@@ -20,7 +20,7 @@ package mqttproxy
 import (
 	"crypto/tls"
 	"fmt"
-	"go-iot/provider/servers/mqtt/wasmhost"
+	"go-iot/provider/codec"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -41,23 +41,22 @@ type (
 		clients  map[string]*Client
 		tlsCfg   *tls.Config
 
-		sessMgr *SessionManager
-		// WashHost
-		wh *wasmhost.WasmHost
-
+		sessMgr   *SessionManager
+		productId string
 		// done is the channel for shutdowning this proxy.
 		done      chan struct{}
 		closeFlag int32
 	}
 )
 
-func NewBroker(spec *MQTTProxySpec, wasmCode string) *Broker {
+func NewBroker(spec *MQTTProxySpec, network codec.Network) *Broker {
 	broker := &Broker{
-		egName:  spec.EGName,
-		name:    spec.Name,
-		spec:    spec,
-		clients: make(map[string]*Client),
-		done:    make(chan struct{}),
+		egName:    spec.EGName,
+		name:      spec.Name,
+		spec:      spec,
+		clients:   make(map[string]*Client),
+		done:      make(chan struct{}),
+		productId: network.ProductId,
 	}
 
 	err := broker.setListener()
@@ -67,11 +66,7 @@ func NewBroker(spec *MQTTProxySpec, wasmCode string) *Broker {
 	}
 
 	broker.sessMgr = newSessionManager(broker)
-	broker.wh = wasmhost.NewWasmHost(&wasmhost.Spec{
-		MaxConcurrency: 10,
-		Code:           wasmCode,
-		Timeout:        "100ms",
-	})
+	codec.NewCodec(network)
 	go broker.run()
 	return broker
 }
@@ -281,8 +276,7 @@ func (b *Broker) TotalConnection() int32 {
 }
 
 func (b *Broker) TotalWasmVM() int32 {
-	l := b.wh.TotalNumbersOfVM()
-	return l
+	return 0
 }
 
 func (b *Broker) setClose() {

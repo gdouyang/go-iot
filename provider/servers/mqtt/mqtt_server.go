@@ -1,15 +1,17 @@
 package mqttproxy
 
 import (
+	"go-iot/provider/codec"
+
 	"github.com/beego/beego/v2/core/logs"
 )
 
 var m = map[string]*Broker{}
 
-func ServerStart(config string, script string) bool {
+func ServerStart(network codec.Network) bool {
 	spec := &MQTTProxySpec{}
-	spec.FromJson(config)
-	broker := NewBroker(spec, script)
+	spec.FromJson(network.Configuration)
+	broker := NewBroker(spec, network)
 	if broker == nil {
 		logs.Error("broker %v start failed", spec.Name)
 		return false

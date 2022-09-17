@@ -19,7 +19,7 @@ package mqttproxy
 
 import (
 	"errors"
-	"go-iot/provider/servers/mqtt/wasmhost"
+	"go-iot/provider/codec"
 	"net"
 	"reflect"
 	"sync"
@@ -279,10 +279,8 @@ func processPublish(c *Client, packet packets.ControlPacket) {
 		// not support yet
 	}
 	// 调用wasm host处理
-	c.broker.wh.Handle(&wasmhost.MqttContext{
-		Ctx:    c,
-		Packet: publish,
-	})
+	sc := codec.GetCodec(c.broker.productId)
+	sc.Decode(&mqttContext{productId: c.broker.productId, Data: publish.Payload})
 }
 
 func processPuback(c *Client, packet packets.ControlPacket) {
