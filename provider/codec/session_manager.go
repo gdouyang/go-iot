@@ -11,7 +11,7 @@ type SessionManager struct {
 }
 
 func (sm *SessionManager) GetSession(deviceId string) Session {
-	s, _ := sm.sessionMap[deviceId]
+	s := sm.sessionMap[deviceId]
 	return s
 }
 

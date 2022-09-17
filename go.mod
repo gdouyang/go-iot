@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/beego/beego/v2 v2.0.2
-	github.com/bytecodealliance/wasmtime-go v0.35.0
+	// github.com/bytecodealliance/wasmtime-go v0.35.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f
