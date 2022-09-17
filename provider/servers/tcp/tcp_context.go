@@ -26,3 +26,7 @@ func (ctx *tcpContext) GetProduct() codec.Product {
 func (ctx *tcpContext) GetSession() codec.Session {
 	return ctx.session
 }
+
+func (ctx *tcpContext) MsgToString() string {
+	return string(ctx.Data)
+}

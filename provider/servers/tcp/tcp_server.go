@@ -29,6 +29,7 @@ func connHandler(c net.Conn, productId string) {
 		//3.2 数据读尽、读取错误 关闭 socket 连接
 		if cnt == 0 || err != nil {
 			c.Close()
+			log.Println("read empty")
 			break
 		}
 

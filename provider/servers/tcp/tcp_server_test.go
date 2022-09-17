@@ -12,18 +12,20 @@ import (
 
 func TestServer(t *testing.T) {
 	var network codec.Network = codec.Network{
-		ProductId: "test",
-		CodecId:   "script_codec",
+		Name:          "test server",
+		ProductId:     "test",
+		CodecId:       "script_codec",
+		Port:          8888,
+		Configuration: `{"host": "localhost", "port": 8888, "useTLS": false}`,
 		Script: `
 function OnConnect(context) {
-  console.log(JSON.stringify(context))
+  console.log("OnConnect: " + JSON.stringify(context))
 }
 function Decode(context) {
-  console.log("122")
-  console.log(JSON.stringify(context))
+  console.log("Decode: " + context.MsgToString())
 }
 function Encode(context) {
-	console.log(JSON.stringify(context))
+	console.log("Encode: " + JSON.stringify(context))
 }
 function OnDeviceCreate(context) {
 	console.log(JSON.stringify(context))
@@ -40,6 +42,7 @@ function OnStateChecker(context) {
 `,
 	}
 	tcpserver.ServerSocket(network)
+	newClient(network)
 	time.Sleep(10 * time.Second)
 }
 
@@ -57,11 +60,10 @@ func newClient(network codec.Network) {
 		}
 	}()
 
-	for {
+	for i := 1; i < 10; i++ {
 		str1 := time.Now().Format(time.RFC1123)
 		str := fmt.Sprintf("aasss %s \n", str1)
 		conn.Write([]byte(str))
-		// fmt.Println("send ")
 
 		time.Sleep(1 * time.Second)
 	}

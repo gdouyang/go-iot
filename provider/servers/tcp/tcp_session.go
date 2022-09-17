@@ -16,6 +16,7 @@ type tcpSession struct {
 }
 
 func (s *tcpSession) SetDeviceId(deviceId string) {
+	s.deviceId = deviceId
 	codec.GetSessionManager().PutSession(deviceId, s)
 }
 
