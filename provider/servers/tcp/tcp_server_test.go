@@ -44,21 +44,27 @@ var network codec.Network = codec.Network{
 
 func TestServerDelimited(t *testing.T) {
 	network := network
-	network.Configuration = `{"host": "localhost", "port": 8888, "useTLS": false, "delimeter": {"type":"Delimited", "delimited":"\n"}}`
+	network.Configuration = `{"host": "localhost",
+	"port": 8888, "useTLS": false,
+	"delimeter": {"type":"Delimited", "delimited":"\n"}}`
 	tcpserver.ServerSocket(network)
 	newClient(network)
 }
 
 func TestServerFixLenght(t *testing.T) {
 	network := network
-	network.Configuration = `{"host": "localhost", "port": 8888, "useTLS": false, "delimeter": {"type":"FixLength", "length":27}}`
+	network.Configuration = `{"host": "localhost",
+	"port": 8888, "useTLS": false,
+	"delimeter": {"type":"FixLength", "length":27}}`
 	tcpserver.ServerSocket(network)
 	newClient(network)
 }
 
 func TestServerSplitFunc(t *testing.T) {
 	network := network
-	network.Configuration = `{"host": "localhost", "port": 8888, "useTLS": false, "delimeter": {"type":"SplitFunc", "splitFunc":"function splitFunc(){}"}}`
+	network.Configuration = `{"host": "localhost",
+	"port": 8888, "useTLS": false,
+	"delimeter": {"type":"SplitFunc", "splitFunc":"function splitFunc(){}"}}`
 	tcpserver.ServerSocket(network)
 	newClient(network)
 }
