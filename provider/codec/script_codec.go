@@ -1,6 +1,8 @@
 package codec
 
 import (
+	"log"
+
 	"github.com/robertkrimen/otto"
 )
 
@@ -94,6 +96,9 @@ func (codec *ScriptCodec) OnStateChecker(ctx Context) error {
 
 func funcInvoke(fn otto.Value, param interface{}) {
 	if fn.IsDefined() {
-		fn.Call(fn, param)
+		_, err := fn.Call(fn, param)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 }

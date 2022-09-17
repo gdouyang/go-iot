@@ -8,6 +8,7 @@ import (
 )
 
 type (
+
 	// Spec describes the TcpServer
 	TcpServerSpec struct {
 		Name                 string                `json:"name"`
@@ -16,6 +17,13 @@ type (
 		UseTLS               bool                  `json:"useTLS"`
 		Certificate          []servers.Certificate `json:"certificate"`
 		MaxAllowedConnection int                   `json:"maxAllowedConnection"`
+		Delimeter            TcpDelimeter          `json:"delimeter"`
+	}
+	TcpDelimeter struct {
+		Type      DelimType `json:"type"`      // Delimited(分隔符) FixLength(固定长度)
+		Delimited string    `json:"delimited"` // 分隔符
+		Length    int32     `json:"length"`    // 长度
+		SplitFunc string    `json:"splitFunc"`
 	}
 )
 

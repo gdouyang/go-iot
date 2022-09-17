@@ -10,14 +10,7 @@ import (
 	"time"
 )
 
-func TestServer(t *testing.T) {
-	var network codec.Network = codec.Network{
-		Name:          "test server",
-		ProductId:     "test",
-		CodecId:       "script_codec",
-		Port:          8888,
-		Configuration: `{"host": "localhost", "port": 8888, "useTLS": false}`,
-		Script: `
+const script = `
 function OnConnect(context) {
   console.log("OnConnect: " + JSON.stringify(context))
 }
@@ -39,16 +32,41 @@ function OnDeviceUpdate(context) {
 function OnStateChecker(context) {
 	console.log(JSON.stringify(context))
 }
-`,
-	}
+`
+
+var network codec.Network = codec.Network{
+	Name:      "test server",
+	ProductId: "test",
+	CodecId:   "script_codec",
+	Port:      8888,
+	Script:    script,
+}
+
+func TestServerDelimited(t *testing.T) {
+	network := network
+	network.Configuration = `{"host": "localhost", "port": 8888, "useTLS": false, "delimeter": {"type":"Delimited", "delimited":"\n"}}`
 	tcpserver.ServerSocket(network)
 	newClient(network)
-	time.Sleep(10 * time.Second)
+}
+
+func TestServerFixLenght(t *testing.T) {
+	network := network
+	network.Configuration = `{"host": "localhost", "port": 8888, "useTLS": false, "delimeter": {"type":"FixLength", "length":27}}`
+	tcpserver.ServerSocket(network)
+	newClient(network)
+}
+
+func TestServerSplitFunc(t *testing.T) {
+	network := network
+	network.Configuration = `{"host": "localhost", "port": 8888, "useTLS": false, "delimeter": {"type":"SplitFunc", "splitFunc":"function splitFunc(){}"}}`
+	tcpserver.ServerSocket(network)
+	newClient(network)
 }
 
 func newClient(network codec.Network) {
 	spec := tcpserver.TcpServerSpec{}
 	spec.FromJson(network.Configuration)
+	spec.Port = network.Port
 	conn, err := net.Dial("tcp", spec.Host+":"+fmt.Sprint(spec.Port))
 	if err != nil {
 		fmt.Print(err)
@@ -60,8 +78,8 @@ func newClient(network codec.Network) {
 		}
 	}()
 
-	for i := 1; i < 10; i++ {
-		str1 := time.Now().Format(time.RFC1123)
+	for i := 0; i < 10; i++ {
+		str1 := time.Now().Format("2006-01-02 15:04:05")
 		str := fmt.Sprintf("aasss %s \n", str1)
 		conn.Write([]byte(str))
 
