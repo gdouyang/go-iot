@@ -80,19 +80,29 @@ type DelimeterSplitFunc struct {
 }
 
 func (d *DelimeterSplitFunc) init() {
+	d.data = make(chan []byte, 1)
 	d.scanner = bufio.NewScanner(d.c)
 	d.scanner.Split(delimitedFunc)
+	go func() {
+		for d.scanner.Scan() {
+			bytes := d.scanner.Bytes()
+			d.data <- bytes
+		}
+	}()
 }
 
 func (d *DelimeterSplitFunc) Read() (data []byte, err error) {
-	go func() {
-		for d.scanner.Scan() {
-			d.data <- d.scanner.Bytes()
-		}
-	}()
 	return <-d.data, err
 }
 
 func delimitedFunc(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	return
+	for i := 0; i < len(data); i++ {
+		if data[i] == '\n' {
+			return i+1, data[:i+1], nil
+		}
+	}
+	if !atEOF {
+		return 0, nil, nil
+	}
+	return 0, data, bufio.ErrFinalToken
 }
