@@ -174,7 +174,6 @@ type payloadParser struct {
 	reader        *bufio.Reader
 	delimited     bool // mode of delimited
 	delim         []byte
-	size          int
 	started       bool
 	buff          []byte
 	handler       func([]byte)
@@ -196,7 +195,7 @@ func (p *payloadParser) delimitedMode(delim string) {
 func (p *payloadParser) fixedSizeMode(size int) {
 	p.started = true
 	p.delimited = false
-	p.size = size
+	p.recordSize = size
 }
 
 func (p *payloadParser) handle() {
@@ -254,9 +253,6 @@ func (p *payloadParser) handleParsing() {
 	}
 	p.pos -= p.start
 	p.start = 0
-	// if streamEnded {
-	// 	end()
-	// }
 }
 
 func (p *payloadParser) parseDelimited() int {

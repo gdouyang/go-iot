@@ -86,6 +86,19 @@ func TestServerSplitFunc1(t *testing.T) {
 	newClient(network)
 }
 
+func TestServerSplitFunc2(t *testing.T) {
+	network := network
+	network.Configuration = `{"host": "localhost",
+	"port": 8888, "useTLS": false,
+	"delimeter": {
+		"type":"SplitFunc",
+	  "splitFunc":"function splitFunc(parser) { parser.AddHandler(function(data) { parser.AddHandler(function(data){ parser.AppendResult(data); parser.Complete() });  parser.Fixed(21) }); parser.Fixed(6) }"
+	}
+	}`
+	tcpserver.ServerSocket(network)
+	newClient(network)
+}
+
 func newClient(network codec.Network) {
 	spec := tcpserver.TcpServerSpec{}
 	spec.FromJson(network.Configuration)
