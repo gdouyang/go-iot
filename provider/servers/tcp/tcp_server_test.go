@@ -66,7 +66,7 @@ func TestServerSplitFunc(t *testing.T) {
 	"port": 8888, "useTLS": false,
 	"delimeter": {
 		"type":"SplitFunc",
-	  "splitFunc":"function splitFunc(parser) { parser.AddHandler(function(data) { parser.Complete() }); parser.Delimited(\"\\n\") }"
+	  "splitFunc":"function splitFunc(parser) { parser.Delimited(\"\\n\").AddHandler(function(data) { parser.Complete() }) }"
 	}
 	}`
 	tcpserver.ServerSocket(network)
