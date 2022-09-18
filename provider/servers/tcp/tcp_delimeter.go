@@ -109,7 +109,7 @@ func (p *PipePayloadParser) init() {
 }
 
 func (p *PipePayloadParser) Delimited(delim string) *PipePayloadParser {
-	if !p.parser.started {
+	if p.firstInit == nil {
 		p.firstInit = func(parser *payloadParser) {
 			parser.delimitedMode(delim)
 		}
@@ -120,7 +120,7 @@ func (p *PipePayloadParser) Delimited(delim string) *PipePayloadParser {
 }
 
 func (p *PipePayloadParser) Fixed(size int) {
-	if !p.parser.started {
+	if p.firstInit == nil {
 		p.firstInit = func(parser *payloadParser) {
 			parser.fixedSizeMode(size)
 		}
@@ -174,7 +174,6 @@ type payloadParser struct {
 	reader        *bufio.Reader
 	delimited     bool // mode of delimited
 	delim         []byte
-	started       bool
 	buff          []byte
 	handler       func([]byte)
 	parsing       bool
@@ -187,13 +186,11 @@ type payloadParser struct {
 }
 
 func (p *payloadParser) delimitedMode(delim string) {
-	p.started = true
 	p.delimited = true
 	p.delim = []byte(delim)
 	p.delimPos = 0
 }
 func (p *payloadParser) fixedSizeMode(size int) {
-	p.started = true
 	p.delimited = false
 	p.recordSize = size
 }
