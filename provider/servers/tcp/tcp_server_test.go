@@ -66,7 +66,20 @@ func TestServerSplitFunc(t *testing.T) {
 	"port": 8888, "useTLS": false,
 	"delimeter": {
 		"type":"SplitFunc",
-	  "splitFunc":"function splitFunc(parser) { parser.Delimited(\"\\n\").AddHandler(function(data) { parser.Complete() }) }"
+	  "splitFunc":"function splitFunc(parser) { parser.AddHandler(function(data) { parser.AppendResult(data); parser.Complete() }); parser.Delimited(\"\\n\") }"
+	}
+	}`
+	tcpserver.ServerSocket(network)
+	newClient(network)
+}
+
+func TestServerSplitFunc1(t *testing.T) {
+	network := network
+	network.Configuration = `{"host": "localhost",
+	"port": 8888, "useTLS": false,
+	"delimeter": {
+		"type":"SplitFunc",
+	  "splitFunc":"function splitFunc(parser) { parser.AddHandler(function(data) { parser.AddHandler(function(data){ parser.AppendResult(data); parser.Complete() });  parser.Delimited(\"\\n\") }); parser.Delimited(\" \") }"
 	}
 	}`
 	tcpserver.ServerSocket(network)
