@@ -64,7 +64,11 @@ func TestServerSplitFunc(t *testing.T) {
 	network := network
 	network.Configuration = `{"host": "localhost",
 	"port": 8888, "useTLS": false,
-	"delimeter": {"type":"SplitFunc", "splitFunc":"function splitFunc(){}"}}`
+	"delimeter": {
+		"type":"SplitFunc",
+	  "splitFunc":"function splitFunc(parser) { parser.AddHandler(function(data) { parser.Complete() }); parser.Delimited(\"\\n\") }"
+	}
+	}`
 	tcpserver.ServerSocket(network)
 	newClient(network)
 }
