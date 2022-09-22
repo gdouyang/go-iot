@@ -28,7 +28,6 @@ func Meters(config string) map[string]int32 {
 	if broker != nil {
 		var rest = map[string]int32{}
 		rest["TotalConnection"] = broker.TotalConnection()
-		rest["TotalWasmVM"] = broker.TotalWasmVM()
 		return rest
 	}
 	return nil

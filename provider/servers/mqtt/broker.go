@@ -258,10 +258,6 @@ func (b *Broker) TotalConnection() int32 {
 	return int32(l)
 }
 
-func (b *Broker) TotalWasmVM() int32 {
-	return 0
-}
-
 func (b *Broker) setClose() {
 	atomic.StoreInt32(&b.closeFlag, 1)
 }

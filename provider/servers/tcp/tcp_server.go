@@ -3,40 +3,10 @@ package tcpserver
 import (
 	"fmt"
 	"go-iot/provider/codec"
-	"log"
 	"net"
+
+	"github.com/beego/beego/v2/core/logs"
 )
-
-func connHandler(c net.Conn, productId string, spec *TcpServerSpec) {
-	//1.conn是否有效
-	if c == nil {
-		log.Panic("无效的 socket 连接")
-	}
-	session := newTcpSession(c)
-	defer session.DisConnect()
-
-	sc := codec.GetCodec(productId)
-
-	context := &tcpContext{productId: productId, session: session}
-
-	sc.OnConnect(context)
-
-	//2.新建网络数据流存储结构
-	delimeter := newDelimeter(spec.Delimeter, c)
-
-	//3.循环读取网络数据流
-	for {
-		//3.1 网络数据流读入 buffer
-		data, err := delimeter.Read()
-		//3.2 数据读尽、读取错误 关闭 socket 连接
-		if err != nil {
-			log.Println("read error: " + err.Error())
-			break
-		}
-		context.Data = data
-		sc.Decode(context)
-	}
-}
 
 // 开启serverSocket
 func ServerSocket(network codec.Network) {
@@ -61,9 +31,40 @@ func ServerSocket(network codec.Network) {
 				fmt.Println("连接出错")
 			}
 
-			//并发模式 接收来自客户端的连接请求，一个连接 建立一个 conn，服务器资源有可能耗尽 BIO模式
+			//并发模式 接收来自客户端的连接请求，一个连接 建立一个 conn
 			go connHandler(conn, network.ProductId, spec)
 		}
 	}()
+}
 
+func connHandler(c net.Conn, productId string, spec *TcpServerSpec) {
+	//1.conn是否有效
+	if c == nil {
+		logs.Error("无效的 socket 连接")
+		return
+	}
+	session := newTcpSession(c)
+	defer session.DisConnect()
+
+	sc := codec.GetCodec(productId)
+
+	context := &tcpContext{productId: productId, session: session}
+
+	sc.OnConnect(context)
+
+	//2.新建网络数据流存储结构
+	delimeter := newDelimeter(spec.Delimeter, c)
+
+	//3.循环读取网络数据流
+	for {
+		//3.1 网络数据流读入 buffer
+		data, err := delimeter.Read()
+		//3.2 数据读尽、读取错误 关闭 socket 连接
+		if err != nil {
+			logs.Error("read error: " + err.Error())
+			break
+		}
+		context.Data = data
+		sc.Decode(context)
+	}
 }
