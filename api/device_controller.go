@@ -1,4 +1,4 @@
-package north
+package api
 
 import (
 	"encoding/json"
@@ -12,11 +12,14 @@ import (
 
 // 设备管理
 func init() {
-	web.Router("/led/list", &DeviceController{}, "post:List")
-	web.Router("/north/led/add", &DeviceController{}, "post:Add")
-	web.Router("/north/led/update", &DeviceController{}, "post:Update")
-	web.Router("/north/led/delete", &DeviceController{}, "post:Delete")
-	web.Router("/north/led/cmd-invoke", &DeviceController{}, "post:CmdInvoke")
+	ns := web.NewNamespace("/api/device",
+		web.NSRouter("/list", &DeviceController{}, "post:List"),
+		web.NSRouter("/", &DeviceController{}, "put:Add"),
+		web.NSRouter("/delete", &DeviceController{}, "post:Delete"),
+		web.NSRouter("/", &DeviceController{}, "post:Update"),
+		web.NSRouter("/cmd", &DeviceController{}, "post:CmdInvoke"),
+	)
+	web.AddNamespace(ns)
 }
 
 type DeviceController struct {

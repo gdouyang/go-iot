@@ -1,4 +1,4 @@
-package north
+package api
 
 import (
 	"github.com/beego/beego/v2/server/web"
@@ -13,7 +13,7 @@ type MainController struct {
 }
 
 func (c *MainController) Get() {
-	c.Data["Website"] = "web.me"
+	c.Data["Website"] = ""
 	c.Data["Email"] = "gdouyang@foxmail.com"
 	c.TplName = "index.html"
 }

@@ -1,4 +1,4 @@
-package north
+package api
 
 import (
 	"encoding/json"

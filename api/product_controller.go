@@ -1,4 +1,4 @@
-package north
+package api
 
 import (
 	"encoding/json"
@@ -10,10 +10,13 @@ import (
 
 // 产品管理
 func init() {
-	web.Router("/product/list", &ProductController{}, "post:List")
-	web.Router("/product/add", &ProductController{}, "post:Add")
-	web.Router("/product/update", &ProductController{}, "post:Update")
-	web.Router("/product/delete", &ProductController{}, "post:Delete")
+	ns := web.NewNamespace("/api/product",
+		web.NSRouter("/list", &ProductController{}, "post:List"),
+		web.NSRouter("/", &ProductController{}, "put:Add"),
+		web.NSRouter("/delete", &ProductController{}, "post:Delete"),
+		web.NSRouter("/", &ProductController{}, "post:Update"),
+	)
+	web.AddNamespace(ns)
 }
 
 type ProductController struct {

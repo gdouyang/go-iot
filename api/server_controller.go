@@ -1,4 +1,4 @@
-package north
+package api
 
 import (
 	"encoding/json"
@@ -16,12 +16,14 @@ import (
 
 // 服务端管理
 func init() {
-	web.Router("/server/list", &ServerController{}, "post:List")
-	web.Router("/server/add", &ServerController{}, "post:Add")
-	web.Router("/server/update", &ServerController{}, "post:Add")
-	web.Router("/server/delete", &ServerController{}, "delete:Delete")
-	web.Router("/server/start/?:id", &ServerController{}, "post:Start")
-	web.Router("/server/meters/?:id", &ServerController{}, "post:Meters")
+	ns := web.NewNamespace("/api/server",
+		web.NSRouter("/list", &ServerController{}, "post:List"),
+		web.NSRouter("/", &ServerController{}, "put:Add"),
+		web.NSRouter("/?:id", &ServerController{}, "delete:Delete"),
+		web.NSRouter("/start/?:id", &ServerController{}, "get:Start"),
+		web.NSRouter("/meters/?:id", &ServerController{}, "get:Meters"),
+	)
+	web.AddNamespace(ns)
 }
 
 type ServerController struct {
