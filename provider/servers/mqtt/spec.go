@@ -1,35 +1,16 @@
-/*
- * Copyright (c) 2017, MegaEase
- * All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package mqttproxy
+package mqttserver
 
 import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"go-iot/provider/servers"
+
+	"github.com/beego/beego/v2/core/logs"
 )
 
 const (
-	sessionPrefix              = "/mqtt/sessionMgr/clientID/%s"
-	topicPrefix                = "/mqtt/topicMgr/topic/%s"
-	mqttAPITopicPublishPrefix  = "/mqttproxy/%s/topics/publish"
-	mqttAPISessionQueryPrefix  = "/mqttproxy/%s/session/query"
-	mqttAPISessionDeletePrefix = "/mqttproxy/%s/sessions"
+	sessionPrefix = "/mqtt/sessionMgr/clientID/%s"
 )
 
 // PacketType is mqtt packet type
@@ -54,7 +35,7 @@ const (
 
 type (
 	// Spec describes the MQTTProxy.
-	MQTTProxySpec struct {
+	MQTTServerSpec struct {
 		EGName               string                `json:"egName"`
 		Name                 string                `json:"name"`
 		Port                 uint16                `json:"port"`
@@ -64,11 +45,14 @@ type (
 	}
 )
 
-func (spec *MQTTProxySpec) FromJson(str string) {
-	json.Unmarshal([]byte(str), spec)
+func (spec *MQTTServerSpec) FromJson(str string) {
+	err := json.Unmarshal([]byte(str), spec)
+	if err != nil {
+		logs.Error(err)
+	}
 }
 
-func (spec *MQTTProxySpec) TlsConfig() (*tls.Config, error) {
+func (spec *MQTTServerSpec) TlsConfig() (*tls.Config, error) {
 	var certificates []tls.Certificate
 
 	for _, c := range spec.Certificate {

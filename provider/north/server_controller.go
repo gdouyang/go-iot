@@ -6,7 +6,7 @@ import (
 	"go-iot/models/network"
 	"go-iot/provider/codec"
 	httpserver "go-iot/provider/servers/http"
-	mqttproxy "go-iot/provider/servers/mqtt"
+	mqttserver "go-iot/provider/servers/mqtt"
 	tcpserver "go-iot/provider/servers/tcp"
 	websocketserver "go-iot/provider/servers/websocket"
 
@@ -80,7 +80,7 @@ func (c *ServerController) Start() {
 		switch nw.Type {
 		case models.MQTT_BROKER:
 			config := convertCodecNetwork(nw)
-			success := mqttproxy.ServerStart(config)
+			success := mqttserver.ServerStart(config)
 			if success {
 				resp.Msg = "broker start success"
 			} else {
@@ -125,7 +125,7 @@ func (c *ServerController) Meters() {
 	} else {
 		switch nw.Type {
 		case models.MQTT_BROKER:
-			rest := mqttproxy.Meters(nw.Configuration)
+			rest := mqttserver.Meters(nw.Configuration)
 			resp.Success = true
 			if rest != nil {
 				resp.Data = rest

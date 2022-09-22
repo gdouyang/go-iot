@@ -1,4 +1,4 @@
-package mqttproxy
+package mqttserver
 
 import "go-iot/provider/codec"
 

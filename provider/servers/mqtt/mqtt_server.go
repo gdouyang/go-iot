@@ -1,4 +1,4 @@
-package mqttproxy
+package mqttserver
 
 import (
 	"go-iot/provider/codec"
@@ -9,7 +9,7 @@ import (
 var m = map[string]*Broker{}
 
 func ServerStart(network codec.Network) bool {
-	spec := &MQTTProxySpec{}
+	spec := &MQTTServerSpec{}
 	spec.FromJson(network.Configuration)
 	broker := NewBroker(spec, network)
 	if broker == nil {
@@ -22,7 +22,7 @@ func ServerStart(network codec.Network) bool {
 }
 
 func Meters(config string) map[string]int32 {
-	spec := &MQTTProxySpec{}
+	spec := &MQTTServerSpec{}
 	spec.FromJson(config)
 	broker := m[spec.Name]
 	if broker != nil {
