@@ -16,16 +16,14 @@ type (
 	// Broker is MQTT server, will manage client, topic, session, etc.
 	Broker struct {
 		sync.RWMutex
-		egName string
-		name   string
-		spec   *MQTTServerSpec
+		productId string
+		name      string
+		spec      *MQTTServerSpec
 
 		listener net.Listener
 		clients  map[string]*Client
 		tlsCfg   *tls.Config
 
-		sessMgr   *SessionManager
-		productId string
 		// done is the channel for shutdowning this proxy.
 		done      chan struct{}
 		closeFlag int32
@@ -34,12 +32,11 @@ type (
 
 func NewBroker(spec *MQTTServerSpec, network codec.Network) *Broker {
 	broker := &Broker{
-		egName:    spec.EGName,
+		productId: network.ProductId,
 		name:      spec.Name,
 		spec:      spec,
 		clients:   make(map[string]*Client),
 		done:      make(chan struct{}),
-		productId: network.ProductId,
 	}
 
 	err := broker.setListener()
@@ -48,7 +45,7 @@ func NewBroker(spec *MQTTServerSpec, network codec.Network) *Broker {
 		return nil
 	}
 
-	broker.sessMgr = newSessionManager(broker)
+	// create codec
 	codec.NewCodec(network)
 	go broker.run()
 	return broker
@@ -142,17 +139,8 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 
 	client := newClient(connect, b, conn)
 	// check auth
-	authFail := false
+	codec.GetCodec(b.productId).OnConnect(&mqttContext{})
 
-	if authFail {
-		connack.ReturnCode = packets.ErrRefusedNotAuthorised
-		err := connack.Write(conn)
-		if err != nil {
-			logs.Error("connack back to client %s failed: %s", connect.ClientIdentifier, err)
-		}
-		logs.Error("invalid connection %v, client %s auth failed", connack.ReturnCode, connect.ClientIdentifier)
-		return nil, nil, false
-	}
 	return client, connack, true
 }
 
@@ -210,14 +198,16 @@ func (b *Broker) handleConn(conn net.Conn) {
 func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 	// when clean session is false, previous session exist and previous session not clean session,
 	// then we use previous session, otherwise use new session
-	prevSess := b.sessMgr.get(connect.ClientIdentifier)
+	prevSess := codec.GetSessionManager().GetSession(connect.ClientIdentifier).(*Session)
 	if !connect.CleanSession && (prevSess != nil) && !prevSess.cleanSession() {
 		client.session = prevSess
 	} else {
 		if prevSess != nil {
 			prevSess.close()
 		}
-		client.session = b.sessMgr.newSessionFromConn(connect)
+		s := &Session{}
+		s.init(b, connect)
+		client.session = s
 	}
 }
 
@@ -238,9 +228,6 @@ func (b *Broker) removeClient(clientID string) {
 		}
 	}
 	b.Unlock()
-}
-func (b *Broker) mqttAPIPrefix(path string) string {
-	return fmt.Sprintf(path, b.name)
 }
 
 func (b *Broker) currentClients() map[string]struct{} {
@@ -271,7 +258,6 @@ func (b *Broker) close() {
 	b.setClose()
 	close(b.done)
 	b.listener.Close()
-	b.sessMgr.close()
 
 	b.Lock()
 	defer b.Unlock()

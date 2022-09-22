@@ -2,6 +2,7 @@ package mqttserver
 
 import (
 	"encoding/base64"
+	"go-iot/provider/codec"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ type (
 		Topics    map[string]int `yaml:"topics"`
 		ClientID  string         `yaml:"clientID"`
 		CleanFlag bool           `yaml:"cleanFlag"`
+		deviceId  string
 	}
 
 	// Session includes the information about the connect between client and broker,
@@ -26,7 +28,6 @@ type (
 	Session struct {
 		sync.Mutex
 		broker       *Broker
-		storeCh      chan SessionStore
 		info         *SessionInfo
 		done         chan struct{}
 		pending      map[uint16]*Message
@@ -51,22 +52,6 @@ func newMsg(topic string, payload []byte, qos byte) *Message {
 	return m
 }
 
-func (s *Session) store() {
-	logs.Debug("session %v store", s.info.ClientID)
-	str, err := s.encode()
-	if err != nil {
-		logs.Error("encode session %+v failed: %v", s, err)
-		return
-	}
-	ss := SessionStore{
-		key:   s.info.ClientID,
-		value: str,
-	}
-	go func() {
-		s.storeCh <- ss
-	}()
-}
-
 func (s *Session) encode() (string, error) {
 	b, err := yaml.Marshal(s.info)
 	if err != nil {
@@ -79,9 +64,8 @@ func (s *Session) decode(str string) error {
 	return yaml.Unmarshal([]byte(str), s.info)
 }
 
-func (s *Session) init(sm *SessionManager, b *Broker, connect *packets.ConnectPacket) error {
+func (s *Session) init(b *Broker, connect *packets.ConnectPacket) error {
 	s.broker = b
-	s.storeCh = sm.storeCh
 	s.done = make(chan struct{})
 	s.pending = make(map[uint16]*Message)
 	s.pendingQueue = []uint16{}
@@ -91,6 +75,9 @@ func (s *Session) init(sm *SessionManager, b *Broker, connect *packets.ConnectPa
 	s.info.ClientID = connect.ClientIdentifier
 	s.info.CleanFlag = connect.CleanSession
 	s.info.Topics = make(map[string]int)
+
+	codec.GetSessionManager().PutSession(connect.ClientIdentifier, s)
+	go s.backgroundResendPending()
 	return nil
 }
 
@@ -100,7 +87,6 @@ func (s *Session) subscribe(topics []string, qoss []byte) error {
 	for i, t := range topics {
 		s.info.Topics[t] = int(qoss[i])
 	}
-	s.store()
 	s.Unlock()
 	return nil
 }
@@ -111,7 +97,6 @@ func (s *Session) unsubscribe(topics []string) error {
 	for _, t := range topics {
 		delete(s.info.Topics, t)
 	}
-	s.store()
 	s.Unlock()
 	return nil
 }
@@ -144,7 +129,7 @@ func (s *Session) getPacketFromMsg(topic string, payload []byte, qos byte) *pack
 func (s *Session) publish(topic string, payload []byte, qos byte) {
 	client := s.broker.getClient(s.info.ClientID)
 	if client == nil {
-		logs.Error("client %s is offline in eg %v", s.info.ClientID, s.broker.egName)
+		logs.Error("client %s is offline in eg %v", s.info.ClientID, s.broker.productId)
 		return
 	}
 
@@ -232,4 +217,19 @@ func (s *Session) backgroundResendPending() {
 			debugLogTime = time.Now().Add(time.Minute)
 		}
 	}
+}
+
+func (s *Session) SetDeviceId(deviceId string) {
+	s.info.deviceId = deviceId
+	codec.GetSessionManager().PutSession(deviceId, s)
+}
+
+func (s *Session) Send(msg interface{}) error {
+	s.publish("", msg.([]byte), QoS1)
+	return nil
+}
+
+func (s *Session) DisConnect() error {
+	s.close()
+	return nil
 }

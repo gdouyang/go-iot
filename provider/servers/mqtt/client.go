@@ -220,7 +220,7 @@ func (c *Client) disconnected() bool {
 }
 
 func (c *Client) closeAndDelSession() {
-	c.broker.sessMgr.delLocal(c.info.cid)
+	codec.GetSessionManager().DelLocal(c.info.cid)
 
 	c.close()
 }

@@ -1,5 +1,7 @@
 package codec
 
+import "sync"
+
 var sessionManager *SessionManager = &SessionManager{}
 
 func GetSessionManager() *SessionManager {
@@ -7,14 +9,23 @@ func GetSessionManager() *SessionManager {
 }
 
 type SessionManager struct {
-	sessionMap map[string]Session
+	sessionMap sync.Map
 }
 
 func (sm *SessionManager) GetSession(deviceId string) Session {
-	s := sm.sessionMap[deviceId]
-	return s
+	if val, ok := sm.sessionMap.Load(deviceId); ok {
+		return val.(Session)
+	}
+	return nil
 }
 
 func (sm *SessionManager) PutSession(deviceId string, session Session) {
-	sm.sessionMap[deviceId] = session
+	sm.sessionMap.Store(deviceId, session)
+}
+
+func (sm *SessionManager) DelLocal(deviceId string) {
+	if val, ok := sm.sessionMap.LoadAndDelete(deviceId); ok {
+		sess := val.(Session)
+		sess.DisConnect()
+	}
 }
