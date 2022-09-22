@@ -19,10 +19,6 @@ goiot
 
 #### 使用说明
 
-1. 下载LiteIDE
-2. 执行Get命令下载依赖包
-3. 执行BuildAndRun
-
-#### 北向接口说明
-
-docs/北向接口.md
+1. ide使用vs code
+2. go版本1.19.1
+3. go mod tidy
