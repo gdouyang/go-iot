@@ -2,6 +2,7 @@ package websocketsocker
 
 import (
 	"fmt"
+	"go-iot/provider/codec"
 	"log"
 	"net/http"
 
@@ -10,7 +11,25 @@ import (
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func socketHandler(w http.ResponseWriter, r *http.Request) {
+func ServerStart(network codec.Network) {
+	spec := &WebsocketServerSpec{}
+	spec.FromJson(network.Configuration)
+	spec.Port = network.Port
+
+	http.HandleFunc("/socket", func(w http.ResponseWriter, r *http.Request) {
+		socketHandler(w, r, network.ProductId)
+	})
+	http.HandleFunc("/", home)
+	addr := spec.Host + ":" + fmt.Sprint(spec.Port)
+
+	err := http.ListenAndServe(addr, nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
 	// Upgrade our raw HTTP connection to a websocket based one
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -19,29 +38,29 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
+	session := newSession(conn)
+	defer session.DisConnect()
+
+	sc := codec.GetCodec(productId)
+
+	context := &websocketContext{productId: productId, session: session}
+
+	sc.OnConnect(context)
+
 	// The event loop
 	for {
-		messageType, message, err := conn.ReadMessage()
+		_, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("Error during message reading:", err)
 			break
 		}
 		log.Printf("Received: %s", message)
-		err = conn.WriteMessage(messageType, message)
-		if err != nil {
-			log.Println("Error during message writing:", err)
-			break
-		}
+
+		context.Data = message
+		sc.Decode(context)
 	}
 }
 
 func home(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Index Page")
-}
-
-func ServerStart() {
-	http.HandleFunc("/socket", socketHandler)
-	http.HandleFunc("/", home)
-	log.Fatal(http.ListenAndServe("localhost:8080", nil))
-
 }

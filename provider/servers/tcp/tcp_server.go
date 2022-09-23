@@ -15,7 +15,8 @@ func ServerSocket(network codec.Network) {
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
 	// 1.监听端口
-	server, err := net.Listen("tcp", spec.Host+":"+fmt.Sprint(spec.Port))
+	addr := spec.Host + ":" + fmt.Sprint(spec.Port)
+	server, err := net.Listen("tcp", addr)
 
 	codec.NewCodec(network)
 
