@@ -7,6 +7,6 @@ type DeviceLifecycle interface {
 	OnDelete(ctx Context) error
 	// 设备修改
 	OnUpdate(ctx Context) error
-	//
+	// 设备状态检查
 	OnStateChecker(ctx Context) error
 }

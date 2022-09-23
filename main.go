@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "go-iot/provider/north"
+	_ "go-iot/api"
 
 	"github.com/beego/beego/v2/server/web"
 )
