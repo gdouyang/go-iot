@@ -95,7 +95,8 @@ func (c *ServerController) Start() {
 		case models.HTTP_SERVER:
 			httpserver.ServerStart()
 		case models.WEBSOCKET_SERVER:
-			websocketserver.ServerStart()
+			config := convertCodecNetwork(nw)
+			websocketserver.ServerStart(config)
 		default:
 			logs.Error("unknow type %s", nw.Type)
 		}
