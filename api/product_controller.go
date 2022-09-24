@@ -12,9 +12,9 @@ import (
 func init() {
 	ns := web.NewNamespace("/api/product",
 		web.NSRouter("/list", &ProductController{}, "post:List"),
-		web.NSRouter("/", &ProductController{}, "put:Add"),
-		web.NSRouter("/delete", &ProductController{}, "post:Delete"),
-		web.NSRouter("/", &ProductController{}, "post:Update"),
+		web.NSRouter("/", &ProductController{}, "post:Add"),
+		web.NSRouter("/", &ProductController{}, "delete:Delete"),
+		web.NSRouter("/", &ProductController{}, "put:Update"),
 	)
 	web.AddNamespace(ns)
 }
@@ -56,8 +56,9 @@ func (ctl *ProductController) Update() {
 
 // 删除型号
 func (ctl *ProductController) Delete() {
-	var ob models.Product
-	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
-	ctl.Data["json"] = product.DeleteProduct(&ob)
+	var ob *models.Product = &models.Product{
+		Id: ctl.Ctx.Input.Param(":id"),
+	}
+	ctl.Data["json"] = product.DeleteProduct(ob)
 	ctl.ServeJSON()
 }

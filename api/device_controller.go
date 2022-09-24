@@ -14,9 +14,9 @@ import (
 func init() {
 	ns := web.NewNamespace("/api/device",
 		web.NSRouter("/list", &DeviceController{}, "post:List"),
-		web.NSRouter("/", &DeviceController{}, "put:Add"),
-		web.NSRouter("/delete", &DeviceController{}, "post:Delete"),
-		web.NSRouter("/", &DeviceController{}, "post:Update"),
+		web.NSRouter("/", &DeviceController{}, "post:Add"),
+		web.NSRouter("/?:id", &DeviceController{}, "delete:Delete"),
+		web.NSRouter("/", &DeviceController{}, "put:Update"),
 		web.NSRouter("/cmd", &DeviceController{}, "post:CmdInvoke"),
 	)
 	web.AddNamespace(ns)
@@ -59,9 +59,10 @@ func (ctl *DeviceController) Update() {
 
 // 删除设备
 func (ctl *DeviceController) Delete() {
-	var ob models.Device
-	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
-	ctl.Data["json"] = device.DeleteDevice(&ob)
+	var ob *models.Device = &models.Device{
+		Id: ctl.Ctx.Input.Param(":id"),
+	}
+	ctl.Data["json"] = device.DeleteDevice(ob)
 	ctl.ServeJSON()
 }
 
