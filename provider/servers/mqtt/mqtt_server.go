@@ -11,6 +11,7 @@ var m = map[string]*Broker{}
 func ServerStart(network codec.Network) bool {
 	spec := &MQTTServerSpec{}
 	spec.FromJson(network.Configuration)
+	spec.Port = network.Port
 	broker := NewBroker(spec, network)
 	if broker == nil {
 		logs.Error("broker %v start failed", spec.Name)

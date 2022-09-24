@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"go-iot/provider/codec"
 	mqttserver "go-iot/provider/servers/mqtt"
-	"log"
-	"net"
+	"os"
 	"testing"
-	"time"
 
-	"github.com/eclipse/paho.mqtt.golang/packets"
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 const script = `
@@ -40,14 +38,13 @@ var network codec.Network = codec.Network{
 	Name:      "test server",
 	ProductId: "test",
 	CodecId:   "script_codec",
-	Port:      8889,
+	Port:      1883,
 	Script:    script,
 }
 
-func TestServerDelimited(t *testing.T) {
+func TestServer(t *testing.T) {
 	network := network
-	network.Configuration = `{"host": "localhost",
-	"port": 8888, "useTLS": false}`
+	network.Configuration = `{"host": "localhost", "useTLS": false}`
 	mqttserver.ServerStart(network)
 	newClient(network)
 }
@@ -56,33 +53,56 @@ func newClient(network codec.Network) {
 	spec := mqttserver.MQTTServerSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
-	conn, err := net.Dial("tcp", spec.Host+":"+fmt.Sprint(spec.Port))
-	if err != nil {
-		fmt.Print(err)
-	}
-	go func() {
-		for {
-			packet, err := packets.ReadPacket(conn)
-			if err != nil {
-				log.Printf("read packet failed: %v", err)
-				continue
-			}
-			fmt.Println("server> " + packet.String())
+	opts := MQTT.NewClientOptions()
+	opts.AddBroker("tcp://" + spec.Host + ":" + fmt.Sprint(spec.Port))
+	opts.SetClientID("1234")
+	opts.SetUsername("admin")
+	opts.SetPassword("123456")
+	opts.SetCleanSession(false)
+	action := "pub"
+	topic := "test"
+	qos := 0
+	payload := []byte("")
+	num := 10
+	if action == "pub" {
+		client := MQTT.NewClient(opts)
+		if token := client.Connect(); token.Wait() && token.Error() != nil {
+			panic(token.Error())
 		}
-	}()
-	// s := packets.NewControlPacket(packets.Subscribe).(*packets.SubscribePacket)
-	// s.Topics = []string{"test"}
-	// s.Write(conn)
+		fmt.Println("Sample Publisher Started")
+		for i := 0; i < num; i++ {
+			fmt.Println("---- doing publish ----")
+			token := client.Publish(topic, byte(qos), false, payload)
+			token.Wait()
+		}
 
-	for i := 0; i < 10; i++ {
-		str1 := time.Now().Format("2006-01-02 15:04:05")
-		str := fmt.Sprintf("aasss %s \n", str1)
-		p := packets.NewControlPacket(packets.Publish).(*packets.PublishPacket)
-		p.Payload = []byte(str)
-		p.Qos = 0
-		p.TopicName = "test"
-		p.Write(conn)
+		client.Disconnect(250)
+		fmt.Println("Sample Publisher Disconnected")
+	} else {
+		receiveCount := 0
+		choke := make(chan [2]string)
 
-		time.Sleep(1 * time.Second)
+		opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
+			choke <- [2]string{msg.Topic(), string(msg.Payload())}
+		})
+
+		client := MQTT.NewClient(opts)
+		if token := client.Connect(); token.Wait() && token.Error() != nil {
+			panic(token.Error())
+		}
+
+		if token := client.Subscribe(topic, byte(qos), nil); token.Wait() && token.Error() != nil {
+			fmt.Println(token.Error())
+			os.Exit(1)
+		}
+
+		for receiveCount < num {
+			incoming := <-choke
+			fmt.Printf("RECEIVED TOPIC: %s MESSAGE: %s\n", incoming[0], incoming[1])
+			receiveCount++
+		}
+
+		client.Disconnect(250)
+		fmt.Println("Sample Subscriber Disconnected")
 	}
 }
