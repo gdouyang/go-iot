@@ -26,3 +26,7 @@ func (ctx *mqttContext) GetProduct() codec.Product {
 func (ctx *mqttContext) GetSession() codec.Session {
 	return ctx.session
 }
+
+func (ctx *mqttContext) MsgToString() string {
+	return string(ctx.Data)
+}
