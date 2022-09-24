@@ -9,10 +9,6 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-const (
-	sessionPrefix = "/mqtt/sessionMgr/clientID/%s"
-)
-
 // PacketType is mqtt packet type
 type PacketType string
 
@@ -36,7 +32,7 @@ const (
 type (
 	// Spec describes the MQTTProxy.
 	MQTTServerSpec struct {
-		EGName               string                `json:"egName"`
+		Host                 string                `json:"host"`
 		Name                 string                `json:"name"`
 		Port                 uint16                `json:"port"`
 		UseTLS               bool                  `json:"useTLS"`
@@ -67,16 +63,4 @@ func (spec *MQTTServerSpec) TlsConfig() (*tls.Config, error) {
 	}
 
 	return &tls.Config{Certificates: certificates}, nil
-}
-
-var pipelinePacketTypes = map[PacketType]struct{}{
-	Connect:     {},
-	Disconnect:  {},
-	Publish:     {},
-	Subscribe:   {},
-	Unsubscribe: {},
-}
-
-func sessionStoreKey(clientID string) string {
-	return fmt.Sprintf(sessionPrefix, clientID)
 }

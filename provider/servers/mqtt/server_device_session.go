@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
@@ -50,18 +48,6 @@ func newMsg(topic string, payload []byte, qos byte) *Message {
 		QoS:        int(qos),
 	}
 	return m
-}
-
-func (s *Session) encode() (string, error) {
-	b, err := yaml.Marshal(s.info)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
-}
-
-func (s *Session) decode(str string) error {
-	return yaml.Unmarshal([]byte(str), s.info)
 }
 
 func (s *Session) init(b *Broker, connect *packets.ConnectPacket) error {
@@ -225,7 +211,12 @@ func (s *Session) SetDeviceId(deviceId string) {
 }
 
 func (s *Session) Send(msg interface{}) error {
-	s.publish("", msg.([]byte), QoS1)
+	switch t := msg.(type) {
+	case map[string]interface{}:
+		newMsg(t["topic"].(string), msg.([]byte), QoS0)
+	default:
+		logs.Error("msg must map")
+	}
 	return nil
 }
 

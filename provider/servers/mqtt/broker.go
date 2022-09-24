@@ -6,7 +6,6 @@ import (
 	"go-iot/provider/codec"
 	"net"
 	"sync"
-	"sync/atomic"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/eclipse/paho.mqtt.golang/packets"
@@ -25,8 +24,7 @@ type (
 		tlsCfg   *tls.Config
 
 		// done is the channel for shutdowning this proxy.
-		done      chan struct{}
-		closeFlag int32
+		done chan struct{}
 	}
 )
 
@@ -39,14 +37,15 @@ func NewBroker(spec *MQTTServerSpec, network codec.Network) *Broker {
 		done:      make(chan struct{}),
 	}
 
+	// create codec
+	codec.NewCodec(network)
+
 	err := broker.setListener()
 	if err != nil {
 		logs.Error("mqtt broker set listener failed: %v", err)
 		return nil
 	}
 
-	// create codec
-	codec.NewCodec(network)
 	go broker.run()
 	return broker
 }
@@ -138,8 +137,6 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 	}
 
 	client := newClient(connect, b, conn)
-	// check auth
-	codec.GetCodec(b.productId).OnConnect(&mqttContext{})
 
 	return client, connack, true
 }
@@ -162,6 +159,9 @@ func (b *Broker) handleConn(conn net.Conn) {
 	if !valid {
 		return
 	}
+	// check auth
+	codec.GetCodec(b.productId).OnConnect(&mqttContext{})
+
 	cid := client.info.cid
 
 	b.Lock()
@@ -245,17 +245,7 @@ func (b *Broker) TotalConnection() int32 {
 	return int32(l)
 }
 
-func (b *Broker) setClose() {
-	atomic.StoreInt32(&b.closeFlag, 1)
-}
-
-func (b *Broker) closed() bool {
-	flag := atomic.LoadInt32(&b.closeFlag)
-	return flag == 1
-}
-
 func (b *Broker) close() {
-	b.setClose()
 	close(b.done)
 	b.listener.Close()
 

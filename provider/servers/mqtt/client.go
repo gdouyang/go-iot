@@ -72,9 +72,6 @@ type (
 		statusFlag int32
 		writeCh    chan packets.ControlPacket
 		done       chan struct{}
-
-		// kv map is used for pipeline to share messages among filters during whole connection
-		kvMap sync.Map
 	}
 )
 
@@ -83,21 +80,6 @@ type (
 // ClientID return client id of Client
 func (c *Client) ClientID() string {
 	return c.info.cid
-}
-
-// Load load value keep in Client kv map
-func (c *Client) Load(key interface{}) (value interface{}, ok bool) {
-	return c.kvMap.Load(key)
-}
-
-// Store store key-value pair in Client kv map
-func (c *Client) Store(key interface{}, value interface{}) {
-	c.kvMap.Store(key, value)
-}
-
-// Delete delete key-value pair in Client kv map
-func (c *Client) Delete(key interface{}) {
-	c.kvMap.Delete(key)
 }
 
 // UserName return username of Client
@@ -164,6 +146,7 @@ func (c *Client) readLoop() {
 			c.info.will = nil
 			return
 		}
+		// 根据不同类型的包来选择不同的处理方式
 		err = c.processPacket(packet)
 		if err != nil {
 			logs.Error("client %s process packet failed: %v", c.info.cid, err)
@@ -209,7 +192,7 @@ func (c *Client) close() {
 	logs.Debug("client %v connection close", c.info.cid)
 	atomic.StoreInt32(&c.statusFlag, Disconnected)
 	close(c.done) // 删除
-	// c.session.close()
+	c.session.close()
 	c.broker.deleteSession(c.info.cid)
 	c.Unlock()
 
@@ -257,7 +240,7 @@ func processPublish(c *Client, packet packets.ControlPacket) {
 	case QoS1:
 		puback := packets.NewControlPacket(packets.Puback).(*packets.PubackPacket)
 		puback.MessageID = publish.MessageID
-		c.writePacket(puback)
+		c.writePacket(puback) // 返回客户端ack
 	case QoS2:
 		// not support yet
 	}
