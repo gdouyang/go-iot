@@ -15,6 +15,7 @@ function OnConnect(context) {
   console.log("OnConnect: " + JSON.stringify(context))
 }
 function Decode(context) {
+	context.Save({"msg": context.MsgToString()})
   console.log("Decode: " + context.MsgToString())
 }
 function Encode(context) {
@@ -36,12 +37,21 @@ function OnStateChecker(context) {
 
 var network codec.Network = codec.Network{
 	Name:      "test server",
-	ProductId: "test",
+	ProductId: "test-product",
 	CodecId:   "script_codec",
 	Port:      8888,
 	Script:    script,
 }
 
+var product codec.Product = &codec.DefaultProdeuct{
+	Id:           "test-product",
+	Config:       make(map[string]interface{}),
+	TimeSeriesId: "mock",
+}
+
+func init() {
+	codec.GetProductManager().Put(product)
+}
 func TestServerDelimited(t *testing.T) {
 	network := network
 	network.Configuration = `{"host": "localhost",

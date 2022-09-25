@@ -15,12 +15,12 @@ func (ctx *websocketContext) GetMessage() interface{} {
 
 // 获取设备操作
 func (ctx *websocketContext) GetDevice() codec.Device {
-	return codec.GetDeviceManager().GetDevice(ctx.deviceId)
+	return codec.GetDeviceManager().Get(ctx.deviceId)
 }
 
 // 获取产品操作
 func (ctx *websocketContext) GetProduct() codec.Product {
-	return codec.GetProductManager().GetProduct(ctx.productId)
+	return codec.GetProductManager().Get(ctx.productId)
 }
 
 func (ctx *websocketContext) GetSession() codec.Session {

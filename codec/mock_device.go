@@ -13,12 +13,12 @@ func (ctx *MockContext) GetMessage() interface{} {
 
 // 获取设备操作
 func (ctx *MockContext) GetDevice() Device {
-	return GetDeviceManager().GetDevice(ctx.DeviceId)
+	return GetDeviceManager().Get(ctx.DeviceId)
 }
 
 // 获取产品操作
 func (ctx *MockContext) GetProduct() Product {
-	return GetProductManager().GetProduct(ctx.ProductId)
+	return GetProductManager().Get(ctx.ProductId)
 }
 
 func (ctx *MockContext) GetSession() Session {

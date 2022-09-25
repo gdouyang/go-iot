@@ -20,7 +20,9 @@ type Device interface {
 
 // 产品信息
 type Product interface {
+	GetId() string
 	GetConfig() map[string]interface{}
+	GetTimeSeries() TimeSeries
 }
 
 // 上下文
@@ -43,6 +45,11 @@ type Codec interface {
 	Encode(ctx Context) error
 }
 
+// 时序保存
+type TimeSeries interface {
+	Save(productId string, data map[string]interface{})
+}
+
 // 网络配置
 type Network struct {
 	Name          string `json:"name"`
@@ -54,6 +61,7 @@ type Network struct {
 	CodecId       string `json:"codecId"`
 }
 
+// 功能调用
 type FuncInvokeContext struct {
 	message   interface{}
 	session   Session
@@ -70,12 +78,12 @@ func (ctx *FuncInvokeContext) GetSession() Session {
 
 // 获取设备操作
 func (ctx *FuncInvokeContext) GetDevice() Device {
-	return GetDeviceManager().GetDevice(ctx.deviceId)
+	return GetDeviceManager().Get(ctx.deviceId)
 }
 
 // 获取产品操作
 func (ctx *FuncInvokeContext) GetProduct() Product {
-	return GetProductManager().GetProduct(ctx.productId)
+	return GetProductManager().Get(ctx.productId)
 }
 
 // productId

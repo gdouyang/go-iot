@@ -15,12 +15,12 @@ func (ctx *tcpContext) GetMessage() interface{} {
 
 // 获取设备操作
 func (ctx *tcpContext) GetDevice() codec.Device {
-	return codec.GetDeviceManager().GetDevice(ctx.deviceId)
+	return codec.GetDeviceManager().Get(ctx.deviceId)
 }
 
 // 获取产品操作
 func (ctx *tcpContext) GetProduct() codec.Product {
-	return codec.GetProductManager().GetProduct(ctx.productId)
+	return codec.GetProductManager().Get(ctx.productId)
 }
 
 func (ctx *tcpContext) GetSession() codec.Session {
@@ -29,4 +29,8 @@ func (ctx *tcpContext) GetSession() codec.Session {
 
 func (ctx *tcpContext) MsgToString() string {
 	return string(ctx.Data)
+}
+
+func (ctx *tcpContext) Save(data map[string]interface{}) {
+	ctx.GetProduct().GetTimeSeries().Save(ctx.productId, data)
 }
