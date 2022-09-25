@@ -19,6 +19,7 @@ func init() {
 	ns := web.NewNamespace("/api/server",
 		web.NSRouter("/list", &ServerController{}, "post:List"),
 		web.NSRouter("/", &ServerController{}, "put:Add"),
+		web.NSRouter("/", &ServerController{}, "post:Update"),
 		web.NSRouter("/?:id", &ServerController{}, "delete:Delete"),
 		web.NSRouter("/start/?:id", &ServerController{}, "get:Start"),
 		web.NSRouter("/meters/?:id", &ServerController{}, "get:Meters"),
@@ -48,10 +49,34 @@ func (c *ServerController) Add() {
 	resp.Success = true
 	var ob models.Network
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
-	err := network.AddNetWork(&ob)
-	if err != nil {
-		resp.Msg = err.Error()
+	if len(ob.ProductId) < 1 {
+		resp.Msg = "productId must present"
 		resp.Success = false
+	} else {
+		err := network.AddNetWork(&ob)
+		if err != nil {
+			resp.Msg = err.Error()
+			resp.Success = false
+		}
+	}
+	c.Data["json"] = &resp
+	c.ServeJSON()
+}
+
+func (c *ServerController) Update() {
+	var resp models.JsonResp
+	resp.Success = true
+	var ob models.Network
+	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
+	if len(ob.ProductId) < 1 {
+		resp.Msg = "productId must present"
+		resp.Success = false
+	} else {
+		err := network.AddNetWork(&ob)
+		if err != nil {
+			resp.Msg = err.Error()
+			resp.Success = false
+		}
 	}
 	c.Data["json"] = &resp
 	c.ServeJSON()

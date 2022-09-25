@@ -74,7 +74,7 @@ func AddNetWork(ob *models.Network) error {
 func UpdateNetwork(ob *models.Network) error {
 	//更新数据
 	o := orm.NewOrm()
-	_, err := o.Update(ob, "Name", "Configuration")
+	_, err := o.Update(ob, "ProductId", "Name", "Configuration", "Script")
 	if err != nil {
 		logs.Error("update fail", err)
 		return err

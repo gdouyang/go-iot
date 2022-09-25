@@ -4,10 +4,14 @@ go 1.18
 
 require (
 	github.com/beego/beego/v2 v2.0.2
+	github.com/elastic/go-elasticsearch v0.0.0
+	github.com/elastic/go-elasticsearch/v8 v8.4.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f
 )
+
+require github.com/elastic/elastic-transport-go/v8 v8.1.0 // indirect
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
