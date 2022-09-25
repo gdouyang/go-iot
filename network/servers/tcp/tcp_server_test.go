@@ -79,7 +79,11 @@ func TestServerDelimited(t *testing.T) {
 	"delimeter": {"type":"Delimited", "delimited":"}"}}`
 	network.Script = script1
 	tcpserver.ServerSocket(network)
-	newClient1(network)
+	newClient1(network, func() string {
+		str1 := time.Now().Format("2006-01-02 15:04:05")
+		str := fmt.Sprintf(`{"deviceId": "1234", "data": "%s"}`, str1)
+		return str
+	})
 }
 
 func TestServerFixLenght(t *testing.T) {
@@ -131,30 +135,14 @@ func TestServerSplitFunc2(t *testing.T) {
 }
 
 func newClient(network codec.Network) {
-	spec := tcpserver.TcpServerSpec{}
-	spec.FromJson(network.Configuration)
-	spec.Port = network.Port
-	conn, err := net.Dial("tcp", spec.Host+":"+fmt.Sprint(spec.Port))
-	if err != nil {
-		fmt.Print(err)
-	}
-	go func() {
-		stdin := bufio.NewScanner(conn)
-		for stdin.Scan() {
-			fmt.Println("server> " + stdin.Text())
-		}
-	}()
-
-	for i := 0; i < 10; i++ {
+	newClient1(network, func() string {
 		str1 := time.Now().Format("2006-01-02 15:04:05")
 		str := fmt.Sprintf("aasss %s \n", str1)
-		conn.Write([]byte(str))
-
-		time.Sleep(1 * time.Second)
-	}
+		return str
+	})
 }
 
-func newClient1(network codec.Network) {
+func newClient1(network codec.Network, call func() string) {
 	spec := tcpserver.TcpServerSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
@@ -170,8 +158,7 @@ func newClient1(network codec.Network) {
 	}()
 
 	for i := 0; i < 10; i++ {
-		str1 := time.Now().Format("2006-01-02 15:04:05")
-		str := fmt.Sprintf(`{"deviceId": "1234", "data": "%s"}`, str1)
+		str := call()
 		conn.Write([]byte(str))
 
 		time.Sleep(1 * time.Second)
