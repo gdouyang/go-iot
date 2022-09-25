@@ -14,12 +14,14 @@ func GetTimeSeries(id string) TimeSeries {
 	return timeSeriseMap[id]
 }
 
+// es时序保存
 type EsTimeSeries struct {
 }
 
 func (t *EsTimeSeries) Save(productId string, data map[string]interface{}) {
 }
 
+// mock
 type MockTimeSeries struct {
 }
 

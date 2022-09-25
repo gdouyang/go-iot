@@ -3,28 +3,12 @@ package mqttserver
 import "go-iot/codec"
 
 type mqttContext struct {
-	deviceId  string
-	productId string
-	Data      []byte
-	session   codec.Session
+	codec.BaseContext
+	Data []byte
 }
 
 func (ctx *mqttContext) GetMessage() interface{} {
 	return ctx.Data
-}
-
-// 获取设备操作
-func (ctx *mqttContext) GetDevice() codec.Device {
-	return codec.GetDeviceManager().Get(ctx.deviceId)
-}
-
-// 获取产品操作
-func (ctx *mqttContext) GetProduct() codec.Product {
-	return codec.GetProductManager().Get(ctx.productId)
-}
-
-func (ctx *mqttContext) GetSession() codec.Session {
-	return ctx.session
 }
 
 func (ctx *mqttContext) MsgToString() string {

@@ -49,7 +49,9 @@ func connHandler(c net.Conn, productId string, spec *TcpServerSpec) {
 
 	sc := codec.GetCodec(productId)
 
-	context := &tcpContext{productId: productId, session: session}
+	context := &tcpContext{
+		BaseContext: codec.BaseContext{ProductId: productId, Session: session},
+	}
 
 	sc.OnConnect(context)
 

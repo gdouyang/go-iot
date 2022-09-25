@@ -2,6 +2,8 @@ package codec
 
 import (
 	"log"
+
+	"github.com/beego/beego/v2/core/logs"
 )
 
 // 会话信息
@@ -33,6 +35,36 @@ type Context interface {
 	GetDevice() Device
 	// 获取产品操作
 	GetProduct() Product
+}
+
+type BaseContext struct {
+	DeviceId  string
+	ProductId string
+	Session   Session
+}
+
+// 获取设备操作
+func (ctx *BaseContext) GetDevice() Device {
+	return GetDeviceManager().Get(ctx.DeviceId)
+}
+
+// 获取产品操作
+func (ctx *BaseContext) GetProduct() Product {
+	return GetProductManager().Get(ctx.ProductId)
+}
+
+func (ctx *BaseContext) GetSession() Session {
+	return ctx.Session
+}
+
+// 保存时序数据
+func (ctx *BaseContext) Save(data map[string]interface{}) {
+	p := ctx.GetProduct()
+	if p == nil {
+		logs.Error("product not found " + ctx.ProductId)
+	} else {
+		p.GetTimeSeries().Save(ctx.ProductId, data)
+	}
 }
 
 // 编解码接口
