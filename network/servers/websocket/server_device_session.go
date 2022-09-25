@@ -19,7 +19,7 @@ type websocketSession struct {
 
 func (s *websocketSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
-	codec.GetSessionManager().PutSession(deviceId, s)
+	codec.GetSessionManager().Put(deviceId, s)
 }
 
 func (s *websocketSession) Send(msg interface{}) error {

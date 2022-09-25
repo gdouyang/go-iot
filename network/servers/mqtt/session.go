@@ -62,7 +62,7 @@ func (s *Session) init(b *Broker, connect *packets.ConnectPacket) error {
 	s.info.CleanFlag = connect.CleanSession
 	s.info.Topics = make(map[string]int)
 
-	codec.GetSessionManager().PutSession(connect.ClientIdentifier, s)
+	codec.GetSessionManager().Put(connect.ClientIdentifier, s)
 	go s.backgroundResendPending()
 	return nil
 }
@@ -207,7 +207,7 @@ func (s *Session) backgroundResendPending() {
 
 func (s *Session) SetDeviceId(deviceId string) {
 	s.info.deviceId = deviceId
-	codec.GetSessionManager().PutSession(deviceId, s)
+	codec.GetSessionManager().Put(deviceId, s)
 }
 
 func (s *Session) Send(msg interface{}) error {

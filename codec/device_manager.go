@@ -5,8 +5,8 @@ import (
 	"go-iot/codec/msg"
 )
 
-var deviceManagerIns DeviceManager = DeviceManager{}
-var productManager ProductManager = ProductManager{m: map[string]Product{}}
+var deviceManagerIns DeviceManager = DeviceManager{m: make(map[string]Device)}
+var productManager ProductManager = ProductManager{m: make(map[string]Product)}
 
 func GetDeviceManager() *DeviceManager {
 	return &deviceManagerIns
@@ -26,8 +26,8 @@ func (dm *DeviceManager) Get(deviceId string) Device {
 	return device
 }
 
-func (dm *DeviceManager) Put(id string, device Device) {
-	dm.m[id] = device
+func (dm *DeviceManager) Put(device Device) {
+	dm.m[device.GetId()] = device
 }
 
 // ProductManager
@@ -50,20 +50,25 @@ func (pm *ProductManager) Put(product Product) {
 	pm.m[product.GetId()] = product
 }
 
-type defaultDevice struct {
-	session Session
-	data    map[string]interface{}
-	config  map[string]interface{}
+type DefaultDevice struct {
+	Id        string
+	ProductId string
+	Data      map[string]interface{}
+	Config    map[string]interface{}
 }
 
-func (device *defaultDevice) GetSession() Session {
-	return device.session
+func (d *DefaultDevice) GetId() string {
+	return d.Id
 }
-func (device *defaultDevice) GetData() map[string]interface{} {
-	return device.data
+func (d *DefaultDevice) GetSession() Session {
+	s := GetSessionManager().Get(d.Id)
+	return s
 }
-func (device *defaultDevice) GetConfig() map[string]interface{} {
-	return device.config
+func (d *DefaultDevice) GetData() map[string]interface{} {
+	return d.Data
+}
+func (d *DefaultDevice) GetConfig() map[string]interface{} {
+	return d.Config
 }
 
 type DefaultProdeuct struct {
@@ -85,7 +90,7 @@ func (p *DefaultProdeuct) GetTimeSeries() TimeSeries {
 
 // 进行功能调用
 func DoFuncInvoke(productId string, message msg.FuncInvoke) error {
-	session := sessionManager.GetSession(message.DeviceId)
+	session := sessionManager.Get(message.DeviceId)
 	if session == nil {
 		return errors.New("设备不在线")
 	}

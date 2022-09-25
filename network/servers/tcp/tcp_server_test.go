@@ -15,7 +15,6 @@ function OnConnect(context) {
   console.log("OnConnect: " + JSON.stringify(context))
 }
 function Decode(context) {
-	context.Save({"msg": context.MsgToString()})
   console.log("Decode: " + context.MsgToString())
 }
 function Encode(context) {
@@ -35,6 +34,20 @@ function OnStateChecker(context) {
 }
 `
 
+const script1 = `
+function OnConnect(context) {
+  console.log("OnConnect: " + JSON.stringify(context))
+}
+function Decode(context) {
+	context.Save({"msg": context.MsgToString()})
+	var data = JSON.parse(context.MsgToString())
+  console.log("Decode: deviceId = " + data.deviceId)
+}
+function Encode(context) {
+	console.log("Encode: " + JSON.stringify(context))
+}
+`
+
 var network codec.Network = codec.Network{
 	Name:      "test server",
 	ProductId: "test-product",
@@ -51,14 +64,22 @@ var product codec.Product = &codec.DefaultProdeuct{
 
 func init() {
 	codec.GetProductManager().Put(product)
+	var device codec.Device = &codec.DefaultDevice{
+		Id:        "1234",
+		ProductId: product.GetId(),
+		Data:      make(map[string]interface{}),
+		Config:    make(map[string]interface{}),
+	}
+	codec.GetDeviceManager().Put(device)
 }
 func TestServerDelimited(t *testing.T) {
 	network := network
 	network.Configuration = `{"host": "localhost",
 	"port": 8888, "useTLS": false,
-	"delimeter": {"type":"Delimited", "delimited":"\n"}}`
+	"delimeter": {"type":"Delimited", "delimited":"}"}}`
+	network.Script = script1
 	tcpserver.ServerSocket(network)
-	newClient(network)
+	newClient1(network)
 }
 
 func TestServerFixLenght(t *testing.T) {
@@ -127,6 +148,30 @@ func newClient(network codec.Network) {
 	for i := 0; i < 10; i++ {
 		str1 := time.Now().Format("2006-01-02 15:04:05")
 		str := fmt.Sprintf("aasss %s \n", str1)
+		conn.Write([]byte(str))
+
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func newClient1(network codec.Network) {
+	spec := tcpserver.TcpServerSpec{}
+	spec.FromJson(network.Configuration)
+	spec.Port = network.Port
+	conn, err := net.Dial("tcp", spec.Host+":"+fmt.Sprint(spec.Port))
+	if err != nil {
+		fmt.Print(err)
+	}
+	go func() {
+		stdin := bufio.NewScanner(conn)
+		for stdin.Scan() {
+			fmt.Println("server> " + stdin.Text())
+		}
+	}()
+
+	for i := 0; i < 10; i++ {
+		str1 := time.Now().Format("2006-01-02 15:04:05")
+		str := fmt.Sprintf(`{"deviceId": "1234", "data": "%s"}`, str1)
 		conn.Write([]byte(str))
 
 		time.Sleep(1 * time.Second)

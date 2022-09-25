@@ -12,14 +12,14 @@ type SessionManager struct {
 	sessionMap sync.Map
 }
 
-func (sm *SessionManager) GetSession(deviceId string) Session {
+func (sm *SessionManager) Get(deviceId string) Session {
 	if val, ok := sm.sessionMap.Load(deviceId); ok {
 		return val.(Session)
 	}
 	return nil
 }
 
-func (sm *SessionManager) PutSession(deviceId string, session Session) {
+func (sm *SessionManager) Put(deviceId string, session Session) {
 	sm.sessionMap.Store(deviceId, session)
 }
 

@@ -17,7 +17,7 @@ type tcpSession struct {
 
 func (s *tcpSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
-	codec.GetSessionManager().PutSession(deviceId, s)
+	codec.GetSessionManager().Put(deviceId, s)
 }
 
 func (s *tcpSession) Send(msg interface{}) error {

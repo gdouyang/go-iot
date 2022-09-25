@@ -14,6 +14,7 @@ type Session interface {
 
 // 设备信息
 type Device interface {
+	GetId() string
 	// 获取会话
 	GetSession() Session
 	GetData() map[string]interface{}
