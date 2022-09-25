@@ -1,6 +1,6 @@
 package tcpserver
 
-import "go-iot/provider/codec"
+import "go-iot/codec"
 
 type tcpContext struct {
 	deviceId  string

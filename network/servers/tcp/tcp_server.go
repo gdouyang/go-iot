@@ -2,7 +2,7 @@ package tcpserver
 
 import (
 	"fmt"
-	"go-iot/provider/codec"
+	"go-iot/codec"
 	"net"
 
 	"github.com/beego/beego/v2/core/logs"

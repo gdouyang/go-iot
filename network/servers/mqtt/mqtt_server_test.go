@@ -2,8 +2,8 @@ package mqttserver_test
 
 import (
 	"fmt"
-	"go-iot/provider/codec"
-	mqttserver "go-iot/provider/servers/mqtt"
+	"go-iot/codec"
+	mqttserver "go-iot/network/servers/mqtt"
 	"os"
 	"testing"
 

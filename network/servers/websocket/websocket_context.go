@@ -1,6 +1,6 @@
 package websocketsocker
 
-import "go-iot/provider/codec"
+import "go-iot/codec"
 
 type websocketContext struct {
 	deviceId  string

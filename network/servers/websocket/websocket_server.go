@@ -2,7 +2,7 @@ package websocketsocker
 
 import (
 	"fmt"
-	"go-iot/provider/codec"
+	"go-iot/codec"
 	"log"
 	"net/http"
 

@@ -1,7 +1,7 @@
 package tcpserver
 
 import (
-	"go-iot/provider/codec"
+	"go-iot/codec"
 	"net"
 )
 

@@ -3,7 +3,7 @@ package mqttserver
 import (
 	"crypto/tls"
 	"fmt"
-	"go-iot/provider/codec"
+	"go-iot/codec"
 	"net"
 	"sync"
 

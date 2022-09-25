@@ -3,8 +3,8 @@ package tcpserver_test
 import (
 	"bufio"
 	"fmt"
-	"go-iot/provider/codec"
-	tcpserver "go-iot/provider/servers/tcp"
+	"go-iot/codec"
+	tcpserver "go-iot/network/servers/tcp"
 	"net"
 	"testing"
 	"time"

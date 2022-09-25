@@ -1,6 +1,6 @@
 package mqttserver
 
-import "go-iot/provider/codec"
+import "go-iot/codec"
 
 type mqttContext struct {
 	deviceId  string

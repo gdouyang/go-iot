@@ -2,7 +2,7 @@ package codec
 
 import (
 	"errors"
-	"go-iot/provider/codec/msg"
+	"go-iot/codec/msg"
 )
 
 var deviceManagerIns DeviceManager = DeviceManager{}

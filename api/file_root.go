@@ -1,7 +1,7 @@
 package api
 
 import (
-	"go-iot/provider/util"
+	"go-iot/network/util"
 	"net/http"
 
 	"github.com/beego/beego/v2/server/web"

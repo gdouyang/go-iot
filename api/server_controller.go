@@ -2,13 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"go-iot/codec"
 	"go-iot/models"
 	"go-iot/models/network"
-	"go-iot/provider/codec"
-	httpserver "go-iot/provider/servers/http"
-	mqttserver "go-iot/provider/servers/mqtt"
-	tcpserver "go-iot/provider/servers/tcp"
-	websocketserver "go-iot/provider/servers/websocket"
+	httpserver "go-iot/network/servers/http"
+	mqttserver "go-iot/network/servers/mqtt"
+	tcpserver "go-iot/network/servers/tcp"
+	websocketserver "go-iot/network/servers/websocket"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/beego/beego/v2/server/web"

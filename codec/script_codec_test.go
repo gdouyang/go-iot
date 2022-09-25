@@ -2,7 +2,7 @@ package codec_test
 
 import (
 	"fmt"
-	"go-iot/provider/codec"
+	"go-iot/codec"
 	"testing"
 
 	"github.com/robertkrimen/otto"

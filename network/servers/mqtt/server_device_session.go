@@ -2,7 +2,7 @@ package mqttserver
 
 import (
 	"encoding/base64"
-	"go-iot/provider/codec"
+	"go-iot/codec"
 	"sync"
 	"time"
 

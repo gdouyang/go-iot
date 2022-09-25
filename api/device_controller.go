@@ -2,10 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"go-iot/codec"
+	"go-iot/codec/msg"
 	"go-iot/models"
 	device "go-iot/models/device"
-	"go-iot/provider/codec"
-	"go-iot/provider/codec/msg"
 
 	"github.com/beego/beego/v2/server/web"
 )

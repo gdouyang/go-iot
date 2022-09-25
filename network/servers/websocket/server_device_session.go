@@ -1,7 +1,7 @@
 package websocketsocker
 
 import (
-	"go-iot/provider/codec"
+	"go-iot/codec"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/gorilla/websocket"

@@ -1,19 +1,39 @@
-package websocketsocker
+package mqttserver
 
 import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"go-iot/provider/servers"
-	"log"
+	"go-iot/network/servers"
+
+	"github.com/beego/beego/v2/core/logs"
+)
+
+// PacketType is mqtt packet type
+type PacketType string
+
+const (
+	// Connect is connect type of MQTT packet
+	Connect PacketType = "Connect"
+
+	// Disconnect is disconnect type of MQTT packet
+	Disconnect PacketType = "Disconnect"
+
+	// Publish is publish type of MQTT packet
+	Publish PacketType = "Publish"
+
+	// Subscribe is subscribe type of MQTT packet
+	Subscribe PacketType = "Subscribe"
+
+	// Unsubscribe is unsubscribe type of MQTT packet
+	Unsubscribe PacketType = "Unsubscribe"
 )
 
 type (
-
-	// Spec describes the websocket Server
-	WebsocketServerSpec struct {
-		Name                 string                `json:"name"`
+	// Spec describes the MQTTProxy.
+	MQTTServerSpec struct {
 		Host                 string                `json:"host"`
+		Name                 string                `json:"name"`
 		Port                 uint16                `json:"port"`
 		UseTLS               bool                  `json:"useTLS"`
 		Certificate          []servers.Certificate `json:"certificate"`
@@ -21,14 +41,14 @@ type (
 	}
 )
 
-func (spec *WebsocketServerSpec) FromJson(str string) {
+func (spec *MQTTServerSpec) FromJson(str string) {
 	err := json.Unmarshal([]byte(str), spec)
 	if err != nil {
-		log.Panicln(err)
+		logs.Error(err)
 	}
 }
 
-func (spec *WebsocketServerSpec) TlsConfig() (*tls.Config, error) {
+func (spec *MQTTServerSpec) TlsConfig() (*tls.Config, error) {
 	var certificates []tls.Certificate
 
 	for _, c := range spec.Certificate {

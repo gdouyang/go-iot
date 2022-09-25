@@ -2,7 +2,7 @@ package mqttserver
 
 import (
 	"errors"
-	"go-iot/provider/codec"
+	"go-iot/codec"
 	"net"
 	"reflect"
 	"sync"
