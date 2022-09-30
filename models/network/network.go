@@ -28,25 +28,23 @@ func ListNetwork(page *models.PageQuery) (*models.PageResult, error) {
 
 	id := n.Id
 	if id > 0 {
-		qs.Filter("id", id)
+		qs = qs.Filter("id", id)
 	}
 	if n.Port > 0 {
-		qs.Filter("port", n.Port)
+		qs = qs.Filter("port", n.Port)
 	}
 	if len(n.Name) > 0 {
-		qs.Filter("name__contains", n.Name)
+		qs = qs.Filter("name__contains", n.Name)
 	}
 	if len(n.ProductId) > 0 {
-		qs.Filter("productId", n.ProductId)
+		qs = qs.Filter("productId", n.ProductId)
 	}
 	if len(n.CodecId) > 0 {
-		qs.Filter("codecId", n.CodecId)
+		qs = qs.Filter("codecId", n.CodecId)
 	}
 	if len(n.Type) > 0 {
-		qs.Filter("type", n.Type)
+		qs = qs.Filter("type", n.Type)
 	}
-	qs.Offset(page.PageOffset())
-	qs.Limit(page.PageSize)
 
 	count, err := qs.Count()
 	if err != nil {
@@ -54,16 +52,13 @@ func ListNetwork(page *models.PageQuery) (*models.PageResult, error) {
 	}
 
 	var result []models.Network
-	_, err = qs.All(&result)
+	_, err = qs.Limit(page.PageSize, page.PageOffset()).All(&result)
 	if err != nil {
 		return nil, err
 	}
 
-	pr = &models.PageResult{
-		PageSize: page.PageSize,
-		PageNum:  page.PageNum,
-		Total:    count,
-		Data:     result}
+	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
+	pr = &p
 
 	return pr, nil
 }

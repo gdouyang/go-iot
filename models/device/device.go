@@ -26,13 +26,11 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 
 	id := dev.Id
 	if len(id) > 0 {
-		qs.Filter("id", id)
+		qs = qs.Filter("id", id)
 	}
 	if len(dev.Name) > 0 {
-		qs.Filter("name__contains", dev.Name)
+		qs = qs.Filter("name__contains", dev.Name)
 	}
-	qs.Offset(page.PageOffset())
-	qs.Limit(page.PageSize)
 
 	count, err := qs.Count()
 	if err != nil {
@@ -40,16 +38,13 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	}
 
 	var result []models.Product
-	_, err = qs.All(&result)
+	_, err = qs.Limit(page.PageSize, page.PageOffset()).All(&result)
 	if err != nil {
 		return nil, err
 	}
 
-	pr = &models.PageResult{
-		PageSize: page.PageSize,
-		PageNum:  page.PageNum,
-		Total:    count,
-		Data:     result}
+	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
+	pr = &p
 
 	return pr, nil
 }
