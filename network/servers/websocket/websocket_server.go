@@ -39,7 +39,7 @@ func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
 	defer conn.Close()
 
 	session := newSession(conn)
-	defer session.DisConnect()
+	defer session.Disconnect()
 
 	sc := codec.GetCodec(productId)
 
@@ -57,7 +57,7 @@ func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
 		log.Printf("Received: %s", message)
 
 		context.Data = message
-		sc.Decode(context)
+		sc.OnMessage(context)
 	}
 }
 

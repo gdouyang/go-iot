@@ -26,6 +26,6 @@ func (sm *SessionManager) Put(deviceId string, session Session) {
 func (sm *SessionManager) DelLocal(deviceId string) {
 	if val, ok := sm.sessionMap.LoadAndDelete(deviceId); ok {
 		sess := val.(Session)
-		sess.DisConnect()
+		sess.Disconnect()
 	}
 }

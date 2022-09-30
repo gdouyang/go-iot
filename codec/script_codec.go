@@ -24,10 +24,10 @@ func newScriptCodec(network Network) (Codec, error) {
 
 	var val, _ = vm.Get("OnConnect")
 	sc.onConnect = val
-	val, _ = vm.Get("Decode")
-	sc.decode = val
-	val, _ = vm.Get("Encode")
-	sc.encode = val
+	val, _ = vm.Get("OnMessage")
+	sc.onMessage = val
+	val, _ = vm.Get("OnInvoke")
+	sc.onInvoke = val
 	val, _ = vm.Get("OnDeviceCreate")
 	sc.onDeviceCreate = val
 	val, _ = vm.Get("OnDeviceDelete")
@@ -45,8 +45,8 @@ type ScriptCodec struct {
 	script         string
 	vm             *otto.Otto
 	onConnect      otto.Value
-	decode         otto.Value
-	encode         otto.Value
+	onMessage      otto.Value
+	onInvoke       otto.Value
 	onDeviceCreate otto.Value
 	onDeviceDelete otto.Value
 	onDeviceUpdate otto.Value
@@ -59,15 +59,20 @@ func (codec *ScriptCodec) OnConnect(ctx Context) error {
 	return nil
 }
 
-// 设备解码
-func (codec *ScriptCodec) Decode(ctx Context) error {
-	funcInvoke(codec.decode, ctx)
+// 接收消息
+func (codec *ScriptCodec) OnMessage(ctx Context) error {
+	funcInvoke(codec.onMessage, ctx)
 	return nil
 }
 
-// 编码
-func (codec *ScriptCodec) Encode(ctx Context) error {
-	funcInvoke(codec.encode, ctx)
+// 命令调用
+func (codec *ScriptCodec) OnInvoke(ctx Context) error {
+	funcInvoke(codec.onInvoke, ctx)
+	return nil
+}
+
+// 连接关闭
+func (codec *ScriptCodec) OnClose(ctx Context) error {
 	return nil
 }
 
@@ -89,6 +94,7 @@ func (codec *ScriptCodec) OnUpdate(ctx Context) error {
 	return nil
 }
 
+// 状态检查
 func (codec *ScriptCodec) OnStateChecker(ctx Context) error {
 	funcInvoke(codec.onStateChecker, ctx)
 	return nil

@@ -220,7 +220,7 @@ func (s *Session) Send(msg interface{}) error {
 	return nil
 }
 
-func (s *Session) DisConnect() error {
+func (s *Session) Disconnect() error {
 	s.close()
 	return nil
 }

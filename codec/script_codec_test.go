@@ -28,11 +28,11 @@ func TestDecode(t *testing.T) {
 function OnConnect(context) {
   console.log(JSON.stringify(context))
 }
-function Decode(context) {
+function OnMessage(context) {
   console.log("122")
   console.log(JSON.stringify(context))
 }
-function Encode(context) {
+function OnInvoke(context) {
 	console.log(JSON.stringify(context))
 }
 function OnDeviceCreate(context) {
@@ -51,8 +51,8 @@ function OnStateChecker(context) {
 	}
 	c := codec.NewCodec(network)
 	c.OnConnect(&codec.MockContext{DeviceId: "fff"})
-	c.Decode(&codec.MockContext{DeviceId: "fff"})
-	c.Encode(&codec.MockContext{DeviceId: "fff"})
+	c.OnInvoke(&codec.MockContext{DeviceId: "fff"})
+	c.OnMessage(&codec.MockContext{DeviceId: "fff"})
 	switch m := c.(type) {
 	case codec.DeviceLifecycle:
 		m.OnCreate(&codec.MockContext{DeviceId: "2222"})

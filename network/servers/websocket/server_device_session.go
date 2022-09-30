@@ -30,6 +30,6 @@ func (s *websocketSession) Send(msg interface{}) error {
 	return err
 }
 
-func (s *websocketSession) DisConnect() error {
+func (s *websocketSession) Disconnect() error {
 	return s.conn.Close()
 }

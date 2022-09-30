@@ -9,7 +9,7 @@ import (
 // 会话信息
 type Session interface {
 	Send(msg interface{}) error
-	DisConnect() error
+	Disconnect() error
 }
 
 // 设备信息
@@ -72,10 +72,12 @@ func (ctx *BaseContext) Save(data map[string]interface{}) {
 type Codec interface {
 	// 设备连接时
 	OnConnect(ctx Context) error
-	// 设备解码
-	Decode(ctx Context) error
-	// 编码
-	Encode(ctx Context) error
+	// 接收消息
+	OnMessage(ctx Context) error
+	// 命令调用
+	OnInvoke(ctx Context) error
+	// 连接关闭
+	OnClose(ctx Context) error
 }
 
 // 时序保存

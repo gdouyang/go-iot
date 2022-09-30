@@ -25,6 +25,6 @@ func (s *tcpSession) Send(msg interface{}) error {
 	return nil
 }
 
-func (s *tcpSession) DisConnect() error {
+func (s *tcpSession) Disconnect() error {
 	return s.conn.Close()
 }

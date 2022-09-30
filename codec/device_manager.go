@@ -95,7 +95,7 @@ func DoFuncInvoke(productId string, message msg.FuncInvoke) error {
 		return errors.New("设备不在线")
 	}
 	codec := GetCodec(productId)
-	codec.Decode(&FuncInvokeContext{session: session,
+	codec.OnInvoke(&FuncInvokeContext{session: session,
 		deviceId: message.DeviceId, productId: productId})
 	return nil
 }

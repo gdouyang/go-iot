@@ -45,7 +45,7 @@ func connHandler(c net.Conn, productId string, spec *TcpServerSpec) {
 		return
 	}
 	session := newTcpSession(c)
-	defer session.DisConnect()
+	defer session.Disconnect()
 
 	sc := codec.GetCodec(productId)
 
@@ -68,6 +68,6 @@ func connHandler(c net.Conn, productId string, spec *TcpServerSpec) {
 			break
 		}
 		context.Data = data
-		sc.Decode(context)
+		sc.OnMessage(context)
 	}
 }
