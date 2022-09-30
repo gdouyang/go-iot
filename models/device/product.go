@@ -49,7 +49,7 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 		PageSize: page.PageSize,
 		PageNum:  page.PageNum,
 		Total:    count,
-		List:     result}
+		Data:     result}
 
 	return pr, nil
 }
@@ -100,7 +100,7 @@ func GetProduct(id string) (models.Product, error) {
 	p := models.Product{Id: id}
 	err := o.Read(&p)
 	if err == orm.ErrNoRows {
-		return models.Product{}, err
+		return models.Product{}, nil
 	} else if err == orm.ErrMissPK {
 		return models.Product{}, err
 	} else {

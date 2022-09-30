@@ -87,7 +87,7 @@ type TimeSeries interface {
 // 网络配置
 type Network struct {
 	Name          string `json:"name"`
-	Port          uint16 `json:"port"`
+	Port          int32  `json:"port"`
 	ProductId     string `json:"productId"`
 	Configuration string `json:"configuration"`
 	Script        string `json:"script"`

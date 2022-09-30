@@ -14,7 +14,7 @@ type (
 	TcpServerSpec struct {
 		Name                 string                `json:"name"`
 		Host                 string                `json:"host"`
-		Port                 uint16                `json:"port"`
+		Port                 int32                 `json:"port"`
 		UseTLS               bool                  `json:"useTLS"`
 		Certificate          []servers.Certificate `json:"certificate"`
 		MaxAllowedConnection int                   `json:"maxAllowedConnection"`

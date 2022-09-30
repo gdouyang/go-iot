@@ -49,7 +49,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 		PageSize: page.PageSize,
 		PageNum:  page.PageNum,
 		Total:    count,
-		List:     result}
+		Data:     result}
 
 	return pr, nil
 }
@@ -83,21 +83,11 @@ func UpdateDevice(ob *models.Device) error {
 	return nil
 }
 
-// 根据SN与provider来更新设备在线状态
+// 更新在线状态
 func UpdateOnlineStatus(onlineStatus string, id string) error {
-	//更新数据
-	db, _ := models.GetDb()
-	defer db.Close()
-	stmt, err := db.Prepare(`
-	update device 
-	set online_status_ = ?
-	where id_ = ?
-	`)
-	if err != nil {
-		return err
-	}
-
-	_, err = stmt.Exec(onlineStatus, id)
+	var ob models.Device = models.Device{Id: id, OnlineStatus: onlineStatus}
+	o := orm.NewOrm()
+	_, err := o.Update(ob, "OnlineStatus")
 	if err != nil {
 		logs.Error("update fail", err)
 		return err
@@ -120,7 +110,7 @@ func GetDevice(deviceId string) (models.Device, error) {
 	p := models.Device{Id: deviceId}
 	err := o.Read(&p)
 	if err == orm.ErrNoRows {
-		return models.Device{}, err
+		return models.Device{}, nil
 	} else if err == orm.ErrMissPK {
 		return models.Device{}, err
 	} else {

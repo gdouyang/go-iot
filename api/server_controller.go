@@ -36,19 +36,23 @@ func (c *ServerController) List() {
 	var ob models.PageQuery
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
 
+	defer c.ServeJSON()
+
 	res, err := network.ListNetwork(&ob)
 	if err != nil {
 		c.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
 	} else {
 		c.Data["json"] = &res
 	}
-	c.ServeJSON()
 }
 
 func (c *ServerController) Add() {
 	var resp models.JsonResp
 	resp.Success = true
 	var ob models.Network
+
+	defer c.ServeJSON()
+
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
 	if ob.Port <= 1024 || ob.Port > 65535 {
 		resp.Msg = "Invalid port number"
@@ -61,16 +65,18 @@ func (c *ServerController) Add() {
 		}
 	}
 	c.Data["json"] = &resp
-	c.ServeJSON()
 }
 
 func (c *ServerController) Update() {
 	var resp models.JsonResp
 	resp.Success = true
 	var ob models.Network
+
+	defer c.ServeJSON()
+
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
-	if len(ob.ProductId) < 1 {
-		resp.Msg = "productId must present"
+	if ob.Port <= 1024 || ob.Port > 65535 {
+		resp.Msg = "Invalid port number"
 		resp.Success = false
 	} else {
 		err := network.AddNetWork(&ob)
@@ -80,7 +86,6 @@ func (c *ServerController) Update() {
 		}
 	}
 	c.Data["json"] = &resp
-	c.ServeJSON()
 }
 
 func (c *ServerController) Delete() {

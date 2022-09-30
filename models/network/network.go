@@ -16,19 +16,31 @@ func init() {
 // 分页查询设备
 func ListNetwork(page *models.PageQuery) (*models.PageResult, error) {
 	var pr *models.PageResult
-	var dev models.Network
-	json.Unmarshal(page.Condition, &dev)
+	var n models.Network
+	json.Unmarshal(page.Condition, &n)
 
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.Network{})
 
-	id := dev.Id
+	id := n.Id
 	if id > 0 {
 		qs.Filter("id", id)
 	}
-	if len(dev.Name) > 0 {
-		qs.Filter("name__contains", dev.Name)
+	if n.Port > 0 {
+		qs.Filter("port", n.Port)
+	}
+	if len(n.Name) > 0 {
+		qs.Filter("name__contains", n.Name)
+	}
+	if len(n.ProductId) > 0 {
+		qs.Filter("productId", n.ProductId)
+	}
+	if len(n.CodecId) > 0 {
+		qs.Filter("codecId", n.CodecId)
+	}
+	if len(n.Type) > 0 {
+		qs.Filter("type", n.Type)
 	}
 	qs.Offset(page.PageOffset())
 	qs.Limit(page.PageSize)
@@ -48,13 +60,13 @@ func ListNetwork(page *models.PageQuery) (*models.PageResult, error) {
 		PageSize: page.PageSize,
 		PageNum:  page.PageNum,
 		Total:    count,
-		List:     result}
+		Data:     result}
 
 	return pr, nil
 }
 
 func AddNetWork(ob *models.Network) error {
-	rs, err := GetNetwork(ob.Id)
+	rs, err := GetNetworkByEntity(models.Network{Port: ob.Port})
 	if err != nil {
 		return err
 	}
@@ -99,7 +111,21 @@ func GetNetwork(id int64) (models.Network, error) {
 	p := models.Network{Id: id}
 	err := o.Read(&p)
 	if err == orm.ErrNoRows {
+		return models.Network{}, nil
+	} else if err == orm.ErrMissPK {
 		return models.Network{}, err
+	} else {
+		return p, nil
+	}
+}
+
+func GetNetworkByEntity(p models.Network) (models.Network, error) {
+
+	o := orm.NewOrm()
+
+	err := o.Read(&p)
+	if err == orm.ErrNoRows {
+		return models.Network{}, nil
 	} else if err == orm.ErrMissPK {
 		return models.Network{}, err
 	} else {

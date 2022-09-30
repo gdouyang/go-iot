@@ -34,7 +34,7 @@ type (
 	MQTTServerSpec struct {
 		Host                 string                `json:"host"`
 		Name                 string                `json:"name"`
-		Port                 uint16                `json:"port"`
+		Port                 int32                 `json:"port"`
 		UseTLS               bool                  `json:"useTLS"`
 		Certificate          []servers.Certificate `json:"certificate"`
 		MaxAllowedConnection int                   `json:"maxAllowedConnection"`

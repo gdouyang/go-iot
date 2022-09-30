@@ -50,7 +50,7 @@ type Device struct {
 type Network struct {
 	Id            int64     `json:"id" orm:"pk;column(id_);auto"`
 	Name          string    `json:"name" orm:"column(name_);size(64);null"`
-	Port          uint16    `json:"port" orm:"column(port_)"`
+	Port          int32     `json:"port" orm:"column(port_);description(端口号)"`
 	ProductId     string    `json:"productId" orm:"column(product_id_);size(32);null;description(产品id)"`
 	Configuration string    `json:"configuration" orm:"column(configuration_);null;type(text);description(网络配置)"`
 	Script        string    `json:"script" orm:"column(script_);null;type(text);description(脚本)"`
