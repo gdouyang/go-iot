@@ -17,7 +17,10 @@ func init() {
 func ListNetwork(page *models.PageQuery) (*models.PageResult, error) {
 	var pr *models.PageResult
 	var n models.Network
-	json.Unmarshal(page.Condition, &n)
+	err1 := json.Unmarshal(page.Condition, &n)
+	if err1 != nil {
+		return nil, err1
+	}
 
 	//查询数据
 	o := orm.NewOrm()

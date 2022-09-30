@@ -18,11 +18,14 @@ func init() {
 func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 	var pr *models.PageResult
 	var dev models.Product
-	json.Unmarshal(page.Condition, &dev)
+	err1 := json.Unmarshal(page.Condition, &dev)
+	if err1 != nil {
+		return nil, err1
+	}
 
 	//查询数据
 	o := orm.NewOrm()
-	qs := o.QueryTable("product")
+	qs := o.QueryTable(models.Product{})
 
 	id := dev.Id
 	if len(id) > 0 {
@@ -55,6 +58,12 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 }
 
 func AddProduct(ob *models.Product) error {
+	if len(ob.Id) == 0 || len(ob.Name) == 0 {
+		return errors.New("id and name not be empty")
+	}
+	if len(ob.Id) > 32 {
+		return errors.New("id length must less 32")
+	}
 	rs, err := GetProduct(ob.Id)
 	if err != nil {
 		return err
@@ -73,6 +82,12 @@ func AddProduct(ob *models.Product) error {
 }
 
 func UpdateProduct(ob *models.Product) error {
+	if len(ob.Id) == 0 || len(ob.Name) == 0 {
+		return errors.New("id and name not be empty")
+	}
+	if len(ob.Id) > 32 {
+		return errors.New("id length must less 32")
+	}
 	//更新数据
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "Name", "TypeId")
@@ -84,6 +99,9 @@ func UpdateProduct(ob *models.Product) error {
 }
 
 func DeleteProduct(ob *models.Product) error {
+	if len(ob.Id) == 0 {
+		return errors.New("id not be empty")
+	}
 	o := orm.NewOrm()
 	_, err := o.Delete(ob)
 	if err != nil {

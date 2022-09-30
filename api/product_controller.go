@@ -13,8 +13,8 @@ func init() {
 	ns := web.NewNamespace("/api/product",
 		web.NSRouter("/list", &ProductController{}, "post:List"),
 		web.NSRouter("/", &ProductController{}, "post:Add"),
-		web.NSRouter("/", &ProductController{}, "delete:Delete"),
 		web.NSRouter("/", &ProductController{}, "put:Update"),
+		web.NSRouter("/", &ProductController{}, "delete:Delete"),
 	)
 	web.AddNamespace(ns)
 }
@@ -40,25 +40,63 @@ func (ctl *ProductController) List() {
 
 // 添加型号
 func (ctl *ProductController) Add() {
+	var resp models.JsonResp
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
 	var ob models.Product
-	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
-	ctl.Data["json"] = product.AddProduct(&ob)
-	ctl.ServeJSON()
+	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	if err != nil {
+		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		return
+	}
+
+	err = product.AddProduct(&ob)
+	if err != nil {
+		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		return
+	}
+	resp = models.JsonResp{Success: true}
 }
 
 // 更新型号信息
 func (ctl *ProductController) Update() {
+	var resp models.JsonResp
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
 	var ob models.Product
-	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
-	ctl.Data["json"] = product.UpdateProduct(&ob)
-	ctl.ServeJSON()
+	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	if err != nil {
+		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		return
+	}
+	err = product.UpdateProduct(&ob)
+	if err != nil {
+		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		return
+	}
+	resp = models.JsonResp{Success: true}
 }
 
 // 删除型号
 func (ctl *ProductController) Delete() {
+	var resp models.JsonResp
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+
+	id := ctl.Ctx.Input.Param(":id")
 	var ob *models.Product = &models.Product{
-		Id: ctl.Ctx.Input.Param(":id"),
+		Id: id,
 	}
-	ctl.Data["json"] = product.DeleteProduct(ob)
-	ctl.ServeJSON()
+	err := product.DeleteProduct(ob)
+	if err != nil {
+		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		return
+	}
+	resp = models.JsonResp{Success: true}
 }

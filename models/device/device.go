@@ -22,7 +22,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 
 	//查询数据
 	o := orm.NewOrm()
-	qs := o.QueryTable("device")
+	qs := o.QueryTable(models.Device{})
 
 	id := dev.Id
 	if len(id) > 0 {
@@ -55,6 +55,9 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 }
 
 func AddDevice(ob *models.Device) error {
+	if len(ob.Id) == 0 || len(ob.Name) == 0 {
+		return errors.New("id, name not be empty")
+	}
 	rs, err := GetDevice(ob.Id)
 	if err != nil {
 		return err
@@ -73,6 +76,9 @@ func AddDevice(ob *models.Device) error {
 }
 
 func UpdateDevice(ob *models.Device) error {
+	if len(ob.Id) == 0 {
+		return errors.New("id not be empty")
+	}
 	//更新数据
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "Name")
@@ -85,6 +91,12 @@ func UpdateDevice(ob *models.Device) error {
 
 // 更新在线状态
 func UpdateOnlineStatus(onlineStatus string, id string) error {
+	if len(id) == 0 {
+		return errors.New("id not be empty")
+	}
+	if len(onlineStatus) == 0 {
+		return errors.New("onlineStatus not be empty")
+	}
 	var ob models.Device = models.Device{Id: id, OnlineStatus: onlineStatus}
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "OnlineStatus")
@@ -96,6 +108,9 @@ func UpdateOnlineStatus(onlineStatus string, id string) error {
 }
 
 func DeleteDevice(ob *models.Device) error {
+	if len(ob.Id) == 0 {
+		return errors.New("id not be empty")
+	}
 	o := orm.NewOrm()
 	_, err := o.Delete(ob)
 	if err != nil {
@@ -106,6 +121,9 @@ func DeleteDevice(ob *models.Device) error {
 }
 
 func GetDevice(deviceId string) (models.Device, error) {
+	if len(deviceId) == 0 {
+		return models.Device{}, errors.New("deviceId not be empty")
+	}
 	o := orm.NewOrm()
 	p := models.Device{Id: deviceId}
 	err := o.Read(&p)
