@@ -38,18 +38,17 @@ type Context interface {
 	GetProduct() Product
 }
 
+// base context
 type BaseContext struct {
 	DeviceId  string
 	ProductId string
 	Session   Session
 }
 
-// 获取设备操作
 func (ctx *BaseContext) GetDevice() Device {
 	return GetDeviceManager().Get(ctx.DeviceId)
 }
 
-// 获取产品操作
 func (ctx *BaseContext) GetProduct() Product {
 	return GetProductManager().Get(ctx.ProductId)
 }
@@ -58,7 +57,7 @@ func (ctx *BaseContext) GetSession() Session {
 	return ctx.Session
 }
 
-// 保存时序数据
+// save time series data
 func (ctx *BaseContext) Save(data map[string]interface{}) {
 	p := ctx.GetProduct()
 	if p == nil {
