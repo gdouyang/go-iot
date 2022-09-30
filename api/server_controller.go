@@ -50,8 +50,8 @@ func (c *ServerController) Add() {
 	resp.Success = true
 	var ob models.Network
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
-	if len(ob.ProductId) < 1 {
-		resp.Msg = "productId must present"
+	if ob.Port <= 1024 || ob.Port > 65535 {
+		resp.Msg = "Invalid port number"
 		resp.Success = false
 	} else {
 		err := network.AddNetWork(&ob)

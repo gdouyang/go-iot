@@ -28,9 +28,9 @@ type UserRelRole struct {
 type Product struct {
 	Id         string    `json:"id" orm:"pk;column(id_);size(32);description(产品ID)"`
 	Name       string    `json:"name" orm:"column(name_);description(名称)"`
-	TypeId     string    `json:"typeId" orm:"column(type_id_);description(类型)"`
-	MetaData   string    `json:"metaData" orm:"column(meta_data_);description(物模型)"`
-	MetaConfig string    `json:"metaConfig" orm:"column(meta_config_);description(配置属性)"`
+	TypeId     string    `json:"typeId" orm:"column(type_id_);null;description(类型)"`
+	MetaData   string    `json:"metaData" orm:"column(meta_data_);null;description(物模型)"`
+	MetaConfig string    `json:"metaConfig" orm:"column(meta_config_);null;description(配置属性)"`
 	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
 }
@@ -41,7 +41,7 @@ type Device struct {
 	Name         string    `json:"name" orm:"column(name_);size(64);description(设备名称)"`
 	ProductId    string    `json:"productId" orm:"column(product_id_);size(32);description(产品id)"`
 	OnlineStatus string    `json:"onlineStatus" orm:"column(online_status_);size(10);description(在线状态online,offline)"`
-	MetaConfig   string    `json:"metaConfig" orm:"column(meta_config_);description(配置属性)"`
+	MetaConfig   string    `json:"metaConfig" orm:"column(meta_config_);null;description(配置属性)"`
 	CreateId     int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime   time.Time `json:"createTime" orm:"column(create_time_)"`
 }
@@ -49,13 +49,13 @@ type Device struct {
 // 网络配置
 type Network struct {
 	Id            int64     `json:"id" orm:"pk;column(id_);auto"`
-	Name          string    `json:"name" orm:"column(name_);size(64)"`
+	Name          string    `json:"name" orm:"column(name_);size(64);null"`
 	Port          uint16    `json:"port" orm:"column(port_)"`
-	ProductId     string    `json:"productId" orm:"column(product_id_);size(32);description(产品id)"`
+	ProductId     string    `json:"productId" orm:"column(product_id_);size(32);null;description(产品id)"`
 	Configuration string    `json:"configuration" orm:"column(configuration_);null;type(text);description(网络配置)"`
 	Script        string    `json:"script" orm:"column(script_);null;type(text);description(脚本)"`
 	Type          string    `json:"type" orm:"column(type_);size(32);description(网络类型MQTT_BROKER)"`
-	CodecId       string    `json:"codecId" orm:"column(codec_id_);size(32);description(编解码id)"`
+	CodecId       string    `json:"codecId" orm:"column(codec_id_);size(32);null;description(编解码id)"`
 	CreateId      int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime    time.Time `json:"createTime" orm:"column(create_time_)"`
 }
