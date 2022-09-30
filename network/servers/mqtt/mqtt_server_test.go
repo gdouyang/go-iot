@@ -14,11 +14,11 @@ const script = `
 function OnConnect(context) {
   console.log("OnConnect: " + JSON.stringify(context))
 }
-function Decode(context) {
-  console.log("Decode: " + context.MsgToString())
+function OnMessage(context) {
+  console.log("OnMessage: " + context.MsgToString())
 }
-function Encode(context) {
-	console.log("Encode: " + JSON.stringify(context))
+function OnInvoke(context) {
+	console.log("OnInvoke: " + JSON.stringify(context))
 }
 function OnDeviceCreate(context) {
 	console.log(JSON.stringify(context))

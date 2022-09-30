@@ -38,13 +38,13 @@ const script1 = `
 function OnConnect(context) {
   console.log("OnConnect: " + JSON.stringify(context))
 }
-function Decode(context) {
+function OnMessage(context) {
 	context.Save({"msg": context.MsgToString()})
 	var data = JSON.parse(context.MsgToString())
-  console.log("Decode: deviceId = " + data.deviceId)
+  console.log("OnMessage: deviceId = " + data.deviceId)
 }
-function Encode(context) {
-	console.log("Encode: " + JSON.stringify(context))
+function OnInvoke(context) {
+	console.log("OnInvoke: " + JSON.stringify(context))
 }
 `
 
