@@ -9,6 +9,7 @@ import (
 	mqttserver "go-iot/network/servers/mqtt"
 	tcpserver "go-iot/network/servers/tcp"
 	websocketserver "go-iot/network/servers/websocket"
+	"strconv"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/beego/beego/v2/server/web"
@@ -96,9 +97,17 @@ func (c *ServerController) Delete() {
 }
 
 func (c *ServerController) Start() {
-	id := c.Ctx.Input.Param(":id")
-	nw, err := network.GetNetwork(id)
 	var resp models.JsonResp
+	id := c.Ctx.Input.Param(":id")
+	defer c.ServeJSON()
+
+	_id, err := strconv.Atoi(id)
+	if err != nil {
+		resp.Msg = "broker start failed"
+		resp.Success = false
+		return
+	}
+	nw, err := network.GetNetwork(int64(_id))
 	resp.Success = true
 	if err != nil {
 		resp.Msg = err.Error()
@@ -127,7 +136,6 @@ func (c *ServerController) Start() {
 		}
 	}
 	c.Data["json"] = resp
-	c.ServeJSON()
 }
 
 func convertCodecNetwork(nw models.Network) codec.Network {
@@ -144,9 +152,17 @@ func convertCodecNetwork(nw models.Network) codec.Network {
 }
 
 func (c *ServerController) Meters() {
-	id := c.Ctx.Input.Param(":id")
-	nw, err := network.GetNetwork(id)
 	var resp models.JsonResp
+	defer c.ServeJSON()
+
+	id := c.Ctx.Input.Param(":id")
+	_id, err := strconv.Atoi(id)
+	if err != nil {
+		resp.Msg = "broker start failed"
+		resp.Success = false
+		return
+	}
+	nw, err := network.GetNetwork(int64(_id))
 	if err != nil {
 		resp.Msg = err.Error()
 		resp.Success = false
@@ -167,5 +183,4 @@ func (c *ServerController) Meters() {
 	}
 
 	c.Data["json"] = resp
-	c.ServeJSON()
 }

@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS i_network (
   product_id_ VARCHAR(32) NULL COMMENT '产品主键',
   configuration_ TEXT NULL COMMENT '网络配置',
   script_ TEXT NULL COMMENT '编解码脚本',
+  type_ VARCHAR(10) NULL COMMENT '网络类型MQTT_BROKER',
+  codec_id_ VARCHAR(32) NULL COMMENT '编解码id',
   create_id_ VARCHAR(32) NULL COMMENT '创建id',
   create_time_ DATETIME NULL COMMENT '创建时间'
 );

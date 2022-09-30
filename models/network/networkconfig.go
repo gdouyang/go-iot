@@ -24,7 +24,7 @@ func ListNetwork(page *models.PageQuery) (*models.PageResult, error) {
 	qs := o.QueryTable(&models.Network{})
 
 	id := dev.Id
-	if len(id) > 0 {
+	if id > 0 {
 		qs.Filter("id", id)
 	}
 	if len(dev.Name) > 0 {
@@ -58,7 +58,7 @@ func AddNetWork(ob *models.Network) error {
 	if err != nil {
 		return err
 	}
-	if len(rs.Id) > 0 {
+	if rs.Id > 0 {
 		return errors.New("配置已存在")
 	}
 	//插入数据
@@ -92,7 +92,7 @@ func DeleteNetwork(ob *models.Network) error {
 	return nil
 }
 
-func GetNetwork(id string) (models.Network, error) {
+func GetNetwork(id int64) (models.Network, error) {
 
 	o := orm.NewOrm()
 
