@@ -83,9 +83,20 @@ func UpdateProduct(ob *models.Product) error {
 	if len(ob.Id) > 32 {
 		return errors.New("id length must less 32")
 	}
+	var columns []string
+	columns = append(columns, "Name")
+	if len(ob.TypeId) > 0 {
+		columns = append(columns, "TypeId")
+	}
+	if len(ob.MetaData) > 0 {
+		columns = append(columns, "MetaData")
+	}
+	if len(ob.MetaConfig) > 0 {
+		columns = append(columns, "MetaConfig")
+	}
 	//更新数据
 	o := orm.NewOrm()
-	_, err := o.Update(ob, "Name", "TypeId")
+	_, err := o.Update(ob, columns...)
 	if err != nil {
 		logs.Error("update fail", err)
 		return err

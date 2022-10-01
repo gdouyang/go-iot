@@ -29,8 +29,8 @@ type Product struct {
 	Id         string    `json:"id" orm:"pk;column(id_);size(32);description(产品ID)"`
 	Name       string    `json:"name" orm:"column(name_);description(名称)"`
 	TypeId     string    `json:"typeId" orm:"column(type_id_);null;description(类型)"`
-	MetaData   string    `json:"metaData" orm:"column(meta_data_);null;description(物模型)"`
-	MetaConfig string    `json:"metaConfig" orm:"column(meta_config_);null;description(配置属性)"`
+	MetaData   string    `json:"metaData" orm:"column(meta_data_);null;type(text);description(物模型)"`
+	MetaConfig string    `json:"metaConfig" orm:"column(meta_config_);null;type(text);description(配置属性)"`
 	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
 }
@@ -41,7 +41,7 @@ type Device struct {
 	Name         string    `json:"name" orm:"column(name_);size(64);description(设备名称)"`
 	ProductId    string    `json:"productId" orm:"column(product_id_);size(32);description(产品id)"`
 	OnlineStatus string    `json:"onlineStatus" orm:"column(online_status_);size(10);description(在线状态online,offline)"`
-	MetaConfig   string    `json:"metaConfig" orm:"column(meta_config_);null;description(配置属性)"`
+	MetaConfig   string    `json:"metaConfig" orm:"column(meta_config_);null;type(text);description(配置属性)"`
 	CreateId     int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime   time.Time `json:"createTime" orm:"column(create_time_)"`
 }
