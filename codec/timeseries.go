@@ -20,22 +20,20 @@ func GetTimeSeries(id string) TimeSeriesSave {
 
 // 时序保存
 type TimeSeriesSave interface {
-	Save(productId string, data map[string]interface{})
-}
-
-type TimeSeriesModel interface {
+	// 保存时序数据
+	Save(product Product, data map[string]interface{})
 	// 发布模型
-	PublishModel(product string, model tsl.TslData)
+	PublishModel(product Product, model tsl.TslData)
 }
 
 // mock
 type MockTimeSeries struct {
 }
 
-func (t *MockTimeSeries) Save(productId string, data map[string]interface{}) {
+func (t *MockTimeSeries) Save(product Product, data map[string]interface{}) {
 	logs.Info("save timeseries data: ", data)
 }
 
-func (t *MockTimeSeries) PublishModel(product string, model tsl.TslData) {
+func (t *MockTimeSeries) PublishModel(product Product, model tsl.TslData) {
 	logs.Info("PublishModel: ", model)
 }

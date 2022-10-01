@@ -63,7 +63,7 @@ func (ctx *BaseContext) Save(data map[string]interface{}) {
 	if p == nil {
 		logs.Error("product not found " + ctx.ProductId)
 	} else {
-		p.GetTimeSeries().Save(ctx.ProductId, data)
+		p.GetTimeSeries().Save(p, data)
 	}
 }
 
