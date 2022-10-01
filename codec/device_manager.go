@@ -84,7 +84,7 @@ func (p *DefaultProdeuct) GetConfig() map[string]interface{} {
 	return p.Config
 }
 
-func (p *DefaultProdeuct) GetTimeSeries() TimeSeries {
+func (p *DefaultProdeuct) GetTimeSeries() TimeSeriesSave {
 	return GetTimeSeries(p.TimeSeriesId)
 }
 

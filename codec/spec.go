@@ -25,7 +25,7 @@ type Device interface {
 type Product interface {
 	GetId() string
 	GetConfig() map[string]interface{}
-	GetTimeSeries() TimeSeries
+	GetTimeSeries() TimeSeriesSave
 }
 
 // 上下文
@@ -77,11 +77,6 @@ type Codec interface {
 	OnInvoke(ctx Context) error
 	// 连接关闭
 	OnClose(ctx Context) error
-}
-
-// 时序保存
-type TimeSeries interface {
-	Save(productId string, data map[string]interface{})
 }
 
 // 网络配置

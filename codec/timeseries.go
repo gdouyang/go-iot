@@ -1,8 +1,12 @@
 package codec
 
-import "github.com/beego/beego/v2/core/logs"
+import (
+	"go-iot/codec/tsl"
 
-var timeSeriseMap map[string]TimeSeries = map[string]TimeSeries{}
+	"github.com/beego/beego/v2/core/logs"
+)
+
+var timeSeriseMap map[string]TimeSeriesSave = map[string]TimeSeriesSave{}
 
 func init() {
 	timeSeriseMap["es"] = &EsTimeSeries{}
@@ -10,15 +14,18 @@ func init() {
 }
 
 // 获取时序
-func GetTimeSeries(id string) TimeSeries {
+func GetTimeSeries(id string) TimeSeriesSave {
 	return timeSeriseMap[id]
 }
 
-// es时序保存
-type EsTimeSeries struct {
+// 时序保存
+type TimeSeriesSave interface {
+	Save(productId string, data map[string]interface{})
 }
 
-func (t *EsTimeSeries) Save(productId string, data map[string]interface{}) {
+type TimeSeriesModel interface {
+	// 发布模型
+	PublishModel(product string, model tsl.TslData)
 }
 
 // mock
@@ -27,4 +34,8 @@ type MockTimeSeries struct {
 
 func (t *MockTimeSeries) Save(productId string, data map[string]interface{}) {
 	logs.Info("save timeseries data: ", data)
+}
+
+func (t *MockTimeSeries) PublishModel(product string, model tsl.TslData) {
+	logs.Info("PublishModel: ", model)
 }
