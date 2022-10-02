@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"go-iot/codec/tsl"
+	"time"
 
 	"github.com/beego/beego/v2/core/logs"
-	"github.com/elastic/go-elasticsearch/esapi"
 	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
 // es时序保存
@@ -23,35 +25,37 @@ func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) {
 		logs.Error("Error marshaling document: %s", err)
 	}
 
+	index := product.GetId() + "-" + time.Now().Format("20060102")
 	// Set up the request object.
 	req := esapi.IndexRequest{
-		Index: "test",
+		Index: index,
 		// DocumentID: "1",
 		Body:    bytes.NewReader(data),
 		Refresh: "true",
 	}
 	doRequest(req)
 }
-func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) {
+func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) error {
 	logs.Info("PublishModel: ", model)
-	mapping := t.convertMapping(&model)
+	mapping := t.convertMapping(product, &model)
 	// Build the request body.
 	data, err := json.Marshal(mapping)
 	if err != nil {
 		logs.Error("Error marshaling document: %s", err)
 	}
+	logs.Info(string(data))
 	// Set up the request object.
-	req := esapi.IndicesPutMappingRequest{
-		Index: []string{product.GetId() + "-*"},
-		Body:  bytes.NewReader(data),
+	req := esapi.IndicesPutTemplateRequest{
+		Name: product.GetId() + "-month-tpl",
+		Body: bytes.NewReader(data),
 	}
-	doRequest(req)
+	return doRequest(req)
 }
 
 // 把物模型转换成es mapping
-func (t *EsTimeSeries) convertMapping(model *tsl.TslData) map[string]interface{} {
+func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[string]interface{} {
 	props := model.Properties
-	var properties map[string]interface{} = map[string]interface{}{}
+	var mapping map[string]interface{} = map[string]interface{}{}
 	for _, p := range props {
 		valType := p.ValueType["type"]
 		esType := ""
@@ -71,11 +75,23 @@ func (t *EsTimeSeries) convertMapping(model *tsl.TslData) map[string]interface{}
 		default:
 			esType = "keyword"
 		}
-		properties[p.Name] = struct{ Type string }{Type: esType}
+		mapping[p.Name] = struct {
+			Type string `json:"type"`
+		}{Type: esType}
 	}
-	var mapping map[string]interface{} = map[string]interface{}{}
-	mapping["properties"] = properties
-	return mapping
+	var payload map[string]interface{} = map[string]interface{}{
+		"index_patterns": []string{product.GetId() + "-*"},
+		"order":          0,
+		// "template": map[string]interface{}{
+		"settings": map[string]interface{}{
+			"number_of_shards": 1,
+		},
+		"mappings": map[string]interface{}{
+			"properties": mapping,
+		},
+		// },
+	}
+	return payload
 }
 
 type esDo interface {
@@ -95,7 +111,7 @@ func getEsClient() (*elasticsearch.Client, error) {
 	return es, err
 }
 
-func doRequest(s esDo) {
+func doRequest(s esDo) error {
 	es, err := getEsClient()
 	if err != nil {
 		logs.Error("Error creating the client: %s", err)
@@ -104,19 +120,19 @@ func doRequest(s esDo) {
 	res, err := s.Do(context.Background(), es)
 	if err != nil {
 		logs.Error("Error getting response: %s", err)
+		return err
 	}
 	defer res.Body.Close()
 
 	if res.IsError() {
 		logs.Error("[%s] Error:[%s]", res.Status(), res.String())
+		return errors.New(res.String())
 	} else {
 		// Deserialize the response into a map.
 		var r map[string]interface{}
 		if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
 			logs.Error("Error parsing the response body: %s", err)
-		} else {
-			// Print the response status and indexed document version.
-			logs.Info("[%s] %s; version=%d", res.Status(), r["result"], int(r["_version"].(float64)))
 		}
 	}
+	return err
 }

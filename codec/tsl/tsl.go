@@ -8,6 +8,11 @@ type TslData struct {
 	Properties []TslProperty `json:"properties"`
 }
 
+func (tsl *TslData) FromJson(text string) error {
+	err := json.Unmarshal([]byte(text), tsl)
+	return err
+}
+
 type TslFunction struct {
 	Id      string        `json:"id"`
 	Name    string        `json:"name"`

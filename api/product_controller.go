@@ -2,8 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"go-iot/codec"
+	"go-iot/codec/tsl"
 	"go-iot/models"
 	product "go-iot/models/device"
+	"strings"
 
 	"github.com/beego/beego/v2/server/web"
 )
@@ -15,6 +18,7 @@ func init() {
 		web.NSRouter("/", &ProductController{}, "post:Add"),
 		web.NSRouter("/", &ProductController{}, "put:Update"),
 		web.NSRouter("/", &ProductController{}, "delete:Delete"),
+		web.NSRouter("/publish", &ProductController{}, "put:Publish"),
 	)
 	web.AddNamespace(ns)
 }
@@ -94,6 +98,46 @@ func (ctl *ProductController) Delete() {
 		Id: id,
 	}
 	err := product.DeleteProduct(ob)
+	if err != nil {
+		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		return
+	}
+	resp = models.JsonResp{Success: true}
+}
+
+func (ctl *ProductController) Publish() {
+	var resp models.JsonResp
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+
+	var ob models.Product
+	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	if err != nil {
+		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		return
+	}
+	if len(strings.TrimSpace(ob.Id)) == 0 || len(strings.TrimSpace(ob.MetaData)) == 0 {
+		resp = models.JsonResp{Success: false, Msg: "id and metaData must present"}
+		return
+	}
+	product := codec.GetProductManager().Get(ob.Id)
+	if product == nil {
+		product = &codec.DefaultProdeuct{
+			Id:           ob.Id,
+			Config:       map[string]interface{}{},
+			TimeSeriesId: codec.TIME_SERISE_ES,
+		}
+		codec.GetProductManager().Put(product)
+	}
+	tsl := tsl.TslData{}
+	err = tsl.FromJson(ob.MetaData)
+	if err != nil {
+		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		return
+	}
+	err = product.GetTimeSeries().PublishModel(product, tsl)
 	if err != nil {
 		resp = models.JsonResp{Success: false, Msg: err.Error()}
 		return

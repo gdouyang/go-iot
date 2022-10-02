@@ -9,13 +9,15 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
-	"github.com/elastic/go-elasticsearch/esapi"
 	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
 func TestEs(t *testing.T) {
 	log.SetFlags(0)
+	log.Println(time.Now().Format("20060102"))
 
 	var (
 		r  map[string]interface{}

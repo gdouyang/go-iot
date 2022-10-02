@@ -1,7 +1,6 @@
 package tsl_test
 
 import (
-	"encoding/json"
 	"go-iot/codec/tsl"
 	"log"
 	"testing"
@@ -131,7 +130,7 @@ const text = `
 
 func TestTsl(t *testing.T) {
 	d := tsl.TslData{}
-	err := json.Unmarshal([]byte(text), &d)
+	err := d.FromJson(text)
 	if err != nil {
 		t.Error(err)
 	}
