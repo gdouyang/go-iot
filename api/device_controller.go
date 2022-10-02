@@ -16,7 +16,7 @@ func init() {
 		web.NSRouter("/list", &DeviceController{}, "post:List"),
 		web.NSRouter("/", &DeviceController{}, "post:Add"),
 		web.NSRouter("/", &DeviceController{}, "put:Update"),
-		web.NSRouter("/?:id", &DeviceController{}, "delete:Delete"),
+		web.NSRouter("/:id", &DeviceController{}, "delete:Delete"),
 		web.NSRouter("/cmd", &DeviceController{}, "post:CmdInvoke"),
 	)
 	web.AddNamespace(ns)

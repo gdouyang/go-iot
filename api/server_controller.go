@@ -21,9 +21,9 @@ func init() {
 		web.NSRouter("/list", &ServerController{}, "post:List"),
 		web.NSRouter("/", &ServerController{}, "post:Add"),
 		web.NSRouter("/", &ServerController{}, "put:Update"),
-		web.NSRouter("/?:id", &ServerController{}, "delete:Delete"),
-		web.NSRouter("/start/?:id", &ServerController{}, "get:Start"),
-		web.NSRouter("/meters/?:id", &ServerController{}, "get:Meters"),
+		web.NSRouter("/:id", &ServerController{}, "delete:Delete"),
+		web.NSRouter("/start/:id", &ServerController{}, "get:Start"),
+		web.NSRouter("/meters/:id", &ServerController{}, "get:Meters"),
 	)
 	web.AddNamespace(ns)
 }

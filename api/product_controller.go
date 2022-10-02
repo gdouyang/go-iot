@@ -17,7 +17,7 @@ func init() {
 		web.NSRouter("/list", &ProductController{}, "post:List"),
 		web.NSRouter("/", &ProductController{}, "post:Add"),
 		web.NSRouter("/", &ProductController{}, "put:Update"),
-		web.NSRouter("/", &ProductController{}, "delete:Delete"),
+		web.NSRouter("/:id", &ProductController{}, "delete:Delete"),
 		web.NSRouter("/publish", &ProductController{}, "put:Publish"),
 	)
 	web.AddNamespace(ns)
