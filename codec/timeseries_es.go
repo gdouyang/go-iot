@@ -81,31 +81,30 @@ func (t *EsTimeSeries) getIndex(product Product) string {
 
 // 把物模型转换成es mapping
 func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[string]interface{} {
-	props := model.Properties
-	var mapping map[string]interface{} = map[string]interface{}{}
-	for _, p := range props {
+	var properties map[string]interface{} = map[string]interface{}{}
+	for _, p := range model.Properties {
 		valType := p.ValueType["type"]
-		esType := ""
+		type1 := ""
 		switch valType {
 		case tsl.VALUE_TYPE_ENUM:
-			esType = "keyword"
+			type1 = "keyword"
 		case tsl.VALUE_TYPE_INT:
-			esType = "long"
+			type1 = "long"
 		case tsl.VALUE_TYPE_STRING:
-			esType = "keyword"
+			type1 = "keyword"
 		case tsl.VALUE_TYPE_FLOAT:
-			esType = "float"
+			type1 = "float"
 		case tsl.VALUE_TYPE_DOUBLE:
-			esType = "double"
+			type1 = "double"
 		case tsl.VALUE_TYPE_BOOL:
-			esType = "boolean"
+			type1 = "boolean"
 		default:
-			esType = "keyword"
+			type1 = "keyword"
 		}
-		mapping[p.Name] = struct {
-			Type string `json:"type"`
-		}{Type: esType}
+		properties[p.Name] = esType{Type: type1}
 	}
+	properties["deviceId"] = esType{Type: "keyword"}
+
 	var payload map[string]interface{} = map[string]interface{}{
 		"index_patterns": []string{product.GetId() + "-*"},
 		"order":          0,
@@ -114,11 +113,15 @@ func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[s
 			"number_of_shards": 1,
 		},
 		"mappings": map[string]interface{}{
-			"properties": mapping,
+			"properties": properties,
 		},
 		// },
 	}
 	return payload
+}
+
+type esType struct {
+	Type string `json:"type"`
 }
 
 type esDo interface {
