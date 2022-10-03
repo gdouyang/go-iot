@@ -1,6 +1,17 @@
 package tsl
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
+
+const (
+	VALUE_TYPE_ENUM   = "enum"
+	VALUE_TYPE_INT    = "int"
+	VALUE_TYPE_STRING = "string"
+	VALUE_TYPE_BOOL   = "bool"
+	VALUE_TYPE_FLOAT  = "float"
+	VALUE_TYPE_DOUBLE = "double"
+)
 
 type TslData struct {
 	Functions  []TslFunction `json:"functions"`
@@ -40,27 +51,27 @@ func (p *TslProperty) GetValueType() interface{} {
 		return p.ValueType
 	}
 	switch t.(string) {
-	case "enum":
+	case VALUE_TYPE_ENUM:
 		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeEnum{}
 		json.Unmarshal(data, &valueType)
 		return valueType
-	case "int":
+	case VALUE_TYPE_INT:
 		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeInt{}
 		json.Unmarshal(data, &valueType)
 		return valueType
-	case "string":
+	case VALUE_TYPE_STRING:
 		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeString{}
 		json.Unmarshal(data, &valueType)
 		return valueType
-	case "float":
+	case VALUE_TYPE_FLOAT:
 		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeFloat{}
 		json.Unmarshal(data, &valueType)
 		return valueType
-	case "double":
+	case VALUE_TYPE_DOUBLE:
 		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeFloat{}
 		json.Unmarshal(data, &valueType)

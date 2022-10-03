@@ -17,7 +17,7 @@ import (
 type EsTimeSeries struct {
 }
 
-func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) {
+func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
 
 	// Build the request body.
 	data, err := json.Marshal(d1)
@@ -25,7 +25,7 @@ func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) {
 		logs.Error("Error marshaling document: %s", err)
 	}
 
-	index := product.GetId() + "-" + time.Now().Format("20060102")
+	index := t.getIndex(product)
 	// Set up the request object.
 	req := esapi.IndexRequest{
 		Index: index,
@@ -33,7 +33,8 @@ func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) {
 		Body:    bytes.NewReader(data),
 		Refresh: "true",
 	}
-	doRequest(req)
+	_, err = doRequest(req)
+	return err
 }
 func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) error {
 	logs.Info("PublishModel: ", model)
@@ -49,7 +50,33 @@ func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) error {
 		Name: product.GetId() + "-month-tpl",
 		Body: bytes.NewReader(data),
 	}
-	return doRequest(req)
+	_, err = doRequest(req)
+	return err
+}
+
+func (t *EsTimeSeries) QueryProperty(product Product) (map[string]interface{}, error) {
+	req := esapi.SearchRequest{
+		Index: []string{t.getIndex(product)},
+	}
+	r, err := doRequest(req)
+	var resp map[string]interface{} = map[string]interface{}{}
+	if err != nil {
+		total := int(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64))
+		resp["total"] = total
+		// Print the ID and document source for each hit.
+		var list []map[string]interface{}
+		for _, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
+			d := (hit.(map[string]interface{})["_source"].(map[string]interface{}))
+			list = append(list, d)
+		}
+		resp["list"] = list
+	}
+	return resp, err
+}
+
+func (t *EsTimeSeries) getIndex(product Product) string {
+	index := product.GetId() + "-" + time.Now().Format("20060102")
+	return index
 }
 
 // 把物模型转换成es mapping
@@ -60,17 +87,17 @@ func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[s
 		valType := p.ValueType["type"]
 		esType := ""
 		switch valType {
-		case "enum":
+		case tsl.VALUE_TYPE_ENUM:
 			esType = "keyword"
-		case "int":
+		case tsl.VALUE_TYPE_INT:
 			esType = "long"
-		case "string":
+		case tsl.VALUE_TYPE_STRING:
 			esType = "keyword"
-		case "float":
+		case tsl.VALUE_TYPE_FLOAT:
 			esType = "float"
-		case "double":
+		case tsl.VALUE_TYPE_DOUBLE:
 			esType = "double"
-		case "bool":
+		case tsl.VALUE_TYPE_BOOL:
 			esType = "boolean"
 		default:
 			esType = "keyword"
@@ -111,7 +138,7 @@ func getEsClient() (*elasticsearch.Client, error) {
 	return es, err
 }
 
-func doRequest(s esDo) error {
+func doRequest(s esDo) (map[string]interface{}, error) {
 	es, err := getEsClient()
 	if err != nil {
 		logs.Error("Error creating the client: %s", err)
@@ -120,19 +147,21 @@ func doRequest(s esDo) error {
 	res, err := s.Do(context.Background(), es)
 	if err != nil {
 		logs.Error("Error getting response: %s", err)
-		return err
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	if res.IsError() {
 		logs.Error("[%s] Error:[%s]", res.Status(), res.String())
-		return errors.New(res.String())
+		return nil, errors.New(res.String())
 	} else {
 		// Deserialize the response into a map.
 		var r map[string]interface{}
 		if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
 			logs.Error("Error parsing the response body: %s", err)
+		} else {
+			return r, nil
 		}
 	}
-	return err
+	return nil, err
 }

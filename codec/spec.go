@@ -2,6 +2,7 @@ package codec
 
 import (
 	"log"
+	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
 )
@@ -45,6 +46,14 @@ type BaseContext struct {
 	Session   Session
 }
 
+func (ctx *BaseContext) DeviceOnline(deviceId string) {
+	deviceId = strings.TrimSpace(deviceId)
+	if len(deviceId) > 0 {
+		ctx.DeviceId = deviceId
+		GetSessionManager().Put(deviceId, ctx.GetSession())
+	}
+}
+
 func (ctx *BaseContext) GetDevice() Device {
 	return GetDeviceManager().Get(ctx.DeviceId)
 }
@@ -63,6 +72,9 @@ func (ctx *BaseContext) Save(data map[string]interface{}) {
 	if p == nil {
 		logs.Error("product not found " + ctx.ProductId)
 	} else {
+		if _, ok := data["deviceId"]; !ok {
+			data["deviceId"] = ctx.DeviceId
+		}
 		p.GetTimeSeries().Save(p, data)
 	}
 }

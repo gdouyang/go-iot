@@ -26,20 +26,27 @@ func GetTimeSeries(id string) TimeSeriesSave {
 // 时序保存
 type TimeSeriesSave interface {
 	// 保存时序数据
-	Save(product Product, data map[string]interface{})
+	Save(product Product, data map[string]interface{}) error
 	// 发布模型
 	PublishModel(product Product, model tsl.TslData) error
+	// 查询属性
+	QueryProperty(product Product) (map[string]interface{}, error)
 }
 
 // mock
 type MockTimeSeries struct {
 }
 
-func (t *MockTimeSeries) Save(product Product, data map[string]interface{}) {
+func (t *MockTimeSeries) Save(product Product, data map[string]interface{}) error {
 	logs.Info("save timeseries data: ", data)
+	return nil
 }
 
 func (t *MockTimeSeries) PublishModel(product Product, model tsl.TslData) error {
 	logs.Info("PublishModel: ", model)
 	return nil
+}
+func (t *MockTimeSeries) QueryProperty(product Product) (map[string]interface{}, error) {
+	logs.Info("QueryProperty: ")
+	return nil, nil
 }
