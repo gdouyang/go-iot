@@ -51,6 +51,7 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
 		ctx.DeviceId = deviceId
+		ctx.GetSession().SetDeviceId(deviceId)
 		GetSessionManager().Put(deviceId, ctx.GetSession())
 	}
 }

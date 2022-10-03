@@ -247,6 +247,7 @@ func processPublish(c *Client, packet packets.ControlPacket) {
 	sc := codec.GetCodec(c.broker.productId)
 	sc.OnMessage(&mqttContext{
 		BaseContext: codec.BaseContext{
+			DeviceId:  c.session.info.deviceId,
 			ProductId: c.broker.productId,
 			Session:   c.session,
 		},
