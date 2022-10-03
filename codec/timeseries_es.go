@@ -98,6 +98,8 @@ func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[s
 			type1 = "double"
 		case tsl.VALUE_TYPE_BOOL:
 			type1 = "boolean"
+		case tsl.VALUE_TYPE_DATE:
+			type1 = "date"
 		default:
 			type1 = "keyword"
 		}

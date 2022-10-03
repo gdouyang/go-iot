@@ -11,6 +11,7 @@ const (
 	VALUE_TYPE_BOOL   = "bool"
 	VALUE_TYPE_FLOAT  = "float"
 	VALUE_TYPE_DOUBLE = "double"
+	VALUE_TYPE_DATE   = "date"
 )
 
 type TslData struct {
