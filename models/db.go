@@ -4,18 +4,19 @@ import (
 	"database/sql"
 
 	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/core/config"
 	"github.com/beego/beego/v2/core/logs"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func init() {
-	dataSourceName, err := config.String("db-dataSourceName")
-	if err != nil {
-		logs.Error("get dataSourceName failed")
-	}
+type DbConfig struct {
+	Url string
+}
+
+var DefaultDbConfig DbConfig = DbConfig{Url: "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"}
+
+func InitDb() {
 	// set default database username:password@tcp(127.0.0.1:3306)/db_name
-	orm.RegisterDataBase("default", "mysql", dataSourceName)
+	orm.RegisterDataBase("default", "mysql", DefaultDbConfig.Url)
 
 	// register model
 	// orm.RegisterModel(new(Product), new(Device), new(Network))
@@ -30,12 +31,8 @@ func GetQb() (orm.QueryBuilder, error) {
 }
 
 func GetDb() (*sql.DB, error) {
-	dataSourceName, err := config.String("db-dataSourceName")
-	if err != nil {
-		logs.Error("get dataSourceName failed")
-	}
-	db, _ := sql.Open("mysql", dataSourceName)
-	err = db.Ping() //连接数据库
+	db, _ := sql.Open("mysql", DefaultDbConfig.Url)
+	err := db.Ping() //连接数据库
 	if err != nil {
 		logs.Error("数据库连接失败")
 	}

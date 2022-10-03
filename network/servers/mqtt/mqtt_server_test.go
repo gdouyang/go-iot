@@ -3,19 +3,29 @@ package mqttserver_test
 import (
 	"fmt"
 	"go-iot/codec"
+	"go-iot/models"
 	mqttserver "go-iot/network/servers/mqtt"
 	"os"
 	"testing"
+	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
+func init() {
+	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
+	models.InitDb()
+}
+
 const script = `
 function OnConnect(context) {
-  console.log("OnConnect: " + JSON.stringify(context))
+  console.log("OnConnect: " + context.GetClientId())
+	context.DeviceOnline(context.GetClientId())
 }
 function OnMessage(context) {
   console.log("OnMessage: " + context.MsgToString())
+  var data = JSON.parse(context.MsgToString())
+  context.Save(data)
 }
 function OnInvoke(context) {
 	console.log("OnInvoke: " + JSON.stringify(context))
@@ -36,7 +46,7 @@ function OnStateChecker(context) {
 
 var network codec.Network = codec.Network{
 	Name:      "test server",
-	ProductId: "test",
+	ProductId: "test123",
 	CodecId:   "script_codec",
 	Port:      1883,
 	Script:    script,
@@ -62,7 +72,7 @@ func newClient(network codec.Network) {
 	action := "pub"
 	topic := "test"
 	qos := 0
-	payload := []byte("")
+	payload := []byte(`{"temperature": 12.1}`)
 	num := 10
 	if action == "pub" {
 		client := MQTT.NewClient(opts)
@@ -74,6 +84,7 @@ func newClient(network codec.Network) {
 			fmt.Println("---- doing publish ----")
 			token := client.Publish(topic, byte(qos), false, payload)
 			token.Wait()
+			time.Sleep(1 * time.Second)
 		}
 
 		client.Disconnect(250)

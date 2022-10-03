@@ -205,11 +205,6 @@ func (s *Session) backgroundResendPending() {
 	}
 }
 
-func (s *Session) SetDeviceId(deviceId string) {
-	s.info.deviceId = deviceId
-	codec.GetSessionManager().Put(deviceId, s)
-}
-
 func (s *Session) Send(msg interface{}) error {
 	switch t := msg.(type) {
 	case map[string]interface{}:
@@ -223,4 +218,9 @@ func (s *Session) Send(msg interface{}) error {
 func (s *Session) Disconnect() error {
 	s.close()
 	return nil
+}
+
+func (s *Session) SetDeviceId(deviceId string) {
+	s.info.deviceId = deviceId
+	// codec.GetSessionManager().Put(deviceId, s)
 }

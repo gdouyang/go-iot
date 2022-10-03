@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"go-iot/codec"
 	"go-iot/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -12,6 +13,22 @@ import (
 )
 
 func init() {
+	codec.RegeProductCahce(&dbProductCacheManager{})
+}
+
+type dbProductCacheManager struct {
+}
+
+func (p *dbProductCacheManager) Id() string {
+	return "db"
+}
+func (p *dbProductCacheManager) Get(productId string) codec.Product {
+	data, _ := GetProduct(productId)
+	return &codec.DefaultProdeuct{
+		Id:           data.Id,
+		Config:       map[string]interface{}{},
+		TimeSeriesId: "es",
+	}
 }
 
 // 分页查询设备

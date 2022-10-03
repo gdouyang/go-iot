@@ -247,8 +247,11 @@ func processPublish(c *Client, packet packets.ControlPacket) {
 	// 调用wasm host处理
 	sc := codec.GetCodec(c.broker.productId)
 	sc.OnMessage(&mqttContext{
-		BaseContext: codec.BaseContext{ProductId: c.broker.productId, Session: c.session},
-		Data:        publish.Payload,
+		BaseContext: codec.BaseContext{
+			ProductId: c.broker.productId,
+			Session:   c.session,
+		},
+		Data: publish.Payload,
 	})
 }
 

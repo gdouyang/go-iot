@@ -11,6 +11,7 @@ import (
 type Session interface {
 	Send(msg interface{}) error
 	Disconnect() error
+	SetDeviceId(deviceId string)
 }
 
 // 设备信息

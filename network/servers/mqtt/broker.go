@@ -159,8 +159,6 @@ func (b *Broker) handleConn(conn net.Conn) {
 	if !valid {
 		return
 	}
-	// check auth
-	codec.GetCodec(b.productId).OnConnect(&mqttContext{})
 
 	cid := client.info.cid
 
@@ -183,7 +181,17 @@ func (b *Broker) handleConn(conn net.Conn) {
 	}
 	b.clients[client.info.cid] = client
 	b.setSession(client, connect)
+
 	b.Unlock()
+
+	// check auth
+	codec.GetCodec(b.productId).OnConnect(&mqttContext{
+		client: client,
+		BaseContext: codec.BaseContext{
+			ProductId: b.productId,
+			Session:   client.session,
+		}},
+	)
 
 	err = connack.Write(conn)
 	if err != nil {
@@ -198,7 +206,7 @@ func (b *Broker) handleConn(conn net.Conn) {
 func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 	// when clean session is false, previous session exist and previous session not clean session,
 	// then we use previous session, otherwise use new session
-	prevS := codec.GetSessionManager().Get(connect.ClientIdentifier)
+	prevS := codec.GetSessionManager().Get(client.ClientID())
 	var prevSess *Session = nil
 	if prevS != nil {
 		prevSess = prevS.(*Session)

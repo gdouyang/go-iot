@@ -6,7 +6,7 @@ import (
 )
 
 var deviceManagerIns DeviceManager = DeviceManager{m: make(map[string]Device)}
-var productManager ProductManager = ProductManager{m: make(map[string]Product)}
+var productManager ProductManager = ProductManager{m: make(map[string]Product), cacheType: "db"}
 
 func GetDeviceManager() *DeviceManager {
 	return &deviceManagerIns
@@ -31,12 +31,36 @@ func (dm *DeviceManager) Put(device Device) {
 }
 
 // ProductManager
+type ProductCahce interface {
+	Id() string
+	Get(productId string) Product
+}
+
+var productCahceManager map[string]ProductCahce = map[string]ProductCahce{}
+
+func RegeProductCahce(cache ProductCahce) {
+	productCahceManager[cache.Id()] = cache
+}
+
 type ProductManager struct {
-	m map[string]Product
+	m         map[string]Product
+	cacheType string
 }
 
 func (pm *ProductManager) Get(productId string) Product {
-	product := pm.m[productId]
+	product, ok := pm.m[productId]
+	if ok {
+		return product
+	}
+	if product == nil {
+		if cm, ok := productCahceManager[pm.cacheType]; ok {
+			product = cm.Get(productId)
+			if product != nil {
+				pm.Put(product)
+			}
+		}
+
+	}
 	return product
 }
 
