@@ -89,13 +89,12 @@ func (p *DefaultProdeuct) GetTimeSeries() TimeSeriesSave {
 }
 
 // 进行功能调用
-func DoFuncInvoke(productId string, message msg.FuncInvoke) error {
+func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 	session := sessionManager.Get(message.DeviceId)
 	if session == nil {
 		return errors.New("设备不在线")
 	}
 	codec := GetCodec(productId)
-	codec.OnInvoke(&FuncInvokeContext{session: session,
+	return codec.OnInvoke(&FuncInvokeContext{session: session,
 		deviceId: message.DeviceId, productId: productId})
-	return nil
 }

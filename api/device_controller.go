@@ -33,9 +33,8 @@ func (ctl *DeviceController) List() {
 
 	res, err := device.ListDevice(&ob)
 	if err != nil {
-		ctl.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+		ctl.Data["json"] = models.JsonRespError(err)
 	} else {
-
 		ctl.Data["json"] = &res
 	}
 	ctl.ServeJSON()
@@ -43,38 +42,59 @@ func (ctl *DeviceController) List() {
 
 // 添加设备
 func (ctl *DeviceController) Add() {
+	defer ctl.ServeJSON()
 	var ob models.Device
 	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
-	ctl.Data["json"] = device.AddDevice(&ob)
-	ctl.ServeJSON()
+	err := device.AddDevice(&ob)
+	if err != nil {
+		ctl.Data["json"] = models.JsonRespError(err)
+		return
+	}
+	ctl.Data["json"] = models.JsonRespOk()
 }
 
 // 更新设备信息
 func (ctl *DeviceController) Update() {
+	defer ctl.ServeJSON()
 	var ob models.Device
 	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
-	ctl.Data["json"] = device.UpdateDevice(&ob)
-	ctl.ServeJSON()
+	err := device.UpdateDevice(&ob)
+	if err != nil {
+		ctl.Data["json"] = models.JsonRespError(err)
+		return
+	}
+	ctl.Data["json"] = models.JsonRespOk()
 }
 
 // 删除设备
 func (ctl *DeviceController) Delete() {
+	defer ctl.ServeJSON()
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
-	ctl.Data["json"] = device.DeleteDevice(ob)
-	ctl.ServeJSON()
+	err := device.DeleteDevice(ob)
+	if err != nil {
+		ctl.Data["json"] = models.JsonRespError(err)
+		return
+	}
+	ctl.Data["json"] = models.JsonRespOk()
 }
 
 // 命令下发
 func (ctl *DeviceController) CmdInvoke() {
+	defer ctl.ServeJSON()
+
 	var ob msg.FuncInvoke
 	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
 	device, err := device.GetDevice(ob.DeviceId)
 	if err != nil {
-		ctl.Data["json"] = err
+		ctl.Data["json"] = models.JsonRespError(err)
+		return
 	}
-	codec.DoFuncInvoke(device.ProductId, ob)
-	ctl.Data["json"] = ""
-	ctl.ServeJSON()
+	err = codec.DoCmdInvoke(device.ProductId, ob)
+	if err != nil {
+		ctl.Data["json"] = models.JsonRespError(err)
+		return
+	}
+	ctl.Data["json"] = models.JsonRespOk()
 }

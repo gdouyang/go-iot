@@ -56,3 +56,11 @@ type JsonResp struct {
 	Success bool        `json:"success"`
 	Data    interface{} `json:"data"`
 }
+
+func JsonRespOk() JsonResp {
+	return JsonResp{Success: true}
+}
+
+func JsonRespError(err error) JsonResp {
+	return JsonResp{Success: false, Msg: err.Error()}
+}
