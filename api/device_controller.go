@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"go-iot/codec"
 	"go-iot/codec/msg"
 	"go-iot/models"
@@ -18,6 +19,7 @@ func init() {
 		web.NSRouter("/", &DeviceController{}, "put:Update"),
 		web.NSRouter("/:id", &DeviceController{}, "delete:Delete"),
 		web.NSRouter("/cmd", &DeviceController{}, "post:CmdInvoke"),
+		web.NSRouter("/query-property", &DeviceController{}, "get:QueryProperty"),
 	)
 	web.AddNamespace(ns)
 }
@@ -97,4 +99,30 @@ func (ctl *DeviceController) CmdInvoke() {
 		return
 	}
 	ctl.Data["json"] = models.JsonRespOk()
+}
+
+func (ctl *DeviceController) QueryProperty() {
+	defer ctl.ServeJSON()
+
+	var ob *models.Device = &models.Device{
+		Id: ctl.Ctx.Input.Param(":id"),
+	}
+	device, err := device.GetDevice(ob.Id)
+	if err != nil {
+		ctl.Data["json"] = models.JsonRespError(err)
+		return
+	}
+	product := codec.GetProductManager().Get(device.ProductId)
+	if product != nil {
+		ctl.Data["json"] = models.JsonRespError(errors.New("not found product"))
+		return
+	}
+	res, err := product.GetTimeSeries().QueryProperty(product)
+	if err != nil {
+		ctl.Data["json"] = models.JsonRespError(err)
+		return
+	}
+	j := models.JsonRespOk()
+	j.Data = res
+	ctl.Data["json"] = j
 }
