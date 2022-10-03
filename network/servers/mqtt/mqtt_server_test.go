@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-iot/codec"
 	"go-iot/models"
+	_ "go-iot/models/device"
 	mqttserver "go-iot/network/servers/mqtt"
 	"os"
 	"testing"
@@ -11,11 +12,6 @@ import (
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
-
-func init() {
-	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
-	models.InitDb()
-}
 
 const script = `
 function OnConnect(context) {
@@ -53,6 +49,9 @@ var network codec.Network = codec.Network{
 }
 
 func TestServer(t *testing.T) {
+	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
+	models.InitDb()
+
 	network := network
 	network.Configuration = `{"host": "localhost", "useTLS": false}`
 	mqttserver.ServerStart(network)

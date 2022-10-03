@@ -192,7 +192,6 @@ func (c *Client) close() {
 	logs.Debug("client %v connection close", c.info.cid)
 	atomic.StoreInt32(&c.statusFlag, Disconnected)
 	close(c.done) // 删除
-	c.session.close()
 	c.broker.deleteSession(c.info.cid)
 	c.Unlock()
 
