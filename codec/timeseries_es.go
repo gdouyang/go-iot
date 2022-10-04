@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"go-iot/codec/tsl"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -18,7 +19,21 @@ type EsTimeSeries struct {
 }
 
 func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
-
+	validProperty := product.GetTslProperty()
+	if validProperty == nil {
+		return errors.New("not have tsl property, dont save timeseries data")
+	}
+	for key := range d1 {
+		if key == tsl.PropertyDeviceId {
+			continue
+		}
+		if _, ok := validProperty[key]; !ok {
+			delete(d1, key)
+		}
+	}
+	if len(d1) == 0 {
+		return errors.New("data is empty, dont save timeseries data")
+	}
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
@@ -55,13 +70,13 @@ func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) error {
 }
 
 func (t *EsTimeSeries) QueryProperty(product Product, param map[string]interface{}) (map[string]interface{}, error) {
-	if _, ok := param["deviceId"]; !ok {
+	if _, ok := param[tsl.PropertyDeviceId]; !ok {
 		return nil, errors.New("deviceId property not persent")
 	}
 	body := map[string]interface{}{
 		"query": map[string]interface{}{
 			"term": map[string]interface{}{
-				"deviceId": param["deviceId"],
+				tsl.PropertyDeviceId: param[tsl.PropertyDeviceId],
 			},
 		},
 	}
@@ -101,22 +116,22 @@ func (t *EsTimeSeries) getIndex(product Product) string {
 func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[string]interface{} {
 	var properties map[string]interface{} = map[string]interface{}{}
 	for _, p := range model.Properties {
-		valType := p.ValueType["type"]
+		valType := strings.TrimSpace(p.ValueType["type"].(string))
 		type1 := ""
 		switch valType {
-		case tsl.VALUE_TYPE_ENUM:
+		case tsl.TypeEnum:
 			type1 = "keyword"
-		case tsl.VALUE_TYPE_INT:
+		case tsl.TypeInt:
 			type1 = "long"
-		case tsl.VALUE_TYPE_STRING:
+		case tsl.TypeString:
 			type1 = "keyword"
-		case tsl.VALUE_TYPE_FLOAT:
+		case tsl.TypeFloat:
 			type1 = "float"
-		case tsl.VALUE_TYPE_DOUBLE:
+		case tsl.TypeDouble:
 			type1 = "double"
-		case tsl.VALUE_TYPE_BOOL:
+		case tsl.TypeBool:
 			type1 = "boolean"
-		case tsl.VALUE_TYPE_DATE:
+		case tsl.TypeDate:
 			type1 = "date"
 		default:
 			type1 = "keyword"

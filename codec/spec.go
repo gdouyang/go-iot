@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"go-iot/codec/tsl"
 	"log"
 	"strings"
 
@@ -28,6 +29,7 @@ type Product interface {
 	GetId() string
 	GetConfig() map[string]interface{}
 	GetTimeSeries() TimeSeriesSave
+	GetTslProperty() map[string]tsl.TslProperty
 }
 
 // 上下文

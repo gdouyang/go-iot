@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go-iot/codec"
+	"go-iot/codec/tsl"
 	"go-iot/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -24,10 +25,21 @@ func (p *dbProductCacheManager) Id() string {
 }
 func (p *dbProductCacheManager) Get(productId string) codec.Product {
 	data, _ := GetProduct(productId)
+	d := tsl.TslData{}
+	err := d.FromJson(data.MetaData)
+	if err != nil {
+		logs.Error(err)
+	}
+	tt := map[string]tsl.TslProperty{}
+	for _, p := range d.Properties {
+		tt[p.Id] = p
+	}
+
 	return &codec.DefaultProdeuct{
 		Id:           data.Id,
 		Config:       map[string]interface{}{},
 		TimeSeriesId: "es",
+		TslProperty:  tt,
 	}
 }
 

@@ -5,13 +5,15 @@ import (
 )
 
 const (
-	VALUE_TYPE_ENUM   = "enum"
-	VALUE_TYPE_INT    = "int"
-	VALUE_TYPE_STRING = "string"
-	VALUE_TYPE_BOOL   = "bool"
-	VALUE_TYPE_FLOAT  = "float"
-	VALUE_TYPE_DOUBLE = "double"
-	VALUE_TYPE_DATE   = "date"
+	TypeEnum   = "enum"
+	TypeInt    = "int"
+	TypeString = "string"
+	TypeBool   = "bool"
+	TypeFloat  = "float"
+	TypeDouble = "double"
+	TypeDate   = "date"
+
+	PropertyDeviceId = "deviceId"
 )
 
 type TslData struct {
@@ -52,27 +54,27 @@ func (p *TslProperty) GetValueType() interface{} {
 		return p.ValueType
 	}
 	switch t.(string) {
-	case VALUE_TYPE_ENUM:
+	case TypeEnum:
 		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeEnum{}
 		json.Unmarshal(data, &valueType)
 		return valueType
-	case VALUE_TYPE_INT:
+	case TypeInt:
 		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeInt{}
 		json.Unmarshal(data, &valueType)
 		return valueType
-	case VALUE_TYPE_STRING:
+	case TypeString:
 		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeString{}
 		json.Unmarshal(data, &valueType)
 		return valueType
-	case VALUE_TYPE_FLOAT:
+	case TypeFloat:
 		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeFloat{}
 		json.Unmarshal(data, &valueType)
 		return valueType
-	case VALUE_TYPE_DOUBLE:
+	case TypeDouble:
 		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeFloat{}
 		json.Unmarshal(data, &valueType)

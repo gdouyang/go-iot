@@ -3,6 +3,7 @@ package codec
 import (
 	"errors"
 	"go-iot/codec/msg"
+	"go-iot/codec/tsl"
 )
 
 var deviceManagerIns DeviceManager = DeviceManager{m: make(map[string]Device)}
@@ -99,6 +100,7 @@ type DefaultProdeuct struct {
 	Id           string
 	Config       map[string]interface{}
 	TimeSeriesId string
+	TslProperty  map[string]tsl.TslProperty
 }
 
 func (p *DefaultProdeuct) GetId() string {
@@ -110,6 +112,9 @@ func (p *DefaultProdeuct) GetConfig() map[string]interface{} {
 
 func (p *DefaultProdeuct) GetTimeSeries() TimeSeriesSave {
 	return GetTimeSeries(p.TimeSeriesId)
+}
+func (p *DefaultProdeuct) GetTslProperty() map[string]tsl.TslProperty {
+	return p.TslProperty
 }
 
 // 进行功能调用
