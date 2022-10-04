@@ -26,18 +26,6 @@ function OnMessage(context) {
 function OnInvoke(context) {
 	console.log("OnInvoke: " + JSON.stringify(context))
 }
-function OnDeviceCreate(context) {
-	console.log(JSON.stringify(context))
-}
-function OnDeviceDelete(context) {
-	console.log(JSON.stringify(context))
-}
-function OnDeviceUpdate(context) {
-	console.log(JSON.stringify(context))
-}
-function OnStateChecker(context) {
-	console.log(JSON.stringify(context))
-}
 `
 
 var network codec.Network = codec.Network{
