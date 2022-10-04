@@ -54,28 +54,46 @@ func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) error {
 	return err
 }
 
-func (t *EsTimeSeries) QueryProperty(product Product) (map[string]interface{}, error) {
+func (t *EsTimeSeries) QueryProperty(product Product, param map[string]interface{}) (map[string]interface{}, error) {
+	if _, ok := param["deviceId"]; !ok {
+		return nil, errors.New("deviceId property not persent")
+	}
+	body := map[string]interface{}{
+		"query": map[string]interface{}{
+			"term": map[string]interface{}{
+				"deviceId": param["deviceId"],
+			},
+		},
+	}
+	data, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
 	req := esapi.SearchRequest{
 		Index: []string{t.getIndex(product)},
+		Body:  bytes.NewReader(data),
 	}
 	r, err := doRequest(req)
 	var resp map[string]interface{} = map[string]interface{}{}
-	if err != nil {
+	if err == nil && r != nil {
 		total := int(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64))
-		resp["total"] = total
-		// Print the ID and document source for each hit.
+		resp["totalCount"] = total
+		// convert each hit to result.
 		var list []map[string]interface{}
 		for _, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
 			d := (hit.(map[string]interface{})["_source"].(map[string]interface{}))
 			list = append(list, d)
 		}
 		resp["list"] = list
+	} else {
+		resp["totalCount"] = 0
+		resp["list"] = []map[string]interface{}{}
 	}
 	return resp, err
 }
 
 func (t *EsTimeSeries) getIndex(product Product) string {
-	index := product.GetId() + "-" + time.Now().Format("20060102")
+	index := product.GetId() + "-" + time.Now().Format("200601")
 	return index
 }
 
@@ -103,7 +121,7 @@ func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[s
 		default:
 			type1 = "keyword"
 		}
-		properties[p.Name] = esType{Type: type1}
+		properties[p.Id] = esType{Type: type1}
 	}
 	properties["deviceId"] = esType{Type: "keyword"}
 
@@ -155,6 +173,10 @@ func doRequest(s esDo) (map[string]interface{}, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode == 404 {
+		return nil, nil
+	}
 
 	if res.IsError() {
 		logs.Error("[%s] Error:[%s]", res.Status(), res.String())

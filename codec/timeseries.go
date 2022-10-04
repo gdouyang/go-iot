@@ -30,7 +30,7 @@ type TimeSeriesSave interface {
 	// 发布模型
 	PublishModel(product Product, model tsl.TslData) error
 	// 查询属性
-	QueryProperty(product Product) (map[string]interface{}, error)
+	QueryProperty(product Product, param map[string]interface{}) (map[string]interface{}, error)
 }
 
 // mock
@@ -46,7 +46,7 @@ func (t *MockTimeSeries) PublishModel(product Product, model tsl.TslData) error 
 	logs.Info("PublishModel: ", model)
 	return nil
 }
-func (t *MockTimeSeries) QueryProperty(product Product) (map[string]interface{}, error) {
+func (t *MockTimeSeries) QueryProperty(product Product, param map[string]interface{}) (map[string]interface{}, error) {
 	logs.Info("QueryProperty: ")
 	return nil, nil
 }
