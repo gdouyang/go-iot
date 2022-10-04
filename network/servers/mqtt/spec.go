@@ -71,7 +71,7 @@ type MQTTClientSpec struct {
 	ClientId     string                `json:"clientId"`
 	Username     string                `json:"username"`
 	Password     string                `json:"password"`
-	Qos          int                   `json:"qos"`
+	Topics       map[string]int        `json:"topics"`
 	CleanSession bool                  `json:"cleanSession"`
 	UseTLS       bool                  `json:"useTLS"`
 	Certificate  []servers.Certificate `json:"certificate"`
