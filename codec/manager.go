@@ -1,8 +1,6 @@
 package codec
 
 import (
-	"errors"
-	"go-iot/codec/msg"
 	"go-iot/codec/tsl"
 )
 
@@ -78,15 +76,4 @@ func (p *DefaultProdeuct) GetTimeSeries() TimeSeriesSave {
 }
 func (p *DefaultProdeuct) GetTslProperty() map[string]tsl.TslProperty {
 	return p.TslProperty
-}
-
-// 进行功能调用
-func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
-	session := sessionManager.Get(message.DeviceId)
-	if session == nil {
-		return errors.New("设备不在线")
-	}
-	codec := GetCodec(productId)
-	return codec.OnInvoke(&FuncInvokeContext{session: session,
-		deviceId: message.DeviceId, productId: productId})
 }
