@@ -125,29 +125,27 @@ func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[s
 	var properties map[string]interface{} = map[string]interface{}{}
 	for _, p := range model.Properties {
 		valType := strings.TrimSpace(p.ValueType["type"].(string))
-		type1 := ""
 		switch valType {
 		case tsl.TypeEnum:
-			type1 = "keyword"
+			properties[p.Id] = esType{Type: "keyword"}
 		case tsl.TypeInt:
-			type1 = "long"
+			properties[p.Id] = esType{Type: "long"}
 		case tsl.TypeString:
-			type1 = "keyword"
+			properties[p.Id] = esType{Type: "keyword"}
 		case tsl.TypeFloat:
-			type1 = "float"
+			properties[p.Id] = esType{Type: "float"}
 		case tsl.TypeDouble:
-			type1 = "double"
+			properties[p.Id] = esType{Type: "double"}
 		case tsl.TypeBool:
-			type1 = "boolean"
+			properties[p.Id] = esType{Type: "boolean"}
 		case tsl.TypeDate:
-			type1 = "date"
+			properties[p.Id] = esType{Type: "date", Format: defaultDateFormat}
 		default:
-			type1 = "keyword"
+			properties[p.Id] = esType{Type: "keyword"}
 		}
-		properties[p.Id] = esType{Type: type1}
 	}
 	properties["deviceId"] = esType{Type: "keyword"}
-	properties["collectTime_"] = esType{Type: "date", Format: "yyyy-MM-dd||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd HH:mm:ss.SSS||epoch_millis"}
+	properties["collectTime_"] = esType{Type: "date", Format: defaultDateFormat}
 
 	var payload map[string]interface{} = map[string]interface{}{
 		"index_patterns": []string{product.GetId() + "-*"},
@@ -165,6 +163,8 @@ func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[s
 	}
 	return payload
 }
+
+const defaultDateFormat string = "yyyy-MM||yyyy-MM-dd||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd HH:mm:ss.SSS||epoch_millis"
 
 type esType struct {
 	Type   string `json:"type"`
