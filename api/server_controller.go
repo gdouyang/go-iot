@@ -118,9 +118,9 @@ func (c *ServerController) Start() {
 		resp.Msg = err.Error()
 		resp.Success = false
 	} else {
+		config := convertCodecNetwork(nw)
 		switch nw.Type {
 		case models.MQTT_BROKER:
-			config := convertCodecNetwork(nw)
 			success := mqttserver.ServerStart(config)
 			if success {
 				resp.Msg = "broker start success"
@@ -129,12 +129,10 @@ func (c *ServerController) Start() {
 				resp.Success = false
 			}
 		case models.TCP_SERVER:
-			config := convertCodecNetwork(nw)
 			tcpserver.ServerSocket(config)
 		case models.HTTP_SERVER:
-			httpserver.ServerStart()
+			httpserver.ServerStart(config)
 		case models.WEBSOCKET_SERVER:
-			config := convertCodecNetwork(nw)
 			websocketserver.ServerStart(config)
 		default:
 			logs.Error("unknow type %s", nw.Type)
