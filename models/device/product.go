@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"errors"
+	"sync"
 	"time"
 
 	"go-iot/codec"
@@ -14,24 +15,31 @@ import (
 )
 
 func init() {
-	codec.RegProductManager(&ProductManager{m: make(map[string]codec.Product)})
+	codec.RegProductManager(&DbProductManager{cache: make(map[string]codec.Product)})
 }
 
-type ProductManager struct {
-	m map[string]codec.Product
+type DbProductManager struct {
+	sync.RWMutex
+	cache map[string]codec.Product
 }
 
-func (p *ProductManager) Id() string {
+func (p *DbProductManager) Id() string {
 	return "db"
 }
 
-func (pm *ProductManager) Get(productId string) codec.Product {
-	product, ok := pm.m[productId]
+func (m *DbProductManager) Get(productId string) codec.Product {
+	product, ok := m.cache[productId]
 	if ok {
 		return product
 	}
 	if product == nil {
+		m.Lock()
+		defer m.Unlock()
 		data, _ := GetProduct(productId)
+		if data == nil {
+			m.cache[productId] = nil
+			return nil
+		}
 		d := tsl.TslData{}
 		err := d.FromJson(data.MetaData)
 		if err != nil {
@@ -48,19 +56,19 @@ func (pm *ProductManager) Get(productId string) codec.Product {
 			TimeSeriesId: "es",
 			TslProperty:  tt,
 		}
-		pm.Put(product)
+		m.Put(product)
 	}
 	return product
 }
 
-func (pm *ProductManager) Put(product codec.Product) {
+func (m *DbProductManager) Put(product codec.Product) {
 	if product == nil {
 		panic("product not be nil")
 	}
 	if len(product.GetId()) == 0 {
 		panic("product id not be empty")
 	}
-	pm.m[product.GetId()] = product
+	m.cache[product.GetId()] = product
 }
 
 // 分页查询设备

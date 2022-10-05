@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"errors"
+	"sync"
 	"time"
 
 	"go-iot/codec"
@@ -13,21 +14,29 @@ import (
 )
 
 func init() {
-	codec.RegDeviceManager(&DeviceManager{m: make(map[string]codec.Device)})
+	codec.RegDeviceManager(&DbDeviceManager{cache: make(map[string]codec.Device)})
 }
 
-type DeviceManager struct {
-	m map[string]codec.Device
+type DbDeviceManager struct {
+	sync.RWMutex
+	cache map[string]codec.Device
 }
 
-func (dm *DeviceManager) Get(deviceId string) codec.Device {
-	device, ok := dm.m[deviceId]
+func (p *DbDeviceManager) Id() string {
+	return "db"
+}
+
+func (m *DbDeviceManager) Get(deviceId string) codec.Device {
+	device, ok := m.cache[deviceId]
 	if ok {
 		return device
 	}
 	if device == nil {
+		m.Lock()
+		defer m.Unlock()
 		data, _ := GetDevice(deviceId)
 		if data == nil {
+			m.cache[deviceId] = nil
 			return nil
 		}
 		config := map[string]interface{}{}
@@ -44,17 +53,13 @@ func (dm *DeviceManager) Get(deviceId string) codec.Device {
 			Config:    config,
 			Data:      map[string]interface{}{},
 		}
-		dm.Put(device)
+		m.Put(device)
 	}
 	return device
 }
 
-func (dm *DeviceManager) Put(device codec.Device) {
-	dm.m[device.GetId()] = device
-}
-
-func (p *DeviceManager) Id() string {
-	return "db"
+func (m *DbDeviceManager) Put(device codec.Device) {
+	m.cache[device.GetId()] = device
 }
 
 // 分页查询设备
