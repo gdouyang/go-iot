@@ -41,7 +41,6 @@ func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
 		logs.Error("Error during connection upgradation:", err)
 		return
 	}
-	defer conn.Close()
 
 	session := newSession(conn)
 	defer session.Disconnect()
