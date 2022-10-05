@@ -14,33 +14,53 @@ import (
 )
 
 func init() {
-	codec.RegeProductCahce(&dbProductCacheManager{})
+	codec.RegProductManager(&ProductManager{m: make(map[string]codec.Product)})
 }
 
-type dbProductCacheManager struct {
+type ProductManager struct {
+	m map[string]codec.Product
 }
 
-func (p *dbProductCacheManager) Id() string {
+func (p *ProductManager) Id() string {
 	return "db"
 }
-func (p *dbProductCacheManager) Get(productId string) codec.Product {
-	data, _ := GetProduct(productId)
-	d := tsl.TslData{}
-	err := d.FromJson(data.MetaData)
-	if err != nil {
-		logs.Error(err)
-	}
-	tt := map[string]tsl.TslProperty{}
-	for _, p := range d.Properties {
-		tt[p.Id] = p
-	}
 
-	return &codec.DefaultProdeuct{
-		Id:           data.Id,
-		Config:       map[string]interface{}{},
-		TimeSeriesId: "es",
-		TslProperty:  tt,
+func (pm *ProductManager) Get(productId string) codec.Product {
+	product, ok := pm.m[productId]
+	if ok {
+		return product
 	}
+	if product == nil {
+		data, _ := GetProduct(productId)
+		d := tsl.TslData{}
+		err := d.FromJson(data.MetaData)
+		if err != nil {
+			logs.Error(err)
+		}
+		tt := map[string]tsl.TslProperty{}
+		for _, p := range d.Properties {
+			tt[p.Id] = p
+		}
+
+		product = &codec.DefaultProdeuct{
+			Id:           data.Id,
+			Config:       map[string]interface{}{},
+			TimeSeriesId: "es",
+			TslProperty:  tt,
+		}
+		pm.Put(product)
+	}
+	return product
+}
+
+func (pm *ProductManager) Put(product codec.Product) {
+	if product == nil {
+		panic("product not be nil")
+	}
+	if len(product.GetId()) == 0 {
+		panic("product id not be empty")
+	}
+	pm.m[product.GetId()] = product
 }
 
 // 分页查询设备
@@ -146,17 +166,17 @@ func DeleteProduct(ob *models.Product) error {
 	return nil
 }
 
-func GetProduct(id string) (models.Product, error) {
+func GetProduct(id string) (*models.Product, error) {
 
 	o := orm.NewOrm()
 
 	p := models.Product{Id: id}
 	err := o.Read(&p)
 	if err == orm.ErrNoRows {
-		return models.Product{}, nil
+		return nil, nil
 	} else if err == orm.ErrMissPK {
-		return models.Product{}, err
+		return nil, err
 	} else {
-		return p, nil
+		return &p, nil
 	}
 }

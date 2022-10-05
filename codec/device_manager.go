@@ -6,95 +6,36 @@ import (
 	"go-iot/codec/tsl"
 )
 
-var deviceManagerIns DeviceManager = DeviceManager{m: make(map[string]Device), cacheType: "db"}
-var productManager ProductManager = ProductManager{m: make(map[string]Product), cacheType: "db"}
+var deviceManagerMap map[string]DeviceManager = map[string]DeviceManager{}
+var productManagerMap map[string]ProductManager = map[string]ProductManager{}
 
-func GetDeviceManager() *DeviceManager {
-	return &deviceManagerIns
+func GetDeviceManager() DeviceManager {
+	return deviceManagerMap["db"]
 }
 
-func GetProductManager() *ProductManager {
-	return &productManager
+func GetProductManager() ProductManager {
+	return productManagerMap["db"]
+}
+
+func RegDeviceManager(m DeviceManager) {
+	deviceManagerMap[m.Id()] = m
+}
+func RegProductManager(m ProductManager) {
+	productManagerMap[m.Id()] = m
 }
 
 // DeviceManager
-type DeviceCahce interface {
+type DeviceManager interface {
 	Id() string
 	Get(deviceId string) Device
-}
-
-var deviceCahceManager map[string]DeviceCahce = map[string]DeviceCahce{}
-
-func RegeDeviceCahce(cache DeviceCahce) {
-	deviceCahceManager[cache.Id()] = cache
-}
-
-type DeviceManager struct {
-	m         map[string]Device
-	cacheType string
-}
-
-func (dm *DeviceManager) Get(deviceId string) Device {
-	device, ok := dm.m[deviceId]
-	if ok {
-		return device
-	}
-	if device == nil {
-		if cm, ok := deviceCahceManager[dm.cacheType]; ok {
-			device = cm.Get(deviceId)
-			if device != nil {
-				dm.Put(device)
-			}
-		}
-	}
-	return device
-}
-
-func (dm *DeviceManager) Put(device Device) {
-	dm.m[device.GetId()] = device
+	Put(device Device)
 }
 
 // ProductManager
-type ProductCahce interface {
+type ProductManager interface {
 	Id() string
 	Get(productId string) Product
-}
-
-var productCahceManager map[string]ProductCahce = map[string]ProductCahce{}
-
-func RegeProductCahce(cache ProductCahce) {
-	productCahceManager[cache.Id()] = cache
-}
-
-type ProductManager struct {
-	m         map[string]Product
-	cacheType string
-}
-
-func (pm *ProductManager) Get(productId string) Product {
-	product, ok := pm.m[productId]
-	if ok {
-		return product
-	}
-	if product == nil {
-		if cm, ok := productCahceManager[pm.cacheType]; ok {
-			product = cm.Get(productId)
-			if product != nil {
-				pm.Put(product)
-			}
-		}
-	}
-	return product
-}
-
-func (pm *ProductManager) Put(product Product) {
-	if product == nil {
-		panic("product not be nil")
-	}
-	if len(product.GetId()) == 0 {
-		panic("product id not be empty")
-	}
-	pm.m[product.GetId()] = product
+	Put(product Product)
 }
 
 type DefaultDevice struct {

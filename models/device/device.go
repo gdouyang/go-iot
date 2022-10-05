@@ -13,34 +13,48 @@ import (
 )
 
 func init() {
-	codec.RegeDeviceCahce(&dbDeviceCacheManager{})
+	codec.RegDeviceManager(&DeviceManager{m: make(map[string]codec.Device)})
 }
 
-type dbDeviceCacheManager struct {
+type DeviceManager struct {
+	m map[string]codec.Device
 }
 
-func (p *dbDeviceCacheManager) Id() string {
-	return "db"
-}
-func (p *dbDeviceCacheManager) Get(deviceId string) codec.Device {
-	data, _ := GetDevice(deviceId)
-	if data == nil {
-		return nil
+func (dm *DeviceManager) Get(deviceId string) codec.Device {
+	device, ok := dm.m[deviceId]
+	if ok {
+		return device
 	}
-	config := map[string]interface{}{}
-	if len(data.MetaConfig) > 0 {
-		err := json.Unmarshal([]byte(data.MetaConfig), &config)
-		if (err) != nil {
-			logs.Error(err)
+	if device == nil {
+		data, _ := GetDevice(deviceId)
+		if data == nil {
+			return nil
 		}
-	}
+		config := map[string]interface{}{}
+		if len(data.MetaConfig) > 0 {
+			err := json.Unmarshal([]byte(data.MetaConfig), &config)
+			if (err) != nil {
+				logs.Error(err)
+			}
+		}
 
-	return &codec.DefaultDevice{
-		Id:        data.Id,
-		ProductId: data.ProductId,
-		Config:    config,
-		Data:      map[string]interface{}{},
+		device = &codec.DefaultDevice{
+			Id:        data.Id,
+			ProductId: data.ProductId,
+			Config:    config,
+			Data:      map[string]interface{}{},
+		}
+		dm.Put(device)
 	}
+	return device
+}
+
+func (dm *DeviceManager) Put(device codec.Device) {
+	dm.m[device.GetId()] = device
+}
+
+func (p *DeviceManager) Id() string {
+	return "db"
 }
 
 // 分页查询设备
