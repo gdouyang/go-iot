@@ -59,7 +59,7 @@ func newClient(network codec.Network) {
 	action := "pub"
 	topic := "test"
 	qos := 0
-	payload := []byte(`{"temperature": 12.1}`)
+	payload := []byte(`{"temperature": 12.1, "fff":1}`)
 	num := 10
 	if action == "pub" {
 		client := MQTT.NewClient(opts)

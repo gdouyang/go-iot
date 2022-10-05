@@ -34,6 +34,7 @@ func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
 	if len(d1) == 0 {
 		return errors.New("data is empty, dont save timeseries data")
 	}
+	d1["collectTime_"] = time.Now().Format("2006-01-02 15:04:05.000")
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
@@ -77,6 +78,13 @@ func (t *EsTimeSeries) QueryProperty(product Product, param map[string]interface
 		"query": map[string]interface{}{
 			"term": map[string]interface{}{
 				tsl.PropertyDeviceId: param[tsl.PropertyDeviceId],
+			},
+		},
+		"sort": []map[string]interface{}{
+			{
+				"collectTime_": map[string]interface{}{
+					"order": "desc",
+				},
 			},
 		},
 	}
@@ -139,15 +147,18 @@ func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[s
 		properties[p.Id] = esType{Type: type1}
 	}
 	properties["deviceId"] = esType{Type: "keyword"}
+	properties["collectTime_"] = esType{Type: "date", Format: "yyyy-MM-dd||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd HH:mm:ss.SSS||epoch_millis"}
 
 	var payload map[string]interface{} = map[string]interface{}{
 		"index_patterns": []string{product.GetId() + "-*"},
 		"order":          0,
 		// "template": map[string]interface{}{
 		"settings": map[string]interface{}{
-			"number_of_shards": 1,
+			"number_of_shards":   "1",
+			"number_of_replicas": "0",
 		},
 		"mappings": map[string]interface{}{
+			"dynamic":    false,
 			"properties": properties,
 		},
 		// },
@@ -156,7 +167,8 @@ func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[s
 }
 
 type esType struct {
-	Type string `json:"type"`
+	Type   string `json:"type"`
+	Format string `json:"format,omitempty"`
 }
 
 type esDo interface {

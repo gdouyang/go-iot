@@ -18,6 +18,7 @@ import (
 func TestEs(t *testing.T) {
 	log.SetFlags(0)
 	log.Println(time.Now().Format("20060102"))
+	log.Println(time.Now().Format("2006-01-02 15:04:05.000"))
 
 	var (
 		r  map[string]interface{}
