@@ -6,7 +6,7 @@ import (
 	"go-iot/codec/tsl"
 )
 
-var deviceManagerIns DeviceManager = DeviceManager{m: make(map[string]Device)}
+var deviceManagerIns DeviceManager = DeviceManager{m: make(map[string]Device), cacheType: "db"}
 var productManager ProductManager = ProductManager{m: make(map[string]Product), cacheType: "db"}
 
 func GetDeviceManager() *DeviceManager {
@@ -18,12 +18,35 @@ func GetProductManager() *ProductManager {
 }
 
 // DeviceManager
+type DeviceCahce interface {
+	Id() string
+	Get(deviceId string) Device
+}
+
+var deviceCahceManager map[string]DeviceCahce = map[string]DeviceCahce{}
+
+func RegeDeviceCahce(cache DeviceCahce) {
+	deviceCahceManager[cache.Id()] = cache
+}
+
 type DeviceManager struct {
-	m map[string]Device
+	m         map[string]Device
+	cacheType string
 }
 
 func (dm *DeviceManager) Get(deviceId string) Device {
-	device := dm.m[deviceId]
+	device, ok := dm.m[deviceId]
+	if ok {
+		return device
+	}
+	if device == nil {
+		if cm, ok := deviceCahceManager[dm.cacheType]; ok {
+			device = cm.Get(deviceId)
+			if device != nil {
+				dm.Put(device)
+			}
+		}
+	}
 	return device
 }
 
@@ -60,7 +83,6 @@ func (pm *ProductManager) Get(productId string) Product {
 				pm.Put(product)
 			}
 		}
-
 	}
 	return product
 }

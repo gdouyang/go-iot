@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"go-iot/codec"
 	"go-iot/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -12,6 +13,34 @@ import (
 )
 
 func init() {
+	codec.RegeDeviceCahce(&dbDeviceCacheManager{})
+}
+
+type dbDeviceCacheManager struct {
+}
+
+func (p *dbDeviceCacheManager) Id() string {
+	return "db"
+}
+func (p *dbDeviceCacheManager) Get(deviceId string) codec.Device {
+	data, _ := GetDevice(deviceId)
+	if data == nil {
+		return nil
+	}
+	config := map[string]interface{}{}
+	if len(data.MetaConfig) > 0 {
+		err := json.Unmarshal([]byte(data.MetaConfig), &config)
+		if (err) != nil {
+			logs.Error(err)
+		}
+	}
+
+	return &codec.DefaultDevice{
+		Id:        data.Id,
+		ProductId: data.ProductId,
+		Config:    config,
+		Data:      map[string]interface{}{},
+	}
 }
 
 // 分页查询设备
@@ -115,18 +144,18 @@ func DeleteDevice(ob *models.Device) error {
 	return nil
 }
 
-func GetDevice(deviceId string) (models.Device, error) {
+func GetDevice(deviceId string) (*models.Device, error) {
 	if len(deviceId) == 0 {
-		return models.Device{}, errors.New("deviceId not be empty")
+		return nil, errors.New("deviceId not be empty")
 	}
 	o := orm.NewOrm()
 	p := models.Device{Id: deviceId}
 	err := o.Read(&p)
 	if err == orm.ErrNoRows {
-		return models.Device{}, nil
+		return nil, nil
 	} else if err == orm.ErrMissPK {
-		return models.Device{}, err
+		return nil, err
 	} else {
-		return p, nil
+		return &p, nil
 	}
 }
