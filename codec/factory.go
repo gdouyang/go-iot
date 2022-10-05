@@ -6,6 +6,7 @@ import (
 
 // productId
 var codecMap = map[string]Codec{}
+var deviceLifeCycleMap = map[string]DeviceLifecycle{}
 
 func GetCodec(productId string) Codec {
 	codec := codecMap[productId]
@@ -32,8 +33,6 @@ func NewCodec(network Network) Codec {
 	}
 	return c
 }
-
-var deviceLifeCycleMap = map[string]DeviceLifecycle{}
 
 func GetDeviceLifeCycle(productId string) DeviceLifecycle {
 	d := deviceLifeCycleMap[productId]
