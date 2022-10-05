@@ -1,32 +1,29 @@
 package websocketsocker
 
-import "go-iot/codec"
+import (
+	"go-iot/codec"
+
+	"github.com/gorilla/websocket"
+)
 
 type websocketContext struct {
-	deviceId  string
-	productId string
-	Data      []byte
-	session   codec.Session
+	codec.BaseContext
+	Data    []byte
+	msgType int
 }
 
 func (ctx *websocketContext) GetMessage() interface{} {
 	return ctx.Data
 }
 
-// 获取设备操作
-func (ctx *websocketContext) GetDevice() codec.Device {
-	return codec.GetDeviceManager().Get(ctx.deviceId)
-}
-
-// 获取产品操作
-func (ctx *websocketContext) GetProduct() codec.Product {
-	return codec.GetProductManager().Get(ctx.productId)
-}
-
-func (ctx *websocketContext) GetSession() codec.Session {
-	return ctx.session
-}
-
 func (ctx *websocketContext) MsgToString() string {
 	return string(ctx.Data)
+}
+
+func (ctx *websocketContext) IsTextMessage() bool {
+	return ctx.msgType == websocket.TextMessage
+}
+
+func (ctx *websocketContext) IsBinaryMessage() bool {
+	return ctx.msgType == websocket.BinaryMessage
 }

@@ -9,7 +9,6 @@ import (
 )
 
 type (
-
 	// Spec describes the websocket Server
 	WebsocketServerSpec struct {
 		Name                 string                `json:"name"`
@@ -18,6 +17,7 @@ type (
 		UseTLS               bool                  `json:"useTLS"`
 		Certificate          []servers.Certificate `json:"certificate"`
 		MaxAllowedConnection int                   `json:"maxAllowedConnection"`
+		Paths                []string              `json:"paths"`
 	}
 )
 

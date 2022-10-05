@@ -3,9 +3,9 @@ package websocketsocker
 import (
 	"fmt"
 	"go-iot/codec"
-	"log"
 	"net/http"
 
+	"github.com/beego/beego/v2/core/logs"
 	"github.com/gorilla/websocket"
 )
 
@@ -16,16 +16,21 @@ func ServerStart(network codec.Network) {
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
 
-	http.HandleFunc("/socket", func(w http.ResponseWriter, r *http.Request) {
-		socketHandler(w, r, network.ProductId)
-	})
-	http.HandleFunc("/", home)
+	if len(spec.Paths) == 0 {
+		spec.Paths = append(spec.Paths, "/")
+	}
+
+	for _, path := range spec.Paths {
+		http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			socketHandler(w, r, network.ProductId)
+		})
+	}
 	addr := spec.Host + ":" + fmt.Sprint(spec.Port)
 
 	err := http.ListenAndServe(addr, nil)
 
 	if err != nil {
-		log.Fatal(err)
+		logs.Error(err)
 	}
 }
 
@@ -33,7 +38,7 @@ func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
 	// Upgrade our raw HTTP connection to a websocket based one
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Print("Error during connection upgradation:", err)
+		logs.Error("Error during connection upgradation:", err)
 		return
 	}
 	defer conn.Close()
@@ -43,24 +48,27 @@ func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
 
 	sc := codec.GetCodec(productId)
 
-	context := &websocketContext{productId: productId, session: session}
-
-	sc.OnConnect(context)
+	sc.OnConnect(&websocketContext{
+		BaseContext: codec.BaseContext{ProductId: productId,
+			Session: session,
+		},
+	})
 
 	// The event loop
 	for {
-		_, message, err := conn.ReadMessage()
+		messageType, message, err := conn.ReadMessage()
 		if err != nil {
-			log.Println("Error during message reading:", err)
+			logs.Error("Error during message reading:", err)
 			break
 		}
-		log.Printf("Received: %s", message)
+		// logs.Info("Received: %s", message)
 
-		context.Data = message
-		sc.OnMessage(context)
+		sc.OnMessage(&websocketContext{
+			BaseContext: codec.BaseContext{ProductId: productId,
+				Session: session,
+			},
+			Data:    message,
+			msgType: messageType,
+		})
 	}
-}
-
-func home(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Index Page")
 }
