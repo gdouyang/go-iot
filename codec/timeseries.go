@@ -14,7 +14,6 @@ const (
 var timeSeriseMap map[string]TimeSeriesSave = map[string]TimeSeriesSave{}
 
 func init() {
-	timeSeriseMap[TIME_SERISE_ES] = &EsTimeSeries{}
 	timeSeriseMap[TIME_SERISE_MOCK] = &MockTimeSeries{}
 }
 

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"go-iot/codec/tsl"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -14,8 +15,16 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
+func init() {
+	timeSeriseMap[TIME_SERISE_ES] = &EsTimeSeries{dataCh: make(chan string, 1000)}
+}
+
 // es时序保存
 type EsTimeSeries struct {
+	sync.RWMutex
+	batchData    []string
+	dataCh       chan string
+	batchTaskRun bool
 }
 
 func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
@@ -45,16 +54,55 @@ func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
 	}
 
 	index := t.getIndex(product)
-	// Set up the request object.
-	req := esapi.IndexRequest{
-		Index: index,
-		// DocumentID: "1",
-		Body:    bytes.NewReader(data),
-		Refresh: "true",
+	o := `{ "index" : { "_index" : "` + index + `" } }` + "\n" + string(data) + "\n"
+	t.dataCh <- o
+	if !t.batchTaskRun {
+		t.Lock()
+		defer t.Unlock()
+		t.batchTaskRun = true
+		go t.batchSave()
 	}
-	_, err = doRequest(req)
-	return err
+	return nil
+	// Set up the request object.
+	// req := esapi.IndexRequest{
+	// 	Index: index,
+	// 	// DocumentID: "1",
+	// 	Body:    bytes.NewReader(data),
+	// 	Refresh: "true",
+	// }
+	// _, err = doRequest(req)
+	// return err
 }
+
+func (t *EsTimeSeries) batchSave() {
+	for {
+		select {
+		case <-time.After(time.Duration(1) * time.Millisecond * 10000):
+			t.save()
+		case d := <-t.dataCh:
+			t.batchData = append(t.batchData, d)
+			if len(t.batchData) >= 10 {
+				t.save()
+			}
+		}
+	}
+}
+
+func (t *EsTimeSeries) save() {
+	if len(t.batchData) > 0 {
+		var data []byte
+		for i := 0; i < len(t.batchData); i++ {
+			data = append(data, t.batchData[i]...)
+		}
+		// clear batch data
+		t.batchData = t.batchData[:0]
+		req := esapi.BulkRequest{
+			Body: bytes.NewReader(data),
+		}
+		doRequest(req)
+	}
+}
+
 func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) error {
 	logs.Info("PublishModel: ", model)
 	mapping := t.convertMapping(product, &model)
