@@ -26,5 +26,4 @@ func (s *tcpSession) Disconnect() error {
 
 func (s *tcpSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
-	// codec.GetSessionManager().Put(deviceId, s)
 }

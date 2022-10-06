@@ -27,11 +27,15 @@ func ServerStart(network codec.Network) {
 	}
 	addr := spec.Host + ":" + fmt.Sprint(spec.Port)
 
-	err := http.ListenAndServe(addr, nil)
+	codec.NewCodec(network)
 
-	if err != nil {
-		logs.Error(err)
-	}
+	go func() {
+		err := http.ListenAndServe(addr, nil)
+
+		if err != nil {
+			logs.Error(err)
+		}
+	}()
 }
 
 func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
@@ -42,32 +46,38 @@ func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
 		return
 	}
 
-	session := newSession(conn)
-	defer session.Disconnect()
+	go func() {
+		r.ParseForm()
+		session := newSession(conn).(*websocketSession)
+		defer session.Disconnect()
 
-	sc := codec.GetCodec(productId)
-
-	sc.OnConnect(&websocketContext{
-		BaseContext: codec.BaseContext{ProductId: productId,
-			Session: session,
-		},
-	})
-
-	// The event loop
-	for {
-		messageType, message, err := conn.ReadMessage()
-		if err != nil {
-			logs.Error("Error during message reading:", err)
-			break
-		}
-		// logs.Info("Received: %s", message)
-
-		sc.OnMessage(&websocketContext{
+		sc := codec.GetCodec(productId)
+		sc.OnConnect(&websocketContext{
 			BaseContext: codec.BaseContext{ProductId: productId,
 				Session: session,
 			},
-			Data:    message,
-			msgType: messageType,
+			r: r,
 		})
-	}
+
+		// The event loop
+		for {
+			messageType, message, err := conn.ReadMessage()
+			if err != nil {
+				logs.Error("Error during message reading:", err)
+				break
+			}
+			// logs.Info("Received: %s", message)
+
+			sc.OnMessage(&websocketContext{
+				BaseContext: codec.BaseContext{
+					DeviceId:  session.deviceId,
+					ProductId: productId,
+					Session:   session,
+				},
+				Data:    message,
+				msgType: messageType,
+				r:       r,
+			})
+		}
+	}()
 }

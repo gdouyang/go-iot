@@ -202,7 +202,7 @@ func (c *Client) disconnected() bool {
 }
 
 func (c *Client) closeAndDelSession() {
-	codec.GetSessionManager().DelLocal(c.info.cid)
+	codec.GetSessionManager().DelLocal(c.session.info.deviceId)
 
 	c.close()
 }

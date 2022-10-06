@@ -44,16 +44,17 @@ func connHandler(c net.Conn, productId string, spec *TcpServerSpec) {
 		logs.Error("无效的 socket 连接")
 		return
 	}
-	session := newTcpSession(c)
+	session := newTcpSession(c).(*tcpSession)
 	defer session.Disconnect()
 
 	sc := codec.GetCodec(productId)
 
-	context := &tcpContext{
-		BaseContext: codec.BaseContext{ProductId: productId, Session: session},
-	}
-
-	sc.OnConnect(context)
+	sc.OnConnect(&tcpContext{
+		BaseContext: codec.BaseContext{
+			ProductId: productId,
+			Session:   session,
+		},
+	})
 
 	//2.新建网络数据流存储结构
 	delimeter := newDelimeter(spec.Delimeter, c)
@@ -67,7 +68,13 @@ func connHandler(c net.Conn, productId string, spec *TcpServerSpec) {
 			logs.Error("read error: " + err.Error())
 			break
 		}
-		context.Data = data
-		sc.OnMessage(context)
+		sc.OnMessage(&tcpContext{
+			BaseContext: codec.BaseContext{
+				DeviceId:  session.deviceId,
+				ProductId: productId,
+				Session:   session,
+			},
+			Data: data,
+		})
 	}
 }
