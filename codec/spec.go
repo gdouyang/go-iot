@@ -38,6 +38,7 @@ type (
 	Session interface {
 		Send(msg interface{}) error
 		Disconnect() error
+		GetDeviceId() string
 		SetDeviceId(deviceId string)
 	}
 	// 上下文

@@ -48,7 +48,7 @@ func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
 
 	go func() {
 		r.ParseForm()
-		session := newSession(conn).(*websocketSession)
+		session := newSession(conn)
 		defer session.Disconnect()
 
 		sc := codec.GetCodec(productId)
@@ -70,7 +70,7 @@ func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
 
 			sc.OnMessage(&websocketContext{
 				BaseContext: codec.BaseContext{
-					DeviceId:  session.deviceId,
+					DeviceId:  session.GetDeviceId(),
 					ProductId: productId,
 					Session:   session,
 				},

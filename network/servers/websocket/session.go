@@ -23,6 +23,10 @@ func (s *websocketSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
 }
 
+func (s *websocketSession) GetDeviceId() string {
+	return s.deviceId
+}
+
 func (s *websocketSession) Send(msg interface{}) error {
 	var err error
 	switch t := msg.(type) {

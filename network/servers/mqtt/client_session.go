@@ -32,3 +32,7 @@ func (s *ClientSession) Disconnect() error {
 func (s *ClientSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
 }
+
+func (s *ClientSession) GetDeviceId() string {
+	return s.deviceId
+}

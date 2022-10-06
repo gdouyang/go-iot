@@ -222,5 +222,7 @@ func (s *Session) Disconnect() error {
 
 func (s *Session) SetDeviceId(deviceId string) {
 	s.info.deviceId = deviceId
-	// codec.GetSessionManager().Put(deviceId, s)
+}
+func (s *Session) GetDeviceId() string {
+	return s.info.deviceId
 }

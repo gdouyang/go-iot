@@ -42,7 +42,7 @@ func ClientStart(network codec.Network) error {
 	go func() {
 		c.OnConnect(&mqttClientContext{
 			BaseContext: codec.BaseContext{
-				DeviceId:  session.deviceId,
+				DeviceId:  session.GetDeviceId(),
 				ProductId: network.ProductId,
 				Session:   &session,
 			},
@@ -51,7 +51,7 @@ func ClientStart(network codec.Network) error {
 			msg := <-choke
 			c.OnMessage(&mqttClientContext{
 				BaseContext: codec.BaseContext{
-					DeviceId:  session.deviceId,
+					DeviceId:  session.GetDeviceId(),
 					ProductId: network.ProductId,
 					Session:   &session,
 				},

@@ -27,3 +27,7 @@ func (s *tcpSession) Disconnect() error {
 func (s *tcpSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
 }
+
+func (s *tcpSession) GetDeviceId() string {
+	return s.deviceId
+}

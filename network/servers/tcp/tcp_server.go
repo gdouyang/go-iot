@@ -44,7 +44,7 @@ func connHandler(c net.Conn, productId string, spec *TcpServerSpec) {
 		logs.Error("无效的 socket 连接")
 		return
 	}
-	session := newTcpSession(c).(*tcpSession)
+	session := newTcpSession(c)
 	defer session.Disconnect()
 
 	sc := codec.GetCodec(productId)
@@ -70,7 +70,7 @@ func connHandler(c net.Conn, productId string, spec *TcpServerSpec) {
 		}
 		sc.OnMessage(&tcpContext{
 			BaseContext: codec.BaseContext{
-				DeviceId:  session.deviceId,
+				DeviceId:  session.GetDeviceId(),
 				ProductId: productId,
 				Session:   session,
 			},
