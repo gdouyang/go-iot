@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"go-iot/codec"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -68,9 +67,9 @@ func getBody(r *http.Request, MaxMemory int64) []byte {
 		if err != nil {
 			return nil
 		}
-		requestbody, _ = ioutil.ReadAll(reader)
+		requestbody, _ = io.ReadAll(reader)
 	} else {
-		requestbody, _ = ioutil.ReadAll(safe)
+		requestbody, _ = io.ReadAll(safe)
 	}
 
 	r.Body.Close()
