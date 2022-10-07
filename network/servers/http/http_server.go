@@ -1,8 +1,11 @@
 package httpserver
 
 import (
+	"compress/gzip"
 	"fmt"
 	"go-iot/codec"
+	"io"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -24,13 +27,52 @@ func ServerStart(network codec.Network) {
 	}
 	addr := spec.Host + ":" + fmt.Sprint(spec.Port)
 
-	err := http.ListenAndServe(addr, nil)
+	codec.NewCodec(network)
 
-	if err != nil {
-		logs.Error(err)
-	}
+	go func() {
+		err := http.ListenAndServe(addr, nil)
+
+		if err != nil {
+			logs.Error(err)
+		}
+	}()
 }
 
 func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
-	fmt.Fprintf(w, "hello world "+productId)
+	r.ParseForm()
+	session := newSession(w, r)
+	// defer session.Disconnect()
+
+	sc := codec.GetCodec(productId)
+	message := getBody(r, 1024)
+	sc.OnMessage(&httpContext{
+		BaseContext: codec.BaseContext{
+			DeviceId:  session.GetDeviceId(),
+			ProductId: productId,
+			Session:   session,
+		},
+		Data: message,
+		r:    r,
+	})
+}
+
+func getBody(r *http.Request, MaxMemory int64) []byte {
+	if r.Body == nil {
+		return []byte{}
+	}
+
+	var requestbody []byte
+	safe := &io.LimitedReader{R: r.Body, N: MaxMemory}
+	if r.Header.Get("Content-Encoding") == "gzip" {
+		reader, err := gzip.NewReader(safe)
+		if err != nil {
+			return nil
+		}
+		requestbody, _ = ioutil.ReadAll(reader)
+	} else {
+		requestbody, _ = ioutil.ReadAll(safe)
+	}
+
+	r.Body.Close()
+	return requestbody
 }
