@@ -5,7 +5,7 @@ import (
 	"go-iot/models"
 	_ "go-iot/models/device"
 	httpserver "go-iot/network/servers/http"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -54,7 +54,7 @@ func initClient() {
 		logs.Error(err)
 	}
 	//利用ioutil包读取百度服务器返回的数据
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	res.Body.Close() //一定要记得关闭连接
 	if err != nil {
 		log.Fatal(err)
