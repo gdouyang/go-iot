@@ -180,22 +180,37 @@ func (b *Broker) handleConn(conn net.Conn) {
 		}
 	}
 	b.clients[client.info.cid] = client
-	b.setSession(client, connect)
-
 	b.Unlock()
 
+	b.setSession(client, connect)
+
 	// check auth
-	codec.GetCodec(b.productId).OnConnect(&mqttContext{
+	err = codec.GetCodec(b.productId).OnConnect(&mqttContext{
 		client: client,
 		BaseContext: codec.BaseContext{
 			ProductId: b.productId,
 			Session:   client.session,
 		}},
 	)
+	if err.Error() == "notimpl" {
+		product := codec.GetProductManager().Get(b.productId)
+		username := product.GetConfig()["username"]
+		password := product.GetConfig()["password"]
+		if product != nil && username != nil && username == connect.Username && password != nil && password == string(connect.Password) {
+			connack.ReturnCode = packets.ErrRefusedNotAuthorised
+			err := connack.Write(conn)
+			if err != nil {
+				logs.Error("send connack to client %s failed: %s", connect.ClientIdentifier, err)
+			}
+			client.closeAndDelSession()
+			return
+		}
+	}
 
 	err = connack.Write(conn)
 	if err != nil {
 		logs.Error("send connack to client %s failed: %s", connect.ClientIdentifier, err)
+		client.closeAndDelSession()
 		return
 	}
 

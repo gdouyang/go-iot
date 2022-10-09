@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"errors"
 	"log"
 
 	"github.com/robertkrimen/otto"
@@ -55,8 +56,11 @@ type ScriptCodec struct {
 
 // 设备连接时
 func (codec *ScriptCodec) OnConnect(ctx Context) error {
-	funcInvoke(codec.onConnect, ctx)
-	return nil
+	if codec.onConnect.IsDefined() {
+		funcInvoke(codec.onConnect, ctx)
+		return nil
+	}
+	return errors.New("notimpl")
 }
 
 // 接收消息
