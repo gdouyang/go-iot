@@ -2,8 +2,11 @@ package mqttserver
 
 import (
 	"go-iot/codec"
+	"net"
 
+	"github.com/beego/beego/v2/core/logs"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
 type mqttContext struct {
@@ -26,6 +29,21 @@ func (ctx *mqttContext) GetClientId() string {
 
 func (ctx *mqttContext) GetUserName() string {
 	return ctx.client.UserName()
+}
+
+func (ctx *mqttContext) checkAuth(connack *packets.ConnackPacket, conn net.Conn) bool {
+	username := ctx.GetConfig("username")
+	password := ctx.GetConfig("password")
+	if username != nil && username == ctx.GetUserName() && password != nil && password == ctx.client.info.password {
+		connack.ReturnCode = packets.ErrRefusedNotAuthorised
+		err := connack.Write(conn)
+		if err != nil {
+			logs.Error("send connack to client %s failed: %s", ctx.GetClientId(), err)
+		}
+		ctx.client.closeAndDelSession()
+		return false
+	}
+	return true
 }
 
 type mqttClientContext struct {
