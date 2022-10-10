@@ -69,15 +69,37 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 }
 
 func (ctx *BaseContext) GetDevice() Device {
+	if len(ctx.DeviceId) == 0 {
+		return nil
+	}
 	return GetDeviceManager().Get(ctx.DeviceId)
 }
 
 func (ctx *BaseContext) GetProduct() Product {
+	if len(ctx.ProductId) == 0 {
+		return nil
+	}
 	return GetProductManager().Get(ctx.ProductId)
 }
 
 func (ctx *BaseContext) GetSession() Session {
 	return ctx.Session
+}
+
+func (ctx *BaseContext) GetConfig(key string) interface{} {
+	device := ctx.GetDevice()
+	if device != nil {
+		if v, ok := device.GetConfig()[key]; ok {
+			return v
+		}
+	}
+	p := ctx.GetProduct()
+	if p != nil {
+		if v, ok := p.GetConfig()[key]; ok {
+			return v
+		}
+	}
+	return nil
 }
 
 // save time series data
