@@ -3,64 +3,13 @@ package models
 import (
 	"encoding/json"
 	"errors"
-	"sync"
 	"time"
 
-	"go-iot/codec"
 	"go-iot/models"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/core/logs"
 )
-
-func init() {
-	codec.RegDeviceManager(&DbDeviceManager{cache: make(map[string]codec.Device)})
-}
-
-type DbDeviceManager struct {
-	sync.RWMutex
-	cache map[string]codec.Device
-}
-
-func (p *DbDeviceManager) Id() string {
-	return "db"
-}
-
-func (m *DbDeviceManager) Get(deviceId string) codec.Device {
-	device, ok := m.cache[deviceId]
-	if ok {
-		return device
-	}
-	if device == nil {
-		m.Lock()
-		defer m.Unlock()
-		data, _ := GetDevice(deviceId)
-		if data == nil {
-			m.cache[deviceId] = nil
-			return nil
-		}
-		config := map[string]interface{}{}
-		if len(data.MetaConfig) > 0 {
-			err := json.Unmarshal([]byte(data.MetaConfig), &config)
-			if (err) != nil {
-				logs.Error(err)
-			}
-		}
-
-		device = &codec.DefaultDevice{
-			Id:        data.Id,
-			ProductId: data.ProductId,
-			Config:    config,
-			Data:      map[string]interface{}{},
-		}
-		m.Put(device)
-	}
-	return device
-}
-
-func (m *DbDeviceManager) Put(device codec.Device) {
-	m.cache[device.GetId()] = device
-}
 
 // 分页查询设备
 func ListDevice(page *models.PageQuery) (*models.PageResult, error) {

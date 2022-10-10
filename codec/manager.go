@@ -70,8 +70,8 @@ type ProductManager interface {
 type DefaultDevice struct {
 	Id        string
 	ProductId string
-	Data      map[string]interface{}
-	Config    map[string]interface{}
+	Data      map[string]string
+	Config    map[string]string
 }
 
 func (d *DefaultDevice) GetId() string {
@@ -81,16 +81,24 @@ func (d *DefaultDevice) GetSession() Session {
 	s := GetSessionManager().Get(d.Id)
 	return s
 }
-func (d *DefaultDevice) GetData() map[string]interface{} {
+func (d *DefaultDevice) GetData() map[string]string {
 	return d.Data
 }
-func (d *DefaultDevice) GetConfig() map[string]interface{} {
+func (d *DefaultDevice) GetConfig() map[string]string {
 	return d.Config
+}
+
+func NewProduct(id string, config map[string]string, tsId string) *DefaultProdeuct {
+	return &DefaultProdeuct{
+		Id:           id,
+		Config:       config,
+		TimeSeriesId: tsId,
+	}
 }
 
 type DefaultProdeuct struct {
 	Id           string
-	Config       map[string]interface{}
+	Config       map[string]string
 	TimeSeriesId string
 	TslProperty  map[string]tsl.TslProperty
 }
@@ -98,7 +106,7 @@ type DefaultProdeuct struct {
 func (p *DefaultProdeuct) GetId() string {
 	return p.Id
 }
-func (p *DefaultProdeuct) GetConfig() map[string]interface{} {
+func (p *DefaultProdeuct) GetConfig() map[string]string {
 	return p.Config
 }
 

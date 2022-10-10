@@ -193,7 +193,7 @@ func (b *Broker) handleConn(conn net.Conn) {
 		}}
 	err = codec.GetCodec(b.productId).OnConnect(ctx)
 
-	if err.Error() == "notimpl" && !ctx.checkAuth(connack, conn) {
+	if err != nil && err.Error() == "notimpl" && !ctx.checkAuth(connack, conn) {
 		return
 	}
 

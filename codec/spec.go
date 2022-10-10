@@ -24,13 +24,13 @@ type (
 		GetId() string
 		// 获取会话
 		GetSession() Session
-		GetData() map[string]interface{}
-		GetConfig() map[string]interface{}
+		GetData() map[string]string
+		GetConfig() map[string]string
 	}
 	// 产品信息
 	Product interface {
 		GetId() string
-		GetConfig() map[string]interface{}
+		GetConfig() map[string]string
 		GetTimeSeries() TimeSeriesSave
 		GetTslProperty() map[string]tsl.TslProperty
 	}

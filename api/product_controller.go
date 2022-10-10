@@ -124,11 +124,7 @@ func (ctl *ProductController) Publish() {
 	}
 	product := codec.GetProductManager().Get(ob.Id)
 	if product == nil {
-		product = &codec.DefaultProdeuct{
-			Id:           ob.Id,
-			Config:       map[string]interface{}{},
-			TimeSeriesId: codec.TIME_SERISE_ES,
-		}
+		product = codec.NewProduct(ob.Id, make(map[string]string), codec.TIME_SERISE_ES)
 		codec.GetProductManager().Put(product)
 	}
 	tsl := tsl.TslData{}

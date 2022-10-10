@@ -58,7 +58,7 @@ var network codec.Network = codec.Network{
 
 var product codec.Product = &codec.DefaultProdeuct{
 	Id:           "test-product",
-	Config:       make(map[string]interface{}),
+	Config:       make(map[string]string),
 	TimeSeriesId: "mock",
 }
 
@@ -67,8 +67,8 @@ func init() {
 	var device codec.Device = &codec.DefaultDevice{
 		Id:        "1234",
 		ProductId: product.GetId(),
-		Data:      make(map[string]interface{}),
-		Config:    make(map[string]interface{}),
+		Data:      make(map[string]string),
+		Config:    make(map[string]string),
 	}
 	codec.GetDeviceManager().Put(device)
 }

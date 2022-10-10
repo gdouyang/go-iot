@@ -3,73 +3,13 @@ package models
 import (
 	"encoding/json"
 	"errors"
-	"sync"
 	"time"
 
-	"go-iot/codec"
-	"go-iot/codec/tsl"
 	"go-iot/models"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/core/logs"
 )
-
-func init() {
-	codec.RegProductManager(&DbProductManager{cache: make(map[string]codec.Product)})
-}
-
-type DbProductManager struct {
-	sync.RWMutex
-	cache map[string]codec.Product
-}
-
-func (p *DbProductManager) Id() string {
-	return "db"
-}
-
-func (m *DbProductManager) Get(productId string) codec.Product {
-	product, ok := m.cache[productId]
-	if ok {
-		return product
-	}
-	if product == nil {
-		m.Lock()
-		defer m.Unlock()
-		data, _ := GetProduct(productId)
-		if data == nil {
-			m.cache[productId] = nil
-			return nil
-		}
-		d := tsl.TslData{}
-		err := d.FromJson(data.MetaData)
-		if err != nil {
-			logs.Error(err)
-		}
-		tt := map[string]tsl.TslProperty{}
-		for _, p := range d.Properties {
-			tt[p.Id] = p
-		}
-
-		product = &codec.DefaultProdeuct{
-			Id:           data.Id,
-			Config:       map[string]interface{}{},
-			TimeSeriesId: "es",
-			TslProperty:  tt,
-		}
-		m.Put(product)
-	}
-	return product
-}
-
-func (m *DbProductManager) Put(product codec.Product) {
-	if product == nil {
-		panic("product not be nil")
-	}
-	if len(product.GetId()) == 0 {
-		panic("product id not be empty")
-	}
-	m.cache[product.GetId()] = product
-}
 
 // 分页查询设备
 func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
