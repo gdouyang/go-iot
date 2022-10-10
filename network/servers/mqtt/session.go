@@ -208,7 +208,7 @@ func (s *Session) backgroundResendPending() {
 func (s *Session) Send(msg interface{}) error {
 	switch t := msg.(type) {
 	case map[string]interface{}:
-		newMsg(t["topic"].(string), msg.([]byte), QoS0)
+		s.publish(t["topic"].(string), msg.([]byte), QoS0)
 	default:
 		logs.Error("msg must map")
 	}
