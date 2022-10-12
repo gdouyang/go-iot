@@ -150,7 +150,14 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 	}
 	err := codec.GetCodec(b.productId).OnConnect(ctx)
 
-	if ctx.authFail || (err != nil && err.Error() == "notimpl" && !ctx.checkAuth()) {
+	if ctx.authFail {
+		return nil, nil, false
+	}
+	if err != nil {
+		if err.Error() == "notimpl" && !ctx.checkAuth() {
+			return nil, nil, false
+		}
+		logs.Error(err)
 		return nil, nil, false
 	}
 
