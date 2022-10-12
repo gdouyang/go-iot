@@ -11,6 +11,8 @@ import (
 )
 
 // authContext
+// auth context have no message and session
+// when auth pass then session will be set
 type authContext struct {
 	codec.BaseContext
 	client   *Client
