@@ -3,12 +3,67 @@ package mqttserver
 import (
 	"go-iot/codec"
 	"net"
+	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
+// authContext
+type authContext struct {
+	codec.BaseContext
+	client   *Client
+	connack  *packets.ConnackPacket
+	conn     net.Conn
+	authFail bool
+}
+
+func (ctx *authContext) GetMessage() interface{} {
+	return nil
+}
+
+func (ctx *authContext) GetSession() codec.Session {
+	return nil
+}
+
+func (ctx *authContext) GetClientId() string {
+	return ctx.client.ClientID()
+}
+
+func (ctx *authContext) GetUserName() string {
+	return ctx.client.UserName()
+}
+
+func (ctx *authContext) DeviceOnline(deviceId string) {
+	deviceId = strings.TrimSpace(deviceId)
+	if len(deviceId) > 0 {
+		ctx.DeviceId = deviceId
+		ctx.client.info.deviceId = deviceId
+		ctx.authFail = false
+	}
+}
+
+func (ctx *authContext) AuthFail() {
+	ctx.authFail = true
+	ctx.connack.ReturnCode = packets.ErrRefusedNotAuthorised
+	err := ctx.connack.Write(ctx.conn)
+	if err != nil {
+		logs.Error("send connack to client %s failed: %s", ctx.GetClientId(), err)
+	}
+}
+
+func (ctx *authContext) checkAuth() bool {
+	username := ctx.GetConfig("username")
+	password := ctx.GetConfig("password")
+	if username != nil && username == ctx.GetUserName() && password != nil && password == ctx.client.info.password {
+		ctx.AuthFail()
+		return false
+	}
+	return true
+}
+
+// mqttContext
 type mqttContext struct {
 	codec.BaseContext
 	Data   []byte
@@ -29,21 +84,6 @@ func (ctx *mqttContext) GetClientId() string {
 
 func (ctx *mqttContext) GetUserName() string {
 	return ctx.client.UserName()
-}
-
-func (ctx *mqttContext) checkAuth(connack *packets.ConnackPacket, conn net.Conn) bool {
-	username := ctx.GetConfig("username")
-	password := ctx.GetConfig("password")
-	if username != nil && username == ctx.GetUserName() && password != nil && password == ctx.client.info.password {
-		connack.ReturnCode = packets.ErrRefusedNotAuthorised
-		err := connack.Write(conn)
-		if err != nil {
-			logs.Error("send connack to client %s failed: %s", ctx.GetClientId(), err)
-		}
-		ctx.client.closeAndDelSession()
-		return false
-	}
-	return true
 }
 
 type mqttClientContext struct {

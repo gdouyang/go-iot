@@ -56,6 +56,7 @@ type (
 		cid       string
 		username  string
 		password  string
+		deviceId  string
 		keepalive uint16
 		will      *packets.PublishPacket
 	}

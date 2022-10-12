@@ -138,6 +138,22 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 
 	client := newClient(connect, b, conn)
 
+	// check auth
+	ctx := &authContext{
+		BaseContext: codec.BaseContext{
+			ProductId: b.productId,
+			Session:   nil,
+		},
+		client:  client,
+		connack: connack,
+		conn:    conn,
+	}
+	err := codec.GetCodec(b.productId).OnConnect(ctx)
+
+	if ctx.authFail || (err != nil && err.Error() == "notimpl" && !ctx.checkAuth()) {
+		return nil, nil, false
+	}
+
 	return client, connack, true
 }
 
@@ -184,19 +200,6 @@ func (b *Broker) handleConn(conn net.Conn) {
 
 	b.setSession(client, connect)
 
-	// check auth
-	ctx := &mqttContext{
-		client: client,
-		BaseContext: codec.BaseContext{
-			ProductId: b.productId,
-			Session:   client.session,
-		}}
-	err = codec.GetCodec(b.productId).OnConnect(ctx)
-
-	if err != nil && err.Error() == "notimpl" && !ctx.checkAuth(connack, conn) {
-		return
-	}
-
 	err = connack.Write(conn)
 	if err != nil {
 		logs.Error("send connack to client %s failed: %s", connect.ClientIdentifier, err)
@@ -211,7 +214,7 @@ func (b *Broker) handleConn(conn net.Conn) {
 func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 	// when clean session is false, previous session exist and previous session not clean session,
 	// then we use previous session, otherwise use new session
-	prevS := codec.GetSessionManager().Get(client.ClientID())
+	prevS := codec.GetSessionManager().Get(client.info.deviceId)
 	var prevSess *Session = nil
 	if prevS != nil {
 		prevSess = prevS.(*Session)
@@ -224,6 +227,8 @@ func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 		}
 		s := &Session{}
 		s.init(b, connect)
+		// make device online
+		s.deviceOnline(client.info.deviceId)
 		client.session = s
 	}
 }
