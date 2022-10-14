@@ -3,8 +3,11 @@ package websocketsocker
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"go-iot/codec"
 	"net/http"
+	"net/url"
+	"time"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/gorilla/websocket"
@@ -13,18 +16,24 @@ import (
 func newSession(conn *websocket.Conn, r *http.Request, productId string) *websocketSession {
 	r.ParseForm()
 	session := &websocketSession{
-		conn:      conn,
-		r:         r,
-		productId: productId,
+		id:         fmt.Sprintf("%d", time.Now().UnixNano()),
+		conn:       conn,
+		header:     r.Header,
+		form:       r.Form,
+		requestURI: r.RequestURI,
+		productId:  productId,
 	}
 	return session
 }
 
 type websocketSession struct {
-	conn      *websocket.Conn
-	r         *http.Request
-	deviceId  string
-	productId string
+	id         string
+	conn       *websocket.Conn
+	header     http.Header
+	form       url.Values
+	requestURI string
+	deviceId   string
+	productId  string
 }
 
 func (s *websocketSession) SetDeviceId(deviceId string) {
@@ -81,9 +90,9 @@ func (s *websocketSession) readLoop() {
 			ProductId: s.productId,
 			Session:   s,
 		},
-		header:     s.r.Header,
-		form:       s.r.Form,
-		requestURI: s.r.RequestURI,
+		header:     s.header,
+		form:       s.form,
+		requestURI: s.requestURI,
 	})
 	for {
 		messageType, message, err := s.conn.ReadMessage()
@@ -101,9 +110,9 @@ func (s *websocketSession) readLoop() {
 			},
 			Data:       message,
 			msgType:    messageType,
-			header:     s.r.Header,
-			form:       s.r.Form,
-			requestURI: s.r.RequestURI,
+			header:     s.header,
+			form:       s.form,
+			requestURI: s.requestURI,
 		})
 	}
 }

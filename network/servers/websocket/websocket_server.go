@@ -84,5 +84,5 @@ func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session := newSession(conn, r, s.productId)
-	go session.readLoop()
+	session.readLoop()
 }

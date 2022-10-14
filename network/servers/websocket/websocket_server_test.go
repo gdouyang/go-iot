@@ -19,10 +19,12 @@ const script = `
 function OnConnect(context) {
   console.log("OnConnect: ", context.GetQuery("deviceId"))
 	context.DeviceOnline(context.GetQuery("deviceId"))
+	console.log("DeviceOnline")
 }
 function OnMessage(context) {
-  console.log("OnMessage: " + context.MsgToString())
-  var data = JSON.parse(context.MsgToString())
+	var msg = context.MsgToString()
+  console.log("OnMessage: " + msg)
+  var data = JSON.parse(msg)
   context.Save(data)
 	context.GetSession().Send(data)
 }
@@ -46,14 +48,19 @@ func TestServer(t *testing.T) {
 	network := network
 	network.Configuration = `{"host": "localhost", "useTLS": false, "paths":["/socket"]}`
 	websocketsocker.ServerStart(network)
-	initClient()
+	c := &client{}
+	go c.initClient("1234")
+	c1 := &client{}
+	c1.initClient("4567")
 }
 
-var done chan interface{}
-var interrupt chan os.Signal
+type client struct {
+	done      chan interface{}
+	interrupt chan os.Signal
+}
 
-func receiveHandler(connection *websocket.Conn) {
-	defer close(done)
+func (c *client) receiveHandler(connection *websocket.Conn) {
+	defer close(c.done)
 	for {
 		_, msg, err := connection.ReadMessage()
 		if err != nil {
@@ -64,19 +71,19 @@ func receiveHandler(connection *websocket.Conn) {
 	}
 }
 
-func initClient() {
-	done = make(chan interface{})    // Channel to indicate that the receiverHandler is done
-	interrupt = make(chan os.Signal) // Channel to listen for interrupt signal to terminate gracefully
+func (c *client) initClient(deviceId string) {
+	c.done = make(chan interface{})    // Channel to indicate that the receiverHandler is done
+	c.interrupt = make(chan os.Signal) // Channel to listen for interrupt signal to terminate gracefully
 
-	signal.Notify(interrupt, os.Interrupt) // Notify the interrupt channel for SIGINT
+	signal.Notify(c.interrupt, os.Interrupt) // Notify the interrupt channel for SIGINT
 
-	socketUrl := "ws://localhost:" + fmt.Sprint(network.Port) + "/socket?deviceId=1234"
+	socketUrl := "ws://localhost:" + fmt.Sprint(network.Port) + "/socket?deviceId=" + deviceId
 	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
 	if err != nil {
 		log.Fatal("Error connecting to Websocket Server:", err)
 	}
 	defer conn.Close()
-	go receiveHandler(conn)
+	go c.receiveHandler(conn)
 
 	// Our main loop for the client
 	// We send our relevant packets here
@@ -96,7 +103,7 @@ func initClient() {
 				return
 			}
 
-		case <-interrupt:
+		case <-c.interrupt:
 			// We received a SIGINT (Ctrl + C). Terminate gracefully...
 			log.Println("Received SIGINT interrupt signal. Closing all pending connections")
 
@@ -108,7 +115,7 @@ func initClient() {
 			}
 
 			select {
-			case <-done:
+			case <-c.done:
 				log.Println("Receiver Channel Closed! Exiting....")
 			case <-time.After(time.Duration(1) * time.Second):
 				log.Println("Timeout in closing receiving channel. Exiting....")

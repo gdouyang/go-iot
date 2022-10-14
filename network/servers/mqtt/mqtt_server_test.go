@@ -43,16 +43,17 @@ func TestServer(t *testing.T) {
 	network := network
 	network.Configuration = `{"host": "localhost", "useTLS": false}`
 	mqttserver.ServerStart(network)
-	newClient(network)
+	go newClient(network, "1234")
+	newClient(network, "4567")
 }
 
-func newClient(network codec.Network) {
+func newClient(network codec.Network, deviceId string) {
 	spec := mqttserver.MQTTServerSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker("tcp://" + spec.Host + ":" + fmt.Sprint(spec.Port))
-	opts.SetClientID("1234")
+	opts.SetClientID(deviceId)
 	opts.SetUsername("admin")
 	opts.SetPassword("123456")
 	opts.SetCleanSession(false)
@@ -68,7 +69,7 @@ func newClient(network codec.Network) {
 		}
 		fmt.Println("Sample Publisher Started")
 		for i := 0; i < num; i++ {
-			fmt.Println("---- doing publish ----")
+			// fmt.Println("---- doing publish ----")
 			token := client.Publish(topic, byte(qos), false, payload)
 			token.Wait()
 			time.Sleep(1 * time.Second)

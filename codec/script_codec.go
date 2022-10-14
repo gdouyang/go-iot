@@ -2,8 +2,8 @@ package codec
 
 import (
 	"errors"
-	"log"
 
+	"github.com/beego/beego/v2/core/logs"
 	"github.com/robertkrimen/otto"
 )
 
@@ -14,6 +14,16 @@ func init() {
 	})
 }
 
+const (
+	OnConnect      = "OnConnect"
+	OnMessage      = "OnMessage"
+	OnInvoke       = "OnInvoke"
+	OnDeviceCreate = "OnDeviceCreate"
+	OnDeviceDelete = "OnDeviceDelete"
+	OnDeviceUpdate = "OnDeviceUpdate"
+	OnStateChecker = "OnStateChecker"
+)
+
 func newScriptCodec(network Network) (Codec, error) {
 	vm := otto.New()
 	_, err := vm.Run(network.Script)
@@ -21,22 +31,22 @@ func newScriptCodec(network Network) (Codec, error) {
 		script: network.Script,
 		vm:     vm,
 	}
-	codecMap[network.ProductId] = sc
+	RegCodec(network.ProductId, sc)
 
-	var val, _ = vm.Get("OnConnect")
-	sc.onConnect = val
-	val, _ = vm.Get("OnMessage")
-	sc.onMessage = val
-	val, _ = vm.Get("OnInvoke")
-	sc.onInvoke = val
-	val, _ = vm.Get("OnDeviceCreate")
-	sc.onDeviceCreate = val
-	val, _ = vm.Get("OnDeviceDelete")
-	sc.onDeviceDelete = val
-	val, _ = vm.Get("OnDeviceUpdate")
-	sc.onDeviceUpdate = val
-	val, _ = vm.Get("OnStateChecker")
-	sc.onStateChecker = val
+	var val, _ = vm.Get(OnConnect)
+	sc.onConnect = val.IsDefined()
+	val, _ = vm.Get(OnMessage)
+	sc.onMessage = val.IsDefined()
+	val, _ = vm.Get(OnInvoke)
+	sc.onInvoke = val.IsDefined()
+	val, _ = vm.Get(OnDeviceCreate)
+	sc.onDeviceCreate = val.IsDefined()
+	val, _ = vm.Get(OnDeviceDelete)
+	sc.onDeviceDelete = val.IsDefined()
+	val, _ = vm.Get(OnDeviceUpdate)
+	sc.onDeviceUpdate = val.IsDefined()
+	val, _ = vm.Get(OnStateChecker)
+	sc.onStateChecker = val.IsDefined()
 
 	return sc, err
 }
@@ -45,70 +55,85 @@ func newScriptCodec(network Network) (Codec, error) {
 type ScriptCodec struct {
 	script         string
 	vm             *otto.Otto
-	onConnect      otto.Value
-	onMessage      otto.Value
-	onInvoke       otto.Value
-	onDeviceCreate otto.Value
-	onDeviceDelete otto.Value
-	onDeviceUpdate otto.Value
-	onStateChecker otto.Value
+	onConnect      bool
+	onMessage      bool
+	onInvoke       bool
+	onDeviceCreate bool
+	onDeviceDelete bool
+	onDeviceUpdate bool
+	onStateChecker bool
 }
 
 // 设备连接时
-func (codec *ScriptCodec) OnConnect(ctx Context) error {
-	if codec.onConnect.IsDefined() {
-		funcInvoke(codec.onConnect, ctx)
+func (c *ScriptCodec) OnConnect(ctx Context) error {
+	if c.onConnect {
+		c.funcInvoke(OnConnect, ctx)
 		return nil
 	}
 	return errors.New("notimpl")
 }
 
 // 接收消息
-func (codec *ScriptCodec) OnMessage(ctx Context) error {
-	funcInvoke(codec.onMessage, ctx)
+func (c *ScriptCodec) OnMessage(ctx Context) error {
+	if c.onMessage {
+		c.funcInvoke(OnMessage, ctx)
+	}
 	return nil
 }
 
 // 命令调用
-func (codec *ScriptCodec) OnInvoke(ctx Context) error {
-	funcInvoke(codec.onInvoke, ctx)
+func (c *ScriptCodec) OnInvoke(ctx Context) error {
+	if c.onInvoke {
+		c.funcInvoke(OnInvoke, ctx)
+	}
 	return nil
 }
 
 // 连接关闭
-func (codec *ScriptCodec) OnClose(ctx Context) error {
+func (c *ScriptCodec) OnClose(ctx Context) error {
 	return nil
 }
 
 // 设备新增
-func (codec *ScriptCodec) OnCreate(ctx Context) error {
-	funcInvoke(codec.onDeviceCreate, ctx)
+func (c *ScriptCodec) OnCreate(ctx Context) error {
+	if c.onDeviceCreate {
+		c.funcInvoke(OnDeviceCreate, ctx)
+	}
 	return nil
 }
 
 // 设备删除
-func (codec *ScriptCodec) OnDelete(ctx Context) error {
-	funcInvoke(codec.onDeviceDelete, ctx)
+func (c *ScriptCodec) OnDelete(ctx Context) error {
+	if c.onDeviceDelete {
+		c.funcInvoke(OnDeviceDelete, ctx)
+	}
 	return nil
 }
 
 // 设备修改
-func (codec *ScriptCodec) OnUpdate(ctx Context) error {
-	funcInvoke(codec.onDeviceUpdate, ctx)
+func (c *ScriptCodec) OnUpdate(ctx Context) error {
+	if c.onDeviceUpdate {
+		c.funcInvoke(OnDeviceUpdate, ctx)
+	}
 	return nil
 }
 
 // 状态检查
-func (codec *ScriptCodec) OnStateChecker(ctx Context) error {
-	funcInvoke(codec.onStateChecker, ctx)
+func (c *ScriptCodec) OnStateChecker(ctx Context) error {
+	if c.onStateChecker {
+		c.funcInvoke(OnStateChecker, ctx)
+	}
 	return nil
 }
 
-func funcInvoke(fn otto.Value, param interface{}) {
+func (c *ScriptCodec) funcInvoke(name string, param interface{}) {
+	vm := c.vm.Copy()
+	fn, _ := vm.Get(name)
 	if fn.IsDefined() {
-		_, err := fn.Call(fn, param)
+		// logs.Warn(fmt.Sprintf("%p", &fn))
+		_, err := fn.Call(otto.Value{}, param)
 		if err != nil {
-			log.Fatalln(err)
+			logs.Error(err)
 		}
 	}
 }

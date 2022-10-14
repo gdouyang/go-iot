@@ -2,20 +2,28 @@ package codec
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
 )
 
 // productId
-var codecMap = map[string]Codec{}
+var codecMap sync.Map
 var deviceLifeCycleMap = map[string]DeviceLifecycle{}
 
 func GetCodec(productId string) Codec {
-	codec := codecMap[productId]
-	if codec == nil {
+	val, ok := codecMap.Load(productId)
+	if val == nil || !ok {
 		logs.Error(fmt.Sprintf("%s not found codec", productId))
+	} else {
+		codec := val.(Codec)
+		return codec
 	}
-	return codec
+	return nil
+}
+
+func RegCodec(productId string, c Codec) {
+	codecMap.Store(productId, c)
 }
 
 var codecFactory = map[string]func(network Network) Codec{}
