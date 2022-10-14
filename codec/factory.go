@@ -1,6 +1,8 @@
 package codec
 
 import (
+	"fmt"
+
 	"github.com/beego/beego/v2/core/logs"
 )
 
@@ -10,6 +12,9 @@ var deviceLifeCycleMap = map[string]DeviceLifecycle{}
 
 func GetCodec(productId string) Codec {
 	codec := codecMap[productId]
+	if codec == nil {
+		logs.Error(fmt.Sprintf("%s not found codec", productId))
+	}
 	return codec
 }
 

@@ -57,10 +57,10 @@ func receiveHandler(connection *websocket.Conn) {
 	for {
 		_, msg, err := connection.ReadMessage()
 		if err != nil {
-			log.Println("Error in receive:", err)
+			log.Println("client Error in receive:", err)
 			return
 		}
-		log.Printf("Received: %s\n", msg)
+		log.Printf("client Received: %s\n", msg)
 	}
 }
 
@@ -92,6 +92,7 @@ func initClient() {
 			}
 			count++
 			if count == 10 {
+				time.Sleep(time.Second * 2)
 				return
 			}
 

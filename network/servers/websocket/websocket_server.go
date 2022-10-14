@@ -3,13 +3,23 @@ package websocketsocker
 import (
 	"fmt"
 	"go-iot/codec"
+	"net"
 	"net/http"
+	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{} // use default options
+
+type (
+	WebSocketServer struct {
+		productId string
+		spec      *WebsocketServerSpec
+		server    *http.Server
+	}
+)
 
 func ServerStart(network codec.Network) {
 	spec := &WebsocketServerSpec{}
@@ -20,25 +30,52 @@ func ServerStart(network codec.Network) {
 		spec.Paths = append(spec.Paths, "/")
 	}
 
-	for _, path := range spec.Paths {
-		http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-			socketHandler(w, r, network.ProductId)
-		})
+	s := &WebSocketServer{
+		productId: network.ProductId,
+		spec:      spec,
 	}
-	addr := spec.Host + ":" + fmt.Sprint(spec.Port)
+
+	addr := fmt.Sprintf("%s:%d", spec.Host, spec.Port)
+
+	s.server = &http.Server{
+		Addr:    addr,
+		Handler: s,
+	}
+
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		logs.Error(err)
+		return
+	}
 
 	codec.NewCodec(network)
-
 	go func() {
-		err := http.ListenAndServe(addr, nil)
-
+		var err error
+		if spec.UseTLS {
+			tlsConfig, _ := spec.TlsConfig()
+			s.server.TLSConfig = tlsConfig
+			err = s.server.ServeTLS(listener, "", "")
+		} else {
+			err = s.server.Serve(listener)
+		}
 		if err != nil {
 			logs.Error(err)
 		}
 	}()
 }
 
-func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
+func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	allow := false
+	for _, path := range s.spec.Paths {
+		if strings.HasPrefix(r.RequestURI, path) {
+			allow = true
+			break
+		}
+	}
+	if !allow {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	// Upgrade our raw HTTP connection to a websocket based one
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -46,38 +83,6 @@ func socketHandler(w http.ResponseWriter, r *http.Request, productId string) {
 		return
 	}
 
-	go func() {
-		r.ParseForm()
-		session := newSession(conn)
-		defer session.Disconnect()
-
-		sc := codec.GetCodec(productId)
-		sc.OnConnect(&websocketContext{
-			BaseContext: codec.BaseContext{ProductId: productId,
-				Session: session,
-			},
-			r: r,
-		})
-
-		// The event loop
-		for {
-			messageType, message, err := conn.ReadMessage()
-			if err != nil {
-				logs.Error("Error during message reading:", err)
-				break
-			}
-			// logs.Info("Received: %s", message)
-
-			sc.OnMessage(&websocketContext{
-				BaseContext: codec.BaseContext{
-					DeviceId:  session.GetDeviceId(),
-					ProductId: productId,
-					Session:   session,
-				},
-				Data:    message,
-				msgType: messageType,
-				r:       r,
-			})
-		}
-	}()
+	session := newSession(conn, r, s.productId)
+	go session.readLoop()
 }

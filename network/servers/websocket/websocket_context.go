@@ -3,15 +3,18 @@ package websocketsocker
 import (
 	"go-iot/codec"
 	"net/http"
+	"net/url"
 
 	"github.com/gorilla/websocket"
 )
 
 type websocketContext struct {
 	codec.BaseContext
-	Data    []byte
-	msgType int
-	r       *http.Request
+	Data       []byte
+	msgType    int
+	header     http.Header
+	form       url.Values
+	requestURI string
 }
 
 func (ctx *websocketContext) GetMessage() interface{} {
@@ -31,20 +34,20 @@ func (ctx *websocketContext) IsBinaryMessage() bool {
 }
 
 func (ctx *websocketContext) GetHeader(key string) string {
-	if ctx.r == nil {
+	if ctx.header == nil {
 		return ""
 	}
-	return ctx.r.Header.Get(key)
+	return ctx.header.Get(key)
 }
 
 func (ctx *websocketContext) GetUrl() string {
-	return ctx.r.RequestURI
+	return ctx.requestURI
 }
 
 func (ctx *websocketContext) GetQuery(key string) string {
-	return ctx.r.Form.Get(key)
+	return ctx.form.Get(key)
 }
 
 func (ctx *websocketContext) GetForm(key string) string {
-	return ctx.r.Form.Get(key)
+	return ctx.form.Get(key)
 }
