@@ -1,6 +1,7 @@
 package tcpserver
 
 import (
+	"crypto/tls"
 	"fmt"
 	"go-iot/codec"
 	"net"
@@ -8,73 +9,104 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
+var m = map[string]*TcpServer{}
+
+type (
+	TcpServer struct {
+		productId string
+		spec      *TcpServerSpec
+		listener  net.Listener
+		tlsCfg    *tls.Config
+
+		// done is the channel for shutdowning this server.
+		done chan struct{}
+	}
+)
+
 // 开启serverSocket
-func ServerSocket(network codec.Network) {
+func ServerSocket(network codec.Network) bool {
 
 	spec := &TcpServerSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
-	// 1.监听端口
-	addr := spec.Host + ":" + fmt.Sprint(spec.Port)
-	server, err := net.Listen("tcp", addr)
 
+	server := &TcpServer{
+		productId: network.ProductId,
+		spec:      spec,
+		done:      make(chan struct{}),
+	}
+	err := server.setListener()
+	if err != nil {
+		logs.Error("mqtt broker set listener failed: %v", err)
+		return false
+	}
+
+	// create codec
 	codec.NewCodec(network)
 
-	if err != nil {
-		fmt.Println("开启socket服务失败")
-	}
-	go func() {
-		for {
-			//2.接收来自 client 的连接,会阻塞
-			conn, err := server.Accept()
-
-			if err != nil {
-				fmt.Println("连接出错")
-			}
-
-			//并发模式 接收来自客户端的连接请求，一个连接 建立一个 conn
-			go connHandler(conn, network.ProductId, spec)
-		}
-	}()
+	go server.run()
+	m[network.ProductId] = server
+	return true
 }
 
-func connHandler(c net.Conn, productId string, spec *TcpServerSpec) {
-	//1.conn是否有效
-	if c == nil {
-		logs.Error("无效的 socket 连接")
-		return
+func (s *TcpServer) setListener() error {
+	var l net.Listener
+	var err error
+	var cfg *tls.Config
+	addr := fmt.Sprintf("%s:%d", s.spec.Host, s.spec.Port)
+	if s.spec.UseTLS {
+		cfg, err = s.spec.TlsConfig()
+		if err != nil {
+			return fmt.Errorf("invalid tls config for mqtt proxy: %v", err)
+		}
+		l, err = tls.Listen("tcp", addr, cfg)
+		if err != nil {
+			return fmt.Errorf("gen tls tcp listener with addr %v and cfg %v failed: %v", addr, cfg, err)
+		}
+	} else {
+		l, err = net.Listen("tcp", addr)
+		if err != nil {
+			return fmt.Errorf("gen tcp listener with addr %s failed: %v", addr, err)
+		}
 	}
-	session := newTcpSession(c)
+	s.tlsCfg = cfg
+	s.listener = l
+	return err
+}
+
+func (s *TcpServer) run() {
+	for {
+		conn, err := s.listener.Accept()
+		if err != nil {
+			select {
+			case <-s.done:
+				return
+			default:
+			}
+		} else {
+			go s.handleConn(conn)
+		}
+	}
+}
+
+func (s *TcpServer) handleConn(c net.Conn) {
+	session := newTcpSession(s.spec, s.productId, c)
 	defer session.Disconnect()
 
-	sc := codec.GetCodec(productId)
+	sc := codec.GetCodec(s.productId)
 
 	sc.OnConnect(&tcpContext{
 		BaseContext: codec.BaseContext{
-			ProductId: productId,
+			ProductId: s.productId,
 			Session:   session,
 		},
 	})
 
-	//2.新建网络数据流存储结构
-	delimeter := newDelimeter(spec.Delimeter, c)
-
 	//3.循环读取网络数据流
-	for {
-		//3.1 网络数据流读入 buffer
-		data, err := delimeter.Read()
-		//3.2 数据读尽、读取错误 关闭 socket 连接
-		if err != nil {
-			logs.Error("read error: " + err.Error())
-			break
-		}
-		sc.OnMessage(&tcpContext{
-			BaseContext: codec.BaseContext{
-				DeviceId:  session.GetDeviceId(),
-				ProductId: productId,
-				Session:   session,
-			},
-			Data: data,
-		})
-	}
+	session.readLoop()
+}
+
+func (b *TcpServer) Close() {
+	close(b.done)
+	b.listener.Close()
 }

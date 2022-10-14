@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"go-iot/codec"
+	_ "go-iot/models/device"
 	tcpserver "go-iot/network/servers/tcp"
 	"net"
 	"testing"

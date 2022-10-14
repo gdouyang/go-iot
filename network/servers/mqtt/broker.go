@@ -37,14 +37,14 @@ func NewBroker(spec *MQTTServerSpec, network codec.Network) *Broker {
 		done:      make(chan struct{}),
 	}
 
-	// create codec
-	codec.NewCodec(network)
-
 	err := broker.setListener()
 	if err != nil {
 		logs.Error("mqtt broker set listener failed: %v", err)
 		return nil
 	}
+
+	// create codec
+	codec.NewCodec(network)
 
 	go broker.run()
 	return broker
