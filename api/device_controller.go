@@ -17,6 +17,7 @@ func init() {
 		web.NSRouter("/list", &DeviceController{}, "post:List"),
 		web.NSRouter("/", &DeviceController{}, "post:Add"),
 		web.NSRouter("/", &DeviceController{}, "put:Update"),
+		web.NSRouter("/:id", &DeviceController{}, "get:GetOne"),
 		web.NSRouter("/:id", &DeviceController{}, "delete:Delete"),
 		web.NSRouter("/cmd", &DeviceController{}, "post:CmdInvoke"),
 		web.NSRouter("/query-property/:id", &DeviceController{}, "get:QueryProperty"),
@@ -40,6 +41,18 @@ func (ctl *DeviceController) List() {
 		ctl.Data["json"] = &res
 	}
 	ctl.ServeJSON()
+}
+
+// 查询单个设备
+func (ctl *DeviceController) GetOne() {
+	defer ctl.ServeJSON()
+	ob, err := device.GetDevice(ctl.Ctx.Input.Param(":id"))
+	if err != nil {
+		ctl.Data["json"] = models.JsonRespError(err)
+		return
+	}
+
+	ctl.Data["json"] = models.JsonRespOkData(ob)
 }
 
 // 添加设备

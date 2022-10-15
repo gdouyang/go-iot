@@ -61,6 +61,10 @@ func JsonRespOk() JsonResp {
 	return JsonResp{Success: true}
 }
 
+func JsonRespOkData(data interface{}) JsonResp {
+	return JsonResp{Success: true, Data: data}
+}
+
 func JsonRespError(err error) JsonResp {
 	return JsonResp{Success: false, Msg: err.Error()}
 }

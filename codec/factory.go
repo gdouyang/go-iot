@@ -9,7 +9,7 @@ import (
 
 // productId
 var codecMap sync.Map
-var deviceLifeCycleMap = map[string]DeviceLifecycle{}
+var deviceLifeCycleMap sync.Map
 
 func GetCodec(productId string) Codec {
 	val, ok := codecMap.Load(productId)
@@ -41,13 +41,19 @@ func NewCodec(network Network) Codec {
 	c := codecFactory[network.CodecId](network)
 	switch t := c.(type) {
 	case DeviceLifecycle:
-		deviceLifeCycleMap[network.ProductId] = t
+		codecMap.Store(network.ProductId, t)
 	default:
 	}
 	return c
 }
 
 func GetDeviceLifeCycle(productId string) DeviceLifecycle {
-	d := deviceLifeCycleMap[productId]
-	return d
+	val, ok := deviceLifeCycleMap.Load(productId)
+	if val == nil || !ok {
+		logs.Error(fmt.Sprintf("%s not found DeviceLifecycle", productId))
+	} else {
+		v := val.(DeviceLifecycle)
+		return v
+	}
+	return nil
 }

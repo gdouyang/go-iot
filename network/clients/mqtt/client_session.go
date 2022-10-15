@@ -1,6 +1,9 @@
 package mqttclient
 
 import (
+	"fmt"
+	"go-iot/codec"
+
 	"github.com/beego/beego/v2/core/logs"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
@@ -22,10 +25,54 @@ const (
 type ClientSession struct {
 	client    MQTT.Client
 	deviceId  string
+	productId string
 	Topics    map[string]int
 	ClientID  string
 	Username  string
 	CleanFlag bool
+	choke     chan MQTT.Message
+	codec     codec.Codec
+}
+
+func newClientSession(network codec.Network, spec *MQTTClientSpec) *ClientSession {
+	opts := MQTT.NewClientOptions()
+	opts.AddBroker("tcp://" + spec.Host + ":" + fmt.Sprint(spec.Port))
+	opts.SetClientID(spec.ClientId)
+	opts.SetUsername(spec.Username)
+	opts.SetPassword(spec.Password)
+	opts.SetCleanSession(spec.CleanSession)
+
+	choke := make(chan MQTT.Message)
+	opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
+		choke <- msg
+	})
+
+	client := MQTT.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		logs.Error(token.Error())
+		return nil
+	}
+	c := codec.NewCodec(network)
+	session := &ClientSession{
+		client:    client,
+		ClientID:  spec.ClientId,
+		Username:  spec.Username,
+		CleanFlag: spec.CleanSession,
+		Topics:    spec.Topics,
+		productId: network.ProductId,
+		choke:     choke,
+		codec:     c,
+	}
+
+	c.OnConnect(&mqttClientContext{
+		BaseContext: codec.BaseContext{
+			DeviceId:  session.GetDeviceId(),
+			ProductId: network.ProductId,
+			Session:   session,
+		},
+	})
+
+	return session
 }
 
 func (s *ClientSession) Send(msg interface{}) error {
@@ -49,4 +96,18 @@ func (s *ClientSession) SetDeviceId(deviceId string) {
 
 func (s *ClientSession) GetDeviceId() string {
 	return s.deviceId
+}
+
+func (s *ClientSession) readLoop() {
+	for {
+		msg := <-s.choke
+		s.codec.OnMessage(&mqttClientContext{
+			BaseContext: codec.BaseContext{
+				DeviceId:  s.GetDeviceId(),
+				ProductId: s.productId,
+				Session:   s,
+			},
+			Data: msg,
+		})
+	}
 }
