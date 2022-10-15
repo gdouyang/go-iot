@@ -6,7 +6,7 @@ import (
 	"net"
 )
 
-func ClientStart(network codec.Network, call func() string) bool {
+func ClientStart(network codec.Network) bool {
 	spec := &TcpClientSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port

@@ -7,6 +7,21 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
+const (
+	// MQTT服务端
+	MQTT_BROKER = "MQTT_BROKER"
+	// MQTT客户端
+	MQTT_CLIENT = "MQTT_CLIENT"
+	// TCP服务端
+	TCP_SERVER = "TCP_SERVER"
+	// TCP客户端
+	TCP_CLIENT = "TCP_CLIENT"
+	// HTTP服务端
+	HTTP_SERVER = "HTTP_SERVER"
+	// WebSocket服务端
+	WEBSOCKET_SERVER = "WEBSOCKET_SERVER"
+)
+
 type (
 	// 编解码接口
 	Codec interface {

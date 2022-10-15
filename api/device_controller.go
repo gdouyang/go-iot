@@ -7,6 +7,8 @@ import (
 	"go-iot/codec/msg"
 	"go-iot/models"
 	device "go-iot/models/device"
+	"go-iot/models/network"
+	"go-iot/network/clients"
 
 	"github.com/beego/beego/v2/server/web"
 )
@@ -19,6 +21,7 @@ func init() {
 		web.NSRouter("/", &DeviceController{}, "put:Update"),
 		web.NSRouter("/:id", &DeviceController{}, "get:GetOne"),
 		web.NSRouter("/:id", &DeviceController{}, "delete:Delete"),
+		web.NSRouter("/connect/:id", &DeviceController{}, "put:Connect"),
 		web.NSRouter("/cmd", &DeviceController{}, "post:CmdInvoke"),
 		web.NSRouter("/query-property/:id", &DeviceController{}, "get:QueryProperty"),
 	)
@@ -95,6 +98,32 @@ func (ctl *DeviceController) Delete() {
 	ctl.Data["json"] = models.JsonRespOk()
 }
 
+// client设备连接
+func (ctl *DeviceController) Connect() {
+	defer ctl.ServeJSON()
+	var ob *models.Device = &models.Device{
+		Id: ctl.Ctx.Input.Param(":id"),
+	}
+	dev, err := device.GetDevice(ob.Id)
+	if err != nil {
+		ctl.Data["json"] = models.JsonRespError(err)
+		return
+	}
+	n, err := network.GetByProductId(dev.ProductId)
+	if err != nil {
+		ctl.Data["json"] = models.JsonRespError(err)
+		return
+	}
+	// 进行连接
+	err = clients.Connect(convertCodecNetwork(n))
+	if err != nil {
+		ctl.Data["json"] = models.JsonRespError(err)
+		return
+	}
+
+	ctl.Data["json"] = models.JsonRespOk()
+}
+
 // 命令下发
 func (ctl *DeviceController) CmdInvoke() {
 	defer ctl.ServeJSON()
@@ -114,6 +143,7 @@ func (ctl *DeviceController) CmdInvoke() {
 	ctl.Data["json"] = models.JsonRespOk()
 }
 
+// 查询设备属性
 func (ctl *DeviceController) QueryProperty() {
 	defer ctl.ServeJSON()
 

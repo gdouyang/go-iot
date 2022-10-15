@@ -117,6 +117,21 @@ func GetNetwork(id int64) (models.Network, error) {
 	}
 }
 
+func GetByProductId(productId string) (models.Network, error) {
+
+	o := orm.NewOrm()
+
+	p := models.Network{ProductId: productId}
+	err := o.Read(&p)
+	if err == orm.ErrNoRows {
+		return models.Network{}, nil
+	} else if err == orm.ErrMissPK {
+		return models.Network{}, err
+	} else {
+		return p, nil
+	}
+}
+
 func GetNetworkByEntity(p models.Network) (models.Network, error) {
 
 	o := orm.NewOrm()

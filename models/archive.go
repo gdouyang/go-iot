@@ -7,14 +7,6 @@ import (
 const (
 	ONLINE  = "onLine"  // 在线
 	OFFLINE = "offLine" // 离线
-	// MQTT服务端
-	MQTT_BROKER = "MQTT_BROKER"
-	// TCP服务端
-	TCP_SERVER = "TCP_SERVER"
-	// HTTP服务端
-	HTTP_SERVER = "HTTP_SERVER"
-	// WebSocket服务端
-	WEBSOCKET_SERVER = "WEBSOCKET_SERVER"
 )
 
 // 分页结果
