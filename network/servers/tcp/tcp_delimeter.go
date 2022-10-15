@@ -21,7 +21,7 @@ const DelimType_FixLength DelimType = "FixLength"
 // 自定义拆分函数
 const DelimType_SplitFunc DelimType = "SplitFunc"
 
-func newDelimeter(delimeter TcpDelimeter, c net.Conn) Delimeter {
+func NewDelimeter(delimeter TcpDelimeter, c net.Conn) Delimeter {
 	var d Delimeter
 	if delimeter.Type == DelimType_Delimited {
 		b := []byte(delimeter.Delimited)

@@ -1,16 +1,17 @@
-package tcpserver
+package tcpclient
 
 import (
 	"go-iot/codec"
+	tcpserver "go-iot/network/servers/tcp"
 	"net"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
 )
 
-func newTcpSession(s *TcpServerSpec, productId string, conn net.Conn) *tcpSession {
+func newTcpSession(s *TcpClientSpec, productId string, conn net.Conn) *tcpSession {
 	//2.网络数据流分隔器
-	delimeter := NewDelimeter(s.Delimeter, conn)
+	delimeter := tcpserver.NewDelimeter(s.Delimeter, conn)
 	session := &tcpSession{
 		productId: productId,
 		conn:      conn, delimeter: delimeter,
@@ -24,7 +25,7 @@ type tcpSession struct {
 	deviceId  string
 	productId string
 	keepalive uint16
-	delimeter Delimeter
+	delimeter tcpserver.Delimeter
 	done      chan struct{}
 }
 

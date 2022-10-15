@@ -1,4 +1,4 @@
-package tcpserver
+package tcpclient
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 )
 
 func ClientStart(network codec.Network, call func() string) bool {
-	spec := &TcpServerSpec{}
+	spec := &TcpClientSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
 	conn, err := net.Dial("tcp", spec.Host+":"+fmt.Sprint(spec.Port))
@@ -20,7 +20,7 @@ func ClientStart(network codec.Network, call func() string) bool {
 	return true
 }
 
-func connClientHandler(conn net.Conn, productId string, spec *TcpServerSpec) {
+func connClientHandler(conn net.Conn, productId string, spec *TcpClientSpec) {
 	session := newTcpSession(spec, productId, conn)
 	defer session.Disconnect()
 

@@ -1,8 +1,22 @@
-package mqttserver
+package mqttclient
 
 import (
 	"github.com/beego/beego/v2/core/logs"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+)
+
+const (
+	// Connected is MQTT client status of Connected
+	Connected = 1
+	// Disconnected is MQTT client status of Disconnected
+	Disconnected = 2
+
+	// QoS0 for "At most once"
+	QoS0 byte = 0
+	// QoS1 for "At least once
+	QoS1 byte = 1
+	// QoS2 for "Exactly once"
+	QoS2 byte = 2
 )
 
 type ClientSession struct {
@@ -17,7 +31,7 @@ type ClientSession struct {
 func (s *ClientSession) Send(msg interface{}) error {
 	switch t := msg.(type) {
 	case map[string]interface{}:
-		newMsg(t["topic"].(string), msg.([]byte), QoS0)
+		s.client.Publish(t["topic"].(string), QoS0, false, msg.([]byte))
 	default:
 		logs.Error("msg must map")
 	}

@@ -1,4 +1,4 @@
-package mqttserver
+package mqttclient
 
 import (
 	"fmt"
