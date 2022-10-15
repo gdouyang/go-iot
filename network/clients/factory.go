@@ -7,13 +7,13 @@ import (
 	tcpclient "go-iot/network/clients/tcp"
 )
 
-func Connect(network codec.Network) error {
+func Connect(deviceId string, network codec.Network) error {
 	switch network.Type {
 	case codec.MQTT_CLIENT:
-		mqttclient.ClientStart(network)
+		mqttclient.ClientStart(deviceId, network)
 		return nil
 	case codec.TCP_CLIENT:
-		tcpclient.ClientStart(network)
+		tcpclient.ClientStart(deviceId, network)
 		return nil
 	}
 	return errors.New("device is not client network")

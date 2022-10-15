@@ -28,9 +28,9 @@ func (ctx *mqttClientContext) MessageID() uint16 {
 }
 
 func (ctx *mqttClientContext) GetClientId() string {
-	return ctx.Session.(*ClientSession).ClientID
+	return ctx.Session.(*clientSession).ClientID
 }
 
 func (ctx *mqttClientContext) GetUserName() string {
-	return ctx.Session.(*ClientSession).Username
+	return ctx.Session.(*clientSession).Username
 }

@@ -3,6 +3,7 @@ package mqttclient
 import (
 	"fmt"
 	"go-iot/codec"
+	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -22,7 +23,7 @@ const (
 	QoS2 byte = 2
 )
 
-type ClientSession struct {
+type clientSession struct {
 	client    MQTT.Client
 	deviceId  string
 	productId string
@@ -34,7 +35,7 @@ type ClientSession struct {
 	codec     codec.Codec
 }
 
-func newClientSession(network codec.Network, spec *MQTTClientSpec) *ClientSession {
+func newClientSession(deviceId string, network codec.Network, spec *MQTTClientSpec) *clientSession {
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker("tcp://" + spec.Host + ":" + fmt.Sprint(spec.Port))
 	opts.SetClientID(spec.ClientId)
@@ -53,16 +54,18 @@ func newClientSession(network codec.Network, spec *MQTTClientSpec) *ClientSessio
 		return nil
 	}
 	c := codec.NewCodec(network)
-	session := &ClientSession{
+	session := &clientSession{
 		client:    client,
 		ClientID:  spec.ClientId,
 		Username:  spec.Username,
 		CleanFlag: spec.CleanSession,
 		Topics:    spec.Topics,
+		deviceId:  deviceId,
 		productId: network.ProductId,
 		choke:     choke,
 		codec:     c,
 	}
+	session.deviceOnline(deviceId)
 
 	c.OnConnect(&mqttClientContext{
 		BaseContext: codec.BaseContext{
@@ -75,7 +78,7 @@ func newClientSession(network codec.Network, spec *MQTTClientSpec) *ClientSessio
 	return session
 }
 
-func (s *ClientSession) Send(msg interface{}) error {
+func (s *clientSession) Send(msg interface{}) error {
 	switch t := msg.(type) {
 	case map[string]interface{}:
 		s.client.Publish(t["topic"].(string), QoS0, false, msg.([]byte))
@@ -85,20 +88,27 @@ func (s *ClientSession) Send(msg interface{}) error {
 	return nil
 }
 
-func (s *ClientSession) Disconnect() error {
+func (s *clientSession) Disconnect() error {
 	s.client.Disconnect(250)
 	return nil
 }
 
-func (s *ClientSession) SetDeviceId(deviceId string) {
+func (s *clientSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
 }
 
-func (s *ClientSession) GetDeviceId() string {
+func (s *clientSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *ClientSession) readLoop() {
+func (s *clientSession) deviceOnline(deviceId string) {
+	deviceId = strings.TrimSpace(deviceId)
+	if len(deviceId) > 0 {
+		codec.GetSessionManager().Put(deviceId, s)
+	}
+}
+
+func (s *clientSession) readLoop() {
 	for {
 		msg := <-s.choke
 		s.codec.OnMessage(&mqttClientContext{

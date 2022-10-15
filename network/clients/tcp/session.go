@@ -4,19 +4,22 @@ import (
 	"go-iot/codec"
 	tcpserver "go-iot/network/servers/tcp"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
 )
 
-func newTcpSession(s *TcpClientSpec, productId string, conn net.Conn) *tcpSession {
+func newTcpSession(deviceId string, s *TcpClientSpec, productId string, conn net.Conn) *tcpSession {
 	//2.网络数据流分隔器
 	delimeter := tcpserver.NewDelimeter(s.Delimeter, conn)
 	session := &tcpSession{
+		deviceId:  deviceId,
 		productId: productId,
 		conn:      conn, delimeter: delimeter,
 		done: make(chan struct{}),
 	}
+	session.deviceOnline(deviceId)
 	return session
 }
 
@@ -45,6 +48,13 @@ func (s *tcpSession) SetDeviceId(deviceId string) {
 
 func (s *tcpSession) GetDeviceId() string {
 	return s.deviceId
+}
+
+func (s *tcpSession) deviceOnline(deviceId string) {
+	deviceId = strings.TrimSpace(deviceId)
+	if len(deviceId) > 0 {
+		codec.GetSessionManager().Put(deviceId, s)
+	}
 }
 
 func (s *tcpSession) readLoop() {

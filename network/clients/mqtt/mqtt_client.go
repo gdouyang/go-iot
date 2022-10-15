@@ -4,12 +4,12 @@ import (
 	"go-iot/codec"
 )
 
-func ClientStart(network codec.Network) error {
+func ClientStart(deviceId string, network codec.Network) error {
 	spec := MQTTClientSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
 
-	session := newClientSession(network, &spec)
+	session := newClientSession(deviceId, network, &spec)
 
 	go session.readLoop()
 	return nil

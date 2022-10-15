@@ -115,7 +115,7 @@ func (ctl *DeviceController) Connect() {
 		return
 	}
 	// 进行连接
-	err = clients.Connect(convertCodecNetwork(n))
+	err = clients.Connect(ob.Id, convertCodecNetwork(n))
 	if err != nil {
 		ctl.Data["json"] = models.JsonRespError(err)
 		return
