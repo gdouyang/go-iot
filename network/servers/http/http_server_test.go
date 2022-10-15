@@ -59,6 +59,6 @@ func initClient() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("client Received: %d %s \n", res.StatusCode, data)
 	time.Sleep(time.Second * 11)
-	log.Printf("%s", data)
 }
