@@ -6,7 +6,7 @@ import (
 )
 
 var m map[codec.NetServerType]func() codec.NetworkServer = make(map[codec.NetServerType]func() codec.NetworkServer)
-var ins map[string]codec.NetworkServer = make(map[string]codec.NetworkServer)
+var instances map[string]codec.NetworkServer = make(map[string]codec.NetworkServer)
 
 func RegServer(f func() codec.NetworkServer) {
 	s := f()
@@ -18,7 +18,7 @@ func StartServer(conf codec.NetworkConf) error {
 	if f, ok := m[t]; ok {
 		s := f()
 		s.Start(conf)
-		ins[conf.ProductId] = s
+		instances[conf.ProductId] = s
 		return nil
 	} else {
 		return fmt.Errorf("unknow type %s", conf.Type)
@@ -26,6 +26,6 @@ func StartServer(conf codec.NetworkConf) error {
 }
 
 func GetServer(productId string) codec.NetworkServer {
-	s := ins[productId]
+	s := instances[productId]
 	return s
 }
