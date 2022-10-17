@@ -2,7 +2,14 @@ package mqttclient
 
 import (
 	"go-iot/codec"
+	"go-iot/network/clients"
 )
+
+func init() {
+	clients.RegClient(func() codec.NetworkClient {
+		return &MqttClient{}
+	})
+}
 
 type MqttClient struct {
 	deviceId  string
@@ -12,10 +19,10 @@ type MqttClient struct {
 }
 
 func (c *MqttClient) Type() codec.NetClientType {
-	return codec.TCP_CLIENT
+	return codec.MQTT_CLIENT
 }
 
-func (c *MqttClient) Start(deviceId string, network codec.NetworkConf) error {
+func (c *MqttClient) Connect(deviceId string, network codec.NetworkConf) error {
 	spec := MQTTClientSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port

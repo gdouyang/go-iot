@@ -3,8 +3,15 @@ package tcpclient
 import (
 	"fmt"
 	"go-iot/codec"
+	"go-iot/network/clients"
 	"net"
 )
+
+func init() {
+	clients.RegClient(func() codec.NetworkClient {
+		return &TcpClient{}
+	})
+}
 
 type TcpClient struct {
 	conn      net.Conn
@@ -17,7 +24,7 @@ func (c *TcpClient) Type() codec.NetClientType {
 	return codec.TCP_CLIENT
 }
 
-func (c *TcpClient) Start(deviceId string, network codec.NetworkConf) error {
+func (c *TcpClient) Connect(deviceId string, network codec.NetworkConf) error {
 	spec := &TcpClientSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
