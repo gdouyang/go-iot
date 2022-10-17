@@ -1,6 +1,9 @@
 package codec
 
+// 服务器类型
 type NetServerType string
+
+// 客户端类型
 type NetClientType string
 
 const (
