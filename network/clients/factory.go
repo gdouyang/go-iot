@@ -16,8 +16,7 @@ func Connect(deviceId string, conf codec.NetworkConf) error {
 	t := codec.NetClientType(conf.Type)
 	if f, ok := m[t]; ok {
 		s := f()
-		s.Connect(deviceId, conf)
-		return nil
+		return s.Connect(deviceId, conf)
 	} else {
 		return fmt.Errorf("unknow client type %s", conf.Type)
 	}
