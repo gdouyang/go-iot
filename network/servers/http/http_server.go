@@ -3,12 +3,19 @@ package httpserver
 import (
 	"fmt"
 	"go-iot/codec"
+	"go-iot/network/servers"
 	"net"
 	"net/http"
 	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
 )
+
+func init() {
+	servers.RegServer(func() codec.NetworkServer {
+		return &HttpServer{}
+	})
+}
 
 type (
 	HttpServer struct {
@@ -18,7 +25,15 @@ type (
 	}
 )
 
-func ServerStart(network codec.Network) {
+func NewServer() *HttpServer {
+	return &HttpServer{}
+}
+
+func (s *HttpServer) Type() codec.NetServerType {
+	return codec.HTTP_SERVER
+}
+
+func (s *HttpServer) Start(network codec.NetworkConf) error {
 	spec := &HttpServerSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
@@ -27,10 +42,8 @@ func ServerStart(network codec.Network) {
 		spec.Paths = append(spec.Paths, "/")
 	}
 
-	s := &HttpServer{
-		productId: network.ProductId,
-		spec:      spec,
-	}
+	s.productId = network.ProductId
+	s.spec = spec
 	addr := fmt.Sprintf("%s:%d", spec.Host, spec.Port)
 
 	s.server = &http.Server{
@@ -40,8 +53,7 @@ func ServerStart(network codec.Network) {
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		logs.Error(err)
-		return
+		return err
 	}
 
 	codec.NewCodec(network)
@@ -59,6 +71,7 @@ func ServerStart(network codec.Network) {
 			logs.Error(err)
 		}
 	}()
+	return nil
 }
 
 func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -78,5 +91,16 @@ func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session := newSession(w, r, s.productId)
 
 	session.readData()
+}
 
+func (s *HttpServer) Reload() error {
+	return nil
+}
+
+func (s *HttpServer) Stop() error {
+	return nil
+}
+
+func (s *HttpServer) TotalConnection() int32 {
+	return 0
 }

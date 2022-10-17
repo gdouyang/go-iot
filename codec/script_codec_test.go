@@ -21,7 +21,7 @@ func TestOtto(t *testing.T) {
 }
 
 func TestDecode(t *testing.T) {
-	var network codec.Network = codec.Network{
+	var network codec.NetworkConf = codec.NetworkConf{
 		ProductId: "test",
 		CodecId:   "script_codec",
 		Script: `

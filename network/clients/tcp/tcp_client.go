@@ -6,33 +6,60 @@ import (
 	"net"
 )
 
-func ClientStart(deviceId string, network codec.Network) bool {
+type TcpClient struct {
+	conn      net.Conn
+	deviceId  string
+	productId string
+	spec      *TcpClientSpec
+}
+
+func (c *TcpClient) Type() codec.NetClientType {
+	return codec.TCP_CLIENT
+}
+
+func (c *TcpClient) Start(deviceId string, network codec.NetworkConf) error {
 	spec := &TcpClientSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
 	conn, err := net.Dial("tcp", spec.Host+":"+fmt.Sprint(spec.Port))
 	if err != nil {
 		fmt.Print(err)
-		return false
+		return err
 	}
+	c.conn = conn
+	c.deviceId = deviceId
+	c.spec = spec
+
 	codec.NewCodec(network)
-	productId := network.ProductId
-	go func() {
-		session := newTcpSession(deviceId, spec, productId, conn)
-		defer session.Disconnect()
+	c.productId = network.ProductId
 
-		sc := codec.GetCodec(productId)
+	go c.readLoop()
 
-		context := &tcpContext{
-			BaseContext: codec.BaseContext{
-				DeviceId:  deviceId,
-				ProductId: productId,
-				Session:   session},
-		}
+	return nil
+}
 
-		sc.OnConnect(context)
+func (c *TcpClient) readLoop() {
+	session := newTcpSession(c.deviceId, c.spec, c.productId, c.conn)
+	defer session.Disconnect()
 
-		session.readLoop()
-	}()
-	return true
+	sc := codec.GetCodec(c.productId)
+
+	context := &tcpContext{
+		BaseContext: codec.BaseContext{
+			DeviceId:  c.deviceId,
+			ProductId: c.productId,
+			Session:   session},
+	}
+
+	sc.OnConnect(context)
+
+	session.readLoop()
+}
+
+func (c *TcpClient) Reload() error {
+	return nil
+}
+
+func (c *TcpClient) Stop() error {
+	return nil
 }

@@ -49,7 +49,7 @@ function OnInvoke(context) {
 }
 `
 
-var network codec.Network = codec.Network{
+var network codec.NetworkConf = codec.NetworkConf{
 	Name:      "test server",
 	ProductId: "test-product",
 	CodecId:   "script_codec",
@@ -79,7 +79,8 @@ func TestServerDelimited(t *testing.T) {
 	"port": 8888, "useTLS": false,
 	"delimeter": {"type":"Delimited", "delimited":"}"}}`
 	network.Script = script1
-	tcpserver.ServerSocket(network)
+	s := tcpserver.NewServer()
+	s.Start(network)
 	newClient1(network, func() string {
 		str1 := time.Now().Format("2006-01-02 15:04:05")
 		str := fmt.Sprintf(`{"deviceId": "1234", "data": "%s"}`, str1)
@@ -92,7 +93,8 @@ func TestServerFixLenght(t *testing.T) {
 	network.Configuration = `{"host": "localhost",
 	"port": 8888, "useTLS": false,
 	"delimeter": {"type":"FixLength", "length":27}}`
-	tcpserver.ServerSocket(network)
+	s := tcpserver.NewServer()
+	s.Start(network)
 	newClient(network)
 }
 
@@ -105,7 +107,8 @@ func TestServerSplitFunc(t *testing.T) {
 	  "splitFunc":"function splitFunc(parser) { parser.AddHandler(function(data) { parser.AppendResult(data); parser.Complete() }); parser.Delimited(\"\\n\") }"
 	}
 	}`
-	tcpserver.ServerSocket(network)
+	s := tcpserver.NewServer()
+	s.Start(network)
 	newClient(network)
 }
 
@@ -118,7 +121,8 @@ func TestServerSplitFunc1(t *testing.T) {
 	  "splitFunc":"function splitFunc(parser) { parser.AddHandler(function(data) { parser.AddHandler(function(data){ parser.AppendResult(data); parser.Complete() });  parser.Delimited(\"\\n\") }); parser.Delimited(\" \") }"
 	}
 	}`
-	tcpserver.ServerSocket(network)
+	s := tcpserver.NewServer()
+	s.Start(network)
 	newClient(network)
 }
 
@@ -131,11 +135,12 @@ func TestServerSplitFunc2(t *testing.T) {
 	  "splitFunc":"function splitFunc(parser) { parser.AddHandler(function(data) { parser.AddHandler(function(data){ parser.AppendResult(data); parser.Complete() });  parser.Fixed(21) }); parser.Fixed(6) }"
 	}
 	}`
-	tcpserver.ServerSocket(network)
+	s := tcpserver.NewServer()
+	s.Start(network)
 	newClient(network)
 }
 
-func newClient(network codec.Network) {
+func newClient(network codec.NetworkConf) {
 	newClient1(network, func() string {
 		str1 := time.Now().Format("2006-01-02 15:04:05")
 		str := fmt.Sprintf("aasss %s \n", str1)
@@ -143,7 +148,7 @@ func newClient(network codec.Network) {
 	})
 }
 
-func newClient1(network codec.Network, call func() string) {
+func newClient1(network codec.NetworkConf, call func() string) {
 	spec := tcpserver.TcpServerSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port

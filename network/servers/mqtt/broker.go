@@ -4,12 +4,21 @@ import (
 	"crypto/tls"
 	"fmt"
 	"go-iot/codec"
+	"go-iot/network/servers"
 	"net"
 	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
+
+func init() {
+	servers.RegServer(func() codec.NetworkServer {
+		return &Broker{}
+	})
+}
+
+var m = map[string]*Broker{}
 
 type (
 	// Broker is MQTT server, will manage client, topic, session, etc.
@@ -28,7 +37,19 @@ type (
 	}
 )
 
-func NewBroker(spec *MQTTServerSpec, network codec.Network) *Broker {
+func NewServer() *Broker {
+	return &Broker{}
+}
+
+func (s *Broker) Type() codec.NetServerType {
+	return codec.MQTT_BROKER
+}
+
+func (s *Broker) Start(network codec.NetworkConf) error {
+	spec := &MQTTServerSpec{}
+	spec.FromJson(network.Configuration)
+	spec.Port = network.Port
+
 	broker := &Broker{
 		productId: network.ProductId,
 		name:      spec.Name,
@@ -40,14 +61,16 @@ func NewBroker(spec *MQTTServerSpec, network codec.Network) *Broker {
 	err := broker.setListener()
 	if err != nil {
 		logs.Error("mqtt broker set listener failed: %v", err)
-		return nil
+		return err
 	}
 
 	// create codec
 	codec.NewCodec(network)
 
 	go broker.run()
-	return broker
+
+	m[spec.Name] = broker
+	return nil
 }
 
 func (b *Broker) setListener() error {
@@ -73,6 +96,23 @@ func (b *Broker) setListener() error {
 	b.tlsCfg = cfg
 	b.listener = l
 	return err
+}
+
+func (b *Broker) Reload() error {
+	return nil
+}
+
+func (b *Broker) Stop() error {
+	close(b.done)
+	b.listener.Close()
+
+	b.Lock()
+	defer b.Unlock()
+	for _, v := range b.clients {
+		go v.closeAndDelSession()
+	}
+	b.clients = nil
+	return nil
 }
 
 func (b *Broker) deleteSession(clientID string) {
@@ -272,16 +312,4 @@ func (b *Broker) currentClients() map[string]struct{} {
 func (b *Broker) TotalConnection() int32 {
 	l := len(b.clients)
 	return int32(l)
-}
-
-func (b *Broker) close() {
-	close(b.done)
-	b.listener.Close()
-
-	b.Lock()
-	defer b.Unlock()
-	for _, v := range b.clients {
-		go v.closeAndDelSession()
-	}
-	b.clients = nil
 }

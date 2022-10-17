@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	regCodecCreator("script_codec", func(network Network) Codec {
+	regCodecCreator("script_codec", func(network NetworkConf) Codec {
 		codec, _ := newScriptCodec(network)
 		return codec
 	})
@@ -24,7 +24,7 @@ const (
 	OnStateChecker = "OnStateChecker"
 )
 
-func newScriptCodec(network Network) (Codec, error) {
+func newScriptCodec(network NetworkConf) (Codec, error) {
 	vm := otto.New()
 	_, err := vm.Run(network.Script)
 	sc := &ScriptCodec{

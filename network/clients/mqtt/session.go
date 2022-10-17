@@ -35,7 +35,7 @@ type clientSession struct {
 	codec     codec.Codec
 }
 
-func newClientSession(deviceId string, network codec.Network, spec *MQTTClientSpec) *clientSession {
+func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClientSpec) *clientSession {
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker("tcp://" + spec.Host + ":" + fmt.Sprint(spec.Port))
 	opts.SetClientID(spec.ClientId)

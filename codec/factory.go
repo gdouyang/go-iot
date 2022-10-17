@@ -26,9 +26,9 @@ func RegCodec(productId string, c Codec) {
 	codecMap.Store(productId, c)
 }
 
-var codecFactory = map[string]func(network Network) Codec{}
+var codecFactory = map[string]func(network NetworkConf) Codec{}
 
-func regCodecCreator(id string, creator func(network Network) Codec) {
+func regCodecCreator(id string, creator func(network NetworkConf) Codec) {
 	_, ok := codecFactory[id]
 	if ok {
 		logs.Error("codec " + id + " is exist")
@@ -37,7 +37,7 @@ func regCodecCreator(id string, creator func(network Network) Codec) {
 	codecFactory[id] = creator
 }
 
-func NewCodec(network Network) Codec {
+func NewCodec(network NetworkConf) Codec {
 	c := codecFactory[network.CodecId](network)
 	switch t := c.(type) {
 	case DeviceLifecycle:

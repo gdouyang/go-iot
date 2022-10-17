@@ -3,6 +3,7 @@ package websocketsocker
 import (
 	"fmt"
 	"go-iot/codec"
+	"go-iot/network/servers"
 	"net"
 	"net/http"
 	"strings"
@@ -10,6 +11,12 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/gorilla/websocket"
 )
+
+func init() {
+	servers.RegServer(func() codec.NetworkServer {
+		return &WebSocketServer{}
+	})
+}
 
 var upgrader = websocket.Upgrader{} // use default options
 
@@ -21,7 +28,15 @@ type (
 	}
 )
 
-func ServerStart(network codec.Network) {
+func NewServer() *WebSocketServer {
+	return &WebSocketServer{}
+}
+
+func (s *WebSocketServer) Type() codec.NetServerType {
+	return codec.WEBSOCKET_SERVER
+}
+
+func (s *WebSocketServer) Start(network codec.NetworkConf) error {
 	spec := &WebsocketServerSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
@@ -30,10 +45,8 @@ func ServerStart(network codec.Network) {
 		spec.Paths = append(spec.Paths, "/")
 	}
 
-	s := &WebSocketServer{
-		productId: network.ProductId,
-		spec:      spec,
-	}
+	s.productId = network.ProductId
+	s.spec = spec
 
 	addr := fmt.Sprintf("%s:%d", spec.Host, spec.Port)
 
@@ -44,8 +57,7 @@ func ServerStart(network codec.Network) {
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		logs.Error(err)
-		return
+		return err
 	}
 
 	codec.NewCodec(network)
@@ -62,6 +74,7 @@ func ServerStart(network codec.Network) {
 			logs.Error(err)
 		}
 	}()
+	return nil
 }
 
 func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -85,4 +98,16 @@ func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	session := newSession(conn, r, s.productId)
 	session.readLoop()
+}
+
+func (s *WebSocketServer) Reload() error {
+	return nil
+}
+
+func (s *WebSocketServer) Stop() error {
+	return nil
+}
+
+func (s *WebSocketServer) TotalConnection() int32 {
+	return 0
 }

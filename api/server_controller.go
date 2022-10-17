@@ -5,13 +5,9 @@ import (
 	"go-iot/codec"
 	"go-iot/models"
 	"go-iot/models/network"
-	httpserver "go-iot/network/servers/http"
-	mqttserver "go-iot/network/servers/mqtt"
-	tcpserver "go-iot/network/servers/tcp"
-	websocketserver "go-iot/network/servers/websocket"
+	"go-iot/network/servers"
 	"strconv"
 
-	"github.com/beego/beego/v2/core/logs"
 	"github.com/beego/beego/v2/server/web"
 )
 
@@ -119,30 +115,17 @@ func (c *ServerController) Start() {
 		resp.Success = false
 	} else {
 		config := convertCodecNetwork(nw)
-		switch nw.Type {
-		case codec.MQTT_BROKER:
-			success := mqttserver.ServerStart(config)
-			if success {
-				resp.Msg = "broker start success"
-			} else {
-				resp.Msg = "broker start failed"
-				resp.Success = false
-			}
-		case codec.TCP_SERVER:
-			tcpserver.ServerSocket(config)
-		case codec.HTTP_SERVER:
-			httpserver.ServerStart(config)
-		case codec.WEBSOCKET_SERVER:
-			websocketserver.ServerStart(config)
-		default:
-			logs.Error("unknow type %s", nw.Type)
+		err = servers.StartServer(config)
+		if err != nil {
+			resp.Msg = err.Error()
+			resp.Success = false
 		}
 	}
 	c.Data["json"] = resp
 }
 
-func convertCodecNetwork(nw models.Network) codec.Network {
-	config := codec.Network{
+func convertCodecNetwork(nw models.Network) codec.NetworkConf {
+	config := codec.NetworkConf{
 		Name:          nw.Name,
 		Port:          nw.Port,
 		ProductId:     nw.ProductId,
@@ -170,18 +153,12 @@ func (c *ServerController) Meters() {
 		resp.Msg = err.Error()
 		resp.Success = false
 	} else {
-		switch nw.Type {
-		case codec.MQTT_BROKER:
-			rest := mqttserver.Meters(nw.Configuration)
+		s := servers.GetServer(nw.ProductId)
+		if s != nil {
+			m := map[string]interface{}{}
+			m["totalConnection"] = s.TotalConnection()
+			resp.Data = m
 			resp.Success = true
-			if rest != nil {
-				resp.Data = rest
-			}
-		case codec.TCP_SERVER:
-		case codec.HTTP_SERVER:
-		case codec.WEBSOCKET_SERVER:
-		default:
-			logs.Error("unknow type %s", nw.Type)
 		}
 	}
 

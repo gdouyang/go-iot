@@ -7,21 +7,6 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-const (
-	// MQTT服务端
-	MQTT_BROKER = "MQTT_BROKER"
-	// MQTT客户端
-	MQTT_CLIENT = "MQTT_CLIENT"
-	// TCP服务端
-	TCP_SERVER = "TCP_SERVER"
-	// TCP客户端
-	TCP_CLIENT = "TCP_CLIENT"
-	// HTTP服务端
-	HTTP_SERVER = "HTTP_SERVER"
-	// WebSocket服务端
-	WEBSOCKET_SERVER = "WEBSOCKET_SERVER"
-)
-
 type (
 	// 编解码接口
 	Codec interface {
@@ -128,15 +113,4 @@ func (ctx *BaseContext) Save(data map[string]interface{}) {
 		}
 		p.GetTimeSeries().Save(p, data)
 	}
-}
-
-// 网络配置
-type Network struct {
-	Name          string `json:"name"`
-	Port          int32  `json:"port"`
-	ProductId     string `json:"productId"`
-	Configuration string `json:"configuration"`
-	Script        string `json:"script"`
-	Type          string `json:"type"`
-	CodecId       string `json:"codecId"`
 }

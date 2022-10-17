@@ -28,7 +28,7 @@ function OnInvoke(context) {
 }
 `
 
-var network codec.Network = codec.Network{
+var network codec.NetworkConf = codec.NetworkConf{
 	Name:      "test server",
 	ProductId: "test123",
 	CodecId:   "script_codec",
@@ -42,7 +42,7 @@ func TestServer(t *testing.T) {
 
 	network := network
 	network.Configuration = `{"host": "localhost", "useTLS": false, "paths":["/test"]}`
-	httpserver.ServerStart(network)
+	httpserver.NewServer().Start(network)
 	initClient()
 }
 

@@ -4,10 +4,17 @@ import (
 	"crypto/tls"
 	"fmt"
 	"go-iot/codec"
+	"go-iot/network/servers"
 	"net"
 
 	"github.com/beego/beego/v2/core/logs"
 )
+
+func init() {
+	servers.RegServer(func() codec.NetworkServer {
+		return &TcpServer{}
+	})
+}
 
 var m = map[string]*TcpServer{}
 
@@ -23,30 +30,37 @@ type (
 	}
 )
 
+func NewServer() *TcpServer {
+	return &TcpServer{}
+}
+
+func (s *TcpServer) Type() codec.NetServerType {
+	return codec.TCP_SERVER
+}
+
 // 开启serverSocket
-func ServerSocket(network codec.Network) bool {
+func (s *TcpServer) Start(network codec.NetworkConf) error {
 
 	spec := &TcpServerSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
 
-	server := &TcpServer{
-		productId: network.ProductId,
-		spec:      spec,
-		done:      make(chan struct{}),
-	}
-	err := server.setListener()
+	s.productId = network.ProductId
+	s.spec = spec
+	s.done = make(chan struct{})
+
+	err := s.setListener()
 	if err != nil {
 		logs.Error("mqtt broker set listener failed: %v", err)
-		return false
+		return err
 	}
 
 	// create codec
 	codec.NewCodec(network)
 
-	go server.run()
-	m[network.ProductId] = server
-	return true
+	go s.run()
+	m[network.ProductId] = s
+	return nil
 }
 
 func (s *TcpServer) setListener() error {
@@ -106,7 +120,16 @@ func (s *TcpServer) handleConn(c net.Conn) {
 	session.readLoop()
 }
 
-func (b *TcpServer) Close() {
-	close(b.done)
-	b.listener.Close()
+func (s *TcpServer) Reload() error {
+	return nil
+}
+
+func (s *TcpServer) Stop() error {
+	close(s.done)
+	s.listener.Close()
+	return nil
+}
+
+func (s *TcpServer) TotalConnection() int32 {
+	return 0
 }
