@@ -6,6 +6,7 @@ import (
 	"go-iot/codec/tsl"
 	"go-iot/models"
 	product "go-iot/models/device"
+	"go-iot/network/servers"
 	"strings"
 
 	"github.com/beego/beego/v2/server/web"
@@ -96,6 +97,15 @@ func (ctl *ProductController) Delete() {
 	id := ctl.Ctx.Input.Param(":id")
 	var ob *models.Product = &models.Product{
 		Id: id,
+	}
+	// when delete product stop server first
+	s := servers.GetServer(id)
+	if s != nil {
+		err := s.Stop()
+		if err != nil {
+			resp = models.JsonResp{Success: false, Msg: err.Error()}
+			return
+		}
 	}
 	err := product.DeleteProduct(ob)
 	if err != nil {
