@@ -88,11 +88,19 @@ func (c *ServerController) Update() {
 	defer c.ServeJSON()
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
-	if ob.Port <= 1024 || ob.Port > 65535 {
-		resp.Msg = "Invalid port number"
+	if len(ob.ProductId) == 0 {
+		resp.Msg = "productId not be empty"
+		resp.Success = false
+		c.Data["json"] = resp
+		return
+	}
+
+	_, err := network.GetByProductId(ob.ProductId)
+	if err != nil {
+		resp.Msg = err.Error()
 		resp.Success = false
 	} else {
-		err := network.UpdateNetwork(&ob)
+		err = network.UpdateNetwork(&ob)
 		if err != nil {
 			resp.Msg = err.Error()
 			resp.Success = false
@@ -125,6 +133,12 @@ func (c *ServerController) Start() {
 		resp.Msg = err.Error()
 		resp.Success = false
 	} else {
+		if len(nw.Script) == 0 || len(nw.Type) == 0 {
+			resp.Msg = "script and type not be empty"
+			resp.Success = false
+			c.Data["json"] = resp
+			return
+		}
 		config := convertCodecNetwork(nw)
 		err = servers.StartServer(config)
 		if err != nil {

@@ -17,7 +17,10 @@ func StartServer(conf codec.NetworkConf) error {
 	t := codec.NetServerType(conf.Type)
 	if f, ok := m[t]; ok {
 		s := f()
-		s.Start(conf)
+		err := s.Start(conf)
+		if err != nil {
+			return err
+		}
 		instances[conf.ProductId] = s
 		return nil
 	} else {
