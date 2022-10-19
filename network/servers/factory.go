@@ -5,10 +5,10 @@ import (
 	"go-iot/codec"
 )
 
-var m map[codec.NetServerType]func() codec.NetworkServer = make(map[codec.NetServerType]func() codec.NetworkServer)
-var instances map[string]codec.NetworkServer = make(map[string]codec.NetworkServer)
+var m map[codec.NetServerType]func() codec.NetServer = make(map[codec.NetServerType]func() codec.NetServer)
+var instances map[string]codec.NetServer = make(map[string]codec.NetServer)
 
-func RegServer(f func() codec.NetworkServer) {
+func RegServer(f func() codec.NetServer) {
 	s := f()
 	m[s.Type()] = f
 }
@@ -25,7 +25,7 @@ func StartServer(conf codec.NetworkConf) error {
 	}
 }
 
-func GetServer(productId string) codec.NetworkServer {
+func GetServer(productId string) codec.NetServer {
 	s := instances[productId]
 	return s
 }

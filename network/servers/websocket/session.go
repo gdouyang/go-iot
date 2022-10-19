@@ -2,7 +2,6 @@ package websocketsocker
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"go-iot/codec"
 	"net/http"
@@ -44,31 +43,19 @@ func (s *websocketSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *websocketSession) Send(msg interface{}) error {
-	var err error
-	switch t := msg.(type) {
-	case string:
-		err = s.conn.WriteMessage(websocket.TextMessage, []byte(t))
-	case map[string]interface{}:
-		b, err1 := json.Marshal(t)
-		if err1 != nil {
-			logs.Warn("map to json string error:", err)
-		}
-		err = s.conn.WriteMessage(websocket.TextMessage, b)
-	default:
-		logs.Warn("unsupport msg:", msg)
-	}
+func (s *websocketSession) Disconnect() error {
+	return s.conn.Close()
+}
+
+func (s *websocketSession) SendText(msg string) error {
+	err := s.conn.WriteMessage(websocket.TextMessage, []byte(msg))
 	if err != nil {
 		logs.Warn("Error during message writing:", err)
 	}
 	return err
 }
 
-func (s *websocketSession) Disconnect() error {
-	return s.conn.Close()
-}
-
-func (s *websocketSession) SendBinaryMessage(msg string) error {
+func (s *websocketSession) SendBinary(msg string) error {
 	payload, err := base64.StdEncoding.DecodeString(msg)
 	if err != nil {
 		logs.Warn("Error message, message is not a base64 string:", err)

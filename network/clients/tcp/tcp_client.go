@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	clients.RegClient(func() codec.NetworkClient {
+	clients.RegClient(func() codec.NetClient {
 		return &TcpClient{}
 	})
 }
@@ -18,6 +18,7 @@ type TcpClient struct {
 	deviceId  string
 	productId string
 	spec      *TcpClientSpec
+	session   codec.Session
 }
 
 func (c *TcpClient) Type() codec.NetClientType {
@@ -48,6 +49,7 @@ func (c *TcpClient) Connect(deviceId string, network codec.NetworkConf) error {
 func (c *TcpClient) readLoop() {
 	session := newTcpSession(c.deviceId, c.spec, c.productId, c.conn)
 	defer session.Disconnect()
+	c.session = session
 
 	sc := codec.GetCodec(c.productId)
 
@@ -67,6 +69,7 @@ func (c *TcpClient) Reload() error {
 	return nil
 }
 
-func (c *TcpClient) Stop() error {
+func (c *TcpClient) Close() error {
+	c.session.Disconnect()
 	return nil
 }

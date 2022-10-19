@@ -33,7 +33,7 @@ type NetworkConf struct {
 	CodecId       string `json:"codecId"`
 }
 
-type NetworkServer interface {
+type NetServer interface {
 	Type() NetServerType
 	Start(n NetworkConf) error
 	Reload() error
@@ -41,9 +41,9 @@ type NetworkServer interface {
 	TotalConnection() int32
 }
 
-type NetworkClient interface {
+type NetClient interface {
 	Type() NetClientType
 	Connect(deviceId string, n NetworkConf) error
 	Reload() error
-	Stop() error
+	Close() error
 }

@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	clients.RegClient(func() codec.NetworkClient {
+	clients.RegClient(func() codec.NetClient {
 		return &MqttClient{}
 	})
 }
@@ -43,6 +43,7 @@ func (c *MqttClient) Reload() error {
 	return nil
 }
 
-func (c *MqttClient) Stop() error {
+func (c *MqttClient) Close() error {
+	c.session.Disconnect()
 	return nil
 }

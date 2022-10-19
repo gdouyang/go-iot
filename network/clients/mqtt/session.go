@@ -78,13 +78,13 @@ func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClie
 	return session
 }
 
-func (s *clientSession) Send(msg interface{}) error {
-	switch t := msg.(type) {
-	case map[string]interface{}:
-		s.client.Publish(t["topic"].(string), QoS0, false, msg.([]byte))
-	default:
-		logs.Error("msg must map")
-	}
+func (s *clientSession) PublishQos0(topic string, msg interface{}) error {
+	s.client.Publish(topic, QoS0, false, msg.([]byte))
+	return nil
+}
+
+func (s *clientSession) PublishQos1(topic string, msg interface{}) error {
+	s.client.Publish(topic, QoS1, false, msg.([]byte))
 	return nil
 }
 
@@ -109,6 +109,7 @@ func (s *clientSession) deviceOnline(deviceId string) {
 }
 
 func (s *clientSession) readLoop() {
+	defer s.Disconnect()
 	for {
 		msg := <-s.choke
 		s.codec.OnMessage(&mqttClientContext{

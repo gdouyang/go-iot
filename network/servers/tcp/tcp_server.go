@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	servers.RegServer(func() codec.NetworkServer {
+	servers.RegServer(func() codec.NetServer {
 		return &TcpServer{}
 	})
 }

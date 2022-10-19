@@ -26,7 +26,7 @@ function OnMessage(context) {
   console.log("OnMessage: " + msg)
   var data = JSON.parse(msg)
   context.Save(data)
-	context.GetSession().Send(data)
+	context.GetSession().SendText(msg)
 }
 function OnInvoke(context) {
 	console.log("OnInvoke: " + JSON.stringify(context))

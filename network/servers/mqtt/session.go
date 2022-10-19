@@ -111,6 +111,14 @@ func (s *Session) getPacketFromMsg(topic string, payload []byte, qos byte) *pack
 	return p
 }
 
+func (s *Session) PublishQos0(topic string, payload []byte) {
+	s.publish(topic, payload, QoS0)
+}
+
+func (s *Session) PublishQos1(topic string, payload []byte) {
+	s.publish(topic, payload, QoS1)
+}
+
 func (s *Session) publish(topic string, payload []byte, qos byte) {
 	client := s.broker.getClient(s.info.ClientID)
 	if client == nil {
@@ -202,16 +210,6 @@ func (s *Session) backgroundResendPending() {
 			debugLogTime = time.Now().Add(time.Minute)
 		}
 	}
-}
-
-func (s *Session) Send(msg interface{}) error {
-	switch t := msg.(type) {
-	case map[string]interface{}:
-		s.publish(t["topic"].(string), msg.([]byte), QoS0)
-	default:
-		logs.Error("msg must map")
-	}
-	return nil
 }
 
 func (s *Session) Disconnect() error {

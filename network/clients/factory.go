@@ -5,10 +5,10 @@ import (
 	"go-iot/codec"
 )
 
-var m map[codec.NetClientType]func() codec.NetworkClient = make(map[codec.NetClientType]func() codec.NetworkClient)
-var instances map[string]codec.NetworkClient = make(map[string]codec.NetworkClient)
+var m map[codec.NetClientType]func() codec.NetClient = make(map[codec.NetClientType]func() codec.NetClient)
+var instances map[string]codec.NetClient = make(map[string]codec.NetClient)
 
-func RegClient(f func() codec.NetworkClient) {
+func RegClient(f func() codec.NetClient) {
 	s := f()
 	m[s.Type()] = f
 }
@@ -27,7 +27,7 @@ func Connect(deviceId string, conf codec.NetworkConf) error {
 	}
 }
 
-func GetClient(deviceId string) codec.NetworkClient {
+func GetClient(deviceId string) codec.NetClient {
 	s := instances[deviceId]
 	return s
 }

@@ -36,7 +36,6 @@ type (
 	}
 	// 会话信息
 	Session interface {
-		Send(msg interface{}) error
 		Disconnect() error
 		GetDeviceId() string
 		SetDeviceId(deviceId string)

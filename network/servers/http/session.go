@@ -34,7 +34,12 @@ func (s *httpSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *httpSession) Send(msg interface{}) error {
+func (s *httpSession) Disconnect() error {
+	_, err := s.w.Write([]byte(""))
+	return err
+}
+
+func (s *httpSession) Response(msg interface{}) error {
 	var err error
 	switch t := msg.(type) {
 	case string:
@@ -52,11 +57,6 @@ func (s *httpSession) Send(msg interface{}) error {
 	if err != nil {
 		logs.Warn("Error during message writing:", err)
 	}
-	return err
-}
-
-func (s *httpSession) Disconnect() error {
-	_, err := s.w.Write([]byte(""))
 	return err
 }
 
