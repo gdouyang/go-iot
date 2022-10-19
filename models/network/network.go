@@ -64,6 +64,9 @@ func ListNetwork(page *models.PageQuery) (*models.PageResult, error) {
 }
 
 func AddNetWork(ob *models.Network) error {
+	if ob.Port <= 1024 || ob.Port > 65535 {
+		return errors.New("invalid port number")
+	}
 	rs, err := GetNetworkByEntity(models.Network{Port: ob.Port})
 	if err != nil {
 		return err
@@ -82,6 +85,9 @@ func AddNetWork(ob *models.Network) error {
 }
 
 func UpdateNetwork(ob *models.Network) error {
+	if ob.Port <= 1024 || ob.Port > 65535 {
+		return errors.New("invalid port number")
+	}
 	//更新数据
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "ProductId", "Name", "Configuration", "Script")
