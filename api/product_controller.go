@@ -19,7 +19,7 @@ func init() {
 		web.NSRouter("/", &ProductController{}, "post:Add"),
 		web.NSRouter("/", &ProductController{}, "put:Update"),
 		web.NSRouter("/:id", &ProductController{}, "delete:Delete"),
-		web.NSRouter("/publish", &ProductController{}, "put:Publish"),
+		web.NSRouter("/publish-model", &ProductController{}, "put:PublishModel"),
 	)
 	web.AddNamespace(ns)
 }
@@ -107,6 +107,7 @@ func (ctl *ProductController) Delete() {
 			return
 		}
 	}
+	// then delete product
 	err := product.DeleteProduct(ob)
 	if err != nil {
 		resp = models.JsonResp{Success: false, Msg: err.Error()}
@@ -115,7 +116,7 @@ func (ctl *ProductController) Delete() {
 	resp = models.JsonResp{Success: true}
 }
 
-func (ctl *ProductController) Publish() {
+func (ctl *ProductController) PublishModel() {
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp
