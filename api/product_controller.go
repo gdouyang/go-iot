@@ -6,6 +6,7 @@ import (
 	"go-iot/codec/tsl"
 	"go-iot/models"
 	product "go-iot/models/device"
+	"go-iot/models/network"
 	"go-iot/network/servers"
 	"strings"
 
@@ -20,6 +21,9 @@ func init() {
 		web.NSRouter("/", &ProductController{}, "put:Update"),
 		web.NSRouter("/:id", &ProductController{}, "delete:Delete"),
 		web.NSRouter("/publish-model", &ProductController{}, "put:PublishModel"),
+		web.NSRouter("/network/:productId", &ProductController{}, "get:Get"),
+		web.NSRouter("/network", &ProductController{}, "put:UpdateNetwork"),
+		web.NSRouter("/network-start/:productId", &ProductController{}, "put:StartNetwork"),
 	)
 	web.AddNamespace(ns)
 }
@@ -116,6 +120,7 @@ func (ctl *ProductController) Delete() {
 	resp = models.JsonResp{Success: true}
 }
 
+// publish tsl model
 func (ctl *ProductController) PublishModel() {
 	var resp models.JsonResp
 	defer func() {
@@ -150,4 +155,80 @@ func (ctl *ProductController) PublishModel() {
 		return
 	}
 	resp = models.JsonResp{Success: true}
+}
+
+// get product network config
+func (c *ProductController) GetNetwork() {
+	var resp models.JsonResp
+	resp.Success = true
+	id := c.Ctx.Input.Param(":productId")
+
+	defer c.ServeJSON()
+
+	nw, err := network.GetByProductId(id)
+	if err != nil {
+		resp.Msg = err.Error()
+		resp.Success = false
+	} else {
+		resp.Data = nw
+	}
+	c.Data["json"] = &resp
+}
+
+// update product network
+func (c *ProductController) UpdateNetwork() {
+	var resp models.JsonResp
+	resp.Success = true
+	var ob models.Network
+
+	defer c.ServeJSON()
+
+	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
+	if len(ob.ProductId) == 0 {
+		resp.Msg = "productId not be empty"
+		resp.Success = false
+		c.Data["json"] = resp
+		return
+	}
+
+	_, err := network.GetByProductId(ob.ProductId)
+	if err != nil {
+		resp.Msg = err.Error()
+		resp.Success = false
+	} else {
+		err = network.UpdateNetwork(&ob)
+		if err != nil {
+			resp.Msg = err.Error()
+			resp.Success = false
+		}
+	}
+	c.Data["json"] = &resp
+}
+
+// start server
+func (c *ProductController) StartNetwork() {
+	var resp models.JsonResp
+	id := c.Ctx.Input.Param(":productId")
+	defer c.ServeJSON()
+
+	nw, err := network.GetByProductId(id)
+	resp.Success = true
+	if err != nil {
+		resp.Msg = err.Error()
+		resp.Success = false
+	} else {
+		if len(nw.Script) == 0 || len(nw.Type) == 0 {
+			resp.Msg = "script and type not be empty"
+			resp.Success = false
+			c.Data["json"] = resp
+			return
+		}
+		config := convertCodecNetwork(nw)
+		err = servers.StartServer(config)
+		if err != nil {
+			resp.Msg = err.Error()
+			resp.Success = false
+		}
+	}
+	c.Data["json"] = resp
 }
