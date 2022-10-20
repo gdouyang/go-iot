@@ -123,31 +123,48 @@ func GetNetwork(id int64) (models.Network, error) {
 	}
 }
 
-func GetByProductId(productId string) (models.Network, error) {
+func GetByProductId(productId string) (*models.Network, error) {
 
 	o := orm.NewOrm()
 
 	p := models.Network{ProductId: productId}
 	err := o.Read(&p)
 	if err == orm.ErrNoRows {
-		return models.Network{}, nil
+		return nil, nil
 	} else if err == orm.ErrMissPK {
-		return models.Network{}, err
+		return nil, err
 	} else {
-		return p, nil
+		return &p, nil
 	}
 }
 
-func GetNetworkByEntity(p models.Network) (models.Network, error) {
+func GetNetworkByEntity(p models.Network) (*models.Network, error) {
 
 	o := orm.NewOrm()
 
 	err := o.Read(&p)
 	if err == orm.ErrNoRows {
-		return models.Network{}, nil
+		return nil, nil
 	} else if err == orm.ErrMissPK {
-		return models.Network{}, err
+		return nil, err
 	} else {
-		return p, nil
+		return &p, nil
 	}
+}
+
+func GetUnuseNetwork() (*models.Network, error) {
+	o := orm.NewOrm()
+	qs := o.QueryTable(&models.Network{})
+
+	qs = qs.Filter("productId", nil)
+	var result []models.Network
+	page := models.PageQuery{PageSize: 1, PageNum: 1}
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).All(&result)
+	if err != nil {
+		return nil, err
+	}
+	if len(result) > 0 {
+		return &(result[0]), nil
+	}
+	return nil, errors.New("network is all used")
 }

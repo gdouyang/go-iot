@@ -138,16 +138,16 @@ func (ctl *ProductController) PublishModel() {
 		resp = models.JsonResp{Success: false, Msg: "id and metaData must present"}
 		return
 	}
-	product := codec.GetProductManager().Get(ob.Id)
-	if product == nil {
-		product = codec.NewProduct(ob.Id, make(map[string]string), codec.TIME_SERISE_ES)
-		codec.GetProductManager().Put(product)
-	}
 	tsl := tsl.TslData{}
 	err = tsl.FromJson(ob.MetaData)
 	if err != nil {
 		resp = models.JsonResp{Success: false, Msg: err.Error()}
 		return
+	}
+	product := codec.GetProductManager().Get(ob.Id)
+	if product == nil {
+		product = codec.NewProduct(ob.Id, make(map[string]string), codec.TIME_SERISE_ES)
+		codec.GetProductManager().Put(product)
 	}
 	err = product.GetTimeSeries().PublishModel(product, tsl)
 	if err != nil {
@@ -178,31 +178,42 @@ func (c *ProductController) GetNetwork() {
 // update product network
 func (c *ProductController) UpdateNetwork() {
 	var resp models.JsonResp
-	resp.Success = true
 	var ob models.Network
 
-	defer c.ServeJSON()
-
+	defer func() {
+		c.Data["json"] = &resp
+		c.ServeJSON()
+	}()
+	resp.Success = false
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
 	if len(ob.ProductId) == 0 {
 		resp.Msg = "productId not be empty"
-		resp.Success = false
-		c.Data["json"] = resp
 		return
 	}
 
-	_, err := network.GetByProductId(ob.ProductId)
+	nw, err := network.GetByProductId(ob.ProductId)
 	if err != nil {
 		resp.Msg = err.Error()
-		resp.Success = false
-	} else {
-		err = network.UpdateNetwork(&ob)
+		return
+	}
+	if nw == nil {
+		nw, err = network.GetUnuseNetwork()
 		if err != nil {
 			resp.Msg = err.Error()
-			resp.Success = false
+			return
 		}
+		ob.Id = nw.Id
 	}
-	c.Data["json"] = &resp
+	if len(nw.Script) == 0 || len(nw.Type) == 0 {
+		resp.Msg = "script and type not be empty"
+		return
+	}
+	err = network.UpdateNetwork(&ob)
+	if err != nil {
+		resp.Msg = err.Error()
+		return
+	}
+	resp.Success = true
 }
 
 // start server
@@ -212,23 +223,30 @@ func (c *ProductController) StartNetwork() {
 	defer c.ServeJSON()
 
 	nw, err := network.GetByProductId(id)
-	resp.Success = true
 	if err != nil {
 		resp.Msg = err.Error()
 		resp.Success = false
-	} else {
-		if len(nw.Script) == 0 || len(nw.Type) == 0 {
-			resp.Msg = "script and type not be empty"
-			resp.Success = false
-			c.Data["json"] = resp
-			return
-		}
-		config := convertCodecNetwork(nw)
-		err = servers.StartServer(config)
-		if err != nil {
-			resp.Msg = err.Error()
-			resp.Success = false
-		}
+		c.Data["json"] = resp
+		return
+	}
+	if nw == nil {
+		resp.Msg = "product not have network, config network first"
+		resp.Success = false
+		c.Data["json"] = resp
+		return
+	}
+	resp.Success = true
+	if len(nw.Script) == 0 || len(nw.Type) == 0 {
+		resp.Msg = "script and type not be empty"
+		resp.Success = false
+		c.Data["json"] = resp
+		return
+	}
+	config := convertCodecNetwork(*nw)
+	err = servers.StartServer(config)
+	if err != nil {
+		resp.Msg = err.Error()
+		resp.Success = false
 	}
 	c.Data["json"] = resp
 }
