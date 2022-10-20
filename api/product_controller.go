@@ -21,7 +21,7 @@ func init() {
 		web.NSRouter("/", &ProductController{}, "put:Update"),
 		web.NSRouter("/:id", &ProductController{}, "delete:Delete"),
 		web.NSRouter("/publish-model", &ProductController{}, "put:PublishModel"),
-		web.NSRouter("/network/:productId", &ProductController{}, "get:Get"),
+		web.NSRouter("/network/:productId", &ProductController{}, "get:GetNetwork"),
 		web.NSRouter("/network", &ProductController{}, "put:UpdateNetwork"),
 		web.NSRouter("/network-start/:productId", &ProductController{}, "put:StartNetwork"),
 	)
