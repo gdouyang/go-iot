@@ -32,7 +32,10 @@ type (
 		GetId() string
 		GetConfig() map[string]string
 		GetTimeSeries() TimeSeriesSave
+		// 产品物模型属性
 		GetTslProperty() map[string]tsl.TslProperty
+		// 产品物模型功能
+		GetTslFunction() map[string]tsl.TslFunction
 	}
 	// 会话信息
 	Session interface {

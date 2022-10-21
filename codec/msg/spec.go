@@ -54,7 +54,9 @@ func (p *DeviceOffline) Type() MessageType {
 
 // 功能调用
 type FuncInvoke struct {
-	PropertyReport
+	FunctionId string
+	DeviceId   string
+	Data       map[string]string
 }
 
 func (p *FuncInvoke) Type() MessageType {

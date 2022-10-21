@@ -88,16 +88,12 @@ func (m *DbProductManager) Get(productId string) codec.Product {
 		if err != nil {
 			logs.Error(err)
 		}
-		tt := map[string]tsl.TslProperty{}
-		for _, p := range d.Properties {
-			tt[p.Id] = p
-		}
-
 		product = &codec.DefaultProdeuct{
 			Id:           data.Id,
 			Config:       map[string]string{},
 			TimeSeriesId: codec.TIME_SERISE_ES,
-			TslProperty:  tt,
+			TslProperty:  d.PropertiesMap(),
+			TslFunction:  d.FunctionsMap(),
 		}
 		m.Put(product)
 	}

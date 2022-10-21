@@ -17,36 +17,55 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 	if codec == nil {
 		return errors.New("not found codec")
 	}
-	// timeout of invoke
-	ctx, cancel := context.WithTimeout(context.Background(), (time.Second * 10))
-	defer cancel()
+	product := GetProductManager().Get(productId)
+	if product == nil {
+		return errors.New("not found product")
+	}
+	tslF, ok := product.GetTslFunction()[message.FunctionId]
+	if !ok {
+		return errors.New("function of tsl not found")
+	}
+	if tslF.Async {
+		go func() {
+			codec.OnInvoke(&FuncInvokeContext{
+				deviceId:  message.DeviceId,
+				productId: productId,
+				session:   session,
+				message:   message,
+			})
+		}()
+		return nil
+	} else {
+		// timeout of invoke
+		ctx, cancel := context.WithTimeout(context.Background(), (time.Second * 10))
+		defer cancel()
 
-	result := make(chan error)
-	go func(ctx context.Context) {
-		err := codec.OnInvoke(&FuncInvokeContext{
-			deviceId:  message.DeviceId,
-			productId: productId,
-			session:   session,
-			message:   message,
-		})
-		result <- err
-	}(ctx)
+		result := make(chan error)
+		go func(ctx context.Context) {
+			err := codec.OnInvoke(&FuncInvokeContext{
+				deviceId:  message.DeviceId,
+				productId: productId,
+				session:   session,
+				message:   message,
+			})
+			result <- err
+		}(ctx)
 
-	select {
-	case <-ctx.Done():
-		return errors.New("timeout")
-	case err := <-result:
-		return err
+		select {
+		case <-ctx.Done():
+			return errors.New("timeout")
+		case err := <-result:
+			return err
+		}
 	}
 }
 
 // 功能调用
 type FuncInvokeContext struct {
-	message   interface{}
+	message   msg.FuncInvoke
 	session   Session
 	deviceId  string
 	productId string
-	// functionId string
 }
 
 func (ctx *FuncInvokeContext) GetMessage() interface{} {

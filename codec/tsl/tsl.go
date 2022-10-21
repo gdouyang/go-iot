@@ -27,9 +27,27 @@ func (tsl *TslData) FromJson(text string) error {
 	return err
 }
 
+func (tsl *TslData) PropertiesMap() map[string]TslProperty {
+	tslP := map[string]TslProperty{}
+	for _, p := range tsl.Properties {
+		tslP[p.Id] = p
+	}
+	return tslP
+}
+
+func (tsl *TslData) FunctionsMap() map[string]TslFunction {
+	tslF := map[string]TslFunction{}
+	for _, p := range tsl.Functions {
+		tslF[p.Id] = p
+	}
+	return tslF
+}
+
 type TslFunction struct {
-	Id      string        `json:"id"`
-	Name    string        `json:"name"`
+	// function id
+	Id   string `json:"id"`
+	Name string `json:"name"`
+	// 是否异步调用
 	Async   bool          `json:"async"`
 	Inputs  []TslProperty `json:"inputs"`
 	Outputs TslProperty   `json:"output"`

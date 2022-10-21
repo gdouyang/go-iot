@@ -101,6 +101,7 @@ type DefaultProdeuct struct {
 	Config       map[string]string
 	TimeSeriesId string
 	TslProperty  map[string]tsl.TslProperty
+	TslFunction  map[string]tsl.TslFunction
 }
 
 func (p *DefaultProdeuct) GetId() string {
@@ -115,4 +116,7 @@ func (p *DefaultProdeuct) GetTimeSeries() TimeSeriesSave {
 }
 func (p *DefaultProdeuct) GetTslProperty() map[string]tsl.TslProperty {
 	return p.TslProperty
+}
+func (p *DefaultProdeuct) GetTslFunction() map[string]tsl.TslFunction {
+	return p.TslFunction
 }
