@@ -23,36 +23,36 @@ const DelimType_SplitFunc DelimType = "SplitFunc"
 
 func NewDelimeter(delimeter TcpDelimeter, c net.Conn) Delimeter {
 	var d Delimeter
-	if delimeter.Type == DelimType_Delimited {
+	switch delimeter.Type {
+	case DelimType_Delimited:
 		b := []byte(delimeter.Delimited)
-		d1 := &DelimeterDelimited{delim: b[len(b)-1], c: c}
-		d1.init()
-		d = d1
-	} else if delimeter.Type == DelimType_FixLength {
-		d1 := &DelimeterFixLength{buf: make([]byte, delimeter.Length), c: c}
-		d1.init()
-		d = d1
-	} else if delimeter.Type == DelimType_SplitFunc {
-		d1 := &PipePayloadParser{fun: delimeter.SplitFunc, c: c}
-		d1.init()
-		d = d1
+		d = &DelimeterDelimited{delim: b[len(b)-1], conn: c}
+	case DelimType_FixLength:
+		d = &DelimeterFixLength{buf: make([]byte, delimeter.Length), conn: c}
+	case DelimType_SplitFunc:
+		d = &PipePayloadParser{fun: delimeter.SplitFunc, conn: c}
+	default:
+		// use 128 size buf by default
+		d = &DelimeterFixLength{buf: make([]byte, 128), conn: c}
 	}
+	d.init()
 	return d
 }
 
 type Delimeter interface {
+	init()
 	Read() ([]byte, error)
 }
 
 // 分隔符
 type DelimeterDelimited struct {
 	delim  byte // 分隔符
-	c      net.Conn
+	conn   net.Conn
 	reader *bufio.Reader
 }
 
 func (d *DelimeterDelimited) init() {
-	d.reader = bufio.NewReader(d.c)
+	d.reader = bufio.NewReader(d.conn)
 }
 
 func (d *DelimeterDelimited) Read() ([]byte, error) {
@@ -63,12 +63,12 @@ func (d *DelimeterDelimited) Read() ([]byte, error) {
 // fix length
 type DelimeterFixLength struct {
 	buf    []byte // buf
-	c      net.Conn
+	conn   net.Conn
 	reader *bufio.Reader
 }
 
 func (d *DelimeterFixLength) init() {
-	d.reader = bufio.NewReader(d.c)
+	d.reader = bufio.NewReader(d.conn)
 }
 
 func (d *DelimeterFixLength) Read() ([]byte, error) {
@@ -79,7 +79,7 @@ func (d *DelimeterFixLength) Read() ([]byte, error) {
 
 // pipe
 type PipePayloadParser struct {
-	c           net.Conn
+	conn        net.Conn
 	fun         string
 	pipe        []func(data []byte)
 	result      []byte
@@ -91,7 +91,7 @@ type PipePayloadParser struct {
 
 func (p *PipePayloadParser) init() {
 	p.dataChan = make(chan []byte, 1)
-	p.parser = newPayloadParser(bufio.NewReader(p.c))
+	p.parser = newPayloadParser(bufio.NewReader(p.conn))
 	p.parser.handler = func(b []byte) {
 		handler := p.getNextHandler()
 		handler(b)
