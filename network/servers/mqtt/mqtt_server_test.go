@@ -88,20 +88,18 @@ func newClient(network codec.NetworkConf, deviceId string) {
 	qos := 0
 	payload := []byte(`{"temperature": 12.1, "fff":1}`)
 	num := 5
-	client := MQTT.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
-	}
-	// opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
-	// 	logs.Info("RECEIVED TOPIC: %s MESSAGE: %s\n", msg.Topic(), string(msg.Payload()))
-	// })
-	if token := client.Subscribe(topic, byte(qos), func(client MQTT.Client, msg MQTT.Message) {
+	opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
 		logs.Info("RECEIVED TOPIC: %s MESSAGE: %s", msg.Topic(), string(msg.Payload()))
 		// reply cmd invoke
 		go func() {
 			client.Publish(topic, byte(qos), false, msg.Payload())
 		}()
-	}); token.Wait() && token.Error() != nil {
+	})
+	client := MQTT.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		panic(token.Error())
+	}
+	if token := client.Subscribe(topic, byte(qos), nil); token.Wait() && token.Error() != nil {
 		fmt.Println(token.Error())
 		os.Exit(1)
 	}
