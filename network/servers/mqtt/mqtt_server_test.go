@@ -97,6 +97,7 @@ func newClient(network codec.NetworkConf, deviceId string) {
 	// })
 	if token := client.Subscribe(topic, byte(qos), func(client MQTT.Client, msg MQTT.Message) {
 		logs.Info("RECEIVED TOPIC: %s MESSAGE: %s", msg.Topic(), string(msg.Payload()))
+		// reply cmd invoke
 		go func() {
 			client.Publish(topic, byte(qos), false, msg.Payload())
 		}()
