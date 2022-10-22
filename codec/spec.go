@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"errors"
 	"go-iot/codec/tsl"
 	"strings"
 
@@ -67,6 +68,7 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 		ctx.DeviceId = deviceId
 		ctx.GetSession().SetDeviceId(deviceId)
 		GetSessionManager().Put(deviceId, ctx.GetSession())
+		logs.Info("device %s online", deviceId)
 	}
 }
 
@@ -115,4 +117,12 @@ func (ctx *BaseContext) Save(data map[string]interface{}) {
 		}
 		p.GetTimeSeries().Save(p, data)
 	}
+}
+
+func (ctx *BaseContext) ReplyOk() {
+	replyMap.reply(ctx.DeviceId, nil)
+}
+
+func (ctx *BaseContext) ReplyFail(resp string) {
+	replyMap.reply(ctx.DeviceId, errors.New(resp))
 }

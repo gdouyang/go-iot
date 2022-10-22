@@ -57,6 +57,7 @@ type FuncInvoke struct {
 	FunctionId string
 	DeviceId   string
 	Data       map[string]string
+	Replay     chan error
 }
 
 func (p *FuncInvoke) Type() MessageType {

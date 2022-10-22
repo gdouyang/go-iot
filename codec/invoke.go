@@ -3,7 +3,9 @@ package codec
 import (
 	"context"
 	"errors"
+	"fmt"
 	"go-iot/codec/msg"
+	"sync"
 	"time"
 )
 
@@ -11,19 +13,19 @@ import (
 func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 	session := sessionManager.Get(message.DeviceId)
 	if session == nil {
-		return errors.New("device is offline")
+		return fmt.Errorf("device %s is offline", message.DeviceId)
 	}
 	codec := GetCodec(productId)
 	if codec == nil {
-		return errors.New("not found codec")
+		return fmt.Errorf("codec %s of product not found", productId)
 	}
 	product := GetProductManager().Get(productId)
 	if product == nil {
-		return errors.New("not found product")
+		return fmt.Errorf("product %s not found", productId)
 	}
 	tslF, ok := product.GetTslFunction()[message.FunctionId]
 	if !ok {
-		return errors.New("function of tsl not found")
+		return fmt.Errorf("function %s of tsl not found", message.FunctionId)
 	}
 	if tslF.Async {
 		go func() {
@@ -36,11 +38,15 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 		}()
 		return nil
 	} else {
+		err := replyMap.addReply(&message)
+		if err != nil {
+			return err
+		}
 		// timeout of invoke
 		ctx, cancel := context.WithTimeout(context.Background(), (time.Second * 10))
 		defer cancel()
 
-		result := make(chan error)
+		message.Replay = make(chan error)
 		go func(ctx context.Context) {
 			err := codec.OnInvoke(&FuncInvokeContext{
 				deviceId:  message.DeviceId,
@@ -48,13 +54,14 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 				session:   session,
 				message:   message,
 			})
-			result <- err
+			if nil != err {
+				replyMap.reply(message.DeviceId, err)
+			}
 		}(ctx)
-
 		select {
 		case <-ctx.Done():
 			return errors.New("timeout")
-		case err := <-result:
+		case err := <-message.Replay:
 			return err
 		}
 	}
@@ -83,4 +90,37 @@ func (ctx *FuncInvokeContext) GetDevice() Device {
 // 获取产品操作
 func (ctx *FuncInvokeContext) GetProduct() Product {
 	return GetProductManager().Get(ctx.productId)
+}
+
+func (ctx *FuncInvokeContext) ReplyOk() {
+	replyMap.reply(ctx.deviceId, nil)
+}
+
+func (ctx *FuncInvokeContext) ReplyFail(resp string) {
+	replyMap.reply(ctx.deviceId, errors.New(resp))
+}
+
+// cmd invoke reply
+var replyMap = &funcInvokeReply{}
+
+type funcInvokeReply struct {
+	m sync.Map
+}
+
+func (r *funcInvokeReply) addReply(i *msg.FuncInvoke) error {
+	_, ok := r.m.Load(i.DeviceId)
+	if ok {
+		return fmt.Errorf("invoke %s not reply, please try later", i.FunctionId)
+	}
+	r.m.Store(i.DeviceId, i)
+	return nil
+}
+
+func (r *funcInvokeReply) reply(deviceId string, resp error) {
+	val, ok := r.m.Load(deviceId)
+	if ok {
+		v := val.(*msg.FuncInvoke)
+		v.Replay <- resp
+	}
+	r.m.Delete(deviceId)
 }

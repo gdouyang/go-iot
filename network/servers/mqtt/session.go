@@ -111,12 +111,12 @@ func (s *Session) getPacketFromMsg(topic string, payload []byte, qos byte) *pack
 	return p
 }
 
-func (s *Session) PublishQos0(topic string, payload []byte) {
-	s.publish(topic, payload, QoS0)
+func (s *Session) PublishQos0(topic string, payload string) {
+	s.publish(topic, []byte(payload), QoS0)
 }
 
-func (s *Session) PublishQos1(topic string, payload []byte) {
-	s.publish(topic, payload, QoS1)
+func (s *Session) PublishQos1(topic string, payload string) {
+	s.publish(topic, []byte(payload), QoS1)
 }
 
 func (s *Session) publish(topic string, payload []byte, qos byte) {

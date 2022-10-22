@@ -3,6 +3,7 @@ package mqttserver_test
 import (
 	"fmt"
 	"go-iot/codec"
+	"go-iot/codec/msg"
 	"go-iot/models"
 	_ "go-iot/models/device"
 	mqttserver "go-iot/network/servers/mqtt"
@@ -10,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/beego/beego/v2/core/logs"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -21,10 +23,15 @@ function OnConnect(context) {
 function OnMessage(context) {
   console.log("OnMessage: " + context.MsgToString())
   var data = JSON.parse(context.MsgToString())
+	if (data.name == 'f') {
+		context.ReplyOk()
+		return
+	}
   context.Save(data)
 }
 function OnInvoke(context) {
-	console.log("OnInvoke: " + JSON.stringify(context))
+	console.log("OnInvoke: " + JSON.stringify(context.GetMessage().Data))
+	context.GetSession().PublishQos0("test", JSON.stringify(context.GetMessage().Data))
 }
 `
 
@@ -44,9 +51,27 @@ func TestServer(t *testing.T) {
 	network.Configuration = `{"host": "localhost", "useTLS": false}`
 	b := mqttserver.NewServer()
 	b.Start(network)
+	go func() {
+		time.Sleep(1 * time.Second)
+		for i := 0; i < 5; i++ {
+			go func() {
+				err := codec.DoCmdInvoke(network.ProductId, msg.FuncInvoke{
+					DeviceId:   "1234",
+					FunctionId: "func1",
+					Data:       map[string]string{"name": "f"},
+				})
+				if err != nil {
+					logs.Error(err)
+				} else {
+					logs.Info("cmdInvoke success")
+				}
+			}()
+			time.Sleep(1 * time.Second)
+		}
+	}()
 
-	go newClient(network, "1234")
-	newClient(network, "4567")
+	newClient(network, "1234")
+	// newClient(network, "4567")
 }
 
 func newClient(network codec.NetworkConf, deviceId string) {
@@ -59,51 +84,34 @@ func newClient(network codec.NetworkConf, deviceId string) {
 	opts.SetUsername("admin")
 	opts.SetPassword("123456")
 	opts.SetCleanSession(false)
-	action := "pub"
 	topic := "test"
 	qos := 0
 	payload := []byte(`{"temperature": 12.1, "fff":1}`)
-	num := 10
-	if action == "pub" {
-		client := MQTT.NewClient(opts)
-		if token := client.Connect(); token.Wait() && token.Error() != nil {
-			panic(token.Error())
-		}
-		fmt.Println("Sample Publisher Started")
-		for i := 0; i < num; i++ {
-			// fmt.Println("---- doing publish ----")
-			token := client.Publish(topic, byte(qos), false, payload)
-			token.Wait()
-			time.Sleep(1 * time.Second)
-		}
-
-		client.Disconnect(250)
-		fmt.Println("Sample Publisher Disconnected")
-	} else {
-		receiveCount := 0
-		choke := make(chan [2]string)
-
-		opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
-			choke <- [2]string{msg.Topic(), string(msg.Payload())}
-		})
-
-		client := MQTT.NewClient(opts)
-		if token := client.Connect(); token.Wait() && token.Error() != nil {
-			panic(token.Error())
-		}
-
-		if token := client.Subscribe(topic, byte(qos), nil); token.Wait() && token.Error() != nil {
-			fmt.Println(token.Error())
-			os.Exit(1)
-		}
-
-		for receiveCount < num {
-			incoming := <-choke
-			fmt.Printf("RECEIVED TOPIC: %s MESSAGE: %s\n", incoming[0], incoming[1])
-			receiveCount++
-		}
-
-		client.Disconnect(250)
-		fmt.Println("Sample Subscriber Disconnected")
+	num := 5
+	client := MQTT.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		panic(token.Error())
 	}
+	// opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
+	// 	logs.Info("RECEIVED TOPIC: %s MESSAGE: %s\n", msg.Topic(), string(msg.Payload()))
+	// })
+	if token := client.Subscribe(topic, byte(qos), func(client MQTT.Client, msg MQTT.Message) {
+		logs.Info("RECEIVED TOPIC: %s MESSAGE: %s", msg.Topic(), string(msg.Payload()))
+		go func() {
+			client.Publish(topic, byte(qos), false, msg.Payload())
+		}()
+	}); token.Wait() && token.Error() != nil {
+		fmt.Println(token.Error())
+		os.Exit(1)
+	}
+	fmt.Println("Sample Publisher Started")
+	for i := 0; i < num; i++ {
+		// fmt.Println("---- doing publish ----")
+		token := client.Publish(topic, byte(qos), false, payload)
+		token.Wait()
+		time.Sleep(1 * time.Second)
+	}
+
+	client.Disconnect(250)
+	fmt.Println("Sample Publisher Disconnected")
 }
