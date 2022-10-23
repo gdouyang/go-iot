@@ -7,6 +7,7 @@ type User struct {
 	Nickname   string    `json:"nickname" orm:"column(nickname_);description(昵称)"`
 	Username   string    `json:"username" orm:"column(username_);description(账号)"`
 	Password   string    `json:"password" orm:"column(password_);description(密码)"`
+	EnableFlag bool      `json:"enableFlag" orm:"column(enable_flag_);description(启用标志1启用，0禁用)"`
 	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
 }
@@ -22,6 +23,28 @@ type UserRelRole struct {
 	Id     int64 `json:"id" orm:"pk;column(id_);auto"`
 	UserId int64 `json:"userId" orm:"column(user_id_);description(用户ID)"`
 	RoleId int64 `json:"roleId" orm:"column(role_id_);description(角色ID)"`
+}
+
+type MenuResource struct {
+	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
+	Name       string    `json:"name" orm:"column(name_);description(角色名)"`
+	Code       string    `json:"code" orm:"column(code_);description(资源编码)"`
+	Sort       int32     `json:"sort" orm:"column(sort_);description(排序)"`
+	Action     string    `json:"action" orm:"column(action_);null;type(text);description(权限集)"`
+	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
+	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
+}
+
+// 授权资源
+type AuthResource struct {
+	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
+	Rtype      string    `json:"rtype" orm:"column(type_);description(ROLE,USER)"`
+	Code       string    `json:"code" orm:"column(resource_code_);description(资源编码)"`
+	Sort       int32     `json:"sort" orm:"column(sort_);description(排序)"`
+	ObjId      int64     `json:"objId" orm:"column(obj_id_);description(角色id或用户id)"`
+	Action     string    `json:"action" orm:"column(action_);null;type(text);description(权限集)"`
+	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
+	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
 }
 
 // 产品
