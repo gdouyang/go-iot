@@ -29,22 +29,38 @@ func (ctl *UserInfoController) Get() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
+	resp.Success = false
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		resp.Msg = err.Error()
-		resp.Success = false
 		return
 	}
 	u, err := user.GetUser(int64(_id))
 	if err != nil {
 		resp.Msg = err.Error()
-		resp.Success = false
 		return
 	}
 	u.Password = ""
+	roles, err := user.GetUserRelRoleByUserId(u.Id)
+	if err != nil {
+		resp.Msg = err.Error()
+		return
+	}
+	roleId := int64(0)
+	if len(roles) > 0 {
+		roleId = roles[0].RoleId
+	}
+	permission, err := user.GetPermissionByRoleId(roleId, true)
+	if err != nil {
+		resp.Msg = err.Error()
+		return
+	}
 	resp = models.JsonRespOk()
-	resp.Data = &u
+	resp.Data = struct {
+		models.User
+		Role *user.RolePermissionDTO `json:"role"`
+	}{User: *u, Role: permission}
 }
 
 func (ctl *UserInfoController) SaveBasic() {
