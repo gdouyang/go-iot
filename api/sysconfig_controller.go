@@ -75,7 +75,16 @@ func (ctl *SysConfigController) Update() {
 		Id:     ob.Id,
 		Config: string(str),
 	}
-	err = base.UpdateSysconfig(c)
+	old, err := base.GetSysconfig(c.Id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	if old == nil {
+		err = base.UpdateSysconfig(c)
+	} else {
+		err = base.AddSysconfig(c)
+	}
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
