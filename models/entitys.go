@@ -38,13 +38,18 @@ type MenuResource struct {
 // 授权资源
 type AuthResource struct {
 	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
-	ResType    string    `json:"res_type" orm:"column(type_);description(ROLE,USER)"`
-	Code       string    `json:"code_" orm:"column(resource_code_);description(资源编码)"`
-	Sort       int32     `json:"sort_" orm:"column(sort_);description(排序)"`
-	ObjId      int64     `json:"obj_id_" orm:"column(obj_id_);description(角色id或用户id)"`
-	Action     string    `json:"action_" orm:"column(action_);null;type(text);description(权限集)"`
+	ResType    string    `json:"resType" orm:"column(type_);description(ROLE,USER)"`
+	Code       string    `json:"code" orm:"column(resource_code_);description(资源编码)"`
+	Sort       int32     `json:"sort" orm:"column(sort_);description(排序)"`
+	ObjId      int64     `json:"objId" orm:"column(obj_id_);description(角色id或用户id)"`
+	Action     string    `json:"action" orm:"column(action_);null;type(text);description(权限集)"`
 	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
+}
+
+type SystemConfig struct {
+	Id     string `json:"id" orm:"pk;column(id_);"`
+	Config string `json:"config" orm:"column(config_);type(text);description(配置)"`
 }
 
 // 产品
