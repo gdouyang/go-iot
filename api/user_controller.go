@@ -11,10 +11,12 @@ import (
 
 func init() {
 	ns := web.NewNamespace("/api/user",
-		web.NSRouter("/list", &UserController{}, "post:List"),
+		web.NSRouter("/page", &UserController{}, "post:List"),
 		web.NSRouter("/", &UserController{}, "post:Add"),
 		web.NSRouter("/", &UserController{}, "put:Update"),
 		web.NSRouter("/:id", &UserController{}, "delete:Delete"),
+		web.NSRouter("/enable/:id", &UserController{}, "put:Enable"),
+		web.NSRouter("/disable/:id", &UserController{}, "put:Disable"),
 	)
 	web.AddNamespace(ns)
 }
@@ -101,4 +103,54 @@ func (ctl *UserController) Delete() {
 		return
 	}
 	resp = models.JsonResp{Success: true}
+}
+
+func (ctl *UserController) Enable() {
+	var resp models.JsonResp
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+
+	id := ctl.Ctx.Input.Param(":id")
+	_id, err := strconv.Atoi(id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	var ob *models.User = &models.User{
+		Id:         int64(_id),
+		EnableFlag: true,
+	}
+	err = user.UpdateUserEnable(ob)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	resp = models.JsonRespOk()
+}
+
+func (ctl *UserController) Disable() {
+	var resp models.JsonResp
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+
+	id := ctl.Ctx.Input.Param(":id")
+	_id, err := strconv.Atoi(id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	var ob *models.User = &models.User{
+		Id:         int64(_id),
+		EnableFlag: false,
+	}
+	err = user.UpdateUserEnable(ob)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	resp = models.JsonRespOk()
 }

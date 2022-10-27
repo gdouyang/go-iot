@@ -94,7 +94,18 @@ func UpdateUserPwd(ob *models.User) error {
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "Password")
 	if err != nil {
-		logs.Error("update fail", err)
+		return err
+	}
+	return nil
+}
+
+func UpdateUserEnable(ob *models.User) error {
+	if ob.Id == 0 {
+		return errors.New("id not be empty")
+	}
+	o := orm.NewOrm()
+	_, err := o.Update(ob, "enableFlag")
+	if err != nil {
 		return err
 	}
 	return nil
