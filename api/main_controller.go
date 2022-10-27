@@ -91,3 +91,15 @@ func (c *AuthController) GetSession() *HttpSession {
 	s := defaultSessionManager.Get(gsessionid)
 	return s
 }
+
+func (c *AuthController) GetCurrentUser() *models.User {
+	s := c.GetSession()
+	if s == nil {
+		return nil
+	}
+	val := s.Get("user")
+	if val == nil {
+		return nil
+	}
+	return val.(*models.User)
+}

@@ -48,6 +48,6 @@ func (ctl *LoginController) LoginJson() {
 	}
 	resp = models.JsonResp{Success: true}
 	session := defaultSessionManager.NewSession()
-	session.Put("user", u)
+	session.Put("user", &u)
 	ctl.Ctx.Output.Cookie("gsessionid", session.sessionid)
 }
