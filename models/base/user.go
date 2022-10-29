@@ -12,6 +12,22 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
+func init() {
+	models.OnDbInit(func() {
+		admin, _ := GetUser(1)
+		if admin == nil {
+			AddUser(&models.User{
+				Id:         1,
+				Username:   "admin",
+				Nickname:   "admin",
+				Password:   "123456",
+				EnableFlag: true,
+			})
+			logs.Info("init admin user")
+		}
+	})
+}
+
 // 分页查询设备
 func ListUser(page *models.PageQuery) (*models.PageResult, error) {
 	var pr *models.PageResult
@@ -51,13 +67,17 @@ func ListUser(page *models.PageQuery) (*models.PageResult, error) {
 }
 
 func AddUser(ob *models.User) error {
+	if len(ob.Password) == 0 {
+		return errors.New("password not be empty")
+	}
 	rs, err := GetUserByEntity(models.User{Username: ob.Username})
 	if err != nil {
 		return err
 	}
-	if rs.Id > 0 {
-		return errors.New("username已存在")
+	if rs != nil {
+		return errors.New("user exist")
 	}
+	md5Pwd(ob)
 	//插入数据
 	o := orm.NewOrm()
 	ob.CreateTime = time.Now()
@@ -86,10 +106,7 @@ func UpdateUserPwd(ob *models.User) error {
 	if len(ob.Username) == 0 {
 		return errors.New("username not be empty")
 	}
-	data := []byte(ob.Username + ob.Password)
-	has := md5.Sum(data)
-	md5str := fmt.Sprintf("%x", has) //将[]byte转成16进制
-	ob.Password = md5str
+	md5Pwd(ob)
 	//更新数据
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "Password")
@@ -97,6 +114,13 @@ func UpdateUserPwd(ob *models.User) error {
 		return err
 	}
 	return nil
+}
+
+func md5Pwd(ob *models.User) {
+	data := []byte(ob.Username + ob.Password)
+	has := md5.Sum(data)
+	md5str := fmt.Sprintf("%x", has) //将[]byte转成16进制
+	ob.Password = md5str
 }
 
 func UpdateUserEnable(ob *models.User) error {

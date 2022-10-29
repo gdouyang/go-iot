@@ -24,6 +24,15 @@ func InitDb() {
 
 	// create table
 	orm.RunSyncdb("default", false, true)
+	for _, call := range dbInitCallback {
+		call()
+	}
+}
+
+var dbInitCallback []func()
+
+func OnDbInit(call func()) {
+	dbInitCallback = append(dbInitCallback, call)
 }
 
 func GetQb() (orm.QueryBuilder, error) {

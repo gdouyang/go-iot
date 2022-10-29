@@ -53,6 +53,21 @@ func (s *sessionManager) NewSession() *HttpSession {
 	return sesion
 }
 
+func (s *sessionManager) Del(key string) {
+	s.m.Delete(key)
+}
+
+func (s *sessionManager) Login(ctl *web.Controller, u *models.User) {
+	session := s.NewSession()
+	session.Put("user", u)
+	ctl.Ctx.Output.Cookie("gsessionid", session.sessionid)
+}
+
+func (s *sessionManager) Logout(ctl *AuthController) {
+	session := ctl.GetSession()
+	defaultSessionManager.Del(session.sessionid)
+}
+
 type HttpSession struct {
 	sync.RWMutex
 	sessionid string

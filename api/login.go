@@ -12,6 +12,7 @@ import (
 func init() {
 	ns := web.NewNamespace("/api",
 		web.NSRouter("/login", &LoginController{}, "post:LoginJson"),
+		web.NSRouter("/logout", &LogoutController{}, "post:Logout"),
 	)
 	web.AddNamespace(ns)
 }
@@ -47,7 +48,13 @@ func (ctl *LoginController) LoginJson() {
 		return
 	}
 	resp = models.JsonResp{Success: true}
-	session := defaultSessionManager.NewSession()
-	session.Put("user", &u)
-	ctl.Ctx.Output.Cookie("gsessionid", session.sessionid)
+	defaultSessionManager.Login(&ctl.Controller, u)
+}
+
+type LogoutController struct {
+	AuthController
+}
+
+func (ctl *LogoutController) Logout() {
+	defaultSessionManager.Logout(&ctl.AuthController)
 }
