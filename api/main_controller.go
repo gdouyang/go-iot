@@ -25,6 +25,7 @@ func (c *MainController) Get() {
 	c.TplName = "index.html"
 }
 
+// session manager
 var defaultSessionManager = &sessionManager{}
 
 type sessionManager struct {
@@ -87,6 +88,7 @@ func (s *HttpSession) Put(key string, value interface{}) {
 	s.m[key] = value
 }
 
+// base controller
 type AuthController struct {
 	web.Controller
 }

@@ -44,9 +44,9 @@ func (page *PageQuery) PageOffset() int {
 }
 
 type JsonResp struct {
-	Msg     string      `json:"msg"`
+	Msg     string      `json:"message"`
 	Success bool        `json:"success"`
-	Data    interface{} `json:"data,omitempty"`
+	Data    interface{} `json:"result,omitempty"`
 }
 
 func JsonRespOk() JsonResp {

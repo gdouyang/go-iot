@@ -6,7 +6,7 @@ type User struct {
 	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
 	Nickname   string    `json:"nickname" orm:"column(nickname_);description(昵称)"`
 	Username   string    `json:"username" orm:"column(username_);description(账号)"`
-	Password   string    `json:"password" orm:"column(password_);description(密码)"`
+	Password   string    `json:"password,omitempty" orm:"column(password_);description(密码)"`
 	EnableFlag bool      `json:"enableFlag" orm:"column(enable_flag_);description(启用标志1启用，0禁用)"`
 	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`

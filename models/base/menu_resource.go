@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-iot/models"
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 )
@@ -36,6 +37,12 @@ type MenuAction struct {
 func GetPermissionByRoleId(roleId int64, concatParentCode bool) (*RolePermissionDTO, error) {
 	r := RolePermissionDTO{}
 	if roleId == 0 {
+		menus, err := GetAllMenuResource()
+		if err != nil {
+			return nil, err
+		}
+		permissions := getPermissions(roleId, menus, concatParentCode)
+		r.Permissions = permissions
 		return &r, nil
 	}
 	role, err := GetRole(roleId)
@@ -114,4 +121,40 @@ func getPermissions(roleId int64, list []models.MenuResource, concatParentCode b
 	}
 
 	return result
+}
+
+func GetMenuResourceByCode(code string) (*models.MenuResource, error) {
+
+	o := orm.NewOrm()
+
+	p := models.MenuResource{Code: code}
+	err := o.Read(&p, "Code")
+	if err == orm.ErrNoRows {
+		return nil, nil
+	} else if err == orm.ErrMissPK {
+		return nil, err
+	} else {
+		return &p, nil
+	}
+}
+
+func AddMenuResource(ob *models.MenuResource) error {
+	//插入数据
+	o := orm.NewOrm()
+	ob.CreateTime = time.Now()
+	_, err := o.Insert(ob)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func UpdateMenuResource(ob *models.MenuResource) error {
+	//更新数据
+	o := orm.NewOrm()
+	_, err := o.Update(ob, "Name", "Action")
+	if err != nil {
+		return err
+	}
+	return nil
 }

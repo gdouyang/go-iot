@@ -12,6 +12,14 @@ func init() {
 		web.NSRouter("/list", &MenuController{}, "get:List"),
 	)
 	web.AddNamespace(ns)
+
+	regResource(Resource{
+		Id:   "menu-mgr",
+		Name: "菜单资源",
+		Action: []ResourceAction{
+			QueryAction,
+		},
+	})
 }
 
 type MenuController struct {

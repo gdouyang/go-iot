@@ -19,6 +19,17 @@ func init() {
 		web.NSRouter("/disable/:id", &UserController{}, "put:Disable"),
 	)
 	web.AddNamespace(ns)
+
+	regResource(Resource{
+		Id:   "user-mgr",
+		Name: "用户管理",
+		Action: []ResourceAction{
+			QueryAction,
+			CretaeAction,
+			SaveAction,
+			DeleteAction,
+		},
+	})
 }
 
 type UserController struct {

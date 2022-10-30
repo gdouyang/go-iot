@@ -16,6 +16,14 @@ func init() {
 		web.NSRouter("/system/config", &SysConfigController{}, "post:Update"),
 	)
 	web.AddNamespace(ns)
+
+	regResource(Resource{
+		Id:   "sys-config",
+		Name: "系统配置",
+		Action: []ResourceAction{
+			SaveAction,
+		},
+	})
 }
 
 type AnonSysConfigController struct {

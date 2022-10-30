@@ -18,6 +18,17 @@ func init() {
 		web.NSRouter("/:id", &RoleController{}, "delete:Delete"),
 	)
 	web.AddNamespace(ns)
+
+	regResource(Resource{
+		Id:   "role-mgr",
+		Name: "角色管理",
+		Action: []ResourceAction{
+			QueryAction,
+			CretaeAction,
+			SaveAction,
+			DeleteAction,
+		},
+	})
 }
 
 type RoleController struct {
