@@ -58,10 +58,11 @@ func (s *sessionManager) Del(key string) {
 	s.m.Delete(key)
 }
 
-func (s *sessionManager) Login(ctl *web.Controller, u *models.User) {
+func (s *sessionManager) Login(ctl *web.Controller, u *models.User) *HttpSession {
 	session := s.NewSession()
 	session.Put("user", u)
 	ctl.Ctx.Output.Cookie("gsessionid", session.sessionid)
+	return session
 }
 
 func (s *sessionManager) Logout(ctl *AuthController) {
@@ -88,6 +89,18 @@ func (s *HttpSession) Put(key string, value interface{}) {
 	s.m[key] = value
 }
 
+func (s *HttpSession) SetPermission(p map[string]bool) {
+	s.Put("permissions", p)
+}
+
+func (s *HttpSession) GetPermission() map[string]bool {
+	p := s.Get("permissions")
+	if p == nil {
+		return map[string]bool{}
+	}
+	return p.(map[string]bool)
+}
+
 // base controller
 type AuthController struct {
 	web.Controller
@@ -101,6 +114,18 @@ func (c *AuthController) Prepare() {
 		c.ServeJSON()
 		c.StopRun()
 	}
+}
+
+func (c *AuthController) isForbidden(r Resource, rc ResourceAction) bool {
+	session := c.GetSession()
+	permission := session.GetPermission()
+	var pass = permission[r.Id+":"+rc.Id]
+	if !pass {
+		c.Ctx.Output.Status = 403
+		c.Data["json"] = models.JsonRespError(errors.New("Forbidden"))
+		c.ServeJSON()
+	}
+	return pass
 }
 
 func (c *AuthController) GetSession() *HttpSession {

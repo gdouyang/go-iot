@@ -47,8 +47,20 @@ func (ctl *LoginController) LoginJson() {
 		resp = models.JsonRespError(errors.New("username or password invalid"))
 		return
 	}
+	permission, err := user.GetPermissionByUserId(u.Id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	var actionMap = map[string]bool{}
+	for _, p := range permission.Permissions {
+		for _, ac := range p.ActionEntitySet {
+			actionMap[ac.Action] = true
+		}
+	}
 	resp = models.JsonResp{Success: true}
-	defaultSessionManager.Login(&ctl.Controller, u)
+	session := defaultSessionManager.Login(&ctl.Controller, u)
+	session.SetPermission(actionMap)
 }
 
 type LogoutController struct {

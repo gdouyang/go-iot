@@ -9,6 +9,17 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+var userResource = Resource{
+	Id:   "user-mgr",
+	Name: "用户管理",
+	Action: []ResourceAction{
+		QueryAction,
+		CretaeAction,
+		SaveAction,
+		DeleteAction,
+	},
+}
+
 func init() {
 	ns := web.NewNamespace("/api/user",
 		web.NSRouter("/page", &UserController{}, "post:List"),
@@ -20,16 +31,7 @@ func init() {
 	)
 	web.AddNamespace(ns)
 
-	regResource(Resource{
-		Id:   "user-mgr",
-		Name: "用户管理",
-		Action: []ResourceAction{
-			QueryAction,
-			CretaeAction,
-			SaveAction,
-			DeleteAction,
-		},
-	})
+	regResource(userResource)
 }
 
 type UserController struct {
@@ -37,20 +39,25 @@ type UserController struct {
 }
 
 func (ctl *UserController) List() {
+	if ctl.isForbidden(userResource, QueryAction) {
+		return
+	}
 	var ob models.PageQuery
 	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
 
 	res, err := user.ListUser(&ob)
 	if err != nil {
-		ctl.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+		ctl.Data["json"] = models.JsonRespError(err)
 	} else {
-
-		ctl.Data["json"] = &res
+		ctl.Data["json"] = models.JsonRespOkData(res)
 	}
 	ctl.ServeJSON()
 }
 
 func (ctl *UserController) Add() {
+	if ctl.isForbidden(userResource, CretaeAction) {
+		return
+	}
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp
@@ -72,6 +79,9 @@ func (ctl *UserController) Add() {
 }
 
 func (ctl *UserController) Update() {
+	if ctl.isForbidden(userResource, SaveAction) {
+		return
+	}
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp
@@ -92,6 +102,9 @@ func (ctl *UserController) Update() {
 }
 
 func (ctl *UserController) Delete() {
+	if ctl.isForbidden(userResource, DeleteAction) {
+		return
+	}
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp
@@ -117,6 +130,9 @@ func (ctl *UserController) Delete() {
 }
 
 func (ctl *UserController) Enable() {
+	if ctl.isForbidden(userResource, SaveAction) {
+		return
+	}
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp
@@ -142,6 +158,9 @@ func (ctl *UserController) Enable() {
 }
 
 func (ctl *UserController) Disable() {
+	if ctl.isForbidden(userResource, SaveAction) {
+		return
+	}
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp

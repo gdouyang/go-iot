@@ -49,12 +49,14 @@ func regResource(r Resource) {
 	resources = append(resources, r)
 }
 
+// 权限控制资源
 type Resource struct {
 	Id     string
 	Name   string
 	Action []ResourceAction
 }
 
+// 资源动作
 type ResourceAction struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`

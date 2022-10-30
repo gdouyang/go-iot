@@ -46,7 +46,10 @@ func ListUser(page *models.PageQuery) (*models.PageResult, error) {
 		qs = qs.Filter("id", id)
 	}
 	if len(n.Username) > 0 {
-		qs = qs.Filter("name__contains", n.Username)
+		qs = qs.Filter("username__contains", n.Username)
+	}
+	if len(n.Nickname) > 0 {
+		qs = qs.Filter("nickname__contains", n.Nickname)
 	}
 
 	count, err := qs.Count()
@@ -59,7 +62,9 @@ func ListUser(page *models.PageQuery) (*models.PageResult, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	for _, us := range result {
+		us.Password = ""
+	}
 	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
 	pr = &p
 

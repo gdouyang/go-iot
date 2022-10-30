@@ -34,6 +34,22 @@ type MenuAction struct {
 	Name string `json:"name"`
 }
 
+func GetPermissionByUserId(userId int64) (*RolePermissionDTO, error) {
+	roles, err := GetUserRelRoleByUserId(userId)
+	if err != nil {
+		return nil, err
+	}
+	roleId := int64(0)
+	if len(roles) > 0 {
+		roleId = roles[0].RoleId
+	}
+	permission, err := GetPermissionByRoleId(roleId, true)
+	if err != nil {
+		return nil, err
+	}
+	return permission, nil
+}
+
 func GetPermissionByRoleId(roleId int64, concatParentCode bool) (*RolePermissionDTO, error) {
 	r := RolePermissionDTO{}
 	if roleId == 0 {

@@ -36,16 +36,7 @@ func (ctl *UserInfoController) Get() {
 	}
 	u1 := *u
 	u1.Password = ""
-	roles, err := user.GetUserRelRoleByUserId(u1.Id)
-	if err != nil {
-		resp = models.JsonRespError(err)
-		return
-	}
-	roleId := int64(0)
-	if len(roles) > 0 {
-		roleId = roles[0].RoleId
-	}
-	permission, err := user.GetPermissionByRoleId(roleId, true)
+	permission, err := user.GetPermissionByUserId(u1.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
