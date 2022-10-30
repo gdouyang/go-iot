@@ -119,13 +119,13 @@ func (c *AuthController) Prepare() {
 func (c *AuthController) isForbidden(r Resource, rc ResourceAction) bool {
 	session := c.GetSession()
 	permission := session.GetPermission()
-	var pass = permission[r.Id+":"+rc.Id]
-	if !pass {
+	if _, ok := permission[r.Id+":"+rc.Id]; !ok {
 		c.Ctx.Output.Status = 403
 		c.Data["json"] = models.JsonRespError(errors.New("Forbidden"))
 		c.ServeJSON()
+		return true
 	}
-	return pass
+	return false
 }
 
 func (c *AuthController) GetSession() *HttpSession {

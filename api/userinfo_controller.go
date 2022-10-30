@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"go-iot/models"
 	user "go-iot/models/base"
@@ -55,14 +54,14 @@ func (ctl *UserInfoController) SaveBasic() {
 		ctl.ServeJSON()
 	}()
 	var ob models.User
-	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	err = user.UpdateUser(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	resp = models.JsonResp{Success: true}
@@ -75,14 +74,14 @@ func (ctl *UserInfoController) UpdatePwd() {
 		ctl.ServeJSON()
 	}()
 	var ob models.User
-	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	err = user.UpdateUserPwd(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	resp = models.JsonResp{Success: true}

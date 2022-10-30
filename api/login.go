@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"go-iot/models"
 	user "go-iot/models/base"
@@ -32,7 +31,7 @@ func (ctl *LoginController) LoginJson() {
 		Password string `json:"password"`
 	}{}
 
-	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	err := ctl.BindJSON(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"go-iot/codec"
 	"go-iot/codec/msg"
@@ -35,13 +34,13 @@ type DeviceController struct {
 // 查询设备列表
 func (ctl *DeviceController) List() {
 	var ob models.PageQuery
-	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.BindJSON(&ob)
 
 	res, err := device.ListDevice(&ob)
 	if err != nil {
 		ctl.Data["json"] = models.JsonRespError(err)
 	} else {
-		ctl.Data["json"] = &res
+		ctl.Data["json"] = models.JsonRespOkData(res)
 	}
 	ctl.ServeJSON()
 }
@@ -62,7 +61,7 @@ func (ctl *DeviceController) GetOne() {
 func (ctl *DeviceController) Add() {
 	defer ctl.ServeJSON()
 	var ob models.Device
-	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.BindJSON(&ob)
 	err := device.AddDevice(&ob)
 	if err != nil {
 		ctl.Data["json"] = models.JsonRespError(err)
@@ -75,7 +74,7 @@ func (ctl *DeviceController) Add() {
 func (ctl *DeviceController) Update() {
 	defer ctl.ServeJSON()
 	var ob models.Device
-	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.BindJSON(&ob)
 	err := device.UpdateDevice(&ob)
 	if err != nil {
 		ctl.Data["json"] = models.JsonRespError(err)
@@ -129,7 +128,7 @@ func (ctl *DeviceController) CmdInvoke() {
 	defer ctl.ServeJSON()
 
 	var ob msg.FuncInvoke
-	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.BindJSON(&ob)
 	device, err := device.GetDevice(ob.DeviceId)
 	if err != nil {
 		ctl.Data["json"] = models.JsonRespError(err)

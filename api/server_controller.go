@@ -36,9 +36,9 @@ func (c *ServerController) List() {
 
 	res, err := network.ListNetwork(&ob)
 	if err != nil {
-		c.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+		c.Data["json"] = models.JsonRespError(err)
 	} else {
-		c.Data["json"] = &res
+		c.Data["json"] = models.JsonRespOkData(res)
 	}
 }
 

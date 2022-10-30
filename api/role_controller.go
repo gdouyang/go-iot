@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"go-iot/models"
 	role "go-iot/models/base"
 	"strconv"
@@ -26,6 +25,7 @@ func init() {
 		web.NSRouter("/page", &RoleController{}, "post:List"),
 		web.NSRouter("/", &RoleController{}, "post:Add"),
 		web.NSRouter("/", &RoleController{}, "put:Update"),
+		web.NSRouter("/:id", &RoleController{}, "get:Get"),
 		web.NSRouter("/:id", &RoleController{}, "delete:Delete"),
 	)
 	web.AddNamespace(ns)
@@ -43,7 +43,7 @@ func (ctl *RoleController) List() {
 		return
 	}
 	var ob models.PageQuery
-	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.BindJSON(&ob)
 
 	res, err := role.ListRole(&ob)
 	if err != nil {
@@ -52,6 +52,29 @@ func (ctl *RoleController) List() {
 		ctl.Data["json"] = models.JsonRespOkData(res)
 	}
 	ctl.ServeJSON()
+}
+
+func (ctl *RoleController) Get() {
+	if ctl.isForbidden(roleResource, QueryAction) {
+		return
+	}
+	var resp models.JsonResp
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+	id := ctl.Ctx.Input.Param(":id")
+	_id, err := strconv.Atoi(id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	u, err := role.GetRole(int64(_id))
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	resp = models.JsonRespOkData(u)
 }
 
 func (ctl *RoleController) Add() {
@@ -64,14 +87,14 @@ func (ctl *RoleController) Add() {
 		ctl.ServeJSON()
 	}()
 	var ob models.Role
-	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	err = role.AddRole(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	resp = models.JsonResp{Success: true}
@@ -87,14 +110,14 @@ func (ctl *RoleController) Update() {
 		ctl.ServeJSON()
 	}()
 	var ob models.Role
-	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	err = role.UpdateRole(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	resp = models.JsonResp{Success: true}
@@ -122,7 +145,7 @@ func (ctl *RoleController) Delete() {
 	}
 	err = role.DeleteRole(ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	resp = models.JsonResp{Success: true}

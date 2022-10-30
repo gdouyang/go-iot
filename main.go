@@ -3,6 +3,7 @@ package main
 import (
 	_ "go-iot/api"
 	"go-iot/models"
+	"net/http"
 
 	"github.com/beego/beego/v2/core/config"
 	"github.com/beego/beego/v2/core/logs"
@@ -16,5 +17,8 @@ func main() {
 	}
 	models.DefaultDbConfig.Url = dataSourceName
 	models.InitDb()
+	web.ErrorHandler("404", func(rw http.ResponseWriter, r *http.Request) {
+		rw.WriteHeader(404)
+	})
 	web.Run()
 }

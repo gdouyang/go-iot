@@ -69,7 +69,7 @@ func (ctl *SysConfigController) Update() {
 		Id     string
 		Config map[string]interface{}
 	}{}
-	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	err := ctl.BindJSON(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return

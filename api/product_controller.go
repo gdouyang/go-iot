@@ -35,14 +35,14 @@ type ProductController struct {
 // 查询型号列表
 func (ctl *ProductController) List() {
 	var ob models.PageQuery
-	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	ctl.BindJSON(&ob)
 
 	res, err := product.ListProduct(&ob)
 	if err != nil {
-		ctl.Data["json"] = models.JsonResp{Success: false, Msg: err.Error()}
+		ctl.Data["json"] = models.JsonRespError(err)
 	} else {
 
-		ctl.Data["json"] = &res
+		ctl.Data["json"] = models.JsonRespOkData(res)
 	}
 	ctl.ServeJSON()
 }
@@ -55,15 +55,15 @@ func (ctl *ProductController) Add() {
 		ctl.ServeJSON()
 	}()
 	var ob models.Product
-	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 
 	err = product.AddProduct(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	resp = models.JsonResp{Success: true}
@@ -77,14 +77,14 @@ func (ctl *ProductController) Update() {
 		ctl.ServeJSON()
 	}()
 	var ob models.Product
-	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	err = product.UpdateProduct(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	resp = models.JsonResp{Success: true}
@@ -107,14 +107,14 @@ func (ctl *ProductController) Delete() {
 	if s != nil {
 		err := s.Stop()
 		if err != nil {
-			resp = models.JsonResp{Success: false, Msg: err.Error()}
+			resp = models.JsonRespError(err)
 			return
 		}
 	}
 	// then delete product
 	err := product.DeleteProduct(ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	resp = models.JsonResp{Success: true}
@@ -129,9 +129,9 @@ func (ctl *ProductController) PublishModel() {
 	}()
 
 	var ob models.Product
-	err := json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	if len(strings.TrimSpace(ob.Id)) == 0 || len(strings.TrimSpace(ob.MetaData)) == 0 {
@@ -141,7 +141,7 @@ func (ctl *ProductController) PublishModel() {
 	tsl := tsl.TslData{}
 	err = tsl.FromJson(ob.MetaData)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	product := codec.GetProductManager().Get(ob.Id)
@@ -151,7 +151,7 @@ func (ctl *ProductController) PublishModel() {
 	}
 	err = product.GetTimeSeries().PublishModel(product, tsl)
 	if err != nil {
-		resp = models.JsonResp{Success: false, Msg: err.Error()}
+		resp = models.JsonRespError(err)
 		return
 	}
 	resp = models.JsonResp{Success: true}

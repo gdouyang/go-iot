@@ -47,5 +47,5 @@ func (ctl *MenuController) List() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp.Data = permission.Permissions
+	resp = models.JsonRespOkData(permission.Permissions)
 }
