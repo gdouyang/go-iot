@@ -93,7 +93,7 @@ func GetAllMenuResource() ([]models.MenuResource, error) {
 	return result, nil
 }
 
-func GetAuthResourctByRole(roleId int64, resType string) ([]models.AuthResource, error) {
+func GetAuthResourctByRole(roleId int64, resType RelType) ([]models.AuthResource, error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.AuthResource{})
 	qs = qs.Filter("objId", roleId).Filter("ResType", resType)

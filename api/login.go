@@ -57,7 +57,7 @@ func (ctl *LoginController) LoginJson() {
 			actionMap[ac.Action] = true
 		}
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 	session := defaultSessionManager.Login(&ctl.Controller, u)
 	session.SetPermission(actionMap)
 }

@@ -99,7 +99,7 @@ func (ctl *UserController) Add() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 }
 
 func (ctl *UserController) Update() {
@@ -122,7 +122,7 @@ func (ctl *UserController) Update() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 }
 
 func (ctl *UserController) Delete() {
@@ -150,7 +150,7 @@ func (ctl *UserController) Delete() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 }
 
 func (ctl *UserController) Enable() {

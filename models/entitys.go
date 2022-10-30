@@ -15,6 +15,7 @@ type User struct {
 type Role struct {
 	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
 	Name       string    `json:"name" orm:"column(name_);description(角色名)"`
+	Desc       string    `json:"desc" orm:"column(desc_);description(描述)"`
 	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
 }

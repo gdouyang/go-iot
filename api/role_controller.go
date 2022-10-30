@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"go-iot/models"
 	role "go-iot/models/base"
 	"strconv"
@@ -27,6 +28,7 @@ func init() {
 		web.NSRouter("/", &RoleController{}, "put:Update"),
 		web.NSRouter("/:id", &RoleController{}, "get:Get"),
 		web.NSRouter("/:id", &RoleController{}, "delete:Delete"),
+		web.NSRouter("/ref-menus/:id", &RoleController{}, "get:RefMenus"),
 	)
 	web.AddNamespace(ns)
 
@@ -86,7 +88,8 @@ func (ctl *RoleController) Add() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	var ob models.Role
+
+	var ob role.RoleDTO
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
@@ -97,7 +100,7 @@ func (ctl *RoleController) Add() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 }
 
 func (ctl *RoleController) Update() {
@@ -109,7 +112,7 @@ func (ctl *RoleController) Update() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	var ob models.Role
+	var ob role.RoleDTO
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
@@ -120,7 +123,7 @@ func (ctl *RoleController) Update() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 }
 
 func (ctl *RoleController) Delete() {
@@ -148,5 +151,50 @@ func (ctl *RoleController) Delete() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
+}
+
+func (ctl *RoleController) RefMenus() {
+	if ctl.isForbidden(roleResource, QueryAction) {
+		return
+	}
+	var resp models.JsonResp
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+
+	id := ctl.Ctx.Input.Param(":id")
+	_id, err := strconv.Atoi(id)
+	if err != nil {
+		resp.Msg = err.Error()
+		resp.Success = false
+		return
+	}
+	list, err := role.GetAuthResourctByRole(int64(_id), role.ResTypeRole)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	var result []struct {
+		models.AuthResource
+		Action []role.MenuAction `json:"action"`
+	}
+	for _, r := range list {
+		var ac []role.MenuAction
+		err := json.Unmarshal([]byte(r.Action), &ac)
+		if err != nil {
+			resp = models.JsonRespError(err)
+			return
+		}
+		var r1 = struct {
+			models.AuthResource
+			Action []role.MenuAction `json:"action"`
+		}{
+			AuthResource: r,
+			Action:       ac,
+		}
+		result = append(result, r1)
+	}
+	resp = models.JsonRespOkData(result)
 }

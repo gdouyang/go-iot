@@ -64,7 +64,7 @@ func (ctl *UserInfoController) SaveBasic() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 }
 
 func (ctl *UserInfoController) UpdatePwd() {
@@ -84,5 +84,5 @@ func (ctl *UserInfoController) UpdatePwd() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 }

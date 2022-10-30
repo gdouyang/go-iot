@@ -85,7 +85,7 @@ func (ctl *ProductController) Add() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 }
 
 // 更新型号信息
@@ -109,7 +109,7 @@ func (ctl *ProductController) Update() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 }
 
 // 删除型号
@@ -142,7 +142,7 @@ func (ctl *ProductController) Delete() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 }
 
 // publish tsl model
@@ -182,7 +182,7 @@ func (ctl *ProductController) PublishModel() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonResp{Success: true}
+	resp = models.JsonRespOk()
 }
 
 // get product network config
