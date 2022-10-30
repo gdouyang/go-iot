@@ -128,7 +128,7 @@ func UpdateRole(ob *RoleDTO) error {
 		_, err = txOrm.Delete(&models.AuthResource{
 			ResType: string(ResTypeRole),
 			ObjId:   ob.Id,
-		})
+		}, "ResType", "ObjId")
 		if err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func DeleteRole(ob *models.Role) error {
 		_, err = txOrm.Delete(&models.AuthResource{
 			ResType: string(ResTypeRole),
 			ObjId:   ob.Id,
-		})
+		}, "ResType", "ObjId")
 		return err
 	})
 	return err
