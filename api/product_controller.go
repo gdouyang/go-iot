@@ -13,6 +13,17 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+var productResource = Resource{
+	Id:   "product-mgr",
+	Name: "产品",
+	Action: []ResourceAction{
+		QueryAction,
+		CretaeAction,
+		SaveAction,
+		DeleteAction,
+	},
+}
+
 // 产品管理
 func init() {
 	ns := web.NewNamespace("/api/product",
@@ -26,14 +37,19 @@ func init() {
 		web.NSRouter("/network-start/:productId", &ProductController{}, "put:StartNetwork"),
 	)
 	web.AddNamespace(ns)
+
+	regResource(productResource)
 }
 
 type ProductController struct {
-	web.Controller
+	AuthController
 }
 
 // 查询型号列表
 func (ctl *ProductController) List() {
+	if ctl.isForbidden(productResource, QueryAction) {
+		return
+	}
 	var ob models.PageQuery
 	ctl.BindJSON(&ob)
 
@@ -49,6 +65,9 @@ func (ctl *ProductController) List() {
 
 // 添加型号
 func (ctl *ProductController) Add() {
+	if ctl.isForbidden(productResource, CretaeAction) {
+		return
+	}
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp
@@ -71,6 +90,9 @@ func (ctl *ProductController) Add() {
 
 // 更新型号信息
 func (ctl *ProductController) Update() {
+	if ctl.isForbidden(productResource, SaveAction) {
+		return
+	}
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp
@@ -92,6 +114,9 @@ func (ctl *ProductController) Update() {
 
 // 删除型号
 func (ctl *ProductController) Delete() {
+	if ctl.isForbidden(productResource, DeleteAction) {
+		return
+	}
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp
@@ -122,6 +147,9 @@ func (ctl *ProductController) Delete() {
 
 // publish tsl model
 func (ctl *ProductController) PublishModel() {
+	if ctl.isForbidden(productResource, SaveAction) {
+		return
+	}
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp
@@ -158,12 +186,15 @@ func (ctl *ProductController) PublishModel() {
 }
 
 // get product network config
-func (c *ProductController) GetNetwork() {
+func (ctl *ProductController) GetNetwork() {
+	if ctl.isForbidden(productResource, QueryAction) {
+		return
+	}
 	var resp models.JsonResp
 	resp.Success = true
-	id := c.Ctx.Input.Param(":productId")
+	id := ctl.Ctx.Input.Param(":productId")
 
-	defer c.ServeJSON()
+	defer ctl.ServeJSON()
 
 	nw, err := network.GetByProductId(id)
 	if err != nil {
@@ -172,20 +203,23 @@ func (c *ProductController) GetNetwork() {
 	} else {
 		resp.Data = nw
 	}
-	c.Data["json"] = &resp
+	ctl.Data["json"] = &resp
 }
 
 // update product network
-func (c *ProductController) UpdateNetwork() {
+func (ctl *ProductController) UpdateNetwork() {
+	if ctl.isForbidden(productResource, SaveAction) {
+		return
+	}
 	var resp models.JsonResp
 	var ob models.Network
 
 	defer func() {
-		c.Data["json"] = &resp
-		c.ServeJSON()
+		ctl.Data["json"] = &resp
+		ctl.ServeJSON()
 	}()
 	resp.Success = false
-	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
+	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
 	if len(ob.ProductId) == 0 {
 		resp.Msg = "productId not be empty"
 		return
@@ -217,29 +251,32 @@ func (c *ProductController) UpdateNetwork() {
 }
 
 // start server
-func (c *ProductController) StartNetwork() {
+func (ctl *ProductController) StartNetwork() {
+	if ctl.isForbidden(productResource, SaveAction) {
+		return
+	}
 	var resp models.JsonResp
-	id := c.Ctx.Input.Param(":productId")
-	defer c.ServeJSON()
+	id := ctl.Ctx.Input.Param(":productId")
+	defer ctl.ServeJSON()
 
 	nw, err := network.GetByProductId(id)
 	if err != nil {
 		resp.Msg = err.Error()
 		resp.Success = false
-		c.Data["json"] = resp
+		ctl.Data["json"] = resp
 		return
 	}
 	if nw == nil {
 		resp.Msg = "product not have network, config network first"
 		resp.Success = false
-		c.Data["json"] = resp
+		ctl.Data["json"] = resp
 		return
 	}
 	resp.Success = true
 	if len(nw.Script) == 0 || len(nw.Type) == 0 {
 		resp.Msg = "script and type not be empty"
 		resp.Success = false
-		c.Data["json"] = resp
+		ctl.Data["json"] = resp
 		return
 	}
 	config := convertCodecNetwork(*nw)
@@ -248,5 +285,5 @@ func (c *ProductController) StartNetwork() {
 		resp.Msg = err.Error()
 		resp.Success = false
 	}
-	c.Data["json"] = resp
+	ctl.Data["json"] = resp
 }

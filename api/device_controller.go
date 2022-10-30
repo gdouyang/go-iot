@@ -12,10 +12,21 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+var deviceResource = Resource{
+	Id:   "device-mgr",
+	Name: "设备",
+	Action: []ResourceAction{
+		QueryAction,
+		CretaeAction,
+		SaveAction,
+		DeleteAction,
+	},
+}
+
 // 设备管理
 func init() {
 	ns := web.NewNamespace("/api/device",
-		web.NSRouter("/list", &DeviceController{}, "post:List"),
+		web.NSRouter("/page", &DeviceController{}, "post:List"),
 		web.NSRouter("/", &DeviceController{}, "post:Add"),
 		web.NSRouter("/", &DeviceController{}, "put:Update"),
 		web.NSRouter("/:id", &DeviceController{}, "get:GetOne"),
@@ -25,14 +36,19 @@ func init() {
 		web.NSRouter("/query-property/:id", &DeviceController{}, "get:QueryProperty"),
 	)
 	web.AddNamespace(ns)
+
+	regResource(deviceResource)
 }
 
 type DeviceController struct {
-	web.Controller
+	AuthController
 }
 
 // 查询设备列表
 func (ctl *DeviceController) List() {
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
 	var ob models.PageQuery
 	ctl.BindJSON(&ob)
 
@@ -47,6 +63,9 @@ func (ctl *DeviceController) List() {
 
 // 查询单个设备
 func (ctl *DeviceController) GetOne() {
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
 	defer ctl.ServeJSON()
 	ob, err := device.GetDevice(ctl.Ctx.Input.Param(":id"))
 	if err != nil {
@@ -59,6 +78,9 @@ func (ctl *DeviceController) GetOne() {
 
 // 添加设备
 func (ctl *DeviceController) Add() {
+	if ctl.isForbidden(deviceResource, CretaeAction) {
+		return
+	}
 	defer ctl.ServeJSON()
 	var ob models.Device
 	ctl.BindJSON(&ob)
@@ -72,6 +94,9 @@ func (ctl *DeviceController) Add() {
 
 // 更新设备信息
 func (ctl *DeviceController) Update() {
+	if ctl.isForbidden(deviceResource, SaveAction) {
+		return
+	}
 	defer ctl.ServeJSON()
 	var ob models.Device
 	ctl.BindJSON(&ob)
@@ -85,6 +110,9 @@ func (ctl *DeviceController) Update() {
 
 // 删除设备
 func (ctl *DeviceController) Delete() {
+	if ctl.isForbidden(deviceResource, DeleteAction) {
+		return
+	}
 	defer ctl.ServeJSON()
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
@@ -99,6 +127,9 @@ func (ctl *DeviceController) Delete() {
 
 // client设备连接
 func (ctl *DeviceController) Connect() {
+	if ctl.isForbidden(deviceResource, SaveAction) {
+		return
+	}
 	defer ctl.ServeJSON()
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
@@ -125,6 +156,9 @@ func (ctl *DeviceController) Connect() {
 
 // 命令下发
 func (ctl *DeviceController) CmdInvoke() {
+	if ctl.isForbidden(deviceResource, SaveAction) {
+		return
+	}
 	defer ctl.ServeJSON()
 
 	var ob msg.FuncInvoke
@@ -144,6 +178,9 @@ func (ctl *DeviceController) CmdInvoke() {
 
 // 查询设备属性
 func (ctl *DeviceController) QueryProperty() {
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
 	defer ctl.ServeJSON()
 
 	var ob *models.Device = &models.Device{
