@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"go-iot/codec"
 	"go-iot/codec/tsl"
 	"go-iot/models"
@@ -27,11 +28,14 @@ var productResource = Resource{
 // 产品管理
 func init() {
 	ns := web.NewNamespace("/api/product",
+		web.NSRouter("/page", &ProductController{}, "post:Page"),
 		web.NSRouter("/list", &ProductController{}, "post:List"),
 		web.NSRouter("/", &ProductController{}, "post:Add"),
-		web.NSRouter("/", &ProductController{}, "put:Update"),
+		web.NSRouter("/:id", &ProductController{}, "put:Update"),
+		web.NSRouter("/:id", &ProductController{}, "get:Get"),
 		web.NSRouter("/:id", &ProductController{}, "delete:Delete"),
-		web.NSRouter("/publish-model", &ProductController{}, "put:PublishModel"),
+		web.NSRouter("/:id/deploy", &ProductController{}, "put:Deploy"),
+		web.NSRouter("/:id/undeploy", &ProductController{}, "put:Undeploy"),
 		web.NSRouter("/network/:productId", &ProductController{}, "get:GetNetwork"),
 		web.NSRouter("/network", &ProductController{}, "put:UpdateNetwork"),
 		web.NSRouter("/network-start/:productId", &ProductController{}, "put:StartNetwork"),
@@ -45,8 +49,7 @@ type ProductController struct {
 	AuthController
 }
 
-// 查询型号列表
-func (ctl *ProductController) List() {
+func (ctl *ProductController) Page() {
 	if ctl.isForbidden(productResource, QueryAction) {
 		return
 	}
@@ -54,6 +57,22 @@ func (ctl *ProductController) List() {
 	ctl.BindJSON(&ob)
 
 	res, err := product.ListProduct(&ob)
+	if err != nil {
+		ctl.Data["json"] = models.JsonRespError(err)
+	} else {
+
+		ctl.Data["json"] = models.JsonRespOkData(res)
+	}
+	ctl.ServeJSON()
+}
+
+// 查询型号列表
+func (ctl *ProductController) List() {
+	if ctl.isForbidden(productResource, QueryAction) {
+		return
+	}
+
+	res, err := product.ListAllProduct()
 	if err != nil {
 		ctl.Data["json"] = models.JsonRespError(err)
 	} else {
@@ -112,6 +131,25 @@ func (ctl *ProductController) Update() {
 	resp = models.JsonRespOk()
 }
 
+func (ctl *ProductController) Get() {
+	if ctl.isForbidden(productResource, QueryAction) {
+		return
+	}
+	var resp models.JsonResp
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+
+	id := ctl.Ctx.Input.Param(":id")
+	p, err := product.GetProduct(id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	resp = models.JsonRespOkData(p)
+}
+
 // 删除型号
 func (ctl *ProductController) Delete() {
 	if ctl.isForbidden(productResource, DeleteAction) {
@@ -146,43 +184,72 @@ func (ctl *ProductController) Delete() {
 }
 
 // publish tsl model
-func (ctl *ProductController) PublishModel() {
+func (ctl *ProductController) Deploy() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
-	var resp models.JsonResp
+	var resp = models.JsonRespOk()
 	defer func() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
 
-	var ob models.Product
-	err := ctl.BindJSON(&ob)
+	id := ctl.Ctx.Input.Param(":id")
+	ob, err := product.GetProduct(id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-	if len(strings.TrimSpace(ob.Id)) == 0 || len(strings.TrimSpace(ob.MetaData)) == 0 {
+	if ob == nil {
+		resp = models.JsonRespError(errors.New("not exist"))
+		return
+	}
+
+	if len(strings.TrimSpace(ob.Id)) == 0 || len(strings.TrimSpace(ob.Metadata)) == 0 {
 		resp = models.JsonResp{Success: false, Msg: "id and metaData must present"}
 		return
 	}
 	tsl := tsl.TslData{}
-	err = tsl.FromJson(ob.MetaData)
+	err = tsl.FromJson(ob.Metadata)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-	product := codec.GetProductManager().Get(ob.Id)
-	if product == nil {
-		product = codec.NewProduct(ob.Id, make(map[string]string), codec.TIME_SERISE_ES)
-		codec.GetProductManager().Put(product)
+	p1 := codec.GetProductManager().Get(ob.Id)
+	if p1 == nil {
+		p1 = codec.NewProduct(ob.Id, make(map[string]string), codec.TIME_SERISE_ES)
+		codec.GetProductManager().Put(p1)
 	}
-	err = product.GetTimeSeries().PublishModel(product, tsl)
+	err = p1.GetTimeSeries().PublishModel(p1, tsl)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ob.State = true
+	product.UpdateProduct(ob)
+}
+
+func (ctl *ProductController) Undeploy() {
+	if ctl.isForbidden(productResource, SaveAction) {
+		return
+	}
+	var resp = models.JsonRespOk()
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+	id := ctl.Ctx.Input.Param(":id")
+	ob, err := product.GetProduct(id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	if ob == nil {
+		resp = models.JsonRespError(errors.New("not exist"))
+		return
+	}
+	ob.State = false
+	product.UpdateProduct(ob)
 }
 
 // get product network config

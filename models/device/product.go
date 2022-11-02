@@ -49,6 +49,20 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 	return pr, nil
 }
 
+func ListAllProduct() ([]models.Product, error) {
+	//查询数据
+	o := orm.NewOrm()
+	qs := o.QueryTable(models.Product{})
+
+	var result []models.Product
+	_, err := qs.All(&result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func AddProduct(ob *models.Product) error {
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
 		return errors.New("id and name not be empty")
@@ -85,12 +99,13 @@ func UpdateProduct(ob *models.Product) error {
 	if len(ob.TypeId) > 0 {
 		columns = append(columns, "TypeId")
 	}
-	if len(ob.MetaData) > 0 {
-		columns = append(columns, "MetaData")
+	if len(ob.Metadata) > 0 {
+		columns = append(columns, "Metadata")
 	}
-	if len(ob.MetaConfig) > 0 {
-		columns = append(columns, "MetaConfig")
+	if len(ob.Metaconfig) > 0 {
+		columns = append(columns, "Metaconfig")
 	}
+	columns = append(columns, "State")
 	//更新数据
 	o := orm.NewOrm()
 	_, err := o.Update(ob, columns...)

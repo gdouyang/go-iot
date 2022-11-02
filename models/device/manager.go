@@ -38,8 +38,8 @@ func (m *DbDeviceManager) Get(deviceId string) codec.Device {
 			return nil
 		}
 		config := map[string]string{}
-		if len(data.MetaConfig) > 0 {
-			err := json.Unmarshal([]byte(data.MetaConfig), &config)
+		if len(data.Metaconfig) > 0 {
+			err := json.Unmarshal([]byte(data.Metaconfig), &config)
 			if (err) != nil {
 				logs.Error(err)
 			}
@@ -84,7 +84,7 @@ func (m *DbProductManager) Get(productId string) codec.Product {
 			return nil
 		}
 		d := tsl.TslData{}
-		err := d.FromJson(data.MetaData)
+		err := d.FromJson(data.Metadata)
 		if err != nil {
 			logs.Error(err)
 		}

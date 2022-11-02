@@ -82,16 +82,16 @@ func UpdateDevice(ob *models.Device) error {
 }
 
 // 更新在线状态
-func UpdateOnlineStatus(onlineStatus string, id string) error {
+func UpdateOnlineStatus(state string, id string) error {
 	if len(id) == 0 {
 		return errors.New("id not be empty")
 	}
-	if len(onlineStatus) == 0 {
-		return errors.New("onlineStatus not be empty")
+	if len(state) == 0 {
+		return errors.New("state not be empty")
 	}
-	var ob models.Device = models.Device{Id: id, OnlineStatus: onlineStatus}
+	var ob models.Device = models.Device{Id: id, State: state}
 	o := orm.NewOrm()
-	_, err := o.Update(ob, "OnlineStatus")
+	_, err := o.Update(ob, "State")
 	if err != nil {
 		logs.Error("update fail", err)
 		return err
