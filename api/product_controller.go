@@ -305,10 +305,6 @@ func (ctl *ProductController) UpdateNetwork() {
 		}
 		ob.Id = nw.Id
 	}
-	if len(nw.Script) == 0 || len(nw.Type) == 0 {
-		resp.Msg = "script and type not be empty"
-		return
-	}
 	err = network.UpdateNetwork(&ob)
 	if err != nil {
 		resp.Msg = err.Error()

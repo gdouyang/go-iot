@@ -15,7 +15,10 @@ import (
 func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	var pr *models.PageResult
 	var dev models.Device
-	json.Unmarshal(page.Condition, &dev)
+	err := json.Unmarshal(page.Condition, &dev)
+	if err != nil {
+		return nil, err
+	}
 
 	//查询数据
 	o := orm.NewOrm()
@@ -34,7 +37,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 		return nil, err
 	}
 
-	var result []models.Product
+	var result []models.Device
 	_, err = qs.Limit(page.PageSize, page.PageOffset()).All(&result)
 	if err != nil {
 		return nil, err

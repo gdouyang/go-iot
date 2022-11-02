@@ -90,7 +90,21 @@ func UpdateNetwork(ob *models.Network) error {
 	}
 	//更新数据
 	o := orm.NewOrm()
-	_, err := o.Update(ob, "ProductId", "Name", "Configuration", "Type", "Script")
+	var cols []string
+	cols = append(cols, "ProductId")
+	if len(ob.Type) > 0 {
+		cols = append(cols, "Type")
+	}
+	if len(ob.Name) > 0 {
+		cols = append(cols, "Name")
+	}
+	if len(ob.Configuration) > 0 {
+		cols = append(cols, "Configuration")
+	}
+	if len(ob.Script) > 0 {
+		cols = append(cols, "Script")
+	}
+	_, err := o.Update(ob, cols...)
 	if err != nil {
 		logs.Error("update fail", err)
 		return err
