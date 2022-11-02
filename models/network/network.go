@@ -85,11 +85,17 @@ func AddNetWork(ob *models.Network) error {
 }
 
 func UpdateNetwork(ob *models.Network) error {
+	//更新数据
+	o := orm.NewOrm()
+	err := UpdateNetworkTx(ob, o)
+	return err
+}
+
+func UpdateNetworkTx(ob *models.Network, o orm.DML) error {
 	if ob.Port <= 1024 || ob.Port > 65535 {
 		return errors.New("invalid port number")
 	}
 	//更新数据
-	o := orm.NewOrm()
 	var cols []string
 	cols = append(cols, "ProductId")
 	if len(ob.Type) > 0 {
@@ -105,11 +111,7 @@ func UpdateNetwork(ob *models.Network) error {
 		cols = append(cols, "Script")
 	}
 	_, err := o.Update(ob, cols...)
-	if err != nil {
-		logs.Error("update fail", err)
-		return err
-	}
-	return nil
+	return err
 }
 
 func DeleteNetwork(ob *models.Network) error {
@@ -142,7 +144,7 @@ func GetByProductId(productId string) (*models.Network, error) {
 	o := orm.NewOrm()
 
 	p := models.Network{ProductId: productId}
-	err := o.Read(&p)
+	err := o.Read(&p, "productId")
 	if err == orm.ErrNoRows {
 		return nil, nil
 	} else if err == orm.ErrMissPK {
@@ -170,15 +172,15 @@ func GetUnuseNetwork() (*models.Network, error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.Network{})
 
-	qs = qs.Filter("productId", nil)
-	var result []models.Network
-	page := models.PageQuery{PageSize: 1, PageNum: 1}
-	_, err := qs.Limit(page.PageSize, page.PageOffset()).All(&result)
+	cond := orm.NewCondition()
+	cond1 := cond.And("productId__isnull", false).Or("productId", "")
+	var result models.Network
+	err := qs.Limit(10).SetCond(cond1).One(&result)
 	if err != nil {
 		return nil, err
 	}
-	if len(result) > 0 {
-		return &(result[0]), nil
+	if len(result.ProductId) > 0 {
+		return &result, nil
 	}
 	return nil, errors.New("network is all used")
 }

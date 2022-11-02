@@ -82,6 +82,11 @@ func (ctl *ProductController) List() {
 	ctl.ServeJSON()
 }
 
+type productDTO struct {
+	models.Product
+	NetworkType string `json:"networkType"`
+}
+
 // 添加型号
 func (ctl *ProductController) Add() {
 	if ctl.isForbidden(productResource, CretaeAction) {
@@ -92,11 +97,19 @@ func (ctl *ProductController) Add() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	var ob models.Product
-	err := ctl.BindJSON(&ob)
+	var aligns productDTO
+	err := ctl.BindJSON(&aligns)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
+	}
+	if len(aligns.NetworkType) == 0 {
+		resp = models.JsonRespError(errors.New("networkType not empty"))
+		return
+	}
+	var ob = aligns.Product
+	if len(ob.StorePolicy) == 0 {
+		ob.StorePolicy = codec.TIME_SERISE_ES
 	}
 
 	err = product.AddProduct(&ob)
@@ -147,7 +160,17 @@ func (ctl *ProductController) Get() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonRespOkData(p)
+	nw, err := network.GetByProductId(id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	var aligns productDTO
+	aligns.Product = *p
+	if nw != nil {
+		aligns.NetworkType = nw.Type
+	}
+	resp = models.JsonRespOkData(aligns)
 }
 
 // 删除型号
@@ -226,7 +249,7 @@ func (ctl *ProductController) Deploy() {
 		return
 	}
 	ob.State = true
-	product.UpdateProduct(ob)
+	product.UpdateProductState(ob)
 }
 
 func (ctl *ProductController) Undeploy() {
@@ -249,7 +272,7 @@ func (ctl *ProductController) Undeploy() {
 		return
 	}
 	ob.State = false
-	product.UpdateProduct(ob)
+	product.UpdateProductState(ob)
 }
 
 // get product network config
