@@ -110,6 +110,9 @@ func UpdateNetworkTx(ob *models.Network, o orm.DML) error {
 	if len(ob.Script) > 0 {
 		cols = append(cols, "Script")
 	}
+	if len(ob.State) > 0 {
+		cols = append(cols, "State")
+	}
 	_, err := o.Update(ob, cols...)
 	return err
 }
@@ -171,15 +174,14 @@ func GetNetworkByEntity(p models.Network) (*models.Network, error) {
 func GetUnuseNetwork() (*models.Network, error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.Network{})
-
 	cond := orm.NewCondition()
-	cond1 := cond.And("productId__isnull", false).Or("productId", "")
+	cond = cond.And("productId__isnull", true).Or("productId", "")
 	var result models.Network
-	err := qs.Limit(10).SetCond(cond1).One(&result)
+	err := qs.SetCond(cond).One(&result)
 	if err != nil {
 		return nil, err
 	}
-	if len(result.ProductId) > 0 {
+	if len(result.ProductId) == 0 {
 		return &result, nil
 	}
 	return nil, errors.New("network is all used")

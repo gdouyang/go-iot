@@ -67,7 +67,7 @@ func ListAllProduct() ([]models.Product, error) {
 	return result, nil
 }
 
-func AddProduct(ob *models.Product) error {
+func AddProduct(ob *models.Product, networkType string) error {
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
 		return errors.New("id and name not be empty")
 	}
@@ -94,6 +94,7 @@ func AddProduct(ob *models.Product) error {
 			return err
 		}
 		nw.ProductId = ob.Id
+		nw.Type = networkType
 		err = network.UpdateNetworkTx(nw, txOrm)
 		return err
 	})
@@ -149,12 +150,27 @@ func DeleteProduct(ob *models.Product) error {
 		return errors.New("id not be empty")
 	}
 	o := orm.NewOrm()
-	_, err := o.Delete(ob)
-	if err != nil {
-		logs.Error("delete fail", err)
+	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+		_, err := txOrm.Delete(ob)
+		if err != nil {
+			return err
+		}
+		nw, err := network.GetByProductId(ob.Id)
+		if err != nil {
+			return err
+		}
+		if nw != nil {
+			nw.ProductId = ""
+			nw.Type = ""
+			nw.Configuration = ""
+			nw.Script = ""
+			nw.State = "stop"
+			err = network.UpdateNetworkTx(nw, txOrm)
+			return err
+		}
 		return err
-	}
-	return nil
+	})
+	return err
 }
 
 func GetProduct(id string) (*models.Product, error) {

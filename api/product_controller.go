@@ -112,7 +112,7 @@ func (ctl *ProductController) Add() {
 		ob.StorePolicy = codec.TIME_SERISE_ES
 	}
 
-	err = product.AddProduct(&ob)
+	err = product.AddProduct(&ob, aligns.NetworkType)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
