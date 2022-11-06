@@ -238,6 +238,10 @@ func (ctl *ProductController) Deploy() {
 		resp = models.JsonRespError(err)
 		return
 	}
+	if len(tsl.Properties) == 0 {
+		resp = models.JsonRespError(errors.New("tsl properties is empty, please fill it"))
+		return
+	}
 	p1 := codec.GetProductManager().Get(ob.Id)
 	if p1 == nil {
 		p1 = codec.NewProduct(ob.Id, make(map[string]string), codec.TIME_SERISE_ES)
