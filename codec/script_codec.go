@@ -8,20 +8,21 @@ import (
 )
 
 func init() {
-	regCodecCreator("script_codec", func(network NetworkConf) Codec {
+	regCodecCreator(CodecIdScriptCode, func(network NetworkConf) Codec {
 		codec, _ := newScriptCodec(network)
 		return codec
 	})
 }
 
 const (
-	OnConnect      = "OnConnect"
-	OnMessage      = "OnMessage"
-	OnInvoke       = "OnInvoke"
-	OnDeviceCreate = "OnDeviceCreate"
-	OnDeviceDelete = "OnDeviceDelete"
-	OnDeviceUpdate = "OnDeviceUpdate"
-	OnStateChecker = "OnStateChecker"
+	OnConnect         = "OnConnect"
+	OnMessage         = "OnMessage"
+	OnInvoke          = "OnInvoke"
+	OnDeviceCreate    = "OnDeviceCreate"
+	OnDeviceDelete    = "OnDeviceDelete"
+	OnDeviceUpdate    = "OnDeviceUpdate"
+	OnStateChecker    = "OnStateChecker"
+	CodecIdScriptCode = "script_codec"
 )
 
 func newScriptCodec(network NetworkConf) (Codec, error) {

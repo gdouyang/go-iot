@@ -92,12 +92,17 @@ func UpdateNetwork(ob *models.Network) error {
 }
 
 func UpdateNetworkTx(ob *models.Network, o orm.DML) error {
-	if ob.Port <= 1024 || ob.Port > 65535 {
-		return errors.New("invalid port number")
-	}
 	//更新数据
 	var cols []string
-	cols = append(cols, "ProductId")
+	if ob.Port > 0 {
+		if ob.Port <= 1024 || ob.Port > 65535 {
+			return errors.New("invalid port number")
+		}
+		cols = append(cols, "Port")
+	}
+	if len(ob.ProductId) > 0 {
+		cols = append(cols, "ProductId")
+	}
 	if len(ob.Type) > 0 {
 		cols = append(cols, "Type")
 	}
@@ -110,8 +115,14 @@ func UpdateNetworkTx(ob *models.Network, o orm.DML) error {
 	if len(ob.Script) > 0 {
 		cols = append(cols, "Script")
 	}
+	if len(ob.CodecId) > 0 {
+		cols = append(cols, "CodecId")
+	}
 	if len(ob.State) > 0 {
 		cols = append(cols, "State")
+	}
+	if len(cols) == 0 {
+		return nil
 	}
 	_, err := o.Update(ob, cols...)
 	return err

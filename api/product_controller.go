@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"go-iot/codec"
 	"go-iot/codec/tsl"
@@ -226,12 +225,12 @@ func (ctl *ProductController) Deploy() {
 		return
 	}
 	if ob == nil {
-		resp = models.JsonRespError(errors.New("not exist"))
+		resp = models.JsonRespError(errors.New("product not exist"))
 		return
 	}
 
 	if len(strings.TrimSpace(ob.Id)) == 0 || len(strings.TrimSpace(ob.Metadata)) == 0 {
-		resp = models.JsonRespError(errors.New("id and metaData must present"))
+		resp = models.JsonRespError(errors.New("id and metadata must present"))
 		return
 	}
 	tsl := tsl.TslData{}
@@ -241,7 +240,7 @@ func (ctl *ProductController) Deploy() {
 		return
 	}
 	if len(tsl.Properties) == 0 {
-		resp = models.JsonRespError(errors.New("tsl properties is empty, please fill it"))
+		resp = models.JsonRespError(errors.New("tsl properties is empty"))
 		return
 	}
 	p1 := codec.GetProductManager().Get(ob.Id)
@@ -274,7 +273,7 @@ func (ctl *ProductController) Undeploy() {
 		return
 	}
 	if ob == nil {
-		resp = models.JsonRespError(errors.New("not exist"))
+		resp = models.JsonRespError(errors.New("product not exist"))
 		return
 	}
 	ob.State = false
@@ -334,13 +333,17 @@ func (ctl *ProductController) UpdateNetwork() {
 		return
 	}
 	var resp = models.JsonRespOk()
-	var ob models.Network
 
 	defer func() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
+	var ob models.Network
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
 	if len(ob.ProductId) == 0 {
 		resp = models.JsonRespError(errors.New("productId not be empty"))
 		return
@@ -358,6 +361,9 @@ func (ctl *ProductController) UpdateNetwork() {
 			return
 		}
 		ob.Id = nw.Id
+		if len(nw.CodecId) == 0 {
+			ob.CodecId = codec.CodecIdScriptCode
+		}
 	}
 	err = network.UpdateNetwork(&ob)
 	if err != nil {
