@@ -400,6 +400,11 @@ func (ctl *ProductController) RunNetwork() {
 	}
 	if state == "start" {
 		nw.State = "runing"
+		server := servers.GetServer(productId)
+		if server != nil {
+			resp = models.JsonRespError(errors.New("network is runing"))
+			return
+		}
 		config := convertCodecNetwork(*nw)
 		err = servers.StartServer(config)
 		if err != nil {
