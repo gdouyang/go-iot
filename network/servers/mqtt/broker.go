@@ -14,7 +14,7 @@ import (
 
 func init() {
 	servers.RegServer(func() codec.NetServer {
-		return &Broker{}
+		return NewServer()
 	})
 }
 
@@ -50,15 +50,13 @@ func (s *Broker) Start(network codec.NetworkConf) error {
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
 
-	broker := &Broker{
-		productId: network.ProductId,
-		name:      spec.Name,
-		spec:      spec,
-		clients:   make(map[string]*Client),
-		done:      make(chan struct{}),
-	}
+	s.productId = network.ProductId
+	s.name = spec.Name
+	s.spec = spec
+	s.clients = make(map[string]*Client)
+	s.done = make(chan struct{})
 
-	err := broker.setListener()
+	err := s.setListener()
 	if err != nil {
 		logs.Error("mqtt broker set listener failed: %v", err)
 		return err
@@ -67,9 +65,9 @@ func (s *Broker) Start(network codec.NetworkConf) error {
 	// create codec
 	codec.NewCodec(network)
 
-	go broker.run()
+	go s.run()
 
-	m[spec.Name] = broker
+	m[spec.Name] = s
 	return nil
 }
 

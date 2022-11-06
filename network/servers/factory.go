@@ -1,6 +1,7 @@
 package servers
 
 import (
+	"errors"
 	"fmt"
 	"go-iot/codec"
 
@@ -17,6 +18,9 @@ func RegServer(f func() codec.NetServer) {
 }
 
 func StartServer(conf codec.NetworkConf) error {
+	if _, ok := instances[conf.ProductId]; ok {
+		return errors.New("network is runing")
+	}
 	t := codec.NetServerType(conf.Type)
 	if f, ok := m[t]; ok {
 		s := f()
@@ -34,4 +38,14 @@ func StartServer(conf codec.NetworkConf) error {
 func GetServer(productId string) codec.NetServer {
 	s := instances[productId]
 	return s
+}
+
+func StopServer(productId string) error {
+	server := GetServer(productId)
+	if server == nil {
+		return errors.New("network is not runing")
+	}
+	server.Stop()
+	delete(instances, productId)
+	return nil
 }

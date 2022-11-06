@@ -398,13 +398,8 @@ func (ctl *ProductController) RunNetwork() {
 		resp = models.JsonRespError(errors.New("script and type not be empty"))
 		return
 	}
-	server := servers.GetServer(productId)
 	if state == "start" {
 		nw.State = "runing"
-		if server != nil {
-			resp = models.JsonRespError(errors.New("network is runing"))
-			return
-		}
 		config := convertCodecNetwork(*nw)
 		err = servers.StartServer(config)
 		if err != nil {
@@ -413,11 +408,7 @@ func (ctl *ProductController) RunNetwork() {
 		}
 	} else if state == "stop" {
 		nw.State = "stop"
-		if server == nil {
-			resp = models.JsonRespError(errors.New("network not runing"))
-			return
-		}
-		err := server.Stop()
+		err := servers.StopServer(productId)
 		if err != nil {
 			resp = models.JsonRespError(err)
 			return
