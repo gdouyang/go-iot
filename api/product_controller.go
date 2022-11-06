@@ -229,7 +229,7 @@ func (ctl *ProductController) Deploy() {
 	}
 
 	if len(strings.TrimSpace(ob.Id)) == 0 || len(strings.TrimSpace(ob.Metadata)) == 0 {
-		resp = models.JsonResp{Success: false, Msg: "id and metaData must present"}
+		resp = models.JsonRespError(errors.New("id and metaData must present"))
 		return
 	}
 	tsl := tsl.TslData{}
@@ -284,20 +284,20 @@ func (ctl *ProductController) GetNetwork() {
 	if ctl.isForbidden(productResource, QueryAction) {
 		return
 	}
-	var resp models.JsonResp
-	resp.Success = true
+	var resp = models.JsonRespOk()
 	id := ctl.Ctx.Input.Param(":productId")
 
-	defer ctl.ServeJSON()
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
 
 	nw, err := network.GetByProductId(id)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		resp = models.JsonRespError(err)
 	} else {
 		resp.Data = nw
 	}
-	ctl.Data["json"] = &resp
 }
 
 // update product network
@@ -305,39 +305,37 @@ func (ctl *ProductController) UpdateNetwork() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
-	var resp models.JsonResp
+	var resp = models.JsonRespOk()
 	var ob models.Network
 
 	defer func() {
-		ctl.Data["json"] = &resp
+		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	resp.Success = false
 	json.Unmarshal(ctl.Ctx.Input.RequestBody, &ob)
 	if len(ob.ProductId) == 0 {
-		resp.Msg = "productId not be empty"
+		resp = models.JsonRespError(errors.New("productId not be empty"))
 		return
 	}
 
 	nw, err := network.GetByProductId(ob.ProductId)
 	if err != nil {
-		resp.Msg = err.Error()
+		resp = models.JsonRespError(err)
 		return
 	}
 	if nw == nil {
 		nw, err = network.GetUnuseNetwork()
 		if err != nil {
-			resp.Msg = err.Error()
+			resp = models.JsonRespError(err)
 			return
 		}
 		ob.Id = nw.Id
 	}
 	err = network.UpdateNetwork(&ob)
 	if err != nil {
-		resp.Msg = err.Error()
+		resp = models.JsonRespError(err)
 		return
 	}
-	resp.Success = true
 }
 
 // start server
@@ -345,35 +343,29 @@ func (ctl *ProductController) StartNetwork() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
-	var resp models.JsonResp
+	var resp = models.JsonRespOk()
 	id := ctl.Ctx.Input.Param(":productId")
-	defer ctl.ServeJSON()
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
 
 	nw, err := network.GetByProductId(id)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
-		ctl.Data["json"] = resp
+		resp = models.JsonRespError(err)
 		return
 	}
 	if nw == nil {
-		resp.Msg = "product not have network, config network first"
-		resp.Success = false
-		ctl.Data["json"] = resp
+		resp = models.JsonRespError(errors.New("product not have network, config network first"))
 		return
 	}
-	resp.Success = true
 	if len(nw.Script) == 0 || len(nw.Type) == 0 {
-		resp.Msg = "script and type not be empty"
-		resp.Success = false
-		ctl.Data["json"] = resp
+		resp = models.JsonRespError(errors.New("script and type not be empty"))
 		return
 	}
 	config := convertCodecNetwork(*nw)
 	err = servers.StartServer(config)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		resp = models.JsonRespError(err)
 	}
-	ctl.Data["json"] = resp
 }

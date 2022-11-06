@@ -27,7 +27,7 @@ type MenuController struct {
 }
 
 func (ctl *MenuController) List() {
-	var resp models.JsonResp
+	var resp = models.JsonRespOk()
 	defer func() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
@@ -47,5 +47,5 @@ func (ctl *MenuController) List() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonRespOkData(permission.Permissions)
+	resp.Data = permission.Permissions
 }

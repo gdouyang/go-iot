@@ -60,7 +60,7 @@ func (ctl *RoleController) Get() {
 	if ctl.isForbidden(roleResource, QueryAction) {
 		return
 	}
-	var resp models.JsonResp
+	var resp = models.JsonRespOk()
 	defer func() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
@@ -76,14 +76,14 @@ func (ctl *RoleController) Get() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonRespOkData(u)
+	resp.Data = u
 }
 
 func (ctl *RoleController) Add() {
 	if ctl.isForbidden(roleResource, CretaeAction) {
 		return
 	}
-	var resp models.JsonResp
+	var resp = models.JsonRespOk()
 	defer func() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
@@ -100,14 +100,13 @@ func (ctl *RoleController) Add() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
 }
 
 func (ctl *RoleController) Update() {
 	if ctl.isForbidden(roleResource, SaveAction) {
 		return
 	}
-	var resp models.JsonResp
+	var resp = models.JsonRespOk()
 	defer func() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
@@ -123,14 +122,13 @@ func (ctl *RoleController) Update() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
 }
 
 func (ctl *RoleController) Delete() {
 	if ctl.isForbidden(roleResource, DeleteAction) {
 		return
 	}
-	var resp models.JsonResp
+	var resp = models.JsonRespOk()
 	defer func() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
@@ -139,8 +137,7 @@ func (ctl *RoleController) Delete() {
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		resp = models.JsonRespError(err)
 		return
 	}
 	var ob *models.Role = &models.Role{
@@ -151,7 +148,6 @@ func (ctl *RoleController) Delete() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
 }
 
 func (ctl *RoleController) RefMenus() {
