@@ -398,9 +398,9 @@ func (ctl *ProductController) RunNetwork() {
 		resp = models.JsonRespError(errors.New("script and type not be empty"))
 		return
 	}
+	server := servers.GetServer(productId)
 	if state == "start" {
 		nw.State = "runing"
-		server := servers.GetServer(productId)
 		if server != nil {
 			resp = models.JsonRespError(errors.New("network is runing"))
 			return
@@ -413,7 +413,6 @@ func (ctl *ProductController) RunNetwork() {
 		}
 	} else if state == "stop" {
 		nw.State = "stop"
-		server := servers.GetServer(productId)
 		if server == nil {
 			resp = models.JsonRespError(errors.New("network not runing"))
 			return
