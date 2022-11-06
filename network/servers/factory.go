@@ -3,6 +3,8 @@ package servers
 import (
 	"fmt"
 	"go-iot/codec"
+
+	"github.com/beego/beego/v2/core/logs"
 )
 
 var m map[codec.NetServerType]func() codec.NetServer = make(map[codec.NetServerType]func() codec.NetServer)
@@ -11,6 +13,7 @@ var instances map[string]codec.NetServer = make(map[string]codec.NetServer)
 func RegServer(f func() codec.NetServer) {
 	s := f()
 	m[s.Type()] = f
+	logs.Info("Server Register [%s]", s.Type())
 }
 
 func StartServer(conf codec.NetworkConf) error {

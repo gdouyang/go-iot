@@ -3,6 +3,7 @@ package main
 import (
 	_ "go-iot/api"
 	"go-iot/models"
+	_ "go-iot/network/servers/registry"
 	"net/http"
 
 	"github.com/beego/beego/v2/core/config"

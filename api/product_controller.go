@@ -38,7 +38,7 @@ func init() {
 		web.NSRouter("/:id/modify-tsl", &ProductController{}, "put:ModifyTsl"),
 		web.NSRouter("/network/:productId", &ProductController{}, "get:GetNetwork"),
 		web.NSRouter("/network", &ProductController{}, "put:UpdateNetwork"),
-		web.NSRouter("/network-start/:productId", &ProductController{}, "put:StartNetwork"),
+		web.NSRouter("/network/:productId/run", &ProductController{}, "put:RunNetwork"),
 	)
 	web.AddNamespace(ns)
 
@@ -373,18 +373,19 @@ func (ctl *ProductController) UpdateNetwork() {
 }
 
 // start server
-func (ctl *ProductController) StartNetwork() {
+func (ctl *ProductController) RunNetwork() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
 	var resp = models.JsonRespOk()
-	id := ctl.Ctx.Input.Param(":productId")
+	productId := ctl.Ctx.Input.Param(":productId")
+	state := ctl.Ctx.Input.Query("state")
 	defer func() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
 
-	nw, err := network.GetByProductId(id)
+	nw, err := network.GetByProductId(productId)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -397,9 +398,29 @@ func (ctl *ProductController) StartNetwork() {
 		resp = models.JsonRespError(errors.New("script and type not be empty"))
 		return
 	}
-	config := convertCodecNetwork(*nw)
-	err = servers.StartServer(config)
-	if err != nil {
-		resp = models.JsonRespError(err)
+	if state == "start" {
+		nw.State = "runing"
+		config := convertCodecNetwork(*nw)
+		err = servers.StartServer(config)
+		if err != nil {
+			resp = models.JsonRespError(err)
+			return
+		}
+	} else if state == "stop" {
+		nw.State = "stop"
+		server := servers.GetServer(productId)
+		if server == nil {
+			resp = models.JsonRespError(errors.New("network not runing"))
+			return
+		}
+		err := server.Stop()
+		if err != nil {
+			resp = models.JsonRespError(err)
+			return
+		}
+	} else {
+		resp = models.JsonRespError(errors.New("state must be start or stop"))
+		return
 	}
+	network.UpdateNetwork(nw)
 }

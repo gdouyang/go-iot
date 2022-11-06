@@ -89,7 +89,7 @@ type Network struct {
 	Script        string    `json:"script" orm:"column(script_);null;type(text);description(脚本)"`
 	Type          string    `json:"type" orm:"column(type_);size(32);description(网络类型MQTT_BROKER)"`
 	CodecId       string    `json:"codecId" orm:"column(codec_id_);size(32);null;description(编解码id)"`
-	State         string    `json:"state" orm:"column(state_);size(10);description(运行状态runing,stop)"`
+	State         string    `json:"state" orm:"column(state_);size(10);description(运行状态runing,stop)"` //运行状态runing,stop
 	CreateId      int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime    time.Time `json:"createTime" orm:"column(create_time_)"`
 }
