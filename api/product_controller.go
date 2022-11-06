@@ -36,6 +36,7 @@ func init() {
 		web.NSRouter("/:id", &ProductController{}, "delete:Delete"),
 		web.NSRouter("/:id/deploy", &ProductController{}, "put:Deploy"),
 		web.NSRouter("/:id/undeploy", &ProductController{}, "put:Undeploy"),
+		web.NSRouter("/:id/modify-tsl", &ProductController{}, "put:ModifyTsl"),
 		web.NSRouter("/network/:productId", &ProductController{}, "get:GetNetwork"),
 		web.NSRouter("/network", &ProductController{}, "put:UpdateNetwork"),
 		web.NSRouter("/network-start/:productId", &ProductController{}, "put:StartNetwork"),
@@ -136,6 +137,7 @@ func (ctl *ProductController) Update() {
 		resp = models.JsonRespError(err)
 		return
 	}
+	ob.Metadata = ""
 	err = product.UpdateProduct(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
@@ -277,6 +279,32 @@ func (ctl *ProductController) Undeploy() {
 	}
 	ob.State = false
 	product.UpdateProductState(ob)
+}
+
+func (ctl *ProductController) ModifyTsl() {
+	if ctl.isForbidden(productResource, SaveAction) {
+		return
+	}
+	var resp models.JsonResp
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+	var ob models.Product
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	var update models.Product
+	update.Id = ob.Id
+	update.Metadata = ob.Metadata
+	err = product.UpdateProduct(&update)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	resp = models.JsonRespOk()
 }
 
 // get product network config

@@ -103,14 +103,16 @@ func AddProduct(ob *models.Product, networkType string) error {
 }
 
 func UpdateProduct(ob *models.Product) error {
-	if len(ob.Id) == 0 || len(ob.Name) == 0 {
-		return errors.New("id and name not be empty")
+	if len(ob.Id) == 0 {
+		return errors.New("id not be empty")
 	}
 	if len(ob.Id) > 32 {
 		return errors.New("id length must less 32")
 	}
 	var columns []string
-	columns = append(columns, "Name")
+	if len(ob.Name) > 0 {
+		columns = append(columns, "Name")
+	}
 	if len(ob.TypeId) > 0 {
 		columns = append(columns, "TypeId")
 	}
@@ -120,7 +122,12 @@ func UpdateProduct(ob *models.Product) error {
 	if len(ob.Metaconfig) > 0 {
 		columns = append(columns, "Metaconfig")
 	}
-	columns = append(columns, "Desc")
+	if len(ob.Desc) > 0 {
+		columns = append(columns, "Desc")
+	}
+	if len(columns) == 0 {
+		return nil
+	}
 	//更新数据
 	o := orm.NewOrm()
 	_, err := o.Update(ob, columns...)
