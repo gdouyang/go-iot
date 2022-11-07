@@ -5,8 +5,12 @@ import (
 )
 
 const (
-	ONLINE  = "onLine"  // 在线
-	OFFLINE = "offLine" // 离线
+	ONLINE   = "onLine"   // 在线
+	OFFLINE  = "offLine"  // 离线
+	NoActive = "noActive" // 未启用
+
+	Runing = "runing" // 网络状态runing
+	Stop   = "stop"   // 网络状态stop
 )
 
 // 分页结果

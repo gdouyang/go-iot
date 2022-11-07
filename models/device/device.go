@@ -57,9 +57,10 @@ func AddDevice(ob *models.Device) error {
 	if err != nil {
 		return err
 	}
-	if len(rs.Id) > 0 {
-		return errors.New("设备已存在")
+	if rs != nil {
+		return errors.New("device is exist")
 	}
+	ob.State = models.NoActive
 	//插入数据
 	o := orm.NewOrm()
 	ob.CreateTime = time.Now()

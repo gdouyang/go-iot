@@ -28,7 +28,7 @@ var productResource = Resource{
 func init() {
 	ns := web.NewNamespace("/api/product",
 		web.NSRouter("/page", &ProductController{}, "post:Page"),
-		web.NSRouter("/list", &ProductController{}, "post:List"),
+		web.NSRouter("/list", &ProductController{}, "get:List"),
 		web.NSRouter("/", &ProductController{}, "post:Add"),
 		web.NSRouter("/:id", &ProductController{}, "put:Update"),
 		web.NSRouter("/:id", &ProductController{}, "get:Get"),
@@ -53,17 +53,22 @@ func (ctl *ProductController) Page() {
 	if ctl.isForbidden(productResource, QueryAction) {
 		return
 	}
+	var resp = models.JsonRespOk()
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
 	var ob models.PageQuery
-	ctl.BindJSON(&ob)
-
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		resp = models.JsonRespError(err)
+	}
 	res, err := product.ListProduct(&ob)
 	if err != nil {
-		ctl.Data["json"] = models.JsonRespError(err)
+		resp = models.JsonRespError(err)
 	} else {
-
-		ctl.Data["json"] = models.JsonRespOkData(res)
+		resp = models.JsonRespOkData(res)
 	}
-	ctl.ServeJSON()
 }
 
 // 查询型号列表
@@ -71,15 +76,17 @@ func (ctl *ProductController) List() {
 	if ctl.isForbidden(productResource, QueryAction) {
 		return
 	}
-
+	var resp = models.JsonRespOk()
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
 	res, err := product.ListAllProduct()
 	if err != nil {
-		ctl.Data["json"] = models.JsonRespError(err)
+		resp = models.JsonRespError(err)
 	} else {
-
-		ctl.Data["json"] = models.JsonRespOkData(res)
+		resp = models.JsonRespOkData(res)
 	}
-	ctl.ServeJSON()
 }
 
 type productDTO struct {
@@ -312,17 +319,23 @@ func (ctl *ProductController) GetNetwork() {
 		return
 	}
 	var resp = models.JsonRespOk()
-	id := ctl.Ctx.Input.Param(":productId")
+	productId := ctl.Ctx.Input.Param(":productId")
 
 	defer func() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
 
-	nw, err := network.GetByProductId(id)
+	nw, err := network.GetByProductId(productId)
 	if err != nil {
 		resp = models.JsonRespError(err)
 	} else {
+		server := servers.GetServer(productId)
+		if server == nil {
+			nw.State = models.Stop
+		} else {
+			nw.State = models.Runing
+		}
 		resp.Data = nw
 	}
 }
@@ -399,7 +412,7 @@ func (ctl *ProductController) RunNetwork() {
 		return
 	}
 	if state == "start" {
-		nw.State = "runing"
+		nw.State = models.Runing
 		config := convertCodecNetwork(*nw)
 		err = servers.StartServer(config)
 		if err != nil {
@@ -407,7 +420,7 @@ func (ctl *ProductController) RunNetwork() {
 			return
 		}
 	} else if state == "stop" {
-		nw.State = "stop"
+		nw.State = models.Stop
 		err := servers.StopServer(productId)
 		if err != nil {
 			resp = models.JsonRespError(err)

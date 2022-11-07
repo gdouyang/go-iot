@@ -30,7 +30,7 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 
 	id := dev.Id
 	if len(id) > 0 {
-		qs = qs.Filter("id", id)
+		qs = qs.Filter("id__contains", id)
 	}
 	if len(dev.Name) > 0 {
 		qs = qs.Filter("name__contains", dev.Name)
@@ -42,7 +42,8 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 	}
 
 	var result []models.Product
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).All(&result)
+	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "Desc", "CreateId", "CreateTime"}
+	_, err = qs.Limit(page.PageSize, page.PageOffset()).All(&result, cols...)
 	if err != nil {
 		return nil, err
 	}
@@ -59,11 +60,11 @@ func ListAllProduct() ([]models.Product, error) {
 	qs := o.QueryTable(models.Product{})
 
 	var result []models.Product
-	_, err := qs.All(&result)
+	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "Desc", "CreateId", "CreateTime"}
+	_, err := qs.All(&result, cols...)
 	if err != nil {
 		return nil, err
 	}
-
 	return result, nil
 }
 
