@@ -75,6 +75,7 @@ type Device struct {
 	State     string `json:"state" orm:"column(state_);size(10);description(online,offline,unknow)"`
 	// 配置属性
 	Metaconfig string    `json:"metaconfig" orm:"column(meta_config_);null;type(text);description(配置属性)"`
+	Desc       string    `json:"desc" orm:"column(desc_);description(产品说明)"`
 	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
 }

@@ -8,7 +8,6 @@ import (
 	"go-iot/models"
 
 	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/core/logs"
 )
 
 // 分页查询设备
@@ -77,9 +76,15 @@ func UpdateDevice(ob *models.Device) error {
 	}
 	//更新数据
 	o := orm.NewOrm()
-	_, err := o.Update(ob, "Name")
+	var columns []string
+	if len(ob.Name) > 0 {
+		columns = append(columns, "Name")
+	}
+	if len(ob.Desc) > 0 {
+		columns = append(columns, "Desc")
+	}
+	_, err := o.Update(ob, columns...)
 	if err != nil {
-		logs.Error("update fail", err)
 		return err
 	}
 	return nil
@@ -97,7 +102,6 @@ func UpdateOnlineStatus(state string, id string) error {
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "State")
 	if err != nil {
-		logs.Error("update fail", err)
 		return err
 	}
 	return nil
@@ -110,7 +114,6 @@ func DeleteDevice(ob *models.Device) error {
 	o := orm.NewOrm()
 	_, err := o.Delete(ob)
 	if err != nil {
-		logs.Error("delete fail", err)
 		return err
 	}
 	return nil

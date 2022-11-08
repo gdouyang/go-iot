@@ -36,6 +36,7 @@ func init() {
 		web.NSRouter("/:id/deploy", &DeviceController{}, "post:Deploy"),
 		web.NSRouter("/:id/cmd", &DeviceController{}, "post:CmdInvoke"),
 		web.NSRouter("/query-property/:id", &DeviceController{}, "get:QueryProperty"),
+		web.NSRouter("/:id/config-metadata", &DeviceController{}, "get:GetConfigMetadata"),
 	)
 	web.AddNamespace(ns)
 
@@ -133,7 +134,6 @@ func (ctl *DeviceController) Update() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
 }
 
 // 删除设备
@@ -242,6 +242,7 @@ func (ctl *DeviceController) Deploy() {
 		resp = models.JsonRespError(errors.New("device not exist"))
 		return
 	}
+	// TODO
 }
 
 // 命令下发
@@ -307,4 +308,29 @@ func (ctl *DeviceController) QueryProperty() {
 		return
 	}
 	resp.Data = res
+}
+func (ctl *DeviceController) GetConfigMetadata() {
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
+	var resp = models.JsonRespOk()
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+
+	var ob *models.Device = &models.Device{
+		Id: ctl.Ctx.Input.Param(":id"),
+	}
+	device, err := device.GetDevice(ob.Id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	if device == nil {
+		resp = models.JsonRespError(errors.New("device not exist"))
+		return
+	}
+	// TODO
+	resp.Data = []string{}
 }
