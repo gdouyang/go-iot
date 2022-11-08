@@ -31,10 +31,10 @@ func init() {
 		web.NSRouter("/", &DeviceController{}, "put:Update"),
 		web.NSRouter("/:id", &DeviceController{}, "delete:Delete"),
 		web.NSRouter("/:id", &DeviceController{}, "get:GetOne"),
-		web.NSRouter("/:id/connect", &DeviceController{}, "put:Connect"),
-		web.NSRouter("/:id/disconnect", &DeviceController{}, "put:Disconnect"),
-		web.NSRouter("/:id/deploy", &DeviceController{}, "put:Deploy"),
-		web.NSRouter("/cmd", &DeviceController{}, "post:CmdInvoke"),
+		web.NSRouter("/:id/connect", &DeviceController{}, "post:Connect"),
+		web.NSRouter("/:id/disconnect", &DeviceController{}, "post:Disconnect"),
+		web.NSRouter("/:id/deploy", &DeviceController{}, "post:Deploy"),
+		web.NSRouter("/:id/cmd", &DeviceController{}, "post:CmdInvoke"),
 		web.NSRouter("/query-property/:id", &DeviceController{}, "get:QueryProperty"),
 	)
 	web.AddNamespace(ns)
@@ -254,6 +254,7 @@ func (ctl *DeviceController) CmdInvoke() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
+	deviceId := ctl.Ctx.Input.Param(":id")
 
 	var ob msg.FuncInvoke
 	err := ctl.BindJSON(&ob)
@@ -261,6 +262,7 @@ func (ctl *DeviceController) CmdInvoke() {
 		resp = models.JsonRespError(err)
 		return
 	}
+	ob.DeviceId = deviceId
 	device, err := device.GetDevice(ob.DeviceId)
 	if err != nil {
 		resp = models.JsonRespError(err)

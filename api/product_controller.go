@@ -33,12 +33,12 @@ func init() {
 		web.NSRouter("/:id", &ProductController{}, "put:Update"),
 		web.NSRouter("/:id", &ProductController{}, "get:Get"),
 		web.NSRouter("/:id", &ProductController{}, "delete:Delete"),
-		web.NSRouter("/:id/deploy", &ProductController{}, "put:Deploy"),
-		web.NSRouter("/:id/undeploy", &ProductController{}, "put:Undeploy"),
+		web.NSRouter("/:id/deploy", &ProductController{}, "post:Deploy"),
+		web.NSRouter("/:id/undeploy", &ProductController{}, "post:Undeploy"),
 		web.NSRouter("/:id/modify-tsl", &ProductController{}, "put:ModifyTsl"),
 		web.NSRouter("/network/:productId", &ProductController{}, "get:GetNetwork"),
 		web.NSRouter("/network", &ProductController{}, "put:UpdateNetwork"),
-		web.NSRouter("/network/:productId/run", &ProductController{}, "put:RunNetwork"),
+		web.NSRouter("/network/:productId/run", &ProductController{}, "post:RunNetwork"),
 	)
 	web.AddNamespace(ns)
 
