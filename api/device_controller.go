@@ -31,6 +31,7 @@ func init() {
 		web.NSRouter("/", &DeviceController{}, "put:Update"),
 		web.NSRouter("/:id", &DeviceController{}, "delete:Delete"),
 		web.NSRouter("/:id", &DeviceController{}, "get:GetOne"),
+		web.NSRouter("/:id/detail", &DeviceController{}, "get:GetDetail"),
 		web.NSRouter("/:id/connect", &DeviceController{}, "post:Connect"),
 		web.NSRouter("/:id/disconnect", &DeviceController{}, "post:Disconnect"),
 		web.NSRouter("/:id/deploy", &DeviceController{}, "post:Deploy"),
@@ -87,7 +88,49 @@ func (ctl *DeviceController) GetOne() {
 		resp = models.JsonRespError(err)
 		return
 	}
+	if ob == nil {
+		resp = models.JsonRespError(errors.New("device not exist"))
+		return
+	}
 	resp.Data = ob
+}
+
+func (ctl *DeviceController) GetDetail() {
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
+	var resp = models.JsonRespOk()
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+	ob, err := device.GetDevice(ctl.Ctx.Input.Param(":id"))
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	if ob == nil {
+		resp = models.JsonRespError(errors.New("device not exist"))
+		return
+	}
+	product, err := device.GetProduct(ob.ProductId)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	if product == nil {
+		resp = models.JsonRespError(errors.New("product not exist"))
+		return
+	}
+	var alins = struct {
+		models.Device
+		Metadata    string `json:"metadata"`
+		ProductName string `json:"productName"`
+	}{}
+	alins.Metadata = product.Metadata
+	alins.ProductName = product.Name
+	alins.Device = *ob
+	resp.Data = alins
 }
 
 // 添加设备
