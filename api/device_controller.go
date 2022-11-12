@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"go-iot/codec"
 	"go-iot/codec/msg"
 	"go-iot/models"
@@ -83,13 +84,9 @@ func (ctl *DeviceController) GetOne() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	ob, err := device.GetDevice(ctl.Ctx.Input.Param(":id"))
+	ob, err := device.GetDeviceMust(ctl.Ctx.Input.Param(":id"))
 	if err != nil {
 		resp = models.JsonRespError(err)
-		return
-	}
-	if ob == nil {
-		resp = models.JsonRespError(errors.New("device not exist"))
 		return
 	}
 	resp.Data = ob
@@ -104,22 +101,14 @@ func (ctl *DeviceController) GetDetail() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	ob, err := device.GetDevice(ctl.Ctx.Input.Param(":id"))
+	ob, err := device.GetDeviceMust(ctl.Ctx.Input.Param(":id"))
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-	if ob == nil {
-		resp = models.JsonRespError(errors.New("device not exist"))
-		return
-	}
-	product, err := device.GetProduct(ob.ProductId)
+	product, err := device.GetProductMust(ob.ProductId)
 	if err != nil {
 		resp = models.JsonRespError(err)
-		return
-	}
-	if product == nil {
-		resp = models.JsonRespError(errors.New("product not exist"))
 		return
 	}
 	var alins = struct {
@@ -212,7 +201,7 @@ func (ctl *DeviceController) Connect() {
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
-	dev, err := device.GetDevice(ob.Id)
+	dev, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -220,6 +209,10 @@ func (ctl *DeviceController) Connect() {
 	n, err := network.GetByProductId(dev.ProductId)
 	if err != nil {
 		resp = models.JsonRespError(err)
+		return
+	}
+	if n != nil {
+		resp = models.JsonRespError(fmt.Errorf("product [%s] not have network config", dev.ProductId))
 		return
 	}
 	// 进行连接
@@ -242,13 +235,9 @@ func (ctl *DeviceController) Disconnect() {
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
-	dev, err := device.GetDevice(ob.Id)
+	_, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
-		return
-	}
-	if dev == nil {
-		resp = models.JsonRespError(errors.New("device not exist"))
 		return
 	}
 	session := codec.GetSessionManager().Get(ob.Id)
@@ -276,13 +265,9 @@ func (ctl *DeviceController) Deploy() {
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
-	dev, err := device.GetDevice(ob.Id)
+	_, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
-		return
-	}
-	if dev == nil {
-		resp = models.JsonRespError(errors.New("device not exist"))
 		return
 	}
 	// TODO
@@ -307,7 +292,7 @@ func (ctl *DeviceController) CmdInvoke() {
 		return
 	}
 	ob.DeviceId = deviceId
-	device, err := device.GetDevice(ob.DeviceId)
+	device, err := device.GetDeviceMust(ob.DeviceId)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -333,7 +318,7 @@ func (ctl *DeviceController) QueryProperty() {
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
-	device, err := device.GetDevice(ob.Id)
+	device, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -352,6 +337,7 @@ func (ctl *DeviceController) QueryProperty() {
 	}
 	resp.Data = res
 }
+
 func (ctl *DeviceController) GetConfigMetadata() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
@@ -365,13 +351,9 @@ func (ctl *DeviceController) GetConfigMetadata() {
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
-	device, err := device.GetDevice(ob.Id)
+	_, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
-		return
-	}
-	if device == nil {
-		resp = models.JsonRespError(errors.New("device not exist"))
 		return
 	}
 	// TODO

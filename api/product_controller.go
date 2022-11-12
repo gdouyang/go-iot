@@ -163,7 +163,7 @@ func (ctl *ProductController) Get() {
 	}()
 
 	id := ctl.Ctx.Input.Param(":id")
-	p, err := product.GetProduct(id)
+	p, err := product.GetProductMust(id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -226,13 +226,9 @@ func (ctl *ProductController) Deploy() {
 	}()
 
 	id := ctl.Ctx.Input.Param(":id")
-	ob, err := product.GetProduct(id)
+	ob, err := product.GetProductMust(id)
 	if err != nil {
 		resp = models.JsonRespError(err)
-		return
-	}
-	if ob == nil {
-		resp = models.JsonRespError(errors.New("product not exist"))
 		return
 	}
 
@@ -274,13 +270,9 @@ func (ctl *ProductController) Undeploy() {
 		ctl.ServeJSON()
 	}()
 	id := ctl.Ctx.Input.Param(":id")
-	ob, err := product.GetProduct(id)
+	ob, err := product.GetProductMust(id)
 	if err != nil {
 		resp = models.JsonRespError(err)
-		return
-	}
-	if ob == nil {
-		resp = models.JsonRespError(errors.New("product not exist"))
 		return
 	}
 	ob.State = false

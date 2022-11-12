@@ -195,3 +195,13 @@ func GetProduct(id string) (*models.Product, error) {
 		return &p, nil
 	}
 }
+
+func GetProductMust(id string) (*models.Product, error) {
+	p, err := GetProduct(id)
+	if err != nil {
+		return nil, err
+	} else if p == nil {
+		return nil, fmt.Errorf("product [%s] not exist", id)
+	}
+	return p, nil
+}

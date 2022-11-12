@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"go-iot/models"
@@ -133,4 +134,14 @@ func GetDevice(deviceId string) (*models.Device, error) {
 	} else {
 		return &p, nil
 	}
+}
+
+func GetDeviceMust(deviceId string) (*models.Device, error) {
+	p, err := GetDevice(deviceId)
+	if err != nil {
+		return nil, err
+	} else if p == nil {
+		return nil, fmt.Errorf("device [%s] not exist", deviceId)
+	}
+	return p, nil
 }
