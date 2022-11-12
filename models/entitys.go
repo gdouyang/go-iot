@@ -94,3 +94,42 @@ type Network struct {
 	CreateId      int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime    time.Time `json:"createTime" orm:"column(create_time_)"`
 }
+
+// 场景联动
+type Scene struct {
+	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
+	Name       string    `json:"name" orm:"column(name_);size(64);null"`
+	State      string    `json:"state" orm:"column(state_);size(10);description(stop,start)"`
+	Triggers   string    `json:"triggers,omitempty" orm:"column(triggers_);null;type(text);description(触发)"`
+	Actions    string    `json:"actions,omitempty" orm:"column(actions_);null;type(text);description(动作)"`
+	Desc       string    `json:"desc" orm:"column(desc_);description(说明)"`
+	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
+	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
+}
+
+// 设备告警
+type Alarm struct {
+	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
+	Name       string    `json:"name" orm:"column(name_);size(64);null"`
+	Target     string    `json:"target" orm:"column(target_);size(64);null;description(device, product)"`
+	TargetId   string    `json:"targetId" orm:"column(target_id_);size(64);null;description(设备id,产品id)"`
+	State      string    `json:"state" orm:"column(state_);size(10);description(stop,start)"`
+	Triggers   string    `json:"triggers,omitempty" orm:"column(triggers_);null;type(text);description(触发)"`
+	Actions    string    `json:"actions,omitempty" orm:"column(actions_);null;type(text);description(动作)"`
+	Desc       string    `json:"desc" orm:"column(desc_);description(说明)"`
+	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
+	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
+}
+
+// 告警记录
+type AlarmLog struct {
+	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
+	AlarmName  string    `json:"alarmName" orm:"column(alarm_name_);size(64);null;description(告警名称)"`
+	AlarmId    int64     `json:"alarmId" orm:"column(alarm_id_);size(64);null;description(告警Id)"`
+	DeviceId   string    `json:"deviceId" orm:"column(device_id_);size(64);null;description(设备ID)"`
+	ProductId  string    `json:"productId" orm:"column(product_id_);size(64);null;description(产品ID)"`
+	State      string    `json:"state" orm:"column(state_);size(10);description(状态open,solve)"`
+	AlarmData  string    `json:"alarmData" orm:"column(alram_data_);type(text);description(告警数据)"`
+	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
+	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
+}

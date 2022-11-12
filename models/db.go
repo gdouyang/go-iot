@@ -23,7 +23,9 @@ func InitDb() {
 	orm.RegisterModelWithPrefix("i_",
 		new(User), new(Role), new(UserRelRole),
 		new(MenuResource), new(AuthResource), new(SystemConfig),
-		new(Product), new(Device), new(Network))
+		new(Product), new(Device), new(Network),
+		new(Scene), new(Alarm), new(AlarmLog),
+	)
 
 	// create table
 	orm.RunSyncdb("default", false, true)
