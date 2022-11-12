@@ -58,8 +58,8 @@ type Product struct {
 	Id          string    `json:"id" orm:"pk;column(id_);size(32);description(产品ID)"`
 	Name        string    `json:"name" orm:"column(name_);description(名称)"`
 	TypeId      string    `json:"typeId" orm:"column(type_id_);null;description(类型)"`
-	Metadata    string    `json:"metadata" orm:"column(meta_data_);null;type(text);description(物模型)"`
-	Metaconfig  string    `json:"metaconfig" orm:"column(meta_config_);null;type(text);description(配置属性)"`
+	Metadata    string    `json:"metadata,omitempty" orm:"column(meta_data_);null;type(text);description(物模型)"`
+	Metaconfig  string    `json:"metaconfig,omitempty" orm:"column(meta_config_);null;type(text);description(配置属性)"`
 	State       bool      `json:"state" orm:"column(state_);description(1启用，0禁用)"`
 	StorePolicy string    `json:"storePolicy" orm:"column(store_policy_);size(32);description(数据存储策略 es, mock)"`
 	Desc        string    `json:"desc" orm:"column(desc_);description(产品说明)"`
@@ -74,7 +74,7 @@ type Device struct {
 	ProductId string `json:"productId" orm:"column(product_id_);size(32);description(产品id)"`
 	State     string `json:"state" orm:"column(state_);size(10);description(online,offline,unknow)"`
 	// 配置属性
-	Metaconfig string    `json:"metaconfig" orm:"column(meta_config_);null;type(text);description(配置属性)"`
+	Metaconfig string    `json:"metaconfig,omitempty" orm:"column(meta_config_);null;type(text);description(配置属性)"`
 	Desc       string    `json:"desc" orm:"column(desc_);description(产品说明)"`
 	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`

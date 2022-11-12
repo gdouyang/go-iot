@@ -31,7 +31,6 @@ func init() {
 		web.NSRouter("/list", &ProductController{}, "get:List"),
 		web.NSRouter("/", &ProductController{}, "post:Add"),
 		web.NSRouter("/:id", &ProductController{}, "put:Update"),
-		web.NSRouter("/metaconfig/:id", &ProductController{}, "put:UpdateMetaconfig"),
 		web.NSRouter("/:id", &ProductController{}, "get:Get"),
 		web.NSRouter("/:id", &ProductController{}, "delete:Delete"),
 		web.NSRouter("/:id/deploy", &ProductController{}, "post:Deploy"),
@@ -130,31 +129,6 @@ func (ctl *ProductController) Add() {
 
 // 更新型号信息
 func (ctl *ProductController) Update() {
-	if ctl.isForbidden(productResource, SaveAction) {
-		return
-	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-	var ob models.Product
-	err := ctl.BindJSON(&ob)
-	if err != nil {
-		resp = models.JsonRespError(err)
-		return
-	}
-	ob.Metaconfig = ""
-	ob.Metadata = ""
-	err = product.UpdateProduct(&ob)
-	if err != nil {
-		resp = models.JsonRespError(err)
-		return
-	}
-	resp = models.JsonRespOk()
-}
-
-func (ctl *ProductController) UpdateMetaconfig() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
