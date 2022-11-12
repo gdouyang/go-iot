@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"go-iot/codec"
 	"go-iot/codec/tsl"
 	"sync"
@@ -37,18 +36,11 @@ func (m *DbDeviceManager) Get(deviceId string) codec.Device {
 			m.cache[deviceId] = nil
 			return nil
 		}
-		config := map[string]string{}
-		if len(data.Metaconfig) > 0 {
-			err := json.Unmarshal([]byte(data.Metaconfig), &config)
-			if (err) != nil {
-				logs.Error(err)
-			}
-		}
 
 		device = &codec.DefaultDevice{
 			Id:        data.Id,
 			ProductId: data.ProductId,
-			Config:    config,
+			Config:    data.Metaconfig,
 			Data:      map[string]string{},
 		}
 		m.Put(device)

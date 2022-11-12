@@ -181,7 +181,7 @@ func DeleteProduct(ob *models.Product) error {
 	return err
 }
 
-func GetProduct(id string) (*models.Product, error) {
+func GetProduct(id string) (*models.ProductModel, error) {
 
 	o := orm.NewOrm()
 
@@ -192,11 +192,13 @@ func GetProduct(id string) (*models.Product, error) {
 	} else if err == orm.ErrMissPK {
 		return nil, err
 	} else {
-		return &p, nil
+		m := &models.ProductModel{}
+		m.FromEnitty(p)
+		return m, nil
 	}
 }
 
-func GetProductMust(id string) (*models.Product, error) {
+func GetProductMust(id string) (*models.ProductModel, error) {
 	p, err := GetProduct(id)
 	if err != nil {
 		return nil, err

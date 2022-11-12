@@ -90,7 +90,7 @@ func (ctl *ProductController) List() {
 }
 
 type productDTO struct {
-	models.Product
+	models.ProductModel
 	NetworkType string `json:"networkType"`
 }
 
@@ -137,14 +137,15 @@ func (ctl *ProductController) Update() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	var ob models.Product
+	var ob models.ProductModel
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
 	ob.Metadata = ""
-	err = product.UpdateProduct(&ob)
+	pro := ob.ToEnitty()
+	err = product.UpdateProduct(&pro)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -174,7 +175,7 @@ func (ctl *ProductController) Get() {
 		return
 	}
 	var aligns productDTO
-	aligns.Product = *p
+	aligns.ProductModel = *p
 	if nw != nil {
 		aligns.NetworkType = nw.Type
 	}
@@ -257,7 +258,7 @@ func (ctl *ProductController) Deploy() {
 		return
 	}
 	ob.State = true
-	product.UpdateProductState(ob)
+	product.UpdateProductState(&ob.Product)
 }
 
 func (ctl *ProductController) Undeploy() {
@@ -276,7 +277,7 @@ func (ctl *ProductController) Undeploy() {
 		return
 	}
 	ob.State = false
-	product.UpdateProductState(ob)
+	product.UpdateProductState(&ob.Product)
 }
 
 func (ctl *ProductController) ModifyTsl() {

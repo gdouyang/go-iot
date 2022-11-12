@@ -126,7 +126,7 @@ func DeleteDevice(ob *models.Device) error {
 	return nil
 }
 
-func GetDevice(deviceId string) (*models.Device, error) {
+func GetDevice(deviceId string) (*models.DeviceModel, error) {
 	if len(deviceId) == 0 {
 		return nil, errors.New("deviceId not be empty")
 	}
@@ -138,11 +138,13 @@ func GetDevice(deviceId string) (*models.Device, error) {
 	} else if err == orm.ErrMissPK {
 		return nil, err
 	} else {
-		return &p, nil
+		m := &models.DeviceModel{}
+		m.FromEnitty(p)
+		return m, nil
 	}
 }
 
-func GetDeviceMust(deviceId string) (*models.Device, error) {
+func GetDeviceMust(deviceId string) (*models.DeviceModel, error) {
 	p, err := GetDevice(deviceId)
 	if err != nil {
 		return nil, err

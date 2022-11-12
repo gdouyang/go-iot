@@ -111,13 +111,13 @@ func (ctl *DeviceController) GetDetail() {
 		return
 	}
 	var alins = struct {
-		models.Device
+		models.DeviceModel
 		Metadata    string `json:"metadata"`
 		ProductName string `json:"productName"`
 	}{}
 	alins.Metadata = product.Metadata
 	alins.ProductName = product.Name
-	alins.Device = *ob
+	alins.DeviceModel = *ob
 	resp.Data = alins
 }
 
@@ -154,13 +154,14 @@ func (ctl *DeviceController) Update() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	var ob models.Device
+	var ob models.DeviceModel
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = device.UpdateDevice(&ob)
+	en := ob.ToEnitty()
+	err = device.UpdateDevice(&en)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
