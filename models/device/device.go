@@ -84,6 +84,12 @@ func UpdateDevice(ob *models.Device) error {
 	if len(ob.Desc) > 0 {
 		columns = append(columns, "Desc")
 	}
+	if len(ob.Metaconfig) > 0 {
+		columns = append(columns, "Metaconfig")
+	}
+	if len(columns) == 0 {
+		return errors.New("no data to update")
+	}
 	_, err := o.Update(ob, columns...)
 	if err != nil {
 		return err
