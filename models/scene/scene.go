@@ -30,9 +30,9 @@ func ListScene(page *models.PageQuery) (*models.PageResult, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	var cols = []string{"Id", "Name", "Target", "TargetId", "State", "Desc", "CreateId", "CreateTime"}
 	var result []models.Scene
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).All(&result)
+	_, err = qs.Limit(page.PageSize, page.PageOffset()).All(&result, cols...)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func AddScene(ob *models.Scene) error {
 		return err
 	}
 	if rs != nil {
-		return errors.New("Scene is exist")
+		return errors.New("scene is exist")
 	}
 	ob.State = models.NoActive
 	//插入数据
