@@ -86,14 +86,14 @@ func (ctl *SceneController) Add() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	var ob models.Scene
+	var ob models.SceneModel
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-
-	err = scene.AddScene(&ob)
+	en := ob.ToEnitty()
+	err = scene.AddScene(&en)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -110,13 +110,14 @@ func (ctl *SceneController) Update() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	var ob models.Scene
+	var ob models.SceneModel
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = scene.UpdateScene(&ob)
+	en := ob.ToEnitty()
+	err = scene.UpdateScene(&en)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -168,7 +169,7 @@ func (ctl *SceneController) Enable() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = scene.UpdateSceneStatus("started", int64(_id))
+	err = scene.UpdateSceneStatus(models.Started, int64(_id))
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -192,7 +193,7 @@ func (ctl *SceneController) Disable() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = scene.UpdateSceneStatus("stopped", int64(_id))
+	err = scene.UpdateSceneStatus(models.Stopped, int64(_id))
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return

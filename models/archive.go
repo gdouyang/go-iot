@@ -9,8 +9,10 @@ const (
 	OFFLINE  = "offLine"  // 离线
 	NoActive = "noActive" // 未启用
 
-	Runing = "runing" // 网络状态runing
-	Stop   = "stop"   // 网络状态stop
+	Runing  = "runing"  // 网络状态runing
+	Stop    = "stop"    // 网络状态stop
+	Stopped = "stopped" // stopped
+	Started = "started" // started
 )
 
 // 分页结果

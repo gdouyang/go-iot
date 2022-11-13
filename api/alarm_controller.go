@@ -171,7 +171,7 @@ func (ctl *AlarmController) Enable() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = alarm.UpdateAlarmStatus("started", int64(_id))
+	err = alarm.UpdateAlarmStatus(models.Started, int64(_id))
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -195,7 +195,7 @@ func (ctl *AlarmController) Disable() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = alarm.UpdateAlarmStatus("stopped", int64(_id))
+	err = alarm.UpdateAlarmStatus(models.Stopped, int64(_id))
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return

@@ -54,7 +54,7 @@ func AddAlarm(ob *models.Alarm) error {
 	if rs != nil {
 		return errors.New("alarm is exist")
 	}
-	ob.State = models.NoActive
+	ob.State = models.Stopped
 	//插入数据
 	o := orm.NewOrm()
 	ob.CreateTime = time.Now()
