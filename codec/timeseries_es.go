@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"go-iot/codec/eventbus"
 	"go-iot/codec/tsl"
 	"strings"
 	"sync"
@@ -43,7 +45,8 @@ func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
 	if len(d1) == 0 {
 		return errors.New("data is empty, dont save timeseries data")
 	}
-	if deviceId := d1[tsl.PropertyDeviceId]; deviceId == nil {
+	deviceId := d1[tsl.PropertyDeviceId]
+	if deviceId == nil {
 		return errors.New("not have deviceId, dont save timeseries data")
 	}
 	d1["collectTime_"] = time.Now().Format("2006-01-02 15:04:05.000")
@@ -62,6 +65,7 @@ func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
 		t.batchTaskRun = true
 		go t.batchSave()
 	}
+	eventbus.Publish(fmt.Sprintf(eventbus.DeviceMessageTopic, product.GetId(), deviceId), d1)
 	return nil
 	// Set up the request object.
 	// req := esapi.IndexRequest{

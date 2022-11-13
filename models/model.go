@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"go-iot/ruleengine"
 
 	"github.com/beego/beego/v2/core/logs"
 )
@@ -74,14 +75,14 @@ type ProductMetaConfig struct {
 // scene
 type SceneModel struct {
 	Scene
-	Triggers []SceneTrigger `json:"triggers"`
-	Actions  []Action       `json:"actions"`
+	Triggers []ruleengine.SceneTrigger `json:"triggers"`
+	Actions  []ruleengine.Action       `json:"actions"`
 }
 
 func (d *SceneModel) FromEnitty(en Scene) {
 	d.Scene = en
 	if len(en.Triggers) > 0 {
-		m := []SceneTrigger{}
+		m := []ruleengine.SceneTrigger{}
 		err := json.Unmarshal([]byte(en.Triggers), &m)
 		if err != nil {
 			logs.Error(err)
@@ -89,7 +90,7 @@ func (d *SceneModel) FromEnitty(en Scene) {
 		d.Triggers = m
 	}
 	if len(en.Actions) > 0 {
-		m := []Action{}
+		m := []ruleengine.Action{}
 		err := json.Unmarshal([]byte(en.Actions), &m)
 		if err != nil {
 			logs.Error(err)
@@ -115,46 +116,4 @@ func (d *SceneModel) ToEnitty() Scene {
 		en.Actions = string(v)
 	}
 	return en
-}
-
-type TriggerType string
-
-const (
-	TriggerTypeDevice TriggerType = "device"
-	TriggerTypeTimer  TriggerType = "timer"
-)
-
-type SceneTrigger struct {
-	Type   TriggerType        `json:"type"`
-	Device SceneTriggerDevice `json:"device,omitempty"`
-	Cron   string             `json:"cron,omitempty"`
-}
-
-type SceneTriggerDevice struct {
-	ShakeLimit ShakeLimit        `json:"shakeLimit"` // 防抖限制
-	Type       string            `json:"type"`       // 触发消息类型
-	ModelId    string            `json:"modelId"`    // 物模型表示,如:属性ID,事件ID
-	Filters    []ConditionFilter `json:"filters"`    // 条件
-	ProductId  string            `json:"productId"`
-	DeviceId   string            `json:"deviceId"`
-}
-
-type ConditionFilter struct {
-	Key      string `json:"key"`
-	Value    string `json:"value"`
-	Operator string `json:"operator"`
-}
-
-// 抖动限制
-type ShakeLimit struct {
-	Enabled    bool  `json:"enabled"`
-	Time       int32 `json:"time"`
-	Threshold  int32 `json:"threshold"`
-	AlarmFirst bool  `json:"alarmFirst"`
-}
-
-// 执行
-type Action struct {
-	Executor      string                 `json:"executor"`      // 执行器
-	Configuration map[string]interface{} `json:"configuration"` // 执行器配置
 }
