@@ -23,7 +23,7 @@ func init() {
 	ns := web.NewNamespace("/api/scene",
 		web.NSRouter("/page", &SceneController{}, "post:List"),
 		web.NSRouter("/", &SceneController{}, "post:Add"),
-		web.NSRouter("/", &SceneController{}, "put:Update"),
+		web.NSRouter("/:id", &SceneController{}, "put:Update"),
 		web.NSRouter("/:id", &SceneController{}, "get:Get"),
 		web.NSRouter("/:id", &SceneController{}, "delete:Delete"),
 		web.NSRouter("/:id/start", &SceneController{}, "post:Enable"),
