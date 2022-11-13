@@ -125,12 +125,13 @@ const (
 )
 
 type SceneTrigger struct {
-	Type TriggerType `json:"type"`
-	Cron string      `json:"cron,omitempty"`
+	Type   TriggerType        `json:"type"`
+	Device SceneTriggerDevice `json:"device,omitempty"`
+	Cron   string             `json:"cron,omitempty"`
 }
 
 type SceneTriggerDevice struct {
-	ShakeLimit string            `json:"shakeLimit"` // 防抖限制
+	ShakeLimit ShakeLimit        `json:"shakeLimit"` // 防抖限制
 	Type       string            `json:"type"`       // 触发消息类型
 	ModelId    string            `json:"modelId"`    // 物模型表示,如:属性ID,事件ID
 	Filters    []ConditionFilter `json:"filters"`    // 条件

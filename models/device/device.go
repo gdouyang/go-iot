@@ -105,9 +105,9 @@ func UpdateOnlineStatus(state string, id string) error {
 	if len(state) == 0 {
 		return errors.New("state not be empty")
 	}
-	var ob models.Device = models.Device{Id: id, State: state}
 	o := orm.NewOrm()
-	_, err := o.Update(ob, "State")
+	var ob = models.Device{Id: id, State: state}
+	_, err := o.Update(&ob, "State")
 	if err != nil {
 		return err
 	}

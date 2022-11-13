@@ -99,8 +99,8 @@ func UpdateAlarmStatus(state string, id int64) error {
 	if len(state) == 0 {
 		return errors.New("state not be empty")
 	}
-	var ob models.Alarm = models.Alarm{Id: id, State: state}
 	o := orm.NewOrm()
+	var ob = &models.Alarm{Id: id, State: state}
 	_, err := o.Update(ob, "State")
 	if err != nil {
 		return err

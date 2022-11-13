@@ -26,8 +26,8 @@ func init() {
 		web.NSRouter("/", &SceneController{}, "put:Update"),
 		web.NSRouter("/:id", &SceneController{}, "get:Get"),
 		web.NSRouter("/:id", &SceneController{}, "delete:Delete"),
-		web.NSRouter("/:id/start", &SceneController{}, "put:Enable"),
-		web.NSRouter("/:id/stop", &SceneController{}, "put:Disable"),
+		web.NSRouter("/:id/start", &SceneController{}, "post:Enable"),
+		web.NSRouter("/:id/stop", &SceneController{}, "post:Disable"),
 	)
 	web.AddNamespace(ns)
 
@@ -69,12 +69,14 @@ func (ctl *SceneController) Get() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	u, err := scene.GetScene(int64(_id))
+	u, err := scene.GetSceneMust(int64(_id))
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-	resp = models.JsonRespOkData(u)
+	s := models.SceneModel{}
+	s.FromEnitty(*u)
+	resp = models.JsonRespOkData(s)
 }
 
 func (ctl *SceneController) Add() {

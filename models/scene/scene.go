@@ -99,8 +99,8 @@ func UpdateSceneStatus(state string, id int64) error {
 	if len(state) == 0 {
 		return errors.New("state not be empty")
 	}
-	var ob models.Scene = models.Scene{Id: id, State: state}
 	o := orm.NewOrm()
+	var ob = &models.Scene{Id: id, State: state}
 	_, err := o.Update(ob, "State")
 	if err != nil {
 		return err
@@ -117,9 +117,9 @@ func DeleteScene(ob *models.Scene) error {
 	return nil
 }
 
-func GetScene(SceneId int64) (*models.Scene, error) {
+func GetScene(sceneId int64) (*models.Scene, error) {
 	o := orm.NewOrm()
-	p := models.Scene{Id: SceneId}
+	p := models.Scene{Id: sceneId}
 	err := o.Read(&p)
 	if err == orm.ErrNoRows {
 		return nil, nil
@@ -128,4 +128,15 @@ func GetScene(SceneId int64) (*models.Scene, error) {
 	} else {
 		return &p, nil
 	}
+}
+
+func GetSceneMust(sceneId int64) (*models.Scene, error) {
+	p, err := GetScene(sceneId)
+	if err != nil {
+		return nil, err
+	}
+	if p == nil {
+		return nil, errors.New("scene not exist")
+	}
+	return p, nil
 }
