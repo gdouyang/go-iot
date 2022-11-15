@@ -3,6 +3,7 @@ package eventbus_test
 import (
 	"fmt"
 	"go-iot/codec/eventbus"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,6 +33,17 @@ func TestMatcher(t *testing.T) {
 	assert.True(t, match.Match("/a/b/{c}", "/a/b/c"))
 	assert.True(t, match.Match("/a/b/{c}/{d}", "/a/b/c/d"))
 	assert.True(t, match.Match("/a/b/*/*", "/a/b/c/d"))
+	assert.True(t, match.Match("/abc/123/{name}", "/abc/123/test"))
+	assert.True(t, match.Match("/abc/123/{name}/**", "/abc/123/test/1"))
+	assert.True(t, match.Match("/abc/123/{name}/{type}", "/abc/123/test/1"))
+	assert.True(t, match.Match("/abc/123/{name}/**", "/abc/123/test/1/"))
+	assert.True(t, match.Match("/abc/123/{name}/**", "/abc/123/test/1/1"))
+
+	assert.False(t, match.Match("/abc/123/{name}/{type}", "/abc/123/test/1/"))
+	assert.False(t, match.Match("/abc/123/*/*", "/abc/123/test/1/"))
+	assert.False(t, regexp.MustCompile("abc").Match([]byte("Abc")))
+	assert.True(t, regexp.MustCompile("(?i)abc").Match([]byte("Abc")))
+	assert.True(t, regexp.MustCompile("(?i)abc").Match([]byte("abc")))
 }
 
 func t1(m2 map[string]string) {
