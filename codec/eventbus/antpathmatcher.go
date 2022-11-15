@@ -284,7 +284,8 @@ func (that *AntPathMatcher) tokenizePattern(pattern string) []string {
 	if cachePatterns == nil || *cachePatterns {
 		cache := that.tokenizedPatternCache.get(pattern)
 		if cache != nil {
-			*tokenized = cache.([]string)
+			tok := cache.([]string)
+			tokenized = &tok
 		}
 	}
 	if tokenized == nil {

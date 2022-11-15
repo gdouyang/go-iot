@@ -31,9 +31,7 @@ func (b *eventBus) match(pattern string, path string) bool {
 func Subscribe(pattern string, run func(data interface{})) {
 	b.Lock()
 	defer b.Unlock()
-	if _, ok := b.m[pattern]; ok {
-		b.m[pattern] = append(b.m[pattern], run)
-	}
+	b.m[pattern] = append(b.m[pattern], run)
 }
 
 func Publish(topic string, data interface{}) {
