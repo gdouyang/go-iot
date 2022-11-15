@@ -1,13 +1,23 @@
 package eventbus
 
 import (
+	"fmt"
 	"sync"
 )
 
 const (
-	// /device/productId/deviceId/property
+	// device property topic
 	DeviceMessageTopic string = "/device/%s/%s/property"
+	// device online
+	DeviceOnlineTopic string = "/device/%s/%s/online"
+	// device offline
+	DeviceOfflineTopic string = "/device/%s/%s/offline"
 )
+
+// /device/{productId}/{deviceId}/property
+func GetDeviceMesssageTopic(productId string, deviceId string) string {
+	return fmt.Sprintf(DeviceMessageTopic, productId, deviceId)
+}
 
 var b = newEventBus()
 
