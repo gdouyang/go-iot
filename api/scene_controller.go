@@ -175,7 +175,11 @@ func (ctl *SceneController) Enable() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	ruleengine.StartScene(m.Id, m.Trigger, m.Actions)
+	err = ruleengine.StartScene(m.Id, m.Trigger, m.Actions)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
 	err = scene.UpdateSceneStatus(models.Started, m.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)

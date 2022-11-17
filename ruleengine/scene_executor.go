@@ -17,15 +17,19 @@ type sceneManager struct {
 	m map[int64]*SceneExecutor
 }
 
-func StartScene(id int64, trigger SceneTrigger, actions []Action) {
+func StartScene(id int64, trigger SceneTrigger, actions []Action) error {
 	manager.Lock()
 	defer manager.Unlock()
 	e := &SceneExecutor{
 		Trigger: trigger,
 		Actions: actions,
 	}
-	e.start()
+	err := e.start()
+	if err != nil {
+		return err
+	}
 	manager.m[id] = e
+	return nil
 }
 
 func StopScene(id int64) {
@@ -43,13 +47,22 @@ type SceneExecutor struct {
 	cron    *cron.Cron
 }
 
-func (s *SceneExecutor) start() {
+func (s *SceneExecutor) start() error {
 	if s.Trigger.TriggerType == TriggerTypeDevice {
 		device := s.Trigger
 		eventbus.Subscribe(eventbus.GetDeviceMesssageTopic(device.ProductId, device.DeviceId), s.subscribeEvent)
+		return nil
 	} else if s.Trigger.TriggerType == TriggerTypeTimer {
+		s.cron = cron.New()
+		err := s.cron.AddFunc(s.Trigger.Cron, func() {
+			s.runAction()
+		})
+		if err != nil {
+			return err
+		}
 		go s.runCron()
 	}
+	return nil
 }
 
 func (s *SceneExecutor) stop() {
@@ -79,10 +92,6 @@ func (s *SceneExecutor) doStart(device SceneTrigger, data interface{}) {
 }
 
 func (s *SceneExecutor) runCron() {
-	s.cron = cron.New()
-	s.cron.AddFunc(s.Trigger.Cron, func() {
-		s.runAction()
-	})
 	s.cron.Start()
 	defer s.cron.Stop()
 	select {}
