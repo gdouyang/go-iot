@@ -75,8 +75,9 @@ type ProductMetaConfig struct {
 // scene
 type SceneModel struct {
 	Scene
-	Trigger ruleengine.SceneTrigger `json:"trigger"`
-	Actions []ruleengine.Action     `json:"actions"`
+	DeviceIds []string                `json:"deviceIds"`
+	Trigger   ruleengine.SceneTrigger `json:"trigger"`
+	Actions   []ruleengine.Action     `json:"actions"`
 }
 
 func (d *SceneModel) FromEnitty(en Scene) {

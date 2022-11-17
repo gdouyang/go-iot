@@ -93,8 +93,7 @@ func (ctl *SceneController) Add() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	en := ob.ToEnitty()
-	err = scene.AddScene(&en)
+	err = scene.AddScene(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -117,8 +116,7 @@ func (ctl *SceneController) Update() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	en := ob.ToEnitty()
-	err = scene.UpdateScene(&en)
+	err = scene.UpdateScene(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return

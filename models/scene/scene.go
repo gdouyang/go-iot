@@ -1,6 +1,7 @@
 package scene
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"go-iot/models"
@@ -43,7 +44,7 @@ func ListScene(page *models.PageQuery) (*models.PageResult, error) {
 	return pr, nil
 }
 
-func AddScene(ob *models.Scene) error {
+func AddScene(ob *models.SceneModel) error {
 	if len(ob.Name) == 0 {
 		return errors.New("name not be empty")
 	}
@@ -54,20 +55,35 @@ func AddScene(ob *models.Scene) error {
 	if rs != nil {
 		return errors.New("scene is exist")
 	}
-	ob.State = models.Stopped
-	//插入数据
-	o := orm.NewOrm()
-	ob.CreateTime = time.Now()
-	_, err = o.Insert(ob)
-	if err != nil {
-		return err
+	if len(ob.DeviceIds) > 50 {
+		return errors.New("device must less 51")
 	}
-	return nil
+	ob.State = models.Stopped
+	en := ob.ToEnitty()
+	//插入数据
+	ob.CreateTime = time.Now()
+	o := orm.NewOrm()
+	err = o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+		_, err := txOrm.Insert(en)
+		if err != nil {
+			return err
+		}
+		list := []models.SceneRelDevice{}
+		for _, deviceId := range ob.DeviceIds {
+			list = append(list, models.SceneRelDevice{
+				SceneId:  en.Id,
+				DeviceId: deviceId,
+			})
+		}
+		_, err = txOrm.InsertMulti(10, list)
+		return err
+	})
+	return err
 }
 
-func UpdateScene(ob *models.Scene) error {
+func UpdateScene(ob *models.SceneModel) error {
 	//更新数据
-	o := orm.NewOrm()
+	en := ob.ToEnitty()
 	var columns []string
 	if len(ob.Name) > 0 {
 		columns = append(columns, "Name")
@@ -75,16 +91,13 @@ func UpdateScene(ob *models.Scene) error {
 	if len(ob.TriggerType) > 0 {
 		columns = append(columns, "TriggerType")
 	}
-	if len(ob.DeviceId) > 0 {
-		columns = append(columns, "DeviceId")
-	}
 	if len(ob.ProductId) > 0 {
 		columns = append(columns, "ProductId")
 	}
 	if len(ob.ModelId) > 0 {
 		columns = append(columns, "ModelId")
 	}
-	if len(ob.Trigger) > 0 {
+	if len(en.Trigger) > 0 {
 		columns = append(columns, "Trigger")
 	}
 	if len(ob.Actions) > 0 {
@@ -96,11 +109,34 @@ func UpdateScene(ob *models.Scene) error {
 	if len(columns) == 0 {
 		return errors.New("no data to update")
 	}
-	_, err := o.Update(ob, columns...)
-	if err != nil {
-		return err
+	if len(ob.DeviceIds) > 50 {
+		return errors.New("device must less 51")
 	}
-	return nil
+	o := orm.NewOrm()
+	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+		_, err := txOrm.Update(en, columns...)
+		if err != nil {
+			return err
+		}
+		srd := models.SceneRelDevice{
+			SceneId: en.Id,
+		}
+		_, err = txOrm.Delete(srd, "SceneId")
+		if err != nil {
+			return err
+		}
+		list := []models.SceneRelDevice{}
+		for _, deviceId := range ob.DeviceIds {
+			list = append(list, models.SceneRelDevice{
+				SceneId:  en.Id,
+				DeviceId: deviceId,
+			})
+		}
+		_, err = txOrm.InsertMulti(10, list)
+		return err
+	})
+
+	return err
 }
 
 // 更新在线状态
@@ -129,16 +165,30 @@ func DeleteScene(ob *models.Scene) error {
 	return nil
 }
 
-func GetScene(sceneId int64) (*models.Scene, error) {
+func GetScene(sceneId int64) (*models.SceneModel, error) {
 	o := orm.NewOrm()
 	p := models.Scene{Id: sceneId}
-	err := o.Read(&p)
+	err := o.Read(&p, "id")
 	if err == orm.ErrNoRows {
 		return nil, nil
 	} else if err == orm.ErrMissPK {
 		return nil, err
 	} else {
-		return &p, nil
+		m := models.SceneModel{}
+		m.FromEnitty(p)
+		//
+		o := orm.NewOrm()
+		qs := o.QueryTable(models.SceneRelDevice{}).Filter("SceneId", p.Id)
+		var cols = []string{"Id", "Name", "State", "Desc", "CreateId", "CreateTime"}
+		var result []models.SceneRelDevice
+		_, err = qs.All(&result, cols...)
+		if err != nil {
+			return nil, err
+		}
+		for _, rel := range result {
+			m.DeviceIds = append(m.DeviceIds, rel.DeviceId)
+		}
+		return &m, nil
 	}
 }
 
@@ -150,7 +200,5 @@ func GetSceneMust(sceneId int64) (*models.SceneModel, error) {
 	if p == nil {
 		return nil, errors.New("scene not exist")
 	}
-	m := models.SceneModel{}
-	m.FromEnitty(*p)
-	return &m, nil
+	return p, nil
 }

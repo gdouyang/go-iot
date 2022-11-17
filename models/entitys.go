@@ -100,7 +100,6 @@ type Scene struct {
 	Id          int64     `json:"id" orm:"pk;column(id_);auto"`
 	Name        string    `json:"name" orm:"column(name_);size(64);null;description(场景名称)"`
 	TriggerType string    `json:"triggerType" orm:"column(trigger_type_);size(32);null;description(触发类型timer,device)"`
-	DeviceId    string    `json:"deviceId,omitempty" orm:"column(device_id_);type(text);null;description(设备)"`
 	ProductId   string    `json:"productId,omitempty" orm:"column(product_id_);size(64);null;description(产品)"`
 	ModelId     string    `json:"modelId,omitempty" orm:"column(model_id_);size(64);null;description(物模型ID)"`
 	State       string    `json:"state" orm:"column(state_);size(10);description(stop,start)"`
@@ -109,6 +108,12 @@ type Scene struct {
 	Desc        string    `json:"desc" orm:"column(desc_);description(说明)"`
 	CreateId    int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime  time.Time `json:"createTime" orm:"column(create_time_)"`
+}
+
+type SceneRelDevice struct {
+	Id       int64  `json:"id" orm:"pk;column(id_);auto"`
+	SceneId  int64  `json:"sceneId" orm:"column(scene_id_);description(场景ID)"`
+	DeviceId string `json:"deviceId,omitempty" orm:"column(device_id_);size(64);description(设备Id)"`
 }
 
 // 设备告警
