@@ -32,6 +32,10 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 		qs = qs.Filter("name__contains", dev.Name)
 	}
 
+	if len(dev.ProductId) > 0 {
+		qs = qs.Filter("ProductId", dev.ProductId)
+	}
+
 	count, err := qs.Count()
 	if err != nil {
 		return nil, err

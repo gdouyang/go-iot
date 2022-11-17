@@ -18,18 +18,18 @@ const (
 )
 
 type SceneTrigger struct {
-	Type   TriggerType        `json:"type"`
-	Device SceneTriggerDevice `json:"device,omitempty"`
-	Cron   string             `json:"cron,omitempty"`
+	TriggerType TriggerType        `json:"triggerType"`
+	Cron        string             `json:"cron,omitempty"`
+	ModelId     string             `json:"modelId,omitempty"` // 物模型表示,如:属性ID,事件ID
+	ProductId   string             `json:"productId,omitempty"`
+	DeviceId    string             `json:"deviceId,omitempty"`
+	Trigger     SceneTriggerDevice `json:"trigger,omitempty"`
 }
 
 type SceneTriggerDevice struct {
 	ShakeLimit ShakeLimit        `json:"shakeLimit"` // 防抖限制
-	Type       string            `json:"type"`       // 触发消息类型
-	ModelId    string            `json:"modelId"`    // 物模型表示,如:属性ID,事件ID
+	FilterType string            `json:"filterType"` // 触发消息类型
 	Filters    []ConditionFilter `json:"filters"`    // 条件
-	ProductId  string            `json:"productId"`
-	DeviceId   string            `json:"deviceId"`
 }
 
 type ConditionFilter struct {

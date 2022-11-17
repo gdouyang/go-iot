@@ -3,6 +3,7 @@ package api
 import (
 	"go-iot/models"
 	"go-iot/models/scene"
+	"go-iot/ruleengine"
 	"strconv"
 
 	"github.com/beego/beego/v2/server/web"
@@ -74,9 +75,7 @@ func (ctl *SceneController) Get() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	s := models.SceneModel{}
-	s.FromEnitty(*u)
-	resp = models.JsonRespOkData(s)
+	resp = models.JsonRespOkData(u)
 }
 
 func (ctl *SceneController) Add() {
@@ -171,7 +170,13 @@ func (ctl *SceneController) Enable() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = scene.UpdateSceneStatus(models.Started, int64(_id))
+	m, err := scene.GetSceneMust(int64(_id))
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	ruleengine.StartScene(m.Id, m.Trigger, m.Actions)
+	err = scene.UpdateSceneStatus(models.Started, m.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -195,7 +200,13 @@ func (ctl *SceneController) Disable() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = scene.UpdateSceneStatus(models.Stopped, int64(_id))
+	m, err := scene.GetSceneMust(int64(_id))
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	ruleengine.StopScene(m.Id)
+	err = scene.UpdateSceneStatus(models.Stopped, m.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return

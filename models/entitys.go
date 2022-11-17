@@ -97,14 +97,18 @@ type Network struct {
 
 // 场景联动
 type Scene struct {
-	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
-	Name       string    `json:"name" orm:"column(name_);size(64);null"`
-	State      string    `json:"state" orm:"column(state_);size(10);description(stop,start)"`
-	Triggers   string    `json:"triggers,omitempty" orm:"column(triggers_);null;type(text);description(触发)"`
-	Actions    string    `json:"actions,omitempty" orm:"column(actions_);null;type(text);description(动作)"`
-	Desc       string    `json:"desc" orm:"column(desc_);description(说明)"`
-	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
-	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
+	Id          int64     `json:"id" orm:"pk;column(id_);auto"`
+	Name        string    `json:"name" orm:"column(name_);size(64);null;description(场景名称)"`
+	TriggerType string    `json:"triggerType" orm:"column(trigger_type_);size(32);null;description(触发类型timer,device)"`
+	DeviceId    string    `json:"deviceId,omitempty" orm:"column(device_id_);type(text);null;description(设备)"`
+	ProductId   string    `json:"productId,omitempty" orm:"column(product_id_);size(64);null;description(产品)"`
+	ModelId     string    `json:"modelId,omitempty" orm:"column(model_id_);size(64);null;description(物模型ID)"`
+	State       string    `json:"state" orm:"column(state_);size(10);description(stop,start)"`
+	Trigger     string    `json:"trigger,omitempty" orm:"column(trigger_);null;type(text);description(触发)"`
+	Actions     string    `json:"actions,omitempty" orm:"column(actions_);null;type(text);description(动作)"`
+	Desc        string    `json:"desc" orm:"column(desc_);description(说明)"`
+	CreateId    int64     `json:"createId" orm:"column(create_id_);null"`
+	CreateTime  time.Time `json:"createTime" orm:"column(create_time_)"`
 }
 
 // 设备告警

@@ -75,19 +75,19 @@ type ProductMetaConfig struct {
 // scene
 type SceneModel struct {
 	Scene
-	Triggers []ruleengine.SceneTrigger `json:"triggers"`
-	Actions  []ruleengine.Action       `json:"actions"`
+	Trigger ruleengine.SceneTrigger `json:"trigger"`
+	Actions []ruleengine.Action     `json:"actions"`
 }
 
 func (d *SceneModel) FromEnitty(en Scene) {
 	d.Scene = en
-	if len(en.Triggers) > 0 {
-		m := []ruleengine.SceneTrigger{}
-		err := json.Unmarshal([]byte(en.Triggers), &m)
+	if len(en.Trigger) > 0 {
+		m := ruleengine.SceneTrigger{}
+		err := json.Unmarshal([]byte(en.Trigger), &m)
 		if err != nil {
 			logs.Error(err)
 		}
-		d.Triggers = m
+		d.Trigger = m
 	}
 	if len(en.Actions) > 0 {
 		m := []ruleengine.Action{}
@@ -101,12 +101,12 @@ func (d *SceneModel) FromEnitty(en Scene) {
 
 func (d *SceneModel) ToEnitty() Scene {
 	en := d.Scene
-	// triggers
-	v, err := json.Marshal(d.Triggers)
+	// trigger
+	v, err := json.Marshal(d.Trigger)
 	if err != nil {
 		logs.Error(err)
 	} else {
-		en.Triggers = string(v)
+		en.Trigger = string(v)
 	}
 	// actions
 	v, err = json.Marshal(d.Actions)

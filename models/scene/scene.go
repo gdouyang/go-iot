@@ -72,14 +72,26 @@ func UpdateScene(ob *models.Scene) error {
 	if len(ob.Name) > 0 {
 		columns = append(columns, "Name")
 	}
-	if len(ob.Desc) > 0 {
-		columns = append(columns, "Desc")
+	if len(ob.TriggerType) > 0 {
+		columns = append(columns, "TriggerType")
 	}
-	if len(ob.Triggers) > 0 {
-		columns = append(columns, "Triggers")
+	if len(ob.DeviceId) > 0 {
+		columns = append(columns, "DeviceId")
+	}
+	if len(ob.ProductId) > 0 {
+		columns = append(columns, "ProductId")
+	}
+	if len(ob.ModelId) > 0 {
+		columns = append(columns, "ModelId")
+	}
+	if len(ob.Trigger) > 0 {
+		columns = append(columns, "Trigger")
 	}
 	if len(ob.Actions) > 0 {
 		columns = append(columns, "Actions")
+	}
+	if len(ob.Desc) > 0 {
+		columns = append(columns, "Desc")
 	}
 	if len(columns) == 0 {
 		return errors.New("no data to update")
@@ -130,7 +142,7 @@ func GetScene(sceneId int64) (*models.Scene, error) {
 	}
 }
 
-func GetSceneMust(sceneId int64) (*models.Scene, error) {
+func GetSceneMust(sceneId int64) (*models.SceneModel, error) {
 	p, err := GetScene(sceneId)
 	if err != nil {
 		return nil, err
@@ -138,5 +150,7 @@ func GetSceneMust(sceneId int64) (*models.Scene, error) {
 	if p == nil {
 		return nil, errors.New("scene not exist")
 	}
-	return p, nil
+	m := models.SceneModel{}
+	m.FromEnitty(*p)
+	return &m, nil
 }

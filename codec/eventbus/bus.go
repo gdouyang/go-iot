@@ -2,6 +2,7 @@ package eventbus
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 )
 
@@ -42,6 +43,21 @@ func Subscribe(pattern string, run func(data interface{})) {
 	b.Lock()
 	defer b.Unlock()
 	b.m[pattern] = append(b.m[pattern], run)
+}
+
+func UnSubscribe(pattern string, run func(data interface{})) {
+	b.Lock()
+	defer b.Unlock()
+	listener := b.m[pattern]
+	var l1 []func(data interface{})
+	for _, callback := range listener {
+		sf1 := reflect.ValueOf(callback)
+		sf2 := reflect.ValueOf(run)
+		if sf1.Pointer() != sf2.Pointer() {
+			l1 = append(l1, callback)
+		}
+	}
+	b.m[pattern] = l1
 }
 
 func Publish(topic string, data interface{}) {
