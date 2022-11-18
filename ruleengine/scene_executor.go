@@ -5,11 +5,21 @@ import (
 	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 )
 
 var manager = &sceneManager{
 	m: map[int64]*SceneExecutor{},
+}
+
+var cronManager = cron.New()
+
+func init() {
+	go func() {
+		cronManager.Start()
+		defer cronManager.Stop()
+		select {}
+	}()
 }
 
 type sceneManager struct {
@@ -44,7 +54,7 @@ type SceneExecutor struct {
 	Id      int64
 	Trigger SceneTrigger
 	Actions []Action
-	cron    *cron.Cron
+	cronId  cron.EntryID
 }
 
 func (s *SceneExecutor) start() error {
@@ -53,14 +63,11 @@ func (s *SceneExecutor) start() error {
 		eventbus.Subscribe(eventbus.GetDeviceMesssageTopic(device.ProductId, device.DeviceId), s.subscribeEvent)
 		return nil
 	} else if s.Trigger.TriggerType == TriggerTypeTimer {
-		s.cron = cron.New()
-		err := s.cron.AddFunc(s.Trigger.Cron, func() {
-			s.runAction()
-		})
+		entryID, err := cronManager.AddFunc(s.Trigger.Cron, s.runAction)
 		if err != nil {
 			return err
 		}
-		go s.runCron()
+		s.cronId = entryID
 	}
 	return nil
 }
@@ -70,9 +77,7 @@ func (s *SceneExecutor) stop() {
 		device := s.Trigger
 		eventbus.UnSubscribe(eventbus.GetDeviceMesssageTopic(device.ProductId, device.DeviceId), s.subscribeEvent)
 	} else if s.Trigger.TriggerType == TriggerTypeTimer {
-		if s.cron != nil {
-			s.cron.Stop()
-		}
+		cronManager.Remove(s.cronId)
 	}
 }
 
@@ -89,12 +94,6 @@ func (s *SceneExecutor) doStart(device SceneTrigger, data interface{}) {
 	if pass {
 		s.runAction()
 	}
-}
-
-func (s *SceneExecutor) runCron() {
-	s.cron.Start()
-	defer s.cron.Stop()
-	select {}
 }
 
 func (s *SceneExecutor) runAction() {
