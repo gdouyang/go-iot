@@ -1,7 +1,10 @@
 package api
 
 import (
+	"encoding/base64"
+	"go-iot/models"
 	"go-iot/network/util"
+	"io"
 	"net/http"
 
 	"github.com/beego/beego/v2/server/web"
@@ -9,10 +12,11 @@ import (
 
 func init() {
 	web.Router("/file/?:name", &FileRootController{}, "get:File")
+	web.Router("/api/file/base64", &FileRootController{}, "post:Base64")
 }
 
 type FileRootController struct {
-	web.Controller
+	AuthController
 }
 
 // 下载素材
@@ -26,4 +30,27 @@ func (ctl *FileRootController) File() {
 	} else {
 		ctl.Ctx.Output.Download(path)
 	}
+}
+
+func (ctl *FileRootController) Base64() {
+	var resp = models.JsonRespOk()
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+	f, _, err := ctl.GetFile("file")
+	if err != nil {
+		if err.Error() != "http: no such file" {
+			resp = models.JsonRespError(err)
+			return
+		}
+	}
+	defer f.Close()
+	b, err := io.ReadAll(f)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	base64Str := base64.StdEncoding.EncodeToString(b)
+	resp.Data = base64Str
 }
