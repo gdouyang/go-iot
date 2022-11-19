@@ -23,6 +23,7 @@ var notifyResource = Resource{
 func init() {
 	ns := web.NewNamespace("/api/notifier/config",
 		web.NSRouter("/page", &NotifyController{}, "post:List"),
+		web.NSRouter("/list", &NotifyController{}, "post:ListAll"),
 		web.NSRouter("/", &NotifyController{}, "post:Add"),
 		web.NSRouter("/:id", &NotifyController{}, "put:Update"),
 		web.NSRouter("/:id", &NotifyController{}, "get:Get"),
@@ -54,6 +55,29 @@ func (ctl *NotifyController) List() {
 		ctl.Data["json"] = models.JsonRespOkData(res)
 	}
 	ctl.ServeJSON()
+}
+
+func (ctl *NotifyController) ListAll() {
+	if ctl.isForbidden(notifyResource, QueryAction) {
+		return
+	}
+	var resp models.JsonResp
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+	var ob models.Notify
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	res, err := notify.ListAll(&ob)
+	if err != nil {
+		resp = models.JsonRespError(err)
+	} else {
+		resp = models.JsonRespOkData(res)
+	}
 }
 
 func (ctl *NotifyController) Get() {

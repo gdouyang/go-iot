@@ -45,9 +45,31 @@ func ListNotify(page *models.PageQuery) (*models.PageResult, error) {
 	return pr, nil
 }
 
+func ListAll(ob *models.Notify) ([]models.Notify, error) {
+	//查询数据
+	o := orm.NewOrm()
+	qs := o.QueryTable(&models.Notify{})
+
+	if len(ob.Name) > 0 {
+		qs = qs.Filter("name__contains", ob.Name)
+	}
+	if len(ob.Type) > 0 {
+		qs = qs.Filter("type", ob.Type)
+	}
+
+	var result []models.Notify
+	_, err := qs.All(&result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func AddNotify(ob *models.Notify) error {
 	//插入数据
 	o := orm.NewOrm()
+	ob.State = models.Stopped
 	ob.CreateTime = time.Now()
 	_, err := o.Insert(ob)
 	if err != nil {

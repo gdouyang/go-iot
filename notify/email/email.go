@@ -42,8 +42,8 @@ func (c *NotifyConfig) Config() []map[string]string {
 		{"name": "server", "type": "string", "required": "true", "title": "SMTP Server", "desc": "SMTP server with port,example=\"smtp.example.com:465\""},
 		{"name": "username", "type": "string", "required": "true", "title": "SMTP Username", "desc": "SMTP username,example=\"name@example.com\""},
 		{"name": "password", "type": "password", "required": "true", "title": "SMTP Password", "desc": "SMTP password"},
-		{"name": "to", "type": "string", "required": "true", "title": "To", "desc": "Email address to send,example=\"usera@example.com;userb@example.com\""},
 		{"name": "from", "type": "string", "title": "From", "desc": "Email address from,example=\"from@example.com\""},
+		{"name": "to", "type": "string", "required": "true", "title": "To", "desc": "Email address to send,example=\"usera@example.com;userb@example.com\""},
 	}
 	return m
 }
