@@ -56,7 +56,7 @@ func AddScene(ob *models.SceneModel) error {
 		return errors.New("scene is exist")
 	}
 	if len(ob.DeviceIds) > 50 {
-		return errors.New("device must less 51")
+		return errors.New("size of deviceIds must less 51")
 	}
 	ob.State = models.Stopped
 	en := ob.ToEnitty()
@@ -110,7 +110,7 @@ func UpdateScene(ob *models.SceneModel) error {
 		return errors.New("no data to update")
 	}
 	if len(ob.DeviceIds) > 50 {
-		return errors.New("device must less 51")
+		return errors.New("size of deviceIds must less 51")
 	}
 	o := orm.NewOrm()
 	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
