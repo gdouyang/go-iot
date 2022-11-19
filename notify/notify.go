@@ -15,11 +15,20 @@ type Notify interface {
 	Name() string
 	Notify(title, message string) error
 	FromJson(str string) error
+	Config() []map[string]string
 }
 
 func RegNotify(fn func() Notify) {
 	notify := fn()
 	factory[notify.Kind()] = fn
+}
+
+func GetAllNotify() []Notify {
+	var all []Notify
+	for _, value := range factory {
+		all = append(all, value())
+	}
+	return all
 }
 
 func EnableNotify(kind string, id int64, config string) error {

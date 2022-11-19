@@ -142,3 +142,15 @@ type AlarmLog struct {
 	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
 }
+
+type Notify struct {
+	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
+	Name       string    `json:"name" orm:"column(name_);size(64);null;description(名称)"`
+	Type       string    `json:"type" orm:"column(type_);size(32);null;description(类型)"`
+	State      string    `json:"state" orm:"column(state_);size(10);description(状态started,stopped)"`
+	Desc       string    `json:"desc" orm:"column(desc_);size(255);description(说明)"`
+	Config     string    `json:"config" orm:"column(config_);type(text);description(配置)"`
+	Template   string    `json:"template" orm:"column(template_);type(text);description(内容模版)"`
+	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
+	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
+}

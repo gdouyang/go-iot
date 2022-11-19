@@ -18,11 +18,11 @@ func init() {
 
 // NotifyConfig is the email notification configuration
 type NotifyConfig struct {
-	Server string `yaml:"server" json:"server" jsonschema:"required,format=hostname,title=SMTP Server,description=SMTP server with port,example=\"smtp.example.com:465\""`
-	User   string `yaml:"username" json:"username" jsonschema:"required,title=SMTP Username,description=SMTP username,example=\"name@example.com\""`
-	Pass   string `yaml:"password" json:"password" jsonschema:"required,title=SMTP Password,description=SMTP password,example=\"password\""`
-	To     string `yaml:"to" json:"to" jsonschema:"required,title=To,description=Email address to send,example=\"usera@example.com;userb@example.com\""`
-	From   string `yaml:"from,omitempty" json:"from,omitempty" jsonschema:"title=From,description=Email address from,example=\"from@example.com\""`
+	Server string `json:"server"`
+	User   string `json:"username"`
+	Pass   string `json:"password"`
+	To     string `json:"to"`
+	From   string `json:"from,omitempty"`
 }
 
 func (c *NotifyConfig) Kind() string {
@@ -36,6 +36,16 @@ func (c *NotifyConfig) Name() string {
 func (c *NotifyConfig) FromJson(str string) error {
 	err := json.Unmarshal([]byte(str), c)
 	return err
+}
+func (c *NotifyConfig) Config() []map[string]string {
+	var m []map[string]string = []map[string]string{
+		{"name": "server", "type": "string", "required": "true", "title": "SMTP Server", "desc": "SMTP server with port,example=\"smtp.example.com:465\""},
+		{"name": "username", "type": "string", "required": "true", "title": "SMTP Username", "desc": "SMTP username,example=\"name@example.com\""},
+		{"name": "password", "type": "password", "required": "true", "title": "SMTP Password", "desc": "SMTP password"},
+		{"name": "to", "type": "string", "required": "true", "title": "To", "desc": "Email address to send,example=\"usera@example.com;userb@example.com\""},
+		{"name": "from", "type": "string", "title": "From", "desc": "Email address from,example=\"from@example.com\""},
+	}
+	return m
 }
 
 // SendMail sends the email

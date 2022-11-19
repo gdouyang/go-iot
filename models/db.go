@@ -25,6 +25,7 @@ func InitDb() {
 		new(MenuResource), new(AuthResource), new(SystemConfig),
 		new(Product), new(Device), new(Network),
 		new(Scene), new(SceneRelDevice), new(Alarm), new(AlarmLog),
+		new(Notify),
 	)
 
 	// create table

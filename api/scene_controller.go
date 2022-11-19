@@ -156,40 +156,17 @@ func (ctl *SceneController) Enable() {
 	if ctl.isForbidden(sceneResource, SaveAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
-	id := ctl.Ctx.Input.Param(":id")
-	_id, err := strconv.Atoi(id)
-	if err != nil {
-		resp = models.JsonRespError(err)
-		return
-	}
-	m, err := scene.GetSceneMust(int64(_id))
-	if err != nil {
-		resp = models.JsonRespError(err)
-		return
-	}
-	err = ruleengine.StartScene(m.Id, m.Trigger, m.Actions)
-	if err != nil {
-		resp = models.JsonRespError(err)
-		return
-	}
-	err = scene.UpdateSceneStatus(models.Started, m.Id)
-	if err != nil {
-		resp = models.JsonRespError(err)
-		return
-	}
-	resp = models.JsonRespOk()
+	ctl.enable(true)
 }
 
 func (ctl *SceneController) Disable() {
 	if ctl.isForbidden(sceneResource, SaveAction) {
 		return
 	}
+	ctl.enable(false)
+}
+
+func (ctl *SceneController) enable(flag bool) {
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp
@@ -207,8 +184,19 @@ func (ctl *SceneController) Disable() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	ruleengine.StopScene(m.Id)
-	err = scene.UpdateSceneStatus(models.Stopped, m.Id)
+	var state string = models.Started
+	if flag {
+		err = ruleengine.StartScene(m.Id, m.Trigger, m.Actions)
+		if err != nil {
+			resp = models.JsonRespError(err)
+			return
+		}
+	} else {
+		state = models.Stopped
+		ruleengine.StopScene(m.Id)
+	}
+
+	err = scene.UpdateSceneStatus(state, m.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
