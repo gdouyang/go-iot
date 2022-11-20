@@ -10,8 +10,8 @@ import (
 
 func PageAlarmLog(page *models.PageQuery) (*models.PageResult, error) {
 	var pr *models.PageResult
-	var dev models.AlarmLog
-	err := json.Unmarshal(page.Condition, &dev)
+	var q models.AlarmLog
+	err := json.Unmarshal(page.Condition, &q)
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +19,12 @@ func PageAlarmLog(page *models.PageQuery) (*models.PageResult, error) {
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.AlarmLog{})
-
+	if len(q.DeviceId) > 0 {
+		qs = qs.Filter("DeviceId", q.DeviceId)
+	}
+	if len(q.ProductId) > 0 {
+		qs = qs.Filter("ProductId", q.ProductId)
+	}
 	count, err := qs.Count()
 	if err != nil {
 		return nil, err
@@ -35,23 +40,6 @@ func PageAlarmLog(page *models.PageQuery) (*models.PageResult, error) {
 	pr = &p
 
 	return pr, nil
-}
-
-func GetAlarmLog(q models.AlarmLog) ([]models.AlarmLog, error) {
-	o := orm.NewOrm()
-	qs := o.QueryTable(models.AlarmLog{})
-	if len(q.DeviceId) > 0 {
-		qs = qs.Filter("DeviceId", q.DeviceId)
-	}
-	if len(q.ProductId) > 0 {
-		qs = qs.Filter("ProductId", q.ProductId)
-	}
-	var result []models.AlarmLog
-	_, err := qs.All(&result)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }
 
 func SolveAlarmLog(q models.AlarmLog) error {

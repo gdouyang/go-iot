@@ -16,8 +16,14 @@ const (
 )
 
 // /device/{productId}/{deviceId}/property
-func GetDeviceMesssageTopic(productId string, deviceId string) string {
+func GetMesssageTopic(productId string, deviceId string) string {
 	return fmt.Sprintf(DeviceMessageTopic, productId, deviceId)
+}
+func GetOnlineTopic(productId string, deviceId string) string {
+	return fmt.Sprintf(DeviceOnlineTopic, productId, deviceId)
+}
+func GetOfflineTopic(productId string, deviceId string) string {
+	return fmt.Sprintf(DeviceOfflineTopic, productId, deviceId)
 }
 
 var b = newEventBus()

@@ -20,7 +20,6 @@ var alarmResource = Resource{
 
 func init() {
 	ns := web.NewNamespace("/api/alarm",
-		web.NSRouter("/:target/:targetId", &AlarmController{}, "put:GetAlarmList"),
 		web.NSRouter("/log/page", &AlarmController{}, "post:PageAlarmLog"),
 		web.NSRouter("/log/:id/solve", &AlarmController{}, "put:SolveAlarmLog"),
 	)
@@ -31,32 +30,6 @@ func init() {
 
 type AlarmController struct {
 	AuthController
-}
-
-func (ctl *AlarmController) GetAlarmLog() {
-	if ctl.isForbidden(alarmResource, QueryAction) {
-		return
-	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
-	target := ctl.Ctx.Input.Param(":target")
-	targetId := ctl.Ctx.Input.Param(":targetId")
-	var q models.AlarmLog
-	if target == "device" {
-		q.DeviceId = targetId
-	} else {
-		q.ProductId = targetId
-	}
-	list, err := alarm.GetAlarmLog(q)
-	if err != nil {
-		resp = models.JsonRespError(err)
-		return
-	}
-	resp.Data = list
 }
 
 func (ctl *AlarmController) PageAlarmLog() {

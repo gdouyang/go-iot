@@ -122,8 +122,8 @@ type SceneRelDevice struct {
 // 告警记录
 type AlarmLog struct {
 	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
-	AlarmName  string    `json:"alarmName" orm:"column(alarm_name_);size(64);null;description(告警名称)"`
 	SceneId    int64     `json:"sceneId" orm:"column(scene_id_);description(告警Id)"`
+	AlarmName  string    `json:"alarmName" orm:"column(alarm_name_);size(64);null;description(告警名称)"`
 	DeviceId   string    `json:"deviceId" orm:"column(device_id_);size(64);null;description(设备ID)"`
 	ProductId  string    `json:"productId" orm:"column(product_id_);size(64);null;description(产品ID)"`
 	State      string    `json:"state" orm:"column(state_);size(10);description(状态open,solve)"`
