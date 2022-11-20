@@ -61,22 +61,25 @@ func AddScene(ob *models.SceneModel) error {
 	ob.State = models.Stopped
 	en := ob.ToEnitty()
 	//插入数据
-	ob.CreateTime = time.Now()
 	o := orm.NewOrm()
 	err = o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		_, err := txOrm.Insert(en)
+		en.CreateTime = time.Now()
+		_, err := txOrm.Insert(&en)
 		if err != nil {
 			return err
 		}
-		list := []models.SceneRelDevice{}
+		list := []*models.SceneRelDevice{}
 		for _, deviceId := range ob.DeviceIds {
-			list = append(list, models.SceneRelDevice{
+			list = append(list, &models.SceneRelDevice{
 				SceneId:  en.Id,
 				DeviceId: deviceId,
 			})
 		}
-		_, err = txOrm.InsertMulti(10, list)
-		return err
+		if len(list) > 0 {
+			_, err = txOrm.InsertMulti(10, &list)
+			return err
+		}
+		return nil
 	})
 	return err
 }
@@ -93,9 +96,6 @@ func UpdateScene(ob *models.SceneModel) error {
 	}
 	if len(ob.ProductId) > 0 {
 		columns = append(columns, "ProductId")
-	}
-	if len(ob.ModelId) > 0 {
-		columns = append(columns, "ModelId")
 	}
 	if len(en.Trigger) > 0 {
 		columns = append(columns, "Trigger")
@@ -114,26 +114,29 @@ func UpdateScene(ob *models.SceneModel) error {
 	}
 	o := orm.NewOrm()
 	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		_, err := txOrm.Update(en, columns...)
+		_, err := txOrm.Update(&en, columns...)
 		if err != nil {
 			return err
 		}
 		srd := models.SceneRelDevice{
 			SceneId: en.Id,
 		}
-		_, err = txOrm.Delete(srd, "SceneId")
+		_, err = txOrm.Delete(&srd, "SceneId")
 		if err != nil {
 			return err
 		}
-		list := []models.SceneRelDevice{}
+		list := []*models.SceneRelDevice{}
 		for _, deviceId := range ob.DeviceIds {
-			list = append(list, models.SceneRelDevice{
+			list = append(list, &models.SceneRelDevice{
 				SceneId:  en.Id,
 				DeviceId: deviceId,
 			})
 		}
-		_, err = txOrm.InsertMulti(10, list)
-		return err
+		if len(list) > 0 {
+			_, err = txOrm.InsertMulti(10, &list)
+			return err
+		}
+		return nil
 	})
 
 	return err
@@ -179,7 +182,7 @@ func GetScene(sceneId int64) (*models.SceneModel, error) {
 		//
 		o := orm.NewOrm()
 		qs := o.QueryTable(models.SceneRelDevice{}).Filter("SceneId", p.Id)
-		var cols = []string{"Id", "Name", "State", "Desc", "CreateId", "CreateTime"}
+		var cols = []string{"Id", "SceneId", "DeviceId"}
 		var result []models.SceneRelDevice
 		_, err = qs.All(&result, cols...)
 		if err != nil {

@@ -2,6 +2,7 @@ package ruleengine
 
 import (
 	"fmt"
+	"go-iot/codec/eventbus"
 
 	"gopkg.in/Knetic/govaluate.v2"
 )
@@ -17,25 +18,28 @@ const (
 	TriggerTypeTimer  TriggerType = "timer"
 )
 
-type SceneTrigger struct {
-	TriggerType TriggerType        `json:"triggerType"`
-	Cron        string             `json:"cron,omitempty"`
-	ModelId     string             `json:"modelId,omitempty"` // 物模型表示,如:属性ID,事件ID
-	ProductId   string             `json:"productId,omitempty"`
-	DeviceId    string             `json:"deviceId,omitempty"`
-	Trigger     SceneTriggerDevice `json:"trigger,omitempty"`
+type Trigger struct {
+	FilterType string            `json:"filterType"` // 触发消息类型 online,offline,properties,event
+	Filters    []ConditionFilter `json:"filters"`    // 条件
+	ShakeLimit ShakeLimit        `json:"shakeLimit"` // 防抖限制
 }
 
-type SceneTriggerDevice struct {
-	ShakeLimit ShakeLimit        `json:"shakeLimit"` // 防抖限制
-	FilterType string            `json:"filterType"` // 触发消息类型
-	Filters    []ConditionFilter `json:"filters"`    // 条件
+func (t *Trigger) GetTopic(productId, deviceId string) string {
+	if t.FilterType == "properties" {
+		return eventbus.GetMesssageTopic(productId, deviceId)
+	} else if t.FilterType == "online" {
+		return eventbus.GetOnlineTopic(productId, deviceId)
+	} else if t.FilterType == "offline" {
+		return eventbus.GetOfflineTopic(productId, deviceId)
+	}
+	return ""
 }
 
 type ConditionFilter struct {
 	Key        string                         `json:"key"`
 	Value      string                         `json:"value"`
 	Operator   string                         `json:"operator"`
+	Logic      string                         `json:"logic,omitempty"`
 	expression *govaluate.EvaluableExpression `json:"-"`
 }
 

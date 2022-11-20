@@ -186,7 +186,15 @@ func (ctl *SceneController) enable(flag bool) {
 	}
 	var state string = models.Started
 	if flag {
-		err = ruleengine.StartScene(m.Id, m.Trigger, m.Actions)
+		rule := ruleengine.RuleExecutor{
+			ProductId:   m.ProductId,
+			TriggerType: ruleengine.TriggerType(m.TriggerType),
+			Cron:        m.Cron,
+			Trigger:     m.Trigger,
+			Actions:     m.Actions,
+			DeviceIds:   m.DeviceIds,
+		}
+		err = ruleengine.StartScene(m.Id, rule)
 		if err != nil {
 			resp = models.JsonRespError(err)
 			return

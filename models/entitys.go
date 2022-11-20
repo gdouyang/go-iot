@@ -104,8 +104,8 @@ type Scene struct {
 	Type        string    `json:"type" orm:"column(type_);size(10);null;description(scene,alarm)"`
 	TriggerType string    `json:"triggerType" orm:"column(trigger_type_);size(32);null;description(触发类型timer,device)"`
 	ProductId   string    `json:"productId,omitempty" orm:"column(product_id_);size(64);null;description(产品)"`
-	ModelId     string    `json:"modelId,omitempty" orm:"column(model_id_);size(64);null;description(物模型ID)"`
 	State       string    `json:"state" orm:"column(state_);size(10);description(stop,start)"`
+	Cron        string    `json:"cron" orm:"column(cron_);size(32);null;description(cron)"`
 	Trigger     string    `json:"trigger,omitempty" orm:"column(trigger_);null;type(text);description(触发)"`
 	Actions     string    `json:"actions,omitempty" orm:"column(actions_);null;type(text);description(动作)"`
 	Desc        string    `json:"desc" orm:"column(desc_);description(说明)"`
