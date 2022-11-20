@@ -7,23 +7,34 @@ import (
 )
 
 const (
-	// device property topic
+	// device property topic pattern
 	DeviceMessageTopic string = "/device/%s/%s/property"
-	// device online
+	// device online topic pattern
 	DeviceOnlineTopic string = "/device/%s/%s/online"
-	// device offline
+	// device offline topic pattern
 	DeviceOfflineTopic string = "/device/%s/%s/offline"
+	// event topic pattern
+	DeviceEventTopic string = "/device/%s/%s/event"
 )
 
 // /device/{productId}/{deviceId}/property
 func GetMesssageTopic(productId string, deviceId string) string {
 	return fmt.Sprintf(DeviceMessageTopic, productId, deviceId)
 }
+
+// /device/{productId}/{deviceId}/online
 func GetOnlineTopic(productId string, deviceId string) string {
 	return fmt.Sprintf(DeviceOnlineTopic, productId, deviceId)
 }
+
+// /device/{productId}/{deviceId}/offline
 func GetOfflineTopic(productId string, deviceId string) string {
 	return fmt.Sprintf(DeviceOfflineTopic, productId, deviceId)
+}
+
+// /device/{productId}/{deviceId}/event
+func GetEventTopic(productId string, deviceId string) string {
+	return fmt.Sprintf(DeviceEventTopic, productId, deviceId)
 }
 
 var b = newEventBus()
