@@ -9,7 +9,7 @@ import (
 
 var alarmResource = Resource{
 	Id:   "alarm-mgr",
-	Name: "告警管理",
+	Name: "设备告警",
 	Action: []ResourceAction{
 		QueryAction,
 		CretaeAction,

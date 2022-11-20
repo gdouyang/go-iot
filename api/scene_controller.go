@@ -11,7 +11,7 @@ import (
 
 var sceneResource = Resource{
 	Id:   "rule-mgr",
-	Name: "场景联动",
+	Name: "规则引擎",
 	Action: []ResourceAction{
 		QueryAction,
 		CretaeAction,
