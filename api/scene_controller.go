@@ -187,6 +187,7 @@ func (ctl *SceneController) enable(flag bool) {
 	var state string = models.Started
 	if flag {
 		rule := ruleengine.RuleExecutor{
+			Type:        m.Type,
 			ProductId:   m.ProductId,
 			TriggerType: ruleengine.TriggerType(m.TriggerType),
 			Cron:        m.Cron,

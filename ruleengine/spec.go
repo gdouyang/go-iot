@@ -3,6 +3,7 @@ package ruleengine
 import (
 	"fmt"
 	"go-iot/codec/eventbus"
+	"sync"
 
 	"gopkg.in/Knetic/govaluate.v2"
 )
@@ -19,9 +20,10 @@ const (
 )
 
 type Trigger struct {
-	FilterType string            `json:"filterType"` // 触发消息类型 online,offline,properties,event
-	Filters    []ConditionFilter `json:"filters"`    // 条件
-	ShakeLimit ShakeLimit        `json:"shakeLimit"` // 防抖限制
+	FilterType string                         `json:"filterType"` // 触发消息类型 online,offline,properties,event
+	Filters    []ConditionFilter              `json:"filters"`    // 条件
+	ShakeLimit ShakeLimit                     `json:"shakeLimit"` // 防抖限制
+	expression *govaluate.EvaluableExpression `json:"-"`
 }
 
 func (t *Trigger) GetTopic(productId, deviceId string) string {
@@ -35,19 +37,61 @@ func (t *Trigger) GetTopic(productId, deviceId string) string {
 	return ""
 }
 
+func (c *Trigger) GetExpression() string {
+	var expression string
+	isOr := false
+	for index, v := range c.Filters {
+		if index == 0 {
+			expression = v.getExpression()
+		}
+		if index > 0 {
+			if v.Logic == "and" {
+				expression = fmt.Sprintf("%s && %s", expression, v.getExpression())
+			} else {
+				if isOr {
+					expression = fmt.Sprintf("%s)", expression)
+				}
+				isOr = true
+				expression = fmt.Sprintf("%s || (%s", expression, v.getExpression())
+			}
+		}
+	}
+	if isOr {
+		expression = fmt.Sprintf("%s)", expression)
+	}
+	return expression
+}
+
+func (c *Trigger) Evaluate(data map[string]interface{}) (bool, error) {
+	if c.expression == nil {
+		var mutex sync.Mutex
+		mutex.Lock()
+		defer mutex.Unlock()
+		expression, err := govaluate.NewEvaluableExpression(c.GetExpression())
+		if err != nil {
+			return false, err
+		}
+		c.expression = expression
+	}
+	result, err := c.expression.Evaluate(data)
+	if err != nil {
+		return false, err
+	}
+	return result.(bool), nil
+}
+
 type ConditionFilter struct {
-	Key        string                         `json:"key"`
-	Value      string                         `json:"value"`
-	Operator   string                         `json:"operator"`
-	Logic      string                         `json:"logic,omitempty"`
-	expression *govaluate.EvaluableExpression `json:"-"`
+	Key      string `json:"key"`
+	Value    string `json:"value"`
+	Operator string `json:"operator"`
+	Logic    string `json:"logic,omitempty"`
 }
 
 func (c *ConditionFilter) getExpression() string {
 	var oper string
 	switch c.Operator {
 	case "eq":
-		oper = "="
+		oper = "=="
 	case "not":
 		oper = "!="
 	case "qt":
@@ -60,21 +104,6 @@ func (c *ConditionFilter) getExpression() string {
 		oper = "<="
 	}
 	return fmt.Sprintf("%s %s %s", c.Key, oper, c.Value)
-}
-
-func (c *ConditionFilter) evaluate(data map[string]interface{}) (bool, error) {
-	if c.expression == nil {
-		expression, err := govaluate.NewEvaluableExpression(c.getExpression())
-		if err != nil {
-			return false, err
-		}
-		c.expression = expression
-	}
-	result, err := c.expression.Evaluate(data)
-	if err != nil {
-		return false, err
-	}
-	return result.(bool), nil
 }
 
 // 抖动限制

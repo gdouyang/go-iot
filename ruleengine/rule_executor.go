@@ -55,6 +55,7 @@ func StopScene(id int64) {
 }
 
 type RuleExecutor struct {
+	Type        string
 	TriggerType TriggerType
 	Cron        string
 	ProductId   string
@@ -98,10 +99,7 @@ func (s *RuleExecutor) subscribeEvent(data interface{}) {
 		}
 	}
 	if pass {
-		for _, filter := range s.Trigger.Filters {
-			pass, _ = filter.evaluate(data.(map[string]interface{}))
-			break
-		}
+		pass, _ = s.Trigger.Evaluate(data.(map[string]interface{}))
 		if pass {
 			s.runAction()
 		}
