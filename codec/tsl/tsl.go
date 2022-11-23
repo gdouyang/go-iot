@@ -12,6 +12,7 @@ const (
 	TypeFloat  = "float"
 	TypeDouble = "double"
 	TypeDate   = "date"
+	TypeObject = "object"
 
 	PropertyDeviceId = "deviceId"
 )
@@ -73,29 +74,24 @@ func (p *TslProperty) GetValueType() interface{} {
 	}
 	switch t.(string) {
 	case TypeEnum:
-		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeEnum{}
-		json.Unmarshal(data, &valueType)
+		valueType.convert(p.ValueType)
 		return valueType
 	case TypeInt:
-		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeInt{}
-		json.Unmarshal(data, &valueType)
+		valueType.convert(p.ValueType)
 		return valueType
 	case TypeString:
-		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeString{}
-		json.Unmarshal(data, &valueType)
+		valueType.convert(p.ValueType)
 		return valueType
 	case TypeFloat:
-		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeFloat{}
-		json.Unmarshal(data, &valueType)
+		valueType.convert(p.ValueType)
 		return valueType
 	case TypeDouble:
-		data, _ := json.Marshal(p.ValueType)
 		valueType := ValueTypeFloat{}
-		json.Unmarshal(data, &valueType)
+		valueType.convert(p.ValueType)
 		return valueType
 	}
 	return p.ValueType
@@ -104,6 +100,11 @@ func (p *TslProperty) GetValueType() interface{} {
 type ValueTypeEnum struct {
 	Type     string             `json:"type"`
 	Elements []ValueTypeEnumEle `json:"elements"`
+}
+
+func (v *ValueTypeEnum) convert(data map[string]interface{}) error {
+	str, _ := json.Marshal(data)
+	return json.Unmarshal(str, v)
 }
 
 type ValueTypeEnumEle struct {
@@ -118,10 +119,20 @@ type ValueTypeInt struct {
 	Min  int32  `json:"min"`
 }
 
+func (v *ValueTypeInt) convert(data map[string]interface{}) error {
+	str, _ := json.Marshal(data)
+	return json.Unmarshal(str, v)
+}
+
 type ValueTypeString struct {
 	Type string `json:"type"`
 	Max  int32  `json:"max"`
 	Min  int32  `json:"min"`
+}
+
+func (v *ValueTypeString) convert(data map[string]interface{}) error {
+	str, _ := json.Marshal(data)
+	return json.Unmarshal(str, v)
 }
 
 type ValueTypeFloat struct {
@@ -130,4 +141,9 @@ type ValueTypeFloat struct {
 	Unit  string `json:"unit"`
 	Max   int32  `json:"max"`
 	Min   int32  `json:"min"`
+}
+
+func (v *ValueTypeFloat) convert(data map[string]interface{}) error {
+	str, _ := json.Marshal(data)
+	return json.Unmarshal(str, v)
 }

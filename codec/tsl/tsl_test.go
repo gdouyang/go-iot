@@ -1,6 +1,7 @@
 package tsl_test
 
 import (
+	"fmt"
 	"go-iot/codec/tsl"
 	"log"
 	"testing"
@@ -151,4 +152,14 @@ func TestTsl(t *testing.T) {
 	for _, e := range d.Properties {
 		log.Println(e.GetValueType())
 	}
+	s := fmt.Sprintf("%v", 1)
+	log.Println(s)
+	s = fmt.Sprintf("%v", 11.22)
+	log.Println(s)
+	s = fmt.Sprintf("%v", true)
+	log.Println(s)
+	s = fmt.Sprintf("%v", 100000)
+	log.Println(s)
+	s = fmt.Sprintf("%v", "100000ff")
+	log.Println(s)
 }

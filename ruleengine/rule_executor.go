@@ -1,6 +1,7 @@
 package ruleengine
 
 import (
+	"go-iot/codec"
 	"go-iot/codec/eventbus"
 	"go-iot/codec/tsl"
 	"sync"
@@ -99,7 +100,12 @@ func (s *RuleExecutor) subscribeEvent(data interface{}) {
 		}
 	}
 	if pass {
-		pass, _ = s.Trigger.Evaluate(data.(map[string]interface{}))
+		data1 := data.(map[string]interface{})
+		product := codec.GetProductManager().Get(s.ProductId)
+		if nil != product {
+			tsl.ValueConvert1(product.GetTslProperty(), &data1)
+		}
+		pass, _ = s.Trigger.Evaluate(data1)
 		if pass {
 			s.runAction()
 		}
