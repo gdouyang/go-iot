@@ -9,7 +9,53 @@ import (
 
 const text = `
 {
-  "events": [],
+  "events": [
+		{
+      "valueType": {
+        "type": "object",
+        "properties": [
+          {
+            "valueType": {
+              "type": "float"
+            },
+            "name": "lnt",
+            "id": "lnt",
+            "expands": {}
+          },
+          {
+            "valueType": {
+              "type": "float"
+            },
+            "name": "lat",
+            "id": "lat",
+            "expands": {}
+          },
+          {
+            "valueType": {
+              "type": "int"
+            },
+            "name": "point",
+            "id": "point",
+            "expands": {}
+          },
+          {
+            "valueType": {
+              "expands": {},
+              "type": "string"
+            },
+            "name": "b_name",
+            "id": "b_name",
+            "expands": {}
+          }
+        ]
+      },
+      "name": "fire_alarm",
+      "id": "fire_alarm",
+      "expands": {
+        "level": "ordinary"
+      }
+    }
+	],
   "properties": [
     {
       "id": "light",
@@ -35,27 +81,32 @@ const text = `
       }
     },
     {
-      "id": "voltage",
-      "name": "电压",
-      "valueType": {
-        "type": "double",
-        "scale": 2,
-        "unit": "volt"
-      },
+      "id": "obj",
+      "name": "obj",
       "expands": {
-        "readOnly": "true"
-      }
-    },
-    {
-      "id": "power",
-      "name": "功率",
-      "valueType": {
-        "type": "double",
-        "scale": 2,
-        "unit": "watt"
+        "readOnly": "true",
+        "level": null
       },
-      "expands": {
-        "readOnly": "true"
+      "description": null,
+      "valueType": {
+        "properties": [
+          {
+            "id": "name",
+            "name": "name",
+            "expands": {
+              "readOnly": null,
+              "level": null
+            },
+            "description": "test",
+            "valueType": {
+              "expands": {
+                "maxLength": "32"
+              },
+              "type": "string"
+            }
+          }
+        ],
+        "type": "object"
       }
     }
   ],
