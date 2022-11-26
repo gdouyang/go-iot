@@ -135,6 +135,6 @@ type ShakeLimit struct {
 
 // 执行
 type Action struct {
-	Executor      string                 `json:"executor"`      // 执行器
-	Configuration map[string]interface{} `json:"configuration"` // 执行器配置
+	Executor      string `json:"executor"`      // 执行器
+	Configuration string `json:"configuration"` // 执行器配置
 }

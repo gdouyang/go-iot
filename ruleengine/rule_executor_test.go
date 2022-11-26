@@ -29,7 +29,7 @@ func TestRule(t *testing.T) {
 		Trigger:     trigger,
 		Actions:     []ruleengine.Action{{Executor: "console"}},
 	}
-	err := ruleengine.StartScene(1, &rule)
+	err := ruleengine.Start(1, &rule)
 	assert.Nil(t, err)
 	var propMap = map[string]tsl.TslProperty{
 		"light":   {Id: "light", Name: "亮度", ValueType: map[string]interface{}{"type": "int"}},

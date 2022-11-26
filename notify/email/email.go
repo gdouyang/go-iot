@@ -12,32 +12,50 @@ import (
 
 func init() {
 	notify.RegNotify(func() notify.Notify {
-		return &NotifyConfig{}
+		return &EmailNotify{}
 	})
 }
 
-// NotifyConfig is the email notification configuration
-type NotifyConfig struct {
-	Server string `json:"server"`
-	User   string `json:"username"`
-	Pass   string `json:"password"`
-	To     string `json:"to"`
-	From   string `json:"from,omitempty"`
+// EmailNotify is the email notification configuration
+type EmailNotify struct {
+	Server      string `json:"server"`
+	User        string `json:"username"`
+	Pass        string `json:"password"`
+	To          string `json:"to"`
+	From        string `json:"from,omitempty"`
+	subject     string `json:"-"`
+	msgTemplate string `json:"-"`
 }
 
-func (c *NotifyConfig) Kind() string {
+func (c *EmailNotify) Kind() string {
 	return "email"
 }
 
-func (c *NotifyConfig) Name() string {
+func (c *EmailNotify) Name() string {
 	return "邮件"
 }
 
-func (c *NotifyConfig) FromJson(str string) error {
-	err := json.Unmarshal([]byte(str), c)
+func (c *EmailNotify) Title() string {
+	return c.subject
+}
+
+func (c *EmailNotify) MsgTemplate() string {
+	return c.msgTemplate
+}
+
+func (c *EmailNotify) FromJson(config notify.NotifyConfig) error {
+	err := json.Unmarshal([]byte(config.Config), c)
+	if err != nil {
+		return err
+	}
+	tpl := map[string]string{}
+	err = json.Unmarshal([]byte(config.Config), &tpl)
+	c.subject = tpl["subject"]
+	c.msgTemplate = tpl["msgTemplate"]
 	return err
 }
-func (c *NotifyConfig) Config() []map[string]string {
+
+func (c *EmailNotify) Meta() []map[string]string {
 	var m []map[string]string = []map[string]string{
 		{"name": "server", "type": "string", "required": "true", "title": "SMTP Server", "desc": "SMTP server with port,example=\"smtp.example.com:465\""},
 		{"name": "username", "type": "string", "required": "true", "title": "SMTP Username", "desc": "SMTP username,example=\"name@example.com\""},
@@ -49,7 +67,7 @@ func (c *NotifyConfig) Config() []map[string]string {
 }
 
 // SendMail sends the email
-func (c *NotifyConfig) Notify(subject string, message string) error {
+func (c *EmailNotify) Notify(subject string, message string) error {
 
 	host, p, err := net.SplitHostPort(c.Server)
 	if err != nil {

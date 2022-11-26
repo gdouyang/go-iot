@@ -3,8 +3,6 @@ package notify
 import (
 	"fmt"
 	"sync"
-
-	"github.com/beego/beego/v2/core/logs"
 )
 
 var factory map[string]func() Notify = map[string]func() Notify{}
@@ -14,8 +12,15 @@ type Notify interface {
 	Kind() string
 	Name() string
 	Notify(title, message string) error
-	FromJson(str string) error
-	Config() []map[string]string
+	FromJson(str NotifyConfig) error
+	Meta() []map[string]string // 配置说明
+	Title() string
+	MsgTemplate() string // 消息模板
+}
+
+type NotifyConfig struct {
+	Config   string
+	Template string
 }
 
 func RegNotify(fn func() Notify) {
@@ -31,7 +36,7 @@ func GetAllNotify() []Notify {
 	return all
 }
 
-func EnableNotify(kind string, id int64, config string) error {
+func EnableNotify(kind string, id int64, config NotifyConfig) error {
 	var mutex sync.Mutex
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -59,17 +64,13 @@ func DisableNotify(id int64) {
 	delete(instance, id)
 }
 
-func DoSend(id int64, title, message string) {
+func GetNotify(id int64) Notify {
 	var mutex sync.Mutex
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	if notify, ok := instance[id]; ok {
-		go func() {
-			err := notify.Notify(title, message)
-			if err != nil {
-				logs.Error(err)
-			}
-		}()
+		return notify
 	}
+	return nil
 }

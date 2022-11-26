@@ -29,7 +29,7 @@ type sceneManager struct {
 	m map[int64]*RuleExecutor
 }
 
-func StartScene(id int64, rule *RuleExecutor) error {
+func Start(id int64, rule *RuleExecutor) error {
 	manager.Lock()
 	defer manager.Unlock()
 	if len(rule.Type) == 0 {
@@ -47,7 +47,7 @@ func StartScene(id int64, rule *RuleExecutor) error {
 	return nil
 }
 
-func StopScene(id int64) {
+func Stop(id int64) {
 	manager.Lock()
 	defer manager.Unlock()
 	if e, ok := manager.m[id]; ok {
@@ -132,12 +132,14 @@ func (s *RuleExecutor) runAction() {
 	for _, action := range s.Actions {
 		if action.Executor == "device-message-sender" {
 			a := DeviceCmdAction{}
-			err := a.Covent(action.Configuration)
+			err := a.FromJson(action.Configuration)
 			if err != nil {
 				logs.Error(err)
 			} else {
 				a.Do()
 			}
+		} else if action.Executor == "notifier" {
+
 		} else {
 			logs.Info("%s %s %s action is run", s.Name, s.Type, s.TriggerType)
 		}

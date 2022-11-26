@@ -196,14 +196,14 @@ func (ctl *SceneController) enable(flag bool) {
 			Actions:     m.Actions,
 			DeviceIds:   m.DeviceIds,
 		}
-		err = ruleengine.StartScene(m.Id, &rule)
+		err = ruleengine.Start(m.Id, &rule)
 		if err != nil {
 			resp = models.JsonRespError(err)
 			return
 		}
 	} else {
 		state = models.Stopped
-		ruleengine.StopScene(m.Id)
+		ruleengine.Stop(m.Id)
 	}
 
 	err = scene.UpdateSceneStatus(state, m.Id)

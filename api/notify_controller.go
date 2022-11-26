@@ -118,7 +118,7 @@ func (ctl *NotifyController) Types() {
 		list1 = append(list1, map[string]interface{}{
 			"type":   v.Kind(),
 			"name":   v.Name(),
-			"config": v.Config(),
+			"config": v.Meta(),
 		})
 	}
 	resp = models.JsonRespOkData(list1)
@@ -232,7 +232,8 @@ func (ctl *NotifyController) enable(flag bool) {
 	}
 	var state string = models.Started
 	if flag {
-		err = notify1.EnableNotify(m.Type, m.Id, m.Config)
+		config := notify1.NotifyConfig{Config: m.Config, Template: m.Template}
+		err = notify1.EnableNotify(m.Type, m.Id, config)
 		if err != nil {
 			resp = models.JsonRespError(err)
 			return
