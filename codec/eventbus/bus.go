@@ -37,7 +37,7 @@ func GetEventTopic(productId string, deviceId string) string {
 	return fmt.Sprintf(DeviceEventTopic, productId, deviceId)
 }
 
-var b = newEventBus()
+var bus = newEventBus()
 
 func newEventBus() *eventBus {
 	return &eventBus{
@@ -53,19 +53,19 @@ type eventBus struct {
 }
 
 func (b *eventBus) match(pattern string, path string) bool {
-	return b.matcher.Match(pattern, path)
+	return bus.matcher.Match(pattern, path)
 }
 
 func Subscribe(pattern string, run func(data interface{})) {
-	b.Lock()
-	defer b.Unlock()
-	b.m[pattern] = append(b.m[pattern], run)
+	bus.Lock()
+	defer bus.Unlock()
+	bus.m[pattern] = append(bus.m[pattern], run)
 }
 
 func UnSubscribe(pattern string, run func(data interface{})) {
-	b.Lock()
-	defer b.Unlock()
-	listener := b.m[pattern]
+	bus.Lock()
+	defer bus.Unlock()
+	listener := bus.m[pattern]
 	var l1 []func(data interface{})
 	for _, callback := range listener {
 		sf1 := reflect.ValueOf(callback)
@@ -74,16 +74,16 @@ func UnSubscribe(pattern string, run func(data interface{})) {
 			l1 = append(l1, callback)
 		}
 	}
-	b.m[pattern] = l1
+	bus.m[pattern] = l1
 }
 
 func Publish(topic string, data interface{}) {
-	b.Lock()
-	defer b.Unlock()
-	for pattern, listener := range b.m {
-		if b.match(pattern, topic) {
+	bus.Lock()
+	defer bus.Unlock()
+	for pattern, listener := range bus.m {
+		if bus.match(pattern, topic) {
 			for _, callback := range listener {
-				callback(data)
+				go callback(data)
 			}
 		}
 	}

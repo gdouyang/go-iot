@@ -5,7 +5,8 @@ import (
 	"go-iot/codec/eventbus"
 	"sync"
 
-	"gopkg.in/Knetic/govaluate.v2"
+	"github.com/beego/beego/v2/core/logs"
+	"github.com/robertkrimen/otto"
 )
 
 type TaskExecutorProvider interface {
@@ -20,20 +21,23 @@ const (
 )
 
 type Trigger struct {
-	FilterType string                         `json:"filterType"` // 触发消息类型 online,offline,properties,event
-	Filters    []ConditionFilter              `json:"filters"`    // 条件
-	ShakeLimit ShakeLimit                     `json:"shakeLimit"` // 防抖限制
-	expression *govaluate.EvaluableExpression `json:"-"`
+	FilterType string            `json:"filterType"` // 触发消息类型 online,offline,properties,event
+	Filters    []ConditionFilter `json:"filters"`    // 条件
+	ShakeLimit ShakeLimit        `json:"shakeLimit"` // 防抖限制
+	expression *otto.Otto        `json:"-"`
 }
 
-func (t *Trigger) GetTopic(productId, deviceId string) string {
+func (t *Trigger) GetTopic(productId string) string {
 	if t.FilterType == "properties" {
-		return eventbus.GetMesssageTopic(productId, deviceId)
+		return eventbus.GetMesssageTopic(productId, "*")
 	} else if t.FilterType == "online" {
-		return eventbus.GetOnlineTopic(productId, deviceId)
+		return eventbus.GetOnlineTopic(productId, "*")
 	} else if t.FilterType == "offline" {
-		return eventbus.GetOfflineTopic(productId, deviceId)
+		return eventbus.GetOfflineTopic(productId, "*")
+	} else if t.FilterType == "event" {
+		return eventbus.GetEventTopic(productId, "*")
 	}
+	logs.Error("filterType[%s] is illegal, must be [properties, online, offline, event]", t.FilterType)
 	return ""
 }
 
@@ -67,17 +71,27 @@ func (c *Trigger) Evaluate(data map[string]interface{}) (bool, error) {
 		var mutex sync.Mutex
 		mutex.Lock()
 		defer mutex.Unlock()
-		expression, err := govaluate.NewEvaluableExpression(c.GetExpression())
+		vm := otto.New()
+		_, err := vm.Run("function test() { return " + c.GetExpression() + ";}")
+		// expression, err := govaluate.NewEvaluableExpression(c.GetExpression())
 		if err != nil {
 			return false, err
 		}
-		c.expression = expression
+		c.expression = vm
 	}
-	result, err := c.expression.Evaluate(data)
+	vm := c.expression.Copy()
+	for key, value := range data {
+		vm.Set(key, value)
+	}
+	result, err := vm.Call(`test`, nil)
 	if err != nil {
 		return false, err
 	}
-	return result.(bool), nil
+	val, err := result.ToBoolean()
+	if err != nil {
+		return false, err
+	}
+	return val, nil
 }
 
 type ConditionFilter struct {
@@ -85,6 +99,7 @@ type ConditionFilter struct {
 	Value    string `json:"value"`
 	Operator string `json:"operator"`
 	Logic    string `json:"logic,omitempty"`
+	DataType string `json:"dataType"`
 }
 
 func (c *ConditionFilter) getExpression() string {
@@ -103,7 +118,11 @@ func (c *ConditionFilter) getExpression() string {
 	case "lte":
 		oper = "<="
 	}
-	return fmt.Sprintf("%s %s %s", c.Key, oper, c.Value)
+	if c.DataType == "string" {
+		return fmt.Sprintf("%s %s \"%s\"", c.Key, oper, c.Value)
+	} else {
+		return fmt.Sprintf("%s %s %s", c.Key, oper, c.Value)
+	}
 }
 
 // 抖动限制

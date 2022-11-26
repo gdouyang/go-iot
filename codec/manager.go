@@ -5,6 +5,11 @@ import (
 	"sync"
 )
 
+func init() {
+	RegDeviceManager(&memDeviceManager{cache: make(map[string]Device)})
+	RegProductManager(&memProductManager{cache: make(map[string]Product)})
+}
+
 // session
 var sessionManager *SessionManager = &SessionManager{}
 
@@ -34,16 +39,19 @@ func (sm *SessionManager) DelLocal(deviceId string) {
 	}
 }
 
-// device and product
+// db, mem, redis
+var DefaultManagerId = "db"
+
+// device and product manager
 var deviceManagerMap map[string]DeviceManager = map[string]DeviceManager{}
 var productManagerMap map[string]ProductManager = map[string]ProductManager{}
 
 func GetDeviceManager() DeviceManager {
-	return deviceManagerMap["db"]
+	return deviceManagerMap[DefaultManagerId]
 }
 
 func GetProductManager() ProductManager {
-	return productManagerMap["db"]
+	return productManagerMap[DefaultManagerId]
 }
 
 func RegDeviceManager(m DeviceManager) {
@@ -119,4 +127,57 @@ func (p *DefaultProdeuct) GetTslProperty() map[string]tsl.TslProperty {
 }
 func (p *DefaultProdeuct) GetTslFunction() map[string]tsl.TslFunction {
 	return p.TslFunction
+}
+
+// memDeviceManager
+type memDeviceManager struct {
+	sync.RWMutex
+	cache map[string]Device
+}
+
+func (p *memDeviceManager) Id() string {
+	return "mem"
+}
+
+func (m *memDeviceManager) Get(deviceId string) Device {
+	device, ok := m.cache[deviceId]
+	if ok {
+		return device
+	}
+	return device
+}
+
+func (m *memDeviceManager) Put(device Device) {
+	if device == nil {
+		panic("device not be nil")
+	}
+	m.cache[device.GetId()] = device
+}
+
+// memProductManager
+type memProductManager struct {
+	sync.RWMutex
+	cache map[string]Product
+}
+
+func (p *memProductManager) Id() string {
+	return "mem"
+}
+
+func (m *memProductManager) Get(productId string) Product {
+	product, ok := m.cache[productId]
+	if ok {
+		return product
+	}
+	return product
+}
+
+func (m *memProductManager) Put(product Product) {
+	if product == nil {
+		panic("product not be nil")
+	}
+	if len(product.GetId()) == 0 {
+		panic("product id not be empty")
+	}
+	m.cache[product.GetId()] = product
 }

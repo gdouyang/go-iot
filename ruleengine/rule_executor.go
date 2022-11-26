@@ -1,7 +1,7 @@
 package ruleengine
 
 import (
-	"go-iot/codec"
+	"fmt"
 	"go-iot/codec/eventbus"
 	"go-iot/codec/tsl"
 	"sync"
@@ -29,21 +29,21 @@ type sceneManager struct {
 	m map[int64]*RuleExecutor
 }
 
-func StartScene(id int64, rule RuleExecutor) error {
+func StartScene(id int64, rule *RuleExecutor) error {
 	manager.Lock()
 	defer manager.Unlock()
-	e := &rule
-	if e.deviceIdMap == nil {
-		e.deviceIdMap = map[string]bool{}
+	if len(rule.Type) == 0 {
+		return fmt.Errorf("type must persent [scene,alarm]")
 	}
-	for _, v := range e.DeviceIds {
-		e.deviceIdMap[v] = true
+	if len(rule.TriggerType) == 0 {
+		return fmt.Errorf("triggerType must persent [device, timer]")
 	}
-	err := e.start()
+	rule.deviceIdsToMap()
+	err := rule.start()
 	if err != nil {
 		return err
 	}
-	manager.m[id] = e
+	manager.m[id] = rule
 	return nil
 }
 
@@ -56,8 +56,9 @@ func StopScene(id int64) {
 }
 
 type RuleExecutor struct {
-	Type        string
-	TriggerType TriggerType
+	Name        string
+	Type        string      // scene,alarm
+	TriggerType TriggerType // device, timer
 	Cron        string
 	ProductId   string
 	DeviceIds   []string
@@ -67,9 +68,18 @@ type RuleExecutor struct {
 	deviceIdMap map[string]bool
 }
 
+func (s *RuleExecutor) deviceIdsToMap() {
+	if s.deviceIdMap == nil {
+		s.deviceIdMap = map[string]bool{}
+	}
+	for _, v := range s.DeviceIds {
+		s.deviceIdMap[v] = true
+	}
+}
+
 func (s *RuleExecutor) start() error {
 	if s.TriggerType == TriggerTypeDevice {
-		topic := s.Trigger.GetTopic(s.ProductId, "*")
+		topic := s.Trigger.GetTopic(s.ProductId)
 		eventbus.Subscribe(topic, s.subscribeEvent)
 		return nil
 	} else if s.TriggerType == TriggerTypeTimer {
@@ -78,13 +88,15 @@ func (s *RuleExecutor) start() error {
 			return err
 		}
 		s.cronId = entryID
+	} else {
+		logs.Error("triggerType not found")
 	}
 	return nil
 }
 
 func (s *RuleExecutor) stop() {
 	if s.TriggerType == TriggerTypeDevice {
-		eventbus.UnSubscribe(eventbus.GetMesssageTopic(s.ProductId, "*"), s.subscribeEvent)
+		eventbus.UnSubscribe(s.Trigger.GetTopic(s.ProductId), s.subscribeEvent)
 	} else if s.TriggerType == TriggerTypeTimer {
 		cronManager.Remove(s.cronId)
 	}
@@ -92,20 +104,24 @@ func (s *RuleExecutor) stop() {
 
 func (s *RuleExecutor) subscribeEvent(data interface{}) {
 	pass := true
+	data1 := data.(map[string]interface{})
 	if len(s.deviceIdMap) > 0 {
 		pass = false
-		m := data.(map[string]string)
-		if _, ok := s.deviceIdMap[m[tsl.PropertyDeviceId]]; ok {
+		deviceId := fmt.Sprintf("%v", data1[tsl.PropertyDeviceId])
+		if _, ok := s.deviceIdMap[deviceId]; ok {
 			pass = true
 		}
 	}
 	if pass {
-		data1 := data.(map[string]interface{})
-		product := codec.GetProductManager().Get(s.ProductId)
-		if nil != product {
-			tsl.ValueConvert1(product.GetTslProperty(), &data1)
+		// product := codec.GetProductManager().Get(s.ProductId)
+		// if nil != product {
+		// 	tsl.ValueConvert1(product.GetTslProperty(), &data1)
+		// }
+		pass, err := s.Trigger.Evaluate(data1)
+		if err != nil {
+			logs.Error(err)
+			return
 		}
-		pass, _ = s.Trigger.Evaluate(data1)
 		if pass {
 			s.runAction()
 		}
@@ -122,6 +138,8 @@ func (s *RuleExecutor) runAction() {
 			} else {
 				a.Do()
 			}
+		} else {
+			logs.Info("%s %s %s action is run", s.Name, s.Type, s.TriggerType)
 		}
 	}
 }

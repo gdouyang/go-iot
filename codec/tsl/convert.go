@@ -3,7 +3,6 @@ package tsl
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
 )
@@ -26,7 +25,7 @@ func ValueConvert1(propMap map[string]TslProperty, data *map[string]interface{})
 		if prop, ok := propMap[key]; !ok {
 			delete(*data, key)
 		} else {
-			valType := strings.TrimSpace(prop.ValueType["type"].(string))
+			valType := fmt.Sprintf("%v", prop.ValueType["type"])
 			switch valType {
 			case TypeEnum:
 				switch value.(type) {
