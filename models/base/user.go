@@ -94,11 +94,9 @@ func AddUser(ob *models.User) error {
 }
 
 func UpdateUser(ob *models.User) error {
-	//更新数据
 	o := orm.NewOrm()
-	_, err := o.Update(ob, "Nickname")
+	_, err := o.Update(ob, "Nickname", "Email", "Desc")
 	if err != nil {
-		logs.Error("update fail", err)
 		return err
 	}
 	return nil

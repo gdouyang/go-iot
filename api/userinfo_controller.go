@@ -59,6 +59,7 @@ func (ctl *UserInfoController) SaveBasic() {
 		resp = models.JsonRespError(err)
 		return
 	}
+	ob.Id = ctl.GetCurrentUser().Id
 	err = user.UpdateUser(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
