@@ -2,7 +2,7 @@ package api
 
 import (
 	"go-iot/models"
-	alarm "go-iot/models/scene"
+	alarm "go-iot/models/rule"
 
 	"github.com/beego/beego/v2/server/web"
 )

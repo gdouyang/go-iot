@@ -1,4 +1,4 @@
-package scene
+package rule
 
 import (
 	"encoding/json"

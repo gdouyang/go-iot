@@ -57,6 +57,10 @@ func ListAll(ob *models.Notify) ([]models.Notify, error) {
 		qs = qs.Filter("type", ob.Type)
 	}
 
+	if len(ob.State) > 0 {
+		qs = qs.Filter("State", ob.State)
+	}
+
 	var result []models.Notify
 	_, err := qs.All(&result)
 	if err != nil {
@@ -80,7 +84,7 @@ func AddNotify(ob *models.Notify) error {
 
 func UpdateNotify(ob *models.Notify) error {
 	o := orm.NewOrm()
-	_, err := o.Update(ob, "Name", "Config", "Type", "Desc")
+	_, err := o.Update(ob, "Name", "Config", "Template", "Type", "Desc")
 	if err != nil {
 		return err
 	}

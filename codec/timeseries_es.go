@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"go-iot/codec/eventbus"
 	"go-iot/codec/tsl"
 	"strings"
@@ -64,7 +65,7 @@ func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
 		t.batchTaskRun = true
 		go t.batchSave()
 	}
-	eventbus.Publish(eventbus.GetMesssageTopic(product.GetId(), deviceId.(string)), d1)
+	eventbus.Publish(eventbus.GetMesssageTopic(product.GetId(), fmt.Sprintf("%v", deviceId)), d1)
 	return nil
 	// Set up the request object.
 	// req := esapi.IndexRequest{

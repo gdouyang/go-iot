@@ -65,10 +65,6 @@ func DisableNotify(id int64) {
 }
 
 func GetNotify(id int64) Notify {
-	var mutex sync.Mutex
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	if notify, ok := instance[id]; ok {
 		return notify
 	}

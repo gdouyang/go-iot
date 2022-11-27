@@ -85,7 +85,7 @@ func (s *RuleExecutor) start() error {
 		eventbus.Subscribe(topic, s.subscribeEvent)
 		return nil
 	} else if s.TriggerType == TriggerTypeTimer {
-		entryID, err := cronManager.AddFunc(s.Cron, s.runAction)
+		entryID, err := cronManager.AddFunc(s.Cron, s.cronRun)
 		if err != nil {
 			return err
 		}
@@ -106,7 +106,7 @@ func (s *RuleExecutor) stop() {
 
 func (s *RuleExecutor) subscribeEvent(data interface{}) {
 	if s.Trigger.FilterType == "online" || s.Trigger.FilterType == "offline" {
-		s.runAction()
+		s.runAction(nil)
 		return
 	}
 	s.evaluate(data)
@@ -144,12 +144,16 @@ func (s *RuleExecutor) evaluate(data interface{}) {
 				}
 				eventbus.Publish(eventbus.GetAlarmTopic(s.ProductId, deviceId), event)
 			}
-			s.runAction()
+			s.runAction(data1)
 		}
 	}
 }
 
-func (s *RuleExecutor) runAction() {
+func (s *RuleExecutor) cronRun() {
+	s.runAction(nil)
+}
+
+func (s *RuleExecutor) runAction(data map[string]interface{}) {
 	for _, action := range s.Actions {
 		if action.Executor == "device-message-sender" {
 			a, err := NewDeviceCmdAction(action.Configuration)
@@ -159,7 +163,7 @@ func (s *RuleExecutor) runAction() {
 				a.Do()
 			}
 		} else if action.Executor == "notifier" {
-			a, err := NewNotifierAction(action.Configuration)
+			a, err := NewNotifierAction(action.Configuration, data)
 			if err != nil {
 				logs.Error(err)
 			} else {

@@ -63,6 +63,21 @@ func ListNetwork(page *models.PageQuery) (*models.PageResult, error) {
 	return pr, nil
 }
 
+func ListStartNetwork() ([]models.Network, error) {
+	o := orm.NewOrm()
+	qs := o.QueryTable(&models.Network{})
+
+	qs = qs.Filter("State", models.Runing)
+
+	var result []models.Network
+	_, err := qs.All(&result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func AddNetWork(ob *models.Network) error {
 	if ob.Port <= 1024 || ob.Port > 65535 {
 		return errors.New("invalid port number")

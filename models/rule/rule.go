@@ -1,4 +1,4 @@
-package scene
+package rule
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 )
 
 // 分页查询
-func ListRule(page *models.PageQuery) (*models.PageResult, error) {
+func PageRule(page *models.PageQuery) (*models.PageResult, error) {
 	var pr *models.PageResult
 	var dev models.Rule
 	err := json.Unmarshal(page.Condition, &dev)
@@ -42,6 +42,30 @@ func ListRule(page *models.PageQuery) (*models.PageResult, error) {
 	pr = &p
 
 	return pr, nil
+}
+
+func ListRule(r *models.Rule) ([]models.Rule, error) {
+
+	//查询数据
+	o := orm.NewOrm()
+	qs := o.QueryTable(models.Rule{})
+
+	if len(r.Name) > 0 {
+		qs = qs.Filter("name__contains", r.Name)
+	}
+
+	if len(r.State) > 0 {
+		qs = qs.Filter("State", r.State)
+	}
+
+	var cols = []string{"Id", "Name", "State", "Desc", "CreateId", "CreateTime"}
+	var result []models.Rule
+	_, err := qs.All(&result, cols...)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func AddRule(ob *models.RuleModel) error {

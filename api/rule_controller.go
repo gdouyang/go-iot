@@ -2,7 +2,7 @@ package api
 
 import (
 	"go-iot/models"
-	"go-iot/models/scene"
+	rule "go-iot/models/rule"
 	"go-iot/ruleengine"
 	"strconv"
 
@@ -46,7 +46,7 @@ func (ctl *RuleController) List() {
 	var ob models.PageQuery
 	ctl.BindJSON(&ob)
 
-	res, err := scene.ListRule(&ob)
+	res, err := rule.PageRule(&ob)
 	if err != nil {
 		ctl.Data["json"] = models.JsonRespError(err)
 	} else {
@@ -70,7 +70,7 @@ func (ctl *RuleController) Get() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	u, err := scene.GetRuleMust(int64(_id))
+	u, err := rule.GetRuleMust(int64(_id))
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -93,7 +93,7 @@ func (ctl *RuleController) Add() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = scene.AddRule(&ob)
+	err = rule.AddRule(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -116,7 +116,7 @@ func (ctl *RuleController) Update() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = scene.UpdateRule(&ob)
+	err = rule.UpdateRule(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -144,7 +144,7 @@ func (ctl *RuleController) Delete() {
 	var ob *models.Rule = &models.Rule{
 		Id: int64(_id),
 	}
-	err = scene.DeleteRule(ob)
+	err = rule.DeleteRule(ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -179,23 +179,14 @@ func (ctl *RuleController) enable(flag bool) {
 		resp = models.JsonRespError(err)
 		return
 	}
-	m, err := scene.GetRuleMust(int64(_id))
+	m, err := rule.GetRuleMust(int64(_id))
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
 	var state string = models.Started
 	if flag {
-		rule := ruleengine.RuleExecutor{
-			Name:        m.Name,
-			Type:        m.Type,
-			ProductId:   m.ProductId,
-			TriggerType: ruleengine.TriggerType(m.TriggerType),
-			Cron:        m.Cron,
-			Trigger:     m.Trigger,
-			Actions:     m.Actions,
-			DeviceIds:   m.DeviceIds,
-		}
+		rule := ruleModelToRuleExecutor(m)
 		err = ruleengine.Start(m.Id, &rule)
 		if err != nil {
 			resp = models.JsonRespError(err)
@@ -206,10 +197,24 @@ func (ctl *RuleController) enable(flag bool) {
 		ruleengine.Stop(m.Id)
 	}
 
-	err = scene.UpdateRuleStatus(state, m.Id)
+	err = rule.UpdateRuleStatus(state, m.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
 	resp = models.JsonRespOk()
+}
+
+func ruleModelToRuleExecutor(m *models.RuleModel) ruleengine.RuleExecutor {
+	rule := ruleengine.RuleExecutor{
+		Name:        m.Name,
+		Type:        m.Type,
+		ProductId:   m.ProductId,
+		TriggerType: ruleengine.TriggerType(m.TriggerType),
+		Cron:        m.Cron,
+		Trigger:     m.Trigger,
+		Actions:     m.Actions,
+		DeviceIds:   m.DeviceIds,
+	}
+	return rule
 }
