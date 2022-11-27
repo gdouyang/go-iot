@@ -115,10 +115,9 @@ func (s *RuleExecutor) subscribeEvent(data interface{}) {
 func (s *RuleExecutor) evaluate(data interface{}) {
 	pass := true
 	data1 := data.(map[string]interface{})
-	deviceId := ""
+	deviceId := fmt.Sprintf("%v", data1[tsl.PropertyDeviceId])
 	if len(s.deviceIdMap) > 0 {
 		pass = false
-		deviceId = fmt.Sprintf("%v", data1[tsl.PropertyDeviceId])
 		if _, ok := s.deviceIdMap[deviceId]; ok {
 			pass = true
 		}

@@ -75,7 +75,7 @@ func PageAlarmLog(page *models.PageQuery) (*models.PageResult, error) {
 func AddAlarmLog(q models.AlarmLog) error {
 	o := orm.NewOrm()
 	q.CreateTime = time.Now()
-	_, err := o.Insert(q)
+	_, err := o.Insert(&q)
 	if err != nil {
 		return err
 	}

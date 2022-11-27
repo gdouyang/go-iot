@@ -127,6 +127,9 @@ func UpdateRule(ob *models.RuleModel) error {
 	if len(ob.Actions) > 0 {
 		columns = append(columns, "Actions")
 	}
+	if len(ob.Type) > 0 {
+		columns = append(columns, "Type")
+	}
 	if len(ob.Desc) > 0 {
 		columns = append(columns, "Desc")
 	}
