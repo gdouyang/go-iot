@@ -82,7 +82,7 @@ func AddUser(ob *models.User) error {
 	if rs != nil {
 		return errors.New("user exist")
 	}
-	md5Pwd(ob)
+	Md5Pwd(ob)
 	//插入数据
 	o := orm.NewOrm()
 	ob.CreateTime = time.Now()
@@ -112,7 +112,7 @@ func UpdateUserPwd(ob *models.User) error {
 	if len(ob.Username) == 0 {
 		return errors.New("username not be empty")
 	}
-	md5Pwd(ob)
+	Md5Pwd(ob)
 	//更新数据
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "Password")
@@ -122,7 +122,7 @@ func UpdateUserPwd(ob *models.User) error {
 	return nil
 }
 
-func md5Pwd(ob *models.User) {
+func Md5Pwd(ob *models.User) {
 	data := []byte(ob.Username + ob.Password)
 	has := md5.Sum(data)
 	md5str := fmt.Sprintf("%x", has) //将[]byte转成16进制

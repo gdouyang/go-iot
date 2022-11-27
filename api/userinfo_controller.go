@@ -74,13 +74,45 @@ func (ctl *UserInfoController) UpdatePwd() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	var ob models.User
+	var ob struct {
+		Password    string `json:"password"`
+		PasswordOld string `json:"passwordOld"`
+	}
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = user.UpdateUserPwd(&ob)
+	if len(ob.PasswordOld) == 0 {
+		resp = models.JsonRespError(errors.New("passwrodOld not be empty"))
+		return
+	}
+	if len(ob.Password) == 0 {
+		resp = models.JsonRespError(errors.New("passwrod not be empty"))
+		return
+	}
+	u1 := models.User{
+		Id:       ctl.GetCurrentUser().Id,
+		Username: ctl.GetCurrentUser().Username,
+		Password: ob.PasswordOld,
+	}
+	user.Md5Pwd(&u1)
+	old, err := user.GetUser(u1.Id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	if old.Password != u1.Password {
+		resp = models.JsonRespError(errors.New("old password is incorrect"))
+		return
+	}
+	//
+	u := models.User{
+		Id:       u1.Id,
+		Username: u1.Username,
+		Password: ob.Password,
+	}
+	err = user.UpdateUserPwd(&u)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return

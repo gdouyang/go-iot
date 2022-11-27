@@ -46,6 +46,21 @@ func (ctl *LoginController) LoginJson() {
 		resp = models.JsonRespError(errors.New("username or password invalid"))
 		return
 	}
+	u1 := models.User{
+		Username: ob.Username,
+		Password: ob.Password,
+	}
+	user.Md5Pwd(&u1)
+	old, err := user.GetUser(u.Id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	if u1.Password != old.Password {
+		resp = models.JsonRespError(errors.New("username or password invalid"))
+		return
+	}
+
 	permission, err := user.GetPermissionByUserId(u.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
