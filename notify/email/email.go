@@ -1,12 +1,15 @@
 package email
 
 import (
+	"bytes"
 	"encoding/json"
 	"go-iot/notify"
+	"html/template"
 	"net"
 	"strconv"
 	"strings"
 
+	"github.com/beego/beego/v2/core/logs"
 	"gopkg.in/gomail.v2"
 )
 
@@ -18,13 +21,14 @@ func init() {
 
 // EmailNotify is the email notification configuration
 type EmailNotify struct {
-	Server      string `json:"server"`
-	User        string `json:"username"`
-	Pass        string `json:"password"`
-	To          string `json:"to"`
-	From        string `json:"from,omitempty"`
-	subject     string `json:"-"`
-	msgTemplate string `json:"-"`
+	Server      string             `json:"server"`
+	User        string             `json:"username"`
+	Pass        string             `json:"password"`
+	To          string             `json:"to"`
+	From        string             `json:"from,omitempty"`
+	subject     string             `json:"-"`
+	msgTemplate string             `json:"-"`
+	template    *template.Template `json:"-"`
 }
 
 func (c *EmailNotify) Kind() string {
@@ -39,8 +43,13 @@ func (c *EmailNotify) Title() string {
 	return c.subject
 }
 
-func (c *EmailNotify) MsgTemplate() string {
-	return c.msgTemplate
+func (c *EmailNotify) ParseTemplate(data map[string]interface{}) string {
+	var result bytes.Buffer
+	if err := c.template.Execute(&result, data); err != nil {
+		logs.Error(err)
+		return c.msgTemplate
+	}
+	return result.String()
 }
 
 func (c *EmailNotify) FromJson(config notify.NotifyConfig) error {
@@ -49,9 +58,16 @@ func (c *EmailNotify) FromJson(config notify.NotifyConfig) error {
 		return err
 	}
 	tpl := map[string]string{}
-	err = json.Unmarshal([]byte(config.Config), &tpl)
+	err = json.Unmarshal([]byte(config.Template), &tpl)
 	c.subject = tpl["subject"]
-	c.msgTemplate = tpl["msgTemplate"]
+	msgTemplate := ""
+	if str, ok := tpl["text"]; ok {
+		msgTemplate = str
+	}
+	c.msgTemplate = msgTemplate
+	msgTemplate = strings.ReplaceAll(msgTemplate, "${", "${.")
+	tpl1 := template.New("").Delims("${", "}")
+	c.template = template.Must(tpl1.Parse(msgTemplate))
 	return err
 }
 

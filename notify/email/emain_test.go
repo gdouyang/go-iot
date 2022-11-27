@@ -1,15 +1,15 @@
 package email_test
 
 import (
-	"bytes"
-	"html/template"
-	"log"
+	"go-iot/notify"
+	"go-iot/notify/email"
 	"testing"
+
+	"github.com/beego/beego/v2/core/logs"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEmain(t *testing.T) {
-	tpl := template.New("").Delims("${", "}")
-	template := template.Must(tpl.Parse("this is a email test name=${.name} age=${.age} obj.name=${.obj.name}"))
 	var data = map[string]interface{}{
 		"name": "sss",
 		"age":  1,
@@ -17,9 +17,16 @@ func TestEmain(t *testing.T) {
 			"name": "test",
 		},
 	}
-	var result bytes.Buffer
-	if err := template.Execute(&result, data); err != nil {
-		log.Fatalln(err)
+	e := email.EmailNotify{}
+	config := notify.NotifyConfig{
+		Config:   `{"server":"localhost","username":"test", "password":"123", "to":"abc@q.com"}`,
+		Template: `{"subject":"Test Title", "text": "you have email name=${name} age=${age} obj.name=${obj.name}"}`,
 	}
-	log.Println(result.String())
+	err := e.FromJson(config)
+	if err != nil {
+		logs.Error(err)
+	}
+	result := e.ParseTemplate(data)
+	logs.Info(result)
+	assert.Equal(t, "you have email name=sss age=1 obj.name=test", result)
 }

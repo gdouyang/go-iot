@@ -13,6 +13,15 @@ type NotifierAction struct {
 	Data       map[string]interface{} `json:"-"`
 }
 
+func NewNotifierAction(config string) (*NotifierAction, error) {
+	n := &NotifierAction{}
+	err := n.FromJson(config)
+	if err != nil {
+		return nil, err
+	}
+	return n, nil
+}
+
 func (a *NotifierAction) FromJson(str string) error {
 	err := json.Unmarshal([]byte(str), &a)
 	return err
@@ -23,6 +32,6 @@ func (s *NotifierAction) Do() {
 	if n == nil {
 		logs.Warn("notify not found id=%s, type=%s", s.NotifierId, s.NotifyType)
 	} else {
-		n.Notify(n.Title(), n.MsgTemplate())
+		n.Notify(n.Title(), n.ParseTemplate(s.Data))
 	}
 }

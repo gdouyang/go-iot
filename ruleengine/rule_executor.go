@@ -131,15 +131,19 @@ func (s *RuleExecutor) subscribeEvent(data interface{}) {
 func (s *RuleExecutor) runAction() {
 	for _, action := range s.Actions {
 		if action.Executor == "device-message-sender" {
-			a := DeviceCmdAction{}
-			err := a.FromJson(action.Configuration)
+			a, err := NewDeviceCmdAction(action.Configuration)
 			if err != nil {
 				logs.Error(err)
 			} else {
 				a.Do()
 			}
 		} else if action.Executor == "notifier" {
-
+			a, err := NewNotifierAction(action.Configuration)
+			if err != nil {
+				logs.Error(err)
+			} else {
+				a.Do()
+			}
 		} else {
 			logs.Info("%s %s %s action is run", s.Name, s.Type, s.TriggerType)
 		}

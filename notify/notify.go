@@ -15,7 +15,7 @@ type Notify interface {
 	FromJson(str NotifyConfig) error
 	Meta() []map[string]string // 配置说明
 	Title() string
-	MsgTemplate() string // 消息模板
+	ParseTemplate(data map[string]interface{}) string // 消息模板
 }
 
 type NotifyConfig struct {
