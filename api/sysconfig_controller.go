@@ -66,8 +66,8 @@ func (ctl *SysConfigController) Update() {
 		ctl.ServeJSON()
 	}()
 	var ob = struct {
-		Id     string
-		Config map[string]interface{}
+		Id     string                 `json:"id"`
+		Config map[string]interface{} `json:"config"`
 	}{}
 	err := ctl.BindJSON(&ob)
 	if err != nil {
@@ -89,9 +89,9 @@ func (ctl *SysConfigController) Update() {
 		return
 	}
 	if old == nil {
-		err = base.UpdateSysconfig(c)
-	} else {
 		err = base.AddSysconfig(c)
+	} else {
+		err = base.UpdateSysconfig(c)
 	}
 	if err != nil {
 		resp = models.JsonRespError(err)

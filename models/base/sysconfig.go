@@ -13,7 +13,7 @@ func AddSysconfig(ob *models.SystemConfig) error {
 		return err
 	}
 	if rs != nil {
-		return errors.New("username已存在")
+		return errors.New("id exist")
 	}
 	//插入数据
 	o := orm.NewOrm()

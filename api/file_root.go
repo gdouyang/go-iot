@@ -6,21 +6,25 @@ import (
 	"go-iot/network/util"
 	"io"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/beego/beego/v2/server/web"
 )
 
 func init() {
-	web.Router("/file/?:name", &FileRootController{}, "get:File")
+	web.Router("/api/file/?:name", &FileAnonController{}, "get:File")
 	web.Router("/api/file/base64", &FileRootController{}, "post:Base64")
+	web.Router("/api/file/upload", &FileRootController{}, "post:Upload")
 }
 
-type FileRootController struct {
-	AuthController
+type FileAnonController struct {
+	web.Controller
 }
 
-// 下载素材
-func (ctl *FileRootController) File() {
+func (ctl *FileAnonController) File() {
 	name := ctl.Ctx.Input.Param(":name")
 
 	path := "./files/" + name
@@ -30,6 +34,10 @@ func (ctl *FileRootController) File() {
 	} else {
 		ctl.Ctx.Output.Download(path)
 	}
+}
+
+type FileRootController struct {
+	AuthController
 }
 
 func (ctl *FileRootController) Base64() {
@@ -53,4 +61,30 @@ func (ctl *FileRootController) Base64() {
 	}
 	base64Str := base64.StdEncoding.EncodeToString(b)
 	resp.Data = base64Str
+}
+
+func (ctl *FileRootController) Upload() {
+	var resp = models.JsonRespOk()
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+	f, h, err := ctl.GetFile("file")
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	defer f.Close()
+	fileName := h.Filename
+	index := strings.LastIndex(fileName, ".")
+	if index != -1 {
+		fileName = fileName[:index] + strconv.Itoa(int(time.Now().Unix())) + fileName[index:]
+	}
+	os.Mkdir("./files", os.ModePerm)
+	err = ctl.SaveToFile("file", "./files/"+fileName)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	resp.Data = "api/file/" + fileName
 }
