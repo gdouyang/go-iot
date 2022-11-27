@@ -24,7 +24,7 @@ func InitDb() {
 		new(User), new(Role), new(UserRelRole),
 		new(MenuResource), new(AuthResource), new(SystemConfig),
 		new(Product), new(Device), new(Network),
-		new(Scene), new(SceneRelDevice), new(AlarmLog),
+		new(Rule), new(RuleRelDevice), new(AlarmLog),
 		new(Notify),
 	)
 

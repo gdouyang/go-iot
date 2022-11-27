@@ -97,10 +97,10 @@ type Network struct {
 	CreateTime    time.Time `json:"createTime" orm:"column(create_time_)"`
 }
 
-// 场景联动
-type Scene struct {
+// 规则
+type Rule struct {
 	Id          int64     `json:"id" orm:"pk;column(id_);auto"`
-	Name        string    `json:"name" orm:"column(name_);size(64);null;description(场景名称)"`
+	Name        string    `json:"name" orm:"column(name_);size(64);null;description(名称)"`
 	Type        string    `json:"type" orm:"column(type_);size(10);null;description(scene,alarm)"`
 	TriggerType string    `json:"triggerType" orm:"column(trigger_type_);size(32);null;description(触发类型timer,device)"`
 	ProductId   string    `json:"productId,omitempty" orm:"column(product_id_);size(64);null;description(产品)"`
@@ -113,16 +113,16 @@ type Scene struct {
 	CreateTime  time.Time `json:"createTime" orm:"column(create_time_)"`
 }
 
-type SceneRelDevice struct {
+type RuleRelDevice struct {
 	Id       int64  `json:"id" orm:"pk;column(id_);auto"`
-	SceneId  int64  `json:"sceneId" orm:"column(scene_id_);description(场景ID)"`
+	RuleId   int64  `json:"ruleId" orm:"column(rule_id_);description(规则ID)"`
 	DeviceId string `json:"deviceId,omitempty" orm:"column(device_id_);size(64);description(设备Id)"`
 }
 
 // 告警记录
 type AlarmLog struct {
 	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
-	SceneId    int64     `json:"sceneId" orm:"column(scene_id_);description(告警Id)"`
+	RuleId     int64     `json:"ruleId" orm:"column(rule_id_);description(规则Id)"`
 	AlarmName  string    `json:"alarmName" orm:"column(alarm_name_);size(64);null;description(告警名称)"`
 	DeviceId   string    `json:"deviceId" orm:"column(device_id_);size(64);null;description(设备ID)"`
 	ProductId  string    `json:"productId" orm:"column(product_id_);size(64);null;description(产品ID)"`

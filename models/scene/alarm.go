@@ -3,10 +3,40 @@ package scene
 import (
 	"encoding/json"
 	"errors"
+	"go-iot/codec/eventbus"
 	"go-iot/models"
+	"go-iot/ruleengine"
+	"time"
 
 	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/core/logs"
 )
+
+func init() {
+	eventbus.Subscribe(eventbus.GetAlarmTopic("*", "*"), saveAlarmEvent)
+}
+
+func saveAlarmEvent(data interface{}) {
+	if data == nil {
+		return
+	}
+	switch t := data.(type) {
+	case ruleengine.AlarmEvent:
+		b, err := json.Marshal(t.Data)
+		if err != nil {
+			logs.Error(err)
+			return
+		}
+		log := models.AlarmLog{
+			ProductId: t.ProductId,
+			DeviceId:  t.DeviceId,
+			RuleId:    t.RuleId,
+			AlarmName: t.AlarmName,
+			AlarmData: string(b),
+		}
+		go AddAlarmLog(log)
+	}
+}
 
 func PageAlarmLog(page *models.PageQuery) (*models.PageResult, error) {
 	var pr *models.PageResult
@@ -40,6 +70,16 @@ func PageAlarmLog(page *models.PageQuery) (*models.PageResult, error) {
 	pr = &p
 
 	return pr, nil
+}
+
+func AddAlarmLog(q models.AlarmLog) error {
+	o := orm.NewOrm()
+	q.CreateTime = time.Now()
+	_, err := o.Insert(q)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func SolveAlarmLog(q models.AlarmLog) error {

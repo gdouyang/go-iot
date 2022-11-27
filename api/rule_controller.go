@@ -21,32 +21,32 @@ var sceneResource = Resource{
 }
 
 func init() {
-	ns := web.NewNamespace("/api/scene",
-		web.NSRouter("/page", &SceneController{}, "post:List"),
-		web.NSRouter("/", &SceneController{}, "post:Add"),
-		web.NSRouter("/:id", &SceneController{}, "put:Update"),
-		web.NSRouter("/:id", &SceneController{}, "get:Get"),
-		web.NSRouter("/:id", &SceneController{}, "delete:Delete"),
-		web.NSRouter("/:id/start", &SceneController{}, "post:Enable"),
-		web.NSRouter("/:id/stop", &SceneController{}, "post:Disable"),
+	ns := web.NewNamespace("/api/rule",
+		web.NSRouter("/page", &RuleController{}, "post:List"),
+		web.NSRouter("/", &RuleController{}, "post:Add"),
+		web.NSRouter("/:id", &RuleController{}, "put:Update"),
+		web.NSRouter("/:id", &RuleController{}, "get:Get"),
+		web.NSRouter("/:id", &RuleController{}, "delete:Delete"),
+		web.NSRouter("/:id/start", &RuleController{}, "post:Enable"),
+		web.NSRouter("/:id/stop", &RuleController{}, "post:Disable"),
 	)
 	web.AddNamespace(ns)
 
 	regResource(sceneResource)
 }
 
-type SceneController struct {
+type RuleController struct {
 	AuthController
 }
 
-func (ctl *SceneController) List() {
+func (ctl *RuleController) List() {
 	if ctl.isForbidden(sceneResource, QueryAction) {
 		return
 	}
 	var ob models.PageQuery
 	ctl.BindJSON(&ob)
 
-	res, err := scene.ListScene(&ob)
+	res, err := scene.ListRule(&ob)
 	if err != nil {
 		ctl.Data["json"] = models.JsonRespError(err)
 	} else {
@@ -55,7 +55,7 @@ func (ctl *SceneController) List() {
 	ctl.ServeJSON()
 }
 
-func (ctl *SceneController) Get() {
+func (ctl *RuleController) Get() {
 	if ctl.isForbidden(sceneResource, QueryAction) {
 		return
 	}
@@ -70,7 +70,7 @@ func (ctl *SceneController) Get() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	u, err := scene.GetSceneMust(int64(_id))
+	u, err := scene.GetRuleMust(int64(_id))
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -78,7 +78,7 @@ func (ctl *SceneController) Get() {
 	resp = models.JsonRespOkData(u)
 }
 
-func (ctl *SceneController) Add() {
+func (ctl *RuleController) Add() {
 	if ctl.isForbidden(sceneResource, CretaeAction) {
 		return
 	}
@@ -87,13 +87,13 @@ func (ctl *SceneController) Add() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	var ob models.SceneModel
+	var ob models.RuleModel
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = scene.AddScene(&ob)
+	err = scene.AddRule(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -101,7 +101,7 @@ func (ctl *SceneController) Add() {
 	resp = models.JsonRespOk()
 }
 
-func (ctl *SceneController) Update() {
+func (ctl *RuleController) Update() {
 	if ctl.isForbidden(sceneResource, SaveAction) {
 		return
 	}
@@ -110,13 +110,13 @@ func (ctl *SceneController) Update() {
 		ctl.Data["json"] = resp
 		ctl.ServeJSON()
 	}()
-	var ob models.SceneModel
+	var ob models.RuleModel
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-	err = scene.UpdateScene(&ob)
+	err = scene.UpdateRule(&ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -124,7 +124,7 @@ func (ctl *SceneController) Update() {
 	resp = models.JsonRespOk()
 }
 
-func (ctl *SceneController) Delete() {
+func (ctl *RuleController) Delete() {
 	if ctl.isForbidden(sceneResource, DeleteAction) {
 		return
 	}
@@ -141,10 +141,10 @@ func (ctl *SceneController) Delete() {
 		resp.Success = false
 		return
 	}
-	var ob *models.Scene = &models.Scene{
+	var ob *models.Rule = &models.Rule{
 		Id: int64(_id),
 	}
-	err = scene.DeleteScene(ob)
+	err = scene.DeleteRule(ob)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -152,21 +152,21 @@ func (ctl *SceneController) Delete() {
 	resp = models.JsonRespOk()
 }
 
-func (ctl *SceneController) Enable() {
+func (ctl *RuleController) Enable() {
 	if ctl.isForbidden(sceneResource, SaveAction) {
 		return
 	}
 	ctl.enable(true)
 }
 
-func (ctl *SceneController) Disable() {
+func (ctl *RuleController) Disable() {
 	if ctl.isForbidden(sceneResource, SaveAction) {
 		return
 	}
 	ctl.enable(false)
 }
 
-func (ctl *SceneController) enable(flag bool) {
+func (ctl *RuleController) enable(flag bool) {
 	var resp models.JsonResp
 	defer func() {
 		ctl.Data["json"] = resp
@@ -179,7 +179,7 @@ func (ctl *SceneController) enable(flag bool) {
 		resp = models.JsonRespError(err)
 		return
 	}
-	m, err := scene.GetSceneMust(int64(_id))
+	m, err := scene.GetRuleMust(int64(_id))
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
@@ -206,7 +206,7 @@ func (ctl *SceneController) enable(flag bool) {
 		ruleengine.Stop(m.Id)
 	}
 
-	err = scene.UpdateSceneStatus(state, m.Id)
+	err = scene.UpdateRuleStatus(state, m.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return

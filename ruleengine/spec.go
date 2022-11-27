@@ -9,8 +9,12 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
-type TaskExecutorProvider interface {
-	GetExecutor() string
+type AlarmEvent struct {
+	ProductId string
+	DeviceId  string
+	RuleId    int64
+	AlarmName string
+	Data      map[string]interface{}
 }
 
 type TriggerType string
@@ -18,6 +22,8 @@ type TriggerType string
 const (
 	TriggerTypeDevice TriggerType = "device"
 	TriggerTypeTimer  TriggerType = "timer"
+	TypeAlarm                     = "alarm"
+	TypeScene                     = "scene"
 )
 
 type Trigger struct {

@@ -15,6 +15,8 @@ const (
 	DeviceOfflineTopic string = "/device/%s/%s/offline"
 	// event topic pattern
 	DeviceEventTopic string = "/device/%s/%s/event"
+	// alarm topic pattern
+	DeviceAlarmTopic string = "/device/%s/%s/alarm"
 )
 
 // /device/{productId}/{deviceId}/property
@@ -35,6 +37,11 @@ func GetOfflineTopic(productId string, deviceId string) string {
 // /device/{productId}/{deviceId}/event
 func GetEventTopic(productId string, deviceId string) string {
 	return fmt.Sprintf(DeviceEventTopic, productId, deviceId)
+}
+
+// /device/{productId}/{deviceId}/alarm
+func GetAlarmTopic(productId string, deviceId string) string {
+	return fmt.Sprintf(DeviceAlarmTopic, productId, deviceId)
 }
 
 var bus = newEventBus()

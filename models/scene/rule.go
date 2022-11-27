@@ -11,9 +11,9 @@ import (
 )
 
 // 分页查询
-func ListScene(page *models.PageQuery) (*models.PageResult, error) {
+func ListRule(page *models.PageQuery) (*models.PageResult, error) {
 	var pr *models.PageResult
-	var dev models.Scene
+	var dev models.Rule
 	err := json.Unmarshal(page.Condition, &dev)
 	if err != nil {
 		return nil, err
@@ -21,7 +21,7 @@ func ListScene(page *models.PageQuery) (*models.PageResult, error) {
 
 	//查询数据
 	o := orm.NewOrm()
-	qs := o.QueryTable(models.Scene{})
+	qs := o.QueryTable(models.Rule{})
 
 	if len(dev.Name) > 0 {
 		qs = qs.Filter("name__contains", dev.Name)
@@ -32,7 +32,7 @@ func ListScene(page *models.PageQuery) (*models.PageResult, error) {
 		return nil, err
 	}
 	var cols = []string{"Id", "Name", "State", "Desc", "CreateId", "CreateTime"}
-	var result []models.Scene
+	var result []models.Rule
 	_, err = qs.Limit(page.PageSize, page.PageOffset()).All(&result, cols...)
 	if err != nil {
 		return nil, err
@@ -44,11 +44,11 @@ func ListScene(page *models.PageQuery) (*models.PageResult, error) {
 	return pr, nil
 }
 
-func AddScene(ob *models.SceneModel) error {
+func AddRule(ob *models.RuleModel) error {
 	if len(ob.Name) == 0 {
 		return errors.New("name not be empty")
 	}
-	rs, err := GetScene(ob.Id)
+	rs, err := GetRule(ob.Id)
 	if err != nil {
 		return err
 	}
@@ -68,10 +68,10 @@ func AddScene(ob *models.SceneModel) error {
 		if err != nil {
 			return err
 		}
-		list := []*models.SceneRelDevice{}
+		list := []*models.RuleRelDevice{}
 		for _, deviceId := range ob.DeviceIds {
-			list = append(list, &models.SceneRelDevice{
-				SceneId:  en.Id,
+			list = append(list, &models.RuleRelDevice{
+				RuleId:   en.Id,
 				DeviceId: deviceId,
 			})
 		}
@@ -84,7 +84,7 @@ func AddScene(ob *models.SceneModel) error {
 	return err
 }
 
-func UpdateScene(ob *models.SceneModel) error {
+func UpdateRule(ob *models.RuleModel) error {
 	//更新数据
 	en := ob.ToEnitty()
 	var columns []string
@@ -118,17 +118,17 @@ func UpdateScene(ob *models.SceneModel) error {
 		if err != nil {
 			return err
 		}
-		srd := models.SceneRelDevice{
-			SceneId: en.Id,
+		srd := models.RuleRelDevice{
+			RuleId: en.Id,
 		}
-		_, err = txOrm.Delete(&srd, "SceneId")
+		_, err = txOrm.Delete(&srd, "RuleId")
 		if err != nil {
 			return err
 		}
-		list := []*models.SceneRelDevice{}
+		list := []*models.RuleRelDevice{}
 		for _, deviceId := range ob.DeviceIds {
-			list = append(list, &models.SceneRelDevice{
-				SceneId:  en.Id,
+			list = append(list, &models.RuleRelDevice{
+				RuleId:   en.Id,
 				DeviceId: deviceId,
 			})
 		}
@@ -143,7 +143,7 @@ func UpdateScene(ob *models.SceneModel) error {
 }
 
 // 更新在线状态
-func UpdateSceneStatus(state string, id int64) error {
+func UpdateRuleStatus(state string, id int64) error {
 	if id == 0 {
 		return errors.New("id not be empty")
 	}
@@ -151,7 +151,7 @@ func UpdateSceneStatus(state string, id int64) error {
 		return errors.New("state not be empty")
 	}
 	o := orm.NewOrm()
-	var ob = &models.Scene{Id: id, State: state}
+	var ob = &models.Rule{Id: id, State: state}
 	_, err := o.Update(ob, "State")
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func UpdateSceneStatus(state string, id int64) error {
 	return nil
 }
 
-func DeleteScene(ob *models.Scene) error {
+func DeleteRule(ob *models.Rule) error {
 	o := orm.NewOrm()
 	_, err := o.Delete(ob)
 	if err != nil {
@@ -168,22 +168,22 @@ func DeleteScene(ob *models.Scene) error {
 	return nil
 }
 
-func GetScene(sceneId int64) (*models.SceneModel, error) {
+func GetRule(sceneId int64) (*models.RuleModel, error) {
 	o := orm.NewOrm()
-	p := models.Scene{Id: sceneId}
+	p := models.Rule{Id: sceneId}
 	err := o.Read(&p, "id")
 	if err == orm.ErrNoRows {
 		return nil, nil
 	} else if err == orm.ErrMissPK {
 		return nil, err
 	} else {
-		m := models.SceneModel{}
+		m := models.RuleModel{}
 		m.FromEnitty(p)
 		//
 		o := orm.NewOrm()
-		qs := o.QueryTable(models.SceneRelDevice{}).Filter("SceneId", p.Id)
-		var cols = []string{"Id", "SceneId", "DeviceId"}
-		var result []models.SceneRelDevice
+		qs := o.QueryTable(models.RuleRelDevice{}).Filter("RuleId", p.Id)
+		var cols = []string{"Id", "RuleId", "DeviceId"}
+		var result []models.RuleRelDevice
 		_, err = qs.All(&result, cols...)
 		if err != nil {
 			return nil, err
@@ -195,8 +195,8 @@ func GetScene(sceneId int64) (*models.SceneModel, error) {
 	}
 }
 
-func GetSceneMust(sceneId int64) (*models.SceneModel, error) {
-	p, err := GetScene(sceneId)
+func GetRuleMust(id int64) (*models.RuleModel, error) {
+	p, err := GetRule(id)
 	if err != nil {
 		return nil, err
 	}

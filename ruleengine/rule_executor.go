@@ -43,6 +43,7 @@ func Start(id int64, rule *RuleExecutor) error {
 	if err != nil {
 		return err
 	}
+	rule.Id = id
 	manager.m[id] = rule
 	return nil
 }
@@ -56,6 +57,7 @@ func Stop(id int64) {
 }
 
 type RuleExecutor struct {
+	Id          int64
 	Name        string
 	Type        string      // scene,alarm
 	TriggerType TriggerType // device, timer
@@ -103,11 +105,20 @@ func (s *RuleExecutor) stop() {
 }
 
 func (s *RuleExecutor) subscribeEvent(data interface{}) {
+	if s.Trigger.FilterType == "online" || s.Trigger.FilterType == "offline" {
+		s.runAction()
+		return
+	}
+	s.evaluate(data)
+}
+
+func (s *RuleExecutor) evaluate(data interface{}) {
 	pass := true
 	data1 := data.(map[string]interface{})
+	deviceId := ""
 	if len(s.deviceIdMap) > 0 {
 		pass = false
-		deviceId := fmt.Sprintf("%v", data1[tsl.PropertyDeviceId])
+		deviceId = fmt.Sprintf("%v", data1[tsl.PropertyDeviceId])
 		if _, ok := s.deviceIdMap[deviceId]; ok {
 			pass = true
 		}
@@ -123,6 +134,16 @@ func (s *RuleExecutor) subscribeEvent(data interface{}) {
 			return
 		}
 		if pass {
+			if s.Type == TypeAlarm {
+				event := AlarmEvent{
+					ProductId: s.ProductId,
+					DeviceId:  deviceId,
+					RuleId:    s.Id,
+					AlarmName: s.Name,
+					Data:      data1,
+				}
+				eventbus.Publish(eventbus.GetAlarmTopic(s.ProductId, deviceId), event)
+			}
 			s.runAction()
 		}
 	}
