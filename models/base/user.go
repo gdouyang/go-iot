@@ -94,6 +94,9 @@ func AddUser(ob *models.User) error {
 }
 
 func UpdateUser(ob *models.User) error {
+	if len(ob.Nickname) == 0 {
+		return fmt.Errorf("nickname not be empty")
+	}
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "Nickname", "Email", "Desc")
 	if err != nil {
