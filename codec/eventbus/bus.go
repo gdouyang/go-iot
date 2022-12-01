@@ -105,6 +105,12 @@ func PublishProperties(data *PropertiesMessage) {
 func PublishEvent(data *EventMessage) {
 	Publish(GetEventTopic(data.ProductId, data.DeviceId), data)
 }
+func PublishOnline(data *OnlineMessage) {
+	Publish(GetOnlineTopic(data.ProductId, data.DeviceId), data)
+}
+func PublishOffline(data *OfflineMessage) {
+	Publish(GetOfflineTopic(data.ProductId, data.DeviceId), data)
+}
 
 type MessageType string
 
