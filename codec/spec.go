@@ -111,12 +111,16 @@ func (ctx *BaseContext) Save(data map[string]interface{}) {
 	p := ctx.GetProduct()
 	if p == nil {
 		logs.Error("product not found " + ctx.ProductId)
-	} else {
-		if _, ok := data["deviceId"]; !ok {
-			data["deviceId"] = ctx.DeviceId
-		}
-		p.GetTimeSeries().Save(p, data)
+		return
 	}
+	if ctx.GetDevice() == nil {
+		logs.Warn("device not offline")
+		return
+	}
+	if _, ok := data["deviceId"]; !ok {
+		data["deviceId"] = ctx.DeviceId
+	}
+	p.GetTimeSeries().Save(p, data)
 }
 
 func (ctx *BaseContext) ReplyOk() {
