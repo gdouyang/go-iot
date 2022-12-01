@@ -204,10 +204,10 @@ func GetUnuseNetwork() (*models.Network, error) {
 	cond = cond.And("productId__isnull", true).Or("productId", "")
 	var result models.Network
 	err := qs.SetCond(cond).One(&result)
-	if err != nil {
+	if err != nil && err != orm.ErrNoRows {
 		return nil, err
 	}
-	if len(result.ProductId) == 0 {
+	if len(result.ProductId) > 0 {
 		return &result, nil
 	}
 	return nil, errors.New("network is all used")
