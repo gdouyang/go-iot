@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"go-iot/codec"
 	"go-iot/models"
 
 	"go-iot/models/network"
@@ -90,14 +91,23 @@ func AddProduct(ob *models.Product, networkType string) error {
 		if err != nil {
 			return err
 		}
-		nw, err := network.GetUnuseNetwork()
-		if err != nil {
+		if codec.IsNetClientType(networkType) {
+			err := network.AddNetWork(&models.Network{
+				ProductId: ob.Id,
+				Type:      networkType,
+				State:     models.Stop,
+			})
+			return err
+		} else {
+			nw, err := network.GetUnuseNetwork()
+			if err != nil {
+				return err
+			}
+			nw.ProductId = ob.Id
+			nw.Type = networkType
+			err = network.UpdateNetworkTx(nw, txOrm)
 			return err
 		}
-		nw.ProductId = ob.Id
-		nw.Type = networkType
-		err = network.UpdateNetworkTx(nw, txOrm)
-		return err
 	})
 
 	return err
@@ -168,13 +178,18 @@ func DeleteProduct(ob *models.Product) error {
 			return err
 		}
 		if nw != nil {
-			nw.ProductId = ""
-			nw.Type = ""
-			nw.Configuration = ""
-			nw.Script = ""
-			nw.State = "stop"
-			err = network.UpdateNetworkTx(nw, txOrm)
-			return err
+			if codec.IsNetClientType(nw.Type) {
+				err := network.DeleteNetworkTx(nw, txOrm)
+				return err
+			} else {
+				nw.ProductId = ""
+				nw.Type = ""
+				nw.Configuration = ""
+				nw.Script = ""
+				nw.State = "stop"
+				err = network.UpdateNetworkTx(nw, txOrm)
+				return err
+			}
 		}
 		return err
 	})

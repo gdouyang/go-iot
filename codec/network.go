@@ -22,6 +22,10 @@ const (
 	TCP_CLIENT NetClientType = "TCP_CLIENT"
 )
 
+func IsNetClientType(str string) bool {
+	return TCP_CLIENT == NetClientType(str) || MQTT_CLIENT == NetClientType(str)
+}
+
 // 网络配置
 type NetworkConf struct {
 	Name          string `json:"name"`

@@ -3,11 +3,12 @@ package network
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"go-iot/codec"
 	"go-iot/models"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/core/logs"
 )
 
 func init() {
@@ -79,20 +80,31 @@ func ListStartNetwork() ([]models.Network, error) {
 }
 
 func AddNetWork(ob *models.Network) error {
-	if ob.Port <= 1024 || ob.Port > 65535 {
-		return errors.New("invalid port number")
+	if !codec.IsNetClientType(ob.Type) {
+		if ob.Port <= 1024 || ob.Port > 65535 {
+			return errors.New("invalid port number")
+		}
+		rs, err := GetNetworkByEntity(models.Network{Port: ob.Port})
+		if err != nil {
+			return err
+		}
+		if rs.Id > 0 {
+			return fmt.Errorf("network exist of port[%d] ", ob.Port)
+		}
 	}
-	rs, err := GetNetworkByEntity(models.Network{Port: ob.Port})
-	if err != nil {
-		return err
-	}
-	if rs.Id > 0 {
-		return errors.New("配置已存在")
+	if len(ob.ProductId) > 0 {
+		nw, err := GetByProductId(ob.ProductId)
+		if err != nil {
+			return err
+		}
+		if nw != nil {
+			return fmt.Errorf("network exist of product[%s] ", ob.ProductId)
+		}
 	}
 	//插入数据
 	o := orm.NewOrm()
 	ob.CreateTime = time.Now()
-	_, err = o.Insert(ob)
+	_, err := o.Insert(ob)
 	if err != nil {
 		return err
 	}
@@ -147,7 +159,15 @@ func DeleteNetwork(ob *models.Network) error {
 	o := orm.NewOrm()
 	_, err := o.Delete(ob)
 	if err != nil {
-		logs.Error("delete fail", err)
+		return err
+	}
+	return nil
+}
+
+// delete with transaction
+func DeleteNetworkTx(ob *models.Network, o orm.DML) error {
+	_, err := o.Delete(ob)
+	if err != nil {
 		return err
 	}
 	return nil
