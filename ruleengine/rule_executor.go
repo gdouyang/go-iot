@@ -3,7 +3,6 @@ package ruleengine
 import (
 	"fmt"
 	"go-iot/codec/eventbus"
-	"go-iot/codec/tsl"
 	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -104,7 +103,7 @@ func (s *RuleExecutor) stop() {
 	}
 }
 
-func (s *RuleExecutor) subscribeEvent(data interface{}) {
+func (s *RuleExecutor) subscribeEvent(data eventbus.Message) {
 	if s.Trigger.FilterType == "online" || s.Trigger.FilterType == "offline" {
 		s.runAction(nil)
 		return
@@ -112,10 +111,18 @@ func (s *RuleExecutor) subscribeEvent(data interface{}) {
 	s.evaluate(data)
 }
 
-func (s *RuleExecutor) evaluate(data interface{}) {
+func (s *RuleExecutor) evaluate(data eventbus.Message) {
 	pass := true
-	data1 := data.(map[string]interface{})
-	deviceId := fmt.Sprintf("%v", data1[tsl.PropertyDeviceId])
+	var data1 map[string]interface{}
+	var deviceId string
+	if p, ok := data.(*eventbus.PropertiesMessage); ok {
+		data1 = p.Data
+		deviceId = p.DeviceId
+	}
+	if p, ok := data.(*eventbus.EventMessage); ok {
+		data1 = p.Data
+		deviceId = p.DeviceId
+	}
 	if len(s.deviceIdMap) > 0 {
 		pass = false
 		if _, ok := s.deviceIdMap[deviceId]; ok {
@@ -141,7 +148,7 @@ func (s *RuleExecutor) evaluate(data interface{}) {
 					AlarmName: s.Name,
 					Data:      data1,
 				}
-				eventbus.Publish(eventbus.GetAlarmTopic(s.ProductId, deviceId), event)
+				eventbus.Publish(eventbus.GetAlarmTopic(s.ProductId, deviceId), &event)
 			}
 			s.runAction(data1)
 		}

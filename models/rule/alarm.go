@@ -16,12 +16,11 @@ func init() {
 	eventbus.Subscribe(eventbus.GetAlarmTopic("*", "*"), saveAlarmEvent)
 }
 
-func saveAlarmEvent(data interface{}) {
+func saveAlarmEvent(data eventbus.Message) {
 	if data == nil {
 		return
 	}
-	switch t := data.(type) {
-	case ruleengine.AlarmEvent:
+	if t, ok := data.(*ruleengine.AlarmEvent); ok {
 		b, err := json.Marshal(t.Data)
 		if err != nil {
 			logs.Error(err)

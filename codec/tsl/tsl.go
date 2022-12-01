@@ -93,6 +93,10 @@ func (p *TslProperty) GetValueType() interface{} {
 		valueType := ValueTypeFloat{}
 		valueType.convert(p.ValueType)
 		return valueType
+	case TypeObject:
+		valueType := ValueTypeObject{}
+		valueType.convert(p.ValueType)
+		return valueType
 	}
 	return p.ValueType
 }
@@ -144,6 +148,15 @@ type ValueTypeFloat struct {
 }
 
 func (v *ValueTypeFloat) convert(data map[string]interface{}) error {
+	str, _ := json.Marshal(data)
+	return json.Unmarshal(str, v)
+}
+
+type ValueTypeObject struct {
+	Properties []TslProperty `json:"properties"`
+}
+
+func (v *ValueTypeObject) convert(data map[string]interface{}) error {
 	str, _ := json.Marshal(data)
 	return json.Unmarshal(str, v)
 }

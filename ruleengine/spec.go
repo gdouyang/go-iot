@@ -17,6 +17,10 @@ type AlarmEvent struct {
 	Data      map[string]interface{}
 }
 
+func (e *AlarmEvent) Type() eventbus.MessageType {
+	return eventbus.ALARM
+}
+
 type TriggerType string
 
 const (

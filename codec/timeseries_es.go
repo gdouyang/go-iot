@@ -65,7 +65,8 @@ func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
 		t.batchTaskRun = true
 		go t.batchSave()
 	}
-	eventbus.Publish(eventbus.GetMesssageTopic(product.GetId(), fmt.Sprintf("%v", deviceId)), d1)
+	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
+	eventbus.PublishProperties(&event)
 	return nil
 	// Set up the request object.
 	// req := esapi.IndexRequest{

@@ -39,11 +39,15 @@ func TestRule(t *testing.T) {
 	codec.DefaultManagerId = "mem"
 	codec.GetProductManager().Put(&codec.DefaultProdeuct{Id: "test123", TslProperty: propMap})
 	codec.GetDeviceManager().Put(&codec.DefaultDevice{Id: "1234"})
-	eventbus.Publish(eventbus.GetMesssageTopic("test123", "1234"), map[string]interface{}{
-		"deviceId": "1234",
-		"light":    "32",
-		"current":  "22",
-		"obj":      map[string]string{"name": "test"},
+	eventbus.Publish(eventbus.GetMesssageTopic("test123", "1234"), &ruleengine.AlarmEvent{
+		DeviceId:  "1234",
+		ProductId: "test123",
+		Data: map[string]interface{}{
+			"deviceId": "1234",
+			"light":    "32",
+			"current":  "22",
+			"obj":      map[string]string{"name": "test"},
+		},
 	})
 	time.Sleep(time.Second * 1)
 }
