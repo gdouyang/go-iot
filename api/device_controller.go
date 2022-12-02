@@ -110,13 +110,22 @@ func (ctl *DeviceController) GetDetail() {
 		resp = models.JsonRespError(err)
 		return
 	}
+	nw, err := network.GetByProductId(ob.ProductId)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
 	var alins = struct {
 		models.DeviceModel
 		Metadata    string `json:"metadata"`
 		ProductName string `json:"productName"`
+		NetworkType string `json:"networkType"`
 	}{}
 	alins.Metadata = product.Metadata
 	alins.ProductName = product.Name
+	if nw != nil {
+		alins.NetworkType = nw.Type
+	}
 	alins.DeviceModel = *ob
 	resp.Data = alins
 }
@@ -206,21 +215,26 @@ func (ctl *DeviceController) Connect() {
 		resp = models.JsonRespError(err)
 		return
 	}
-	n, err := network.GetByProductId(dev.ProductId)
+	nw, err := network.GetByProductId(dev.ProductId)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
-	if n != nil {
+	if nw == nil {
 		resp = models.JsonRespError(fmt.Errorf("product [%s] not have network config", dev.ProductId))
 		return
 	}
+	if !codec.IsNetClientType(nw.Type) {
+		resp = models.JsonRespError(errors.New("only client type net can do it"))
+		return
+	}
 	// 进行连接
-	err = clients.Connect(ob.Id, convertCodecNetwork(*n))
+	err = clients.Connect(ob.Id, convertCodecNetwork(*nw))
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
 	}
+	device.UpdateOnlineStatus(ob.Id, models.ONLINE)
 }
 
 func (ctl *DeviceController) Disconnect() {
@@ -265,10 +279,13 @@ func (ctl *DeviceController) Deploy() {
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
-	_, err := device.GetDeviceMust(ob.Id)
+	dev, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
+	}
+	if len(dev.State) == 0 || dev.State == models.NoActive {
+		device.UpdateOnlineStatus(ob.Id, models.OFFLINE)
 	}
 	// TODO
 }

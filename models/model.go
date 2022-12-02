@@ -65,10 +65,12 @@ func (d *ProductModel) ToEnitty() Product {
 	return en
 }
 
+// product meta config
 type ProductMetaConfig struct {
 	Property string `json:"property,omitempty"`
 	Type     string `json:"type,omitempty"`
 	Value    string `json:"value,omitempty"`
+	Buildin  bool   `json:"buildin,omitempty"`
 	Desc     string `json:"desc,omitempty"`
 }
 

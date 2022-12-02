@@ -400,6 +400,10 @@ func (ctl *ProductController) RunNetwork() {
 		resp = models.JsonRespError(errors.New("product not have network, config network first"))
 		return
 	}
+	if codec.IsNetClientType(nw.Type) {
+		resp = models.JsonRespError(errors.New("client type net cant run"))
+		return
+	}
 	if len(nw.Script) == 0 || len(nw.Type) == 0 {
 		resp = models.JsonRespError(errors.New("script and type not be empty"))
 		return

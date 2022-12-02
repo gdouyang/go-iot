@@ -102,7 +102,7 @@ func UpdateDevice(ob *models.Device) error {
 }
 
 // 更新在线状态
-func UpdateOnlineStatus(state string, id string) error {
+func UpdateOnlineStatus(id string, state string) error {
 	if len(id) == 0 {
 		return errors.New("id not be empty")
 	}
