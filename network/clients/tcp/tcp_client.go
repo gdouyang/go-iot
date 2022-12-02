@@ -1,6 +1,7 @@
 package tcpclient
 
 import (
+	"errors"
 	"fmt"
 	"go-iot/codec"
 	"go-iot/network/clients"
@@ -28,10 +29,14 @@ func (c *TcpClient) Type() codec.NetClientType {
 func (c *TcpClient) Connect(deviceId string, network codec.NetworkConf) error {
 	spec := &TcpClientSpec{}
 	spec.FromJson(network.Configuration)
-	spec.Port = network.Port
+	if spec.Port == 0 {
+		return errors.New("port must gt 0 and le 65535")
+	}
+	if len(spec.Host) == 0 {
+		return errors.New("host must present")
+	}
 	conn, err := net.Dial("tcp", spec.Host+":"+fmt.Sprint(spec.Port))
 	if err != nil {
-		fmt.Print(err)
 		return err
 	}
 	c.conn = conn

@@ -89,7 +89,8 @@ func AddProduct(ob *models.Product, networkType string) error {
 	err = o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
 		if codec.TCP_CLIENT == codec.NetClientType(networkType) {
 			c, _ := json.Marshal([]models.ProductMetaConfig{
-				{Property: "host", Type: "string", Buildin: true, Desc: "The host of remote [127.0.0.1:80]"},
+				{Property: "host", Type: "string", Buildin: true, Desc: "The host of remote [127.0.0.1]"},
+				{Property: "port", Type: "number", Buildin: true, Desc: "The port of remote [80]"},
 			})
 			ob.Metaconfig = string(c)
 		}

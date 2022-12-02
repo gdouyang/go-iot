@@ -9,6 +9,8 @@ import (
 	device "go-iot/models/device"
 	"go-iot/models/network"
 	"go-iot/network/clients"
+	tcpclient "go-iot/network/clients/tcp"
+	"strconv"
 
 	"github.com/beego/beego/v2/server/web"
 )
@@ -229,6 +231,17 @@ func (ctl *DeviceController) Connect() {
 		return
 	}
 	// 进行连接
+	if codec.TCP_CLIENT == codec.NetClientType(nw.Type) {
+		spec := &tcpclient.TcpClientSpec{}
+		spec.FromJson(nw.Configuration)
+		spec.Host = dev.Metaconfig["host"]
+		port, err := strconv.Atoi(dev.Metaconfig["port"])
+		if err != nil {
+			resp = models.JsonRespError(errors.New("port is not number"))
+			return
+		}
+		spec.Port = int32(port)
+	}
 	err = clients.Connect(ob.Id, convertCodecNetwork(*nw))
 	if err != nil {
 		resp = models.JsonRespError(err)
