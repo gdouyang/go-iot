@@ -54,10 +54,10 @@ func (p *DeviceOffline) Type() MessageType {
 
 // 功能调用
 type FuncInvoke struct {
-	FunctionId string            `json:"functionId"`
-	DeviceId   string            `json:"deviceId"`
-	Data       map[string]string `json:"data"`
-	Replay     chan error        `json:"-"`
+	FunctionId string                 `json:"functionId"`
+	DeviceId   string                 `json:"deviceId"`
+	Data       map[string]interface{} `json:"data"`
+	Replay     chan error             `json:"-"`
 }
 
 func (p *FuncInvoke) Type() MessageType {

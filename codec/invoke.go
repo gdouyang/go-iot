@@ -38,12 +38,13 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 		}()
 		return nil
 	} else {
-		err := replyMap.addReply(&message)
+		timeout := (time.Second * 10)
+		err := replyMap.addReply(&message, timeout)
 		if err != nil {
 			return err
 		}
 		// timeout of invoke
-		ctx, cancel := context.WithTimeout(context.Background(), (time.Second * 10))
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		message.Replay = make(chan error)
@@ -60,7 +61,6 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 		}(ctx)
 		select {
 		case <-ctx.Done():
-			replyMap.remove(message.DeviceId)
 			return errors.New("invoke timeout")
 		case err := <-message.Replay:
 			return err
@@ -108,27 +108,34 @@ type funcInvokeReply struct {
 	m sync.Map
 }
 
-func (r *funcInvokeReply) addReply(i *msg.FuncInvoke) error {
-	_, ok := r.m.Load(i.DeviceId)
+type reply struct {
+	time   int64
+	expire int64
+	cmd    *msg.FuncInvoke
+}
+
+func (r *funcInvokeReply) addReply(i *msg.FuncInvoke, exprie time.Duration) error {
+	val, ok := r.m.Load(i.DeviceId)
+	now := time.Now().UnixMilli()
 	if ok {
-		return fmt.Errorf("invoke %s not reply, please try later", i.FunctionId)
+		v := val.(*reply)
+		if v.expire > now {
+			return fmt.Errorf("invoke %s not reply, please try later", i.FunctionId)
+		}
 	}
-	r.m.Store(i.DeviceId, i)
+	r.m.Store(i.DeviceId, &reply{
+		time:   now,
+		expire: now + exprie.Milliseconds(),
+		cmd:    i,
+	})
 	return nil
 }
 
 func (r *funcInvokeReply) reply(deviceId string, resp error) {
 	val, ok := r.m.Load(deviceId)
 	if ok {
-		v := val.(*msg.FuncInvoke)
-		v.Replay <- resp
+		v := val.(*reply)
+		v.cmd.Replay <- resp
 	}
 	r.m.Delete(deviceId)
-}
-
-func (r *funcInvokeReply) remove(deviceId string) {
-	_, ok := r.m.Load(deviceId)
-	if ok {
-		r.m.Delete(deviceId)
-	}
 }
