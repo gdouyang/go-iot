@@ -87,11 +87,17 @@ func AddProduct(ob *models.Product, networkType string) error {
 	o := orm.NewOrm()
 	ob.CreateTime = time.Now()
 	err = o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		if codec.TCP_CLIENT == codec.NetClientType(networkType) {
-			c, _ := json.Marshal([]models.ProductMetaConfig{
+		if codec.TCP_CLIENT == codec.NetClientType(networkType) || codec.MQTT_CLIENT == codec.NetClientType(networkType) {
+			list := []models.ProductMetaConfig{
 				{Property: "host", Type: "string", Buildin: true, Desc: "The host of remote [127.0.0.1]"},
-				{Property: "port", Type: "number", Buildin: true, Desc: "The port of remote [80]"},
-			})
+				{Property: "port", Type: "number", Buildin: true, Desc: "The port of remote"},
+			}
+			if codec.MQTT_CLIENT == codec.NetClientType(networkType) {
+				list = append(list, models.ProductMetaConfig{Property: "clientId", Type: "string", Buildin: true, Desc: ""})
+				list = append(list, models.ProductMetaConfig{Property: "username", Type: "string", Buildin: true, Desc: ""})
+				list = append(list, models.ProductMetaConfig{Property: "password", Type: "password", Buildin: true, Desc: ""})
+			}
+			c, _ := json.Marshal(list)
 			ob.Metaconfig = string(c)
 		}
 		_, err := txOrm.Insert(ob)

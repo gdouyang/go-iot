@@ -2,6 +2,7 @@ package codec
 
 import (
 	"errors"
+	"runtime/debug"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/robertkrimen/otto"
@@ -131,6 +132,12 @@ func (c *ScriptCodec) funcInvoke(name string, param interface{}) {
 	vm := c.vm.Copy()
 	fn, _ := vm.Get(name)
 	if fn.IsDefined() {
+		defer func() {
+			if err := recover(); err != nil {
+				logs.Error(err)
+				logs.Error(string(debug.Stack()))
+			}
+		}()
 		// logs.Warn(fmt.Sprintf("%p", &fn))
 		_, err := fn.Call(otto.Value{}, param)
 		if err != nil {

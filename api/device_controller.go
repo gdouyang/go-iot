@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go-iot/codec"
@@ -9,6 +10,7 @@ import (
 	device "go-iot/models/device"
 	"go-iot/models/network"
 	"go-iot/network/clients"
+	mqttclient "go-iot/network/clients/mqtt"
 	tcpclient "go-iot/network/clients/tcp"
 	"strconv"
 
@@ -129,6 +131,13 @@ func (ctl *DeviceController) GetDetail() {
 		alins.NetworkType = nw.Type
 	}
 	alins.DeviceModel = *ob
+	if ob.State != models.NoActive {
+		alins.State = models.OFFLINE
+		sess := codec.GetSessionManager().Get(ob.Id)
+		if sess != nil {
+			alins.State = models.ONLINE
+		}
+	}
 	resp.Data = alins
 }
 
@@ -241,6 +250,23 @@ func (ctl *DeviceController) Connect() {
 			return
 		}
 		spec.Port = int32(port)
+		b, _ := json.Marshal(spec)
+		nw.Configuration = string(b)
+	} else if codec.MQTT_CLIENT == codec.NetClientType(nw.Type) {
+		spec := &mqttclient.MQTTClientSpec{}
+		spec.FromJson(nw.Configuration)
+		spec.Host = dev.Metaconfig["host"]
+		port, err := strconv.Atoi(dev.Metaconfig["port"])
+		if err != nil {
+			resp = models.JsonRespError(errors.New("port is not number"))
+			return
+		}
+		spec.Port = int32(port)
+		spec.ClientId = dev.Metaconfig["clientId"]
+		spec.Username = dev.Metaconfig["username"]
+		spec.Password = dev.Metaconfig["password"]
+		b, _ := json.Marshal(spec)
+		nw.Configuration = string(b)
 	}
 	err = clients.Connect(ob.Id, convertCodecNetwork(*nw))
 	if err != nil {

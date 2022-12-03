@@ -78,13 +78,13 @@ func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClie
 	return session
 }
 
-func (s *clientSession) PublishQos0(topic string, msg interface{}) error {
-	s.client.Publish(topic, QoS0, false, msg.([]byte))
+func (s *clientSession) Publish(topic string, msg interface{}) error {
+	s.client.Publish(topic, QoS0, false, msg)
 	return nil
 }
 
 func (s *clientSession) PublishQos1(topic string, msg interface{}) error {
-	s.client.Publish(topic, QoS1, false, msg.([]byte))
+	s.client.Publish(topic, QoS1, false, msg)
 	return nil
 }
 

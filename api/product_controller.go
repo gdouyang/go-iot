@@ -366,10 +366,10 @@ func (ctl *ProductController) UpdateNetwork() {
 			resp = models.JsonRespError(err)
 			return
 		}
-		ob.Id = nw.Id
-		if len(nw.CodecId) == 0 {
-			ob.CodecId = codec.CodecIdScriptCode
-		}
+	}
+	ob.Id = nw.Id
+	if len(nw.CodecId) == 0 {
+		ob.CodecId = codec.CodecIdScriptCode
 	}
 	err = network.UpdateNetwork(&ob)
 	if err != nil {
@@ -404,8 +404,12 @@ func (ctl *ProductController) RunNetwork() {
 		resp = models.JsonRespError(errors.New("client type net cant run"))
 		return
 	}
-	if len(nw.Script) == 0 || len(nw.Type) == 0 {
-		resp = models.JsonRespError(errors.New("script and type not be empty"))
+	if len(nw.Type) == 0 {
+		resp = models.JsonRespError(errors.New("type of network not be empty"))
+		return
+	}
+	if len(nw.Script) == 0 {
+		resp = models.JsonRespError(errors.New("script not be empty"))
 		return
 	}
 	if state == "start" {

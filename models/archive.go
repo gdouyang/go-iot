@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	ONLINE   = "onLine"   // 在线
-	OFFLINE  = "offLine"  // 离线
+	ONLINE   = "online"   // 在线
+	OFFLINE  = "offline"  // 离线
 	NoActive = "noActive" // 未启用
 
 	Runing  = "runing"  // 网络状态runing

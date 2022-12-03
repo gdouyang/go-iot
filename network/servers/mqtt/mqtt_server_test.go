@@ -31,7 +31,7 @@ function OnMessage(context) {
 }
 function OnInvoke(context) {
 	console.log("OnInvoke: " + JSON.stringify(context.GetMessage().Data))
-	context.GetSession().PublishQos0("test", JSON.stringify(context.GetMessage().Data))
+	context.GetSession().Publish("test", JSON.stringify(context.GetMessage().Data))
 }
 `
 

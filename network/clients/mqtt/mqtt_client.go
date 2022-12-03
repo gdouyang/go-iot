@@ -1,6 +1,7 @@
 package mqttclient
 
 import (
+	"errors"
 	"go-iot/codec"
 	"go-iot/network/clients"
 )
@@ -25,7 +26,15 @@ func (c *MqttClient) Type() codec.NetClientType {
 func (c *MqttClient) Connect(deviceId string, network codec.NetworkConf) error {
 	spec := MQTTClientSpec{}
 	spec.FromJson(network.Configuration)
-	spec.Port = network.Port
+	if len(spec.Host) == 0 {
+		return errors.New("host not be empty")
+	}
+	if spec.Port == 0 {
+		return errors.New("port is invalidate")
+	}
+	if len(spec.ClientId) == 0 {
+		return errors.New("clientId not be empty")
+	}
 
 	session := newClientSession(deviceId, network, &spec)
 
