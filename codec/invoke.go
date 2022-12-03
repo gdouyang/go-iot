@@ -120,7 +120,7 @@ func (r *funcInvokeReply) addReply(i *msg.FuncInvoke, exprie time.Duration) erro
 	if ok {
 		v := val.(*reply)
 		if v.expire > now {
-			return fmt.Errorf("invoke %s not reply, please try later", i.FunctionId)
+			return fmt.Errorf("invoke [%s] is in process, please try later", i.FunctionId)
 		}
 	}
 	r.m.Store(i.DeviceId, &reply{
