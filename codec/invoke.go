@@ -60,7 +60,8 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 		}(ctx)
 		select {
 		case <-ctx.Done():
-			return errors.New("timeout")
+			replyMap.remove(message.DeviceId)
+			return errors.New("invoke timeout")
 		case err := <-message.Replay:
 			return err
 		}
@@ -123,4 +124,11 @@ func (r *funcInvokeReply) reply(deviceId string, resp error) {
 		v.Replay <- resp
 	}
 	r.m.Delete(deviceId)
+}
+
+func (r *funcInvokeReply) remove(deviceId string) {
+	_, ok := r.m.Load(deviceId)
+	if ok {
+		r.m.Delete(deviceId)
+	}
 }
