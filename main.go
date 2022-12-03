@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	_ "go-iot/api"
 	"go-iot/models"
 	_ "go-iot/network/servers/registry"
@@ -13,6 +14,9 @@ import (
 )
 
 func main() {
+	{
+		configLog()
+	}
 	dataSourceName, err := config.String("db.url")
 	if err != nil {
 		logs.Error("get dataSourceName failed")
@@ -23,4 +27,32 @@ func main() {
 		rw.WriteHeader(404)
 	})
 	web.Run()
+}
+
+func configLog() {
+	logLevel, err := config.String("logs.level")
+	if err != nil {
+		logs.Error("get logs.level failed")
+	}
+	level := 7
+	switch logLevel {
+	case "info":
+		level = logs.LevelInfo
+	case "wran":
+		level = logs.LevelWarn
+	case "error":
+		level = logs.LevelError
+	}
+	filename, err := config.String("logs.filename")
+	if err != nil {
+		logs.Error("get logs.filename failed")
+	}
+	if len(filename) == 0 {
+		filename = "go-iot.log"
+	}
+	err = logs.SetLogger(logs.AdapterFile, fmt.Sprintf(`{"filename":"%s","level":%d,"maxlines":0,
+	"maxsize":0,"daily":true,"maxdays":10,"color":true}`, filename, level))
+	if err != nil {
+		panic(err)
+	}
 }
