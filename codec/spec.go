@@ -20,23 +20,23 @@ type (
 		// 连接关闭
 		OnClose(ctx Context) error
 	}
+	// 产品信息
+	Product interface {
+		GetId() string
+		GetConfig(key string) string
+		GetTimeSeries() TimeSeriesSave
+		// 产品物模型属性
+		GetTslProperty() map[string]tsl.TslProperty
+		// 产品物模型功能
+		GetTslFunction() map[string]tsl.TslFunction
+	}
 	// 设备信息
 	Device interface {
 		GetId() string
 		// 获取会话
 		GetSession() Session
 		GetData() map[string]string
-		GetConfig() map[string]string
-	}
-	// 产品信息
-	Product interface {
-		GetId() string
-		GetConfig() map[string]string
-		GetTimeSeries() TimeSeriesSave
-		// 产品物模型属性
-		GetTslProperty() map[string]tsl.TslProperty
-		// 产品物模型功能
-		GetTslFunction() map[string]tsl.TslFunction
+		GetConfig(key string) string
 	}
 	// 会话信息
 	Session interface {
@@ -90,20 +90,9 @@ func (ctx *BaseContext) GetSession() Session {
 	return ctx.Session
 }
 
-func (ctx *BaseContext) GetConfig(key string) interface{} {
+func (ctx *BaseContext) GetConfig(key string) string {
 	device := ctx.GetDevice()
-	if device != nil {
-		if v, ok := device.GetConfig()[key]; ok {
-			return v
-		}
-	}
-	p := ctx.GetProduct()
-	if p != nil {
-		if v, ok := p.GetConfig()[key]; ok {
-			return v
-		}
-	}
-	return nil
+	return device.GetConfig(key)
 }
 
 // save time series data

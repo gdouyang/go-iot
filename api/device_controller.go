@@ -240,11 +240,16 @@ func (ctl *DeviceController) Connect() {
 		return
 	}
 	// 进行连接
+	devoper := codec.GetDeviceManager().Get(ob.Id)
+	if devoper == nil {
+		resp = models.JsonRespError(errors.New("devoper is nil"))
+		return
+	}
 	if codec.TCP_CLIENT == codec.NetClientType(nw.Type) {
 		spec := &tcpclient.TcpClientSpec{}
 		spec.FromJson(nw.Configuration)
-		spec.Host = dev.Metaconfig["host"]
-		port, err := strconv.Atoi(dev.Metaconfig["port"])
+		spec.Host = devoper.GetConfig("host")
+		port, err := strconv.Atoi(devoper.GetConfig("port"))
 		if err != nil {
 			resp = models.JsonRespError(errors.New("port is not number"))
 			return
@@ -255,16 +260,16 @@ func (ctl *DeviceController) Connect() {
 	} else if codec.MQTT_CLIENT == codec.NetClientType(nw.Type) {
 		spec := &mqttclient.MQTTClientSpec{}
 		spec.FromJson(nw.Configuration)
-		spec.Host = dev.Metaconfig["host"]
-		port, err := strconv.Atoi(dev.Metaconfig["port"])
+		spec.Host = devoper.GetConfig("host")
+		port, err := strconv.Atoi(devoper.GetConfig("port"))
 		if err != nil {
 			resp = models.JsonRespError(errors.New("port is not number"))
 			return
 		}
 		spec.Port = int32(port)
-		spec.ClientId = dev.Metaconfig["clientId"]
-		spec.Username = dev.Metaconfig["username"]
-		spec.Password = dev.Metaconfig["password"]
+		spec.ClientId = devoper.GetConfig("clientId")
+		spec.Username = devoper.GetConfig("username")
+		spec.Password = devoper.GetConfig("password")
 		b, _ := json.Marshal(spec)
 		nw.Configuration = string(b)
 	}

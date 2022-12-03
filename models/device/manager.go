@@ -80,10 +80,18 @@ func (m *DbProductManager) Get(productId string) codec.Product {
 		if err != nil {
 			logs.Error(err)
 		}
+		config := map[string]string{}
+		for _, item := range data.Metaconfig {
+			config[item.Property] = item.Value
+		}
+		storePolicy := data.StorePolicy
+		if len(storePolicy) == 0 {
+			storePolicy = codec.TIME_SERISE_ES
+		}
 		product = &codec.DefaultProdeuct{
 			Id:           data.Id,
-			Config:       map[string]string{},
-			TimeSeriesId: codec.TIME_SERISE_ES,
+			Config:       config,
+			TimeSeriesId: data.StorePolicy,
 			TslProperty:  d.PropertiesMap(),
 			TslFunction:  d.FunctionsMap(),
 		}

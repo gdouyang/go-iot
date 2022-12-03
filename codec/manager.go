@@ -92,8 +92,16 @@ func (d *DefaultDevice) GetSession() Session {
 func (d *DefaultDevice) GetData() map[string]string {
 	return d.Data
 }
-func (d *DefaultDevice) GetConfig() map[string]string {
-	return d.Config
+func (d *DefaultDevice) GetConfig(key string) string {
+	if v, ok := d.Config[key]; ok {
+		return v
+	}
+	p := GetProductManager().Get(d.ProductId)
+	if p != nil {
+		v := p.GetConfig(key)
+		return v
+	}
+	return ""
 }
 
 func NewProduct(id string, config map[string]string, tsId string) *DefaultProdeuct {
@@ -115,8 +123,11 @@ type DefaultProdeuct struct {
 func (p *DefaultProdeuct) GetId() string {
 	return p.Id
 }
-func (p *DefaultProdeuct) GetConfig() map[string]string {
-	return p.Config
+func (p *DefaultProdeuct) GetConfig(key string) string {
+	if v, ok := p.Config[key]; ok {
+		return v
+	}
+	return ""
 }
 
 func (p *DefaultProdeuct) GetTimeSeries() TimeSeriesSave {
