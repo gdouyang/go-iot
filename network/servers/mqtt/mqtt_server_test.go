@@ -58,7 +58,7 @@ func TestServer(t *testing.T) {
 				err := codec.DoCmdInvoke(network.ProductId, msg.FuncInvoke{
 					DeviceId:   "1234",
 					FunctionId: "func1",
-					Data:       map[string]string{"name": "f"},
+					Data:       map[string]interface{}{"name": "f"},
 				})
 				if err != nil {
 					logs.Error(err)
