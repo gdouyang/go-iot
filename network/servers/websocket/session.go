@@ -44,7 +44,9 @@ func (s *websocketSession) GetDeviceId() string {
 }
 
 func (s *websocketSession) Disconnect() error {
-	return s.conn.Close()
+	err := s.conn.Close()
+	codec.GetSessionManager().DelLocal(s.deviceId)
+	return err
 }
 
 func (s *websocketSession) SendText(msg string) error {

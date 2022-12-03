@@ -32,10 +32,11 @@ type clientSession struct {
 	Username  string
 	CleanFlag bool
 	choke     chan MQTT.Message
+	done      chan struct{}
 	codec     codec.Codec
 }
 
-func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClientSpec) *clientSession {
+func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClientSpec) (*clientSession, error) {
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker("tcp://" + spec.Host + ":" + fmt.Sprint(spec.Port))
 	opts.SetClientID(spec.ClientId)
@@ -43,28 +44,31 @@ func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClie
 	opts.SetPassword(spec.Password)
 	opts.SetCleanSession(spec.CleanSession)
 
-	choke := make(chan MQTT.Message)
-	opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
-		choke <- msg
-	})
-
-	client := MQTT.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		logs.Error(token.Error())
-		return nil
-	}
-	c := codec.NewCodec(network)
 	session := &clientSession{
-		client:    client,
 		ClientID:  spec.ClientId,
 		Username:  spec.Username,
 		CleanFlag: spec.CleanSession,
 		Topics:    spec.Topics,
 		deviceId:  deviceId,
 		productId: network.ProductId,
-		choke:     choke,
-		codec:     c,
+		choke:     make(chan MQTT.Message),
+		done:      make(chan struct{}),
 	}
+	opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
+		session.choke <- msg
+	})
+	opts.SetConnectionLostHandler(func(c MQTT.Client, err error) {
+		logs.Info("connection lost clientId:%s, err:%s ", opts.ClientID, err.Error())
+		close(session.done)
+	})
+
+	client := MQTT.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		return nil, token.Error()
+	}
+	session.client = client
+	c := codec.NewCodec(network)
+	session.codec = c
 	session.deviceOnline(deviceId)
 
 	c.OnConnect(&mqttClientContext{
@@ -75,7 +79,7 @@ func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClie
 		},
 	})
 
-	return session
+	return session, nil
 }
 
 func (s *clientSession) Publish(topic string, msg interface{}) error {
@@ -90,6 +94,7 @@ func (s *clientSession) PublishQos1(topic string, msg interface{}) error {
 
 func (s *clientSession) Disconnect() error {
 	s.client.Disconnect(250)
+	codec.GetSessionManager().DelLocal(s.deviceId)
 	return nil
 }
 
@@ -111,14 +116,19 @@ func (s *clientSession) deviceOnline(deviceId string) {
 func (s *clientSession) readLoop() {
 	defer s.Disconnect()
 	for {
-		msg := <-s.choke
-		s.codec.OnMessage(&mqttClientContext{
-			BaseContext: codec.BaseContext{
-				DeviceId:  s.GetDeviceId(),
-				ProductId: s.productId,
-				Session:   s,
-			},
-			Data: msg,
-		})
+		select {
+		case msg := <-s.choke:
+			s.codec.OnMessage(&mqttClientContext{
+				BaseContext: codec.BaseContext{
+					DeviceId:  s.GetDeviceId(),
+					ProductId: s.productId,
+					Session:   s,
+				},
+				Data: msg,
+			})
+		case <-s.done:
+			return
+		}
+
 	}
 }

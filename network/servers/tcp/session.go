@@ -35,7 +35,9 @@ func (s *tcpSession) Send(msg interface{}) error {
 
 func (s *tcpSession) Disconnect() error {
 	close(s.done)
-	return s.conn.Close()
+	err := s.conn.Close()
+	codec.GetSessionManager().DelLocal(s.deviceId)
+	return err
 }
 
 func (s *tcpSession) SetDeviceId(deviceId string) {

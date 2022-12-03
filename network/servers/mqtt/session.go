@@ -213,7 +213,13 @@ func (s *Session) backgroundResendPending() {
 }
 
 func (s *Session) Disconnect() error {
-	s.close()
+	if !s.cleanSession() {
+		s.close()
+	}
+	client := s.broker.getClient(s.info.ClientID)
+	if client != nil {
+		client.closeAndDelSession()
+	}
 	return nil
 }
 

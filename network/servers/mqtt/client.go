@@ -194,8 +194,8 @@ func (c *Client) close() {
 	atomic.StoreInt32(&c.statusFlag, Disconnected)
 	close(c.done) // 删除
 	c.broker.deleteSession(c.info.cid)
+	c.conn.Close()
 	c.Unlock()
-
 }
 
 func (c *Client) disconnected() bool {
@@ -203,9 +203,8 @@ func (c *Client) disconnected() bool {
 }
 
 func (c *Client) closeAndDelSession() {
-	codec.GetSessionManager().DelLocal(c.session.info.deviceId)
-
 	c.close()
+	codec.GetSessionManager().DelLocal(c.info.deviceId)
 }
 
 func (c *Client) Done() <-chan struct{} {

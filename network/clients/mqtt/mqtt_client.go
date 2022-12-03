@@ -36,7 +36,10 @@ func (c *MqttClient) Connect(deviceId string, network codec.NetworkConf) error {
 		return errors.New("clientId not be empty")
 	}
 
-	session := newClientSession(deviceId, network, &spec)
+	session, err := newClientSession(deviceId, network, &spec)
+	if err != nil {
+		return err
+	}
 
 	c.deviceId = deviceId
 	c.productId = network.ProductId
