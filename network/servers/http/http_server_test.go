@@ -88,3 +88,11 @@ func TestHttp(t *testing.T) {
 	}
 	logs.Info(string(b))
 }
+
+func TestHttp1(t *testing.T) {
+	resp := codec.HttpRequest(map[string]interface{}{
+		"method": "get",
+		"url":    "http://www.baidu.com",
+	})
+	logs.Info(resp)
+}
