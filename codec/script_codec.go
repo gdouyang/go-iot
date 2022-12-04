@@ -34,7 +34,7 @@ func newScriptCodec(network NetworkConf) (Codec, error) {
 		vm:     vm,
 	}
 	RegCodec(network.ProductId, sc)
-	regDeviceLifeCycle(CodecIdScriptCode, sc)
+	regDeviceLifeCycle(network.ProductId, sc)
 
 	var val, _ = vm.Get(OnConnect)
 	sc.onConnect = val.IsDefined()

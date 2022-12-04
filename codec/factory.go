@@ -33,19 +33,19 @@ func NewCodec(network NetworkConf) Codec {
 
 var codecFactory = map[string]func(network NetworkConf) Codec{}
 
-func regCodecCreator(id string, creator func(network NetworkConf) Codec) {
-	_, ok := codecFactory[id]
+func regCodecCreator(codecId string, creator func(network NetworkConf) Codec) {
+	_, ok := codecFactory[codecId]
 	if ok {
-		logs.Error("codec " + id + " is exist")
+		logs.Error("codec " + codecId + " is exist")
 		return
 	}
-	codecFactory[id] = creator
+	codecFactory[codecId] = creator
 }
 
-func regDeviceLifeCycle(id string, liefcycle DeviceLifecycle) {
-	val, ok := deviceLifeCycleMap.Load(id)
+func regDeviceLifeCycle(productId string, liefcycle DeviceLifecycle) {
+	val, ok := deviceLifeCycleMap.Load(productId)
 	if val == nil || !ok {
-		deviceLifeCycleMap.Store(id, liefcycle)
+		deviceLifeCycleMap.Store(productId, liefcycle)
 	}
 }
 
