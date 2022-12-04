@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -61,4 +62,29 @@ func initClient() {
 	}
 	log.Printf("client Received: %d %s \n", res.StatusCode, data)
 	time.Sleep(time.Second * 11)
+}
+
+func TestHttp(t *testing.T) {
+	u, err := url.ParseRequestURI("http://www.baidu.com")
+	if err != nil {
+		logs.Error(err)
+		return
+	}
+	client := http.Client{Timeout: time.Second * 3}
+	var req *http.Request = &http.Request{
+		Method: "get",
+		URL:    u,
+		Header: map[string][]string{},
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		logs.Error(err)
+		return
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logs.Error(err)
+		return
+	}
+	logs.Info(string(b))
 }

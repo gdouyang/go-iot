@@ -2,11 +2,18 @@ package codec
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go-iot/codec/msg"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/beego/beego/v2/core/logs"
 )
 
 // 进行功能调用
@@ -101,6 +108,10 @@ func (ctx *FuncInvokeContext) ReplyFail(resp string) {
 	replyMap.reply(ctx.deviceId, errors.New(resp))
 }
 
+func (ctx *FuncInvokeContext) HttpRequest(config map[string]interface{}) map[string]interface{} {
+	return HttpRequest(config)
+}
+
 // cmd invoke reply
 var replyMap = &funcInvokeReply{}
 
@@ -138,4 +149,72 @@ func (r *funcInvokeReply) reply(deviceId string, resp error) {
 		v.cmd.Replay <- resp
 	}
 	r.m.Delete(deviceId)
+}
+
+// http request func for http network
+func HttpRequest(config map[string]interface{}) map[string]interface{} {
+	result := map[string]interface{}{}
+	path := config["url"]
+	u, err := url.ParseRequestURI(fmt.Sprintf("%v", path))
+	if err != nil {
+		logs.Error(err)
+		result["status"] = 400
+		result["message"] = err.Error()
+		return result
+	}
+	method := config["method"]
+	client := http.Client{Timeout: time.Second * 3}
+	var req *http.Request = &http.Request{
+		Method: fmt.Sprintf("%v", method),
+		URL:    u,
+		Header: map[string][]string{},
+	}
+	if v, ok := config["header"]; ok {
+		h, ok := v.(map[string]interface{})
+		if !ok {
+			logs.Warn("header is not object:", v)
+			h = map[string]interface{}{}
+		}
+		for key, value := range h {
+			req.Header.Add(key, fmt.Sprintf("%v", value))
+		}
+	}
+	if data, ok := config["data"]; ok {
+		if body, ok := data.(map[string]interface{}); ok {
+			b, err := json.Marshal(body)
+			if err != nil {
+				logs.Error("http data parse error:", err)
+				result["status"] = 400
+				result["message"] = err.Error()
+				return result
+			}
+			req.Body = io.NopCloser(strings.NewReader(string(b)))
+		} else {
+			req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf("%v", data)))
+		}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		logs.Error(err)
+		result["status"] = resp.StatusCode
+		result["message"] = err.Error()
+		return result
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logs.Error(err)
+		result["status"] = 400
+		result["message"] = err.Error()
+		return result
+	}
+	header := map[string]string{}
+	if resp.Header != nil {
+		for key := range resp.Header {
+			header[key] = resp.Header.Get(key)
+		}
+	}
+	result["data"] = string(b)
+	result["status"] = resp.StatusCode
+	result["header"] = header
+	return result
 }
