@@ -68,7 +68,7 @@ type ScriptCodec struct {
 }
 
 // 设备连接时
-func (c *ScriptCodec) OnConnect(ctx Context) error {
+func (c *ScriptCodec) OnConnect(ctx MessageContext) error {
 	if c.onConnect {
 		c.funcInvoke(OnConnect, ctx)
 		return nil
@@ -77,7 +77,7 @@ func (c *ScriptCodec) OnConnect(ctx Context) error {
 }
 
 // 接收消息
-func (c *ScriptCodec) OnMessage(ctx Context) error {
+func (c *ScriptCodec) OnMessage(ctx MessageContext) error {
 	if c.onMessage {
 		c.funcInvoke(OnMessage, ctx)
 	}
@@ -85,7 +85,7 @@ func (c *ScriptCodec) OnMessage(ctx Context) error {
 }
 
 // 命令调用
-func (c *ScriptCodec) OnInvoke(ctx Context) error {
+func (c *ScriptCodec) OnInvoke(ctx MessageContext) error {
 	if c.onInvoke {
 		c.funcInvoke(OnInvoke, ctx)
 	}
@@ -93,7 +93,7 @@ func (c *ScriptCodec) OnInvoke(ctx Context) error {
 }
 
 // 连接关闭
-func (c *ScriptCodec) OnClose(ctx Context) error {
+func (c *ScriptCodec) OnClose(ctx MessageContext) error {
 	return nil
 }
 

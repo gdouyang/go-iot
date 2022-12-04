@@ -37,7 +37,3 @@ func (ctx *httpContext) GetQuery(key string) string {
 func (ctx *httpContext) GetForm(key string) string {
 	return ctx.r.Form.Get(key)
 }
-
-func (ctx *httpContext) HttpRequest(config map[string]interface{}) map[string]interface{} {
-	return codec.HttpRequest(config)
-}

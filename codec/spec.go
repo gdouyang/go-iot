@@ -12,13 +12,13 @@ type (
 	// 编解码接口
 	Codec interface {
 		// 设备连接时
-		OnConnect(ctx Context) error
+		OnConnect(ctx MessageContext) error
 		// 接收消息
-		OnMessage(ctx Context) error
+		OnMessage(ctx MessageContext) error
 		// 命令调用
-		OnInvoke(ctx Context) error
+		OnInvoke(ctx MessageContext) error
 		// 连接关闭
-		OnClose(ctx Context) error
+		OnClose(ctx MessageContext) error
 	}
 	DeviceLifecycle interface {
 		// 设备新增
@@ -54,15 +54,13 @@ type (
 		GetDeviceId() string
 		SetDeviceId(deviceId string)
 	}
-	// 上下文
-	Context interface {
+	// 消息上下文
+	MessageContext interface {
+		DeviceLifecycleContext
 		GetMessage() interface{}
 		GetSession() Session
-		// 获取设备操作
-		GetDevice() Device
-		// 获取产品操作
-		GetProduct() Product
 	}
+	//  设备生命周期上下文
 	DeviceLifecycleContext interface {
 		// 获取设备操作
 		GetDevice() Device
@@ -141,4 +139,8 @@ func (ctx *BaseContext) ReplyOk() {
 
 func (ctx *BaseContext) ReplyFail(resp string) {
 	replyMap.reply(ctx.DeviceId, errors.New(resp))
+}
+
+func (ctx *BaseContext) HttpRequest(config map[string]interface{}) map[string]interface{} {
+	return HttpRequest(config)
 }
