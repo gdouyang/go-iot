@@ -20,6 +20,16 @@ type (
 		// 连接关闭
 		OnClose(ctx Context) error
 	}
+	DeviceLifecycle interface {
+		// 设备新增
+		OnCreate(ctx DeviceLifecycleContext) error
+		// 设备删除
+		OnDelete(ctx DeviceLifecycleContext) error
+		// 设备修改
+		OnUpdate(ctx DeviceLifecycleContext) error
+		// 设备状态检查
+		OnStateChecker(ctx DeviceLifecycleContext) (string, error)
+	}
 	// 产品信息
 	Product interface {
 		GetId() string
@@ -53,6 +63,12 @@ type (
 		// 获取产品操作
 		GetProduct() Product
 	}
+	DeviceLifecycleContext interface {
+		// 获取设备操作
+		GetDevice() Device
+		// 获取产品操作
+		GetProduct() Product
+	}
 )
 
 // base context
@@ -73,10 +89,14 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 }
 
 func (ctx *BaseContext) GetDevice() Device {
+	return ctx.GetDeviceById(ctx.DeviceId)
+}
+
+func (ctx *BaseContext) GetDeviceById(deviceId string) Device {
 	if len(ctx.DeviceId) == 0 {
 		return nil
 	}
-	return GetDeviceManager().Get(ctx.DeviceId)
+	return GetDeviceManager().Get(deviceId)
 }
 
 func (ctx *BaseContext) GetProduct() Product {
@@ -99,7 +119,7 @@ func (ctx *BaseContext) GetConfig(key string) string {
 }
 
 // save time series data
-func (ctx *BaseContext) Save(data map[string]interface{}) {
+func (ctx *BaseContext) SaveProperties(data map[string]interface{}) {
 	p := ctx.GetProduct()
 	if p == nil {
 		logs.Error("product not found " + ctx.ProductId)

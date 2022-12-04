@@ -34,6 +34,7 @@ func newScriptCodec(network NetworkConf) (Codec, error) {
 		vm:     vm,
 	}
 	RegCodec(network.ProductId, sc)
+	regDeviceLifeCycle(CodecIdScriptCode, sc)
 
 	var val, _ = vm.Get(OnConnect)
 	sc.onConnect = val.IsDefined()
@@ -97,7 +98,7 @@ func (c *ScriptCodec) OnClose(ctx Context) error {
 }
 
 // 设备新增
-func (c *ScriptCodec) OnCreate(ctx Context) error {
+func (c *ScriptCodec) OnCreate(ctx DeviceLifecycleContext) error {
 	if c.onDeviceCreate {
 		c.funcInvoke(OnDeviceCreate, ctx)
 	}
@@ -105,7 +106,7 @@ func (c *ScriptCodec) OnCreate(ctx Context) error {
 }
 
 // 设备删除
-func (c *ScriptCodec) OnDelete(ctx Context) error {
+func (c *ScriptCodec) OnDelete(ctx DeviceLifecycleContext) error {
 	if c.onDeviceDelete {
 		c.funcInvoke(OnDeviceDelete, ctx)
 	}
@@ -113,7 +114,7 @@ func (c *ScriptCodec) OnDelete(ctx Context) error {
 }
 
 // 设备修改
-func (c *ScriptCodec) OnUpdate(ctx Context) error {
+func (c *ScriptCodec) OnUpdate(ctx DeviceLifecycleContext) error {
 	if c.onDeviceUpdate {
 		c.funcInvoke(OnDeviceUpdate, ctx)
 	}
@@ -121,14 +122,15 @@ func (c *ScriptCodec) OnUpdate(ctx Context) error {
 }
 
 // 状态检查
-func (c *ScriptCodec) OnStateChecker(ctx Context) error {
+func (c *ScriptCodec) OnStateChecker(ctx DeviceLifecycleContext) (string, error) {
 	if c.onStateChecker {
-		c.funcInvoke(OnStateChecker, ctx)
+		resp := c.funcInvoke(OnStateChecker, ctx)
+		return resp.ToString()
 	}
-	return nil
+	return "", nil
 }
 
-func (c *ScriptCodec) funcInvoke(name string, param interface{}) {
+func (c *ScriptCodec) funcInvoke(name string, param interface{}) otto.Value {
 	vm := c.vm.Copy()
 	fn, _ := vm.Get(name)
 	if fn.IsDefined() {
@@ -139,9 +141,11 @@ func (c *ScriptCodec) funcInvoke(name string, param interface{}) {
 			}
 		}()
 		// logs.Warn(fmt.Sprintf("%p", &fn))
-		_, err := fn.Call(otto.Value{}, param)
+		resp, err := fn.Call(otto.Value{}, param)
 		if err != nil {
 			logs.Error(err)
 		}
+		return resp
 	}
+	return otto.Value{}
 }

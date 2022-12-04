@@ -40,7 +40,7 @@ function OnConnect(context) {
   console.log("OnConnect: " + JSON.stringify(context))
 }
 function OnMessage(context) {
-	context.Save({"msg": context.MsgToString()})
+	context.SaveProperties({"msg": context.MsgToString()})
 	var data = JSON.parse(context.MsgToString())
   console.log("OnMessage: deviceId = " + data.deviceId)
 }

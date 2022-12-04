@@ -14,6 +14,7 @@ import (
 	tcpclient "go-iot/network/clients/tcp"
 	"strconv"
 
+	"github.com/beego/beego/v2/core/logs"
 	"github.com/beego/beego/v2/server/web"
 )
 
@@ -136,6 +137,21 @@ func (ctl *DeviceController) GetDetail() {
 		sess := codec.GetSessionManager().Get(ob.Id)
 		if sess != nil {
 			alins.State = models.ONLINE
+		} else {
+			liefcycle := codec.GetDeviceLifeCycle(ob.ProductId)
+			if liefcycle != nil {
+				state, err := liefcycle.OnStateChecker(&codec.BaseContext{
+					ProductId: ob.ProductId,
+					DeviceId:  ob.Id,
+				})
+				if err == nil {
+					if state == models.ONLINE {
+						alins.State = models.ONLINE
+					}
+				} else {
+					logs.Warn("OnStateChecker device [%s] err: ", ob.Id, err)
+				}
+			}
 		}
 	}
 	resp.Data = alins

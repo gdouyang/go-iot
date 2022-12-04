@@ -20,7 +20,7 @@ function OnMessage(context) {
 	console.log("OnMessage: " + context.MsgToString())
 	context.DeviceOnline(context.GetQuery("deviceId"))
   var data = JSON.parse(context.MsgToString())
-  context.Save(data)
+  context.SaveProperties(data)
 	context.GetSession().Response(data)
 }
 function OnInvoke(context) {

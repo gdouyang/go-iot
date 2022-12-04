@@ -27,7 +27,7 @@ function OnMessage(context) {
 		context.ReplyOk()
 		return
 	}
-  context.Save(data)
+  context.SaveProperties(data)
 }
 function OnInvoke(context) {
 	console.log("OnInvoke: " + JSON.stringify(context.GetMessage().Data))
