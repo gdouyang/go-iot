@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"crypto/tls"
 	"fmt"
 	"go-iot/codec"
 	"go-iot/network/servers"
@@ -56,12 +57,19 @@ func (s *HttpServer) Start(network codec.NetworkConf) error {
 		return err
 	}
 
+	var tlsConfig *tls.Config
+	if spec.UseTLS {
+		tlsConfig, err = spec.TlsConfig()
+		if err != nil {
+			return err
+		}
+	}
+
 	codec.NewCodec(network)
 
 	go func() {
 		var err error
 		if spec.UseTLS {
-			tlsConfig, _ := spec.TlsConfig()
 			s.server.TLSConfig = tlsConfig
 			err = s.server.ServeTLS(listener, "", "")
 		} else {
