@@ -162,10 +162,10 @@ func HttpRequest(config map[string]interface{}) map[string]interface{} {
 		result["message"] = err.Error()
 		return result
 	}
-	method := config["method"]
+	method := fmt.Sprintf("%v", config["method"])
 	client := http.Client{Timeout: time.Second * 3}
 	var req *http.Request = &http.Request{
-		Method: fmt.Sprintf("%v", method),
+		Method: method,
 		URL:    u,
 		Header: map[string][]string{},
 	}
@@ -178,6 +178,9 @@ func HttpRequest(config map[string]interface{}) map[string]interface{} {
 		for key, value := range h {
 			req.Header.Add(key, fmt.Sprintf("%v", value))
 		}
+	}
+	if strings.ToLower(method) == "post" && (len(req.Header.Get("Content-Type")) == 0 || len(req.Header.Get("content-type")) == 0) {
+		req.Header.Add("Content-Type", "application/json; charset=utf-8")
 	}
 	if data, ok := config["data"]; ok {
 		if body, ok := data.(map[string]interface{}); ok {
