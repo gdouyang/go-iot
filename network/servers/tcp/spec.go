@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-iot/network/servers"
-	"log"
 )
 
 type (
@@ -28,11 +27,12 @@ type (
 	}
 )
 
-func (spec *TcpServerSpec) FromJson(str string) {
+func (spec *TcpServerSpec) FromJson(str string) error {
 	err := json.Unmarshal([]byte(str), spec)
 	if err != nil {
-		log.Panicln(err)
+		return fmt.Errorf("tcp server spec failed: %v", err)
 	}
+	return nil
 }
 
 func (spec *TcpServerSpec) TlsConfig() (*tls.Config, error) {

@@ -1,6 +1,7 @@
 package tcpserver
 
 import (
+	"encoding/hex"
 	"go-iot/codec"
 	"net"
 	"time"
@@ -28,9 +29,25 @@ type tcpSession struct {
 	done      chan struct{}
 }
 
-func (s *tcpSession) Send(msg interface{}) error {
-	s.conn.Write([]byte(msg.(string)))
-	return nil
+func (s *tcpSession) Send(msg string) error {
+	_, err := s.conn.Write([]byte(msg))
+	if err != nil {
+		logs.Error("tcp Send error:", err)
+	}
+	return err
+}
+
+func (s *tcpSession) SendHex(msgHex string) error {
+	b, err := hex.DecodeString(msgHex)
+	if err != nil {
+		logs.Error("tcp hex decode error:", err)
+		return err
+	}
+	_, err = s.conn.Write(b)
+	if err != nil {
+		logs.Error("tcp SendHex error:", err)
+	}
+	return err
 }
 
 func (s *tcpSession) Disconnect() error {

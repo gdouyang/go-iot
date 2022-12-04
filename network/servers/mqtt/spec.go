@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-iot/network/servers"
-
-	"github.com/beego/beego/v2/core/logs"
 )
 
 // PacketType is mqtt packet type
@@ -41,11 +39,12 @@ type (
 	}
 )
 
-func (spec *MQTTServerSpec) FromJson(str string) {
+func (spec *MQTTServerSpec) FromJson(str string) error {
 	err := json.Unmarshal([]byte(str), spec)
 	if err != nil {
-		logs.Error(err)
+		return fmt.Errorf("mqtt broker spec failed: %v", err)
 	}
+	return nil
 }
 
 func (spec *MQTTServerSpec) TlsConfig() (*tls.Config, error) {

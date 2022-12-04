@@ -42,16 +42,19 @@ func (s *TcpServer) Type() codec.NetServerType {
 func (s *TcpServer) Start(network codec.NetworkConf) error {
 
 	spec := &TcpServerSpec{}
-	spec.FromJson(network.Configuration)
+	err := spec.FromJson(network.Configuration)
+	if err != nil {
+		return err
+	}
 	spec.Port = network.Port
 
 	s.productId = network.ProductId
 	s.spec = spec
 	s.done = make(chan struct{})
 
-	err := s.setListener()
+	err = s.setListener()
 	if err != nil {
-		logs.Error("mqtt broker set listener failed: %v", err)
+		logs.Error("tcp server set listener failed: %v", err)
 		return err
 	}
 
@@ -71,7 +74,7 @@ func (s *TcpServer) setListener() error {
 	if s.spec.UseTLS {
 		cfg, err = s.spec.TlsConfig()
 		if err != nil {
-			return fmt.Errorf("invalid tls config for mqtt proxy: %v", err)
+			return fmt.Errorf("invalid tls config for tcp server: %v", err)
 		}
 		l, err = tls.Listen("tcp", addr, cfg)
 		if err != nil {

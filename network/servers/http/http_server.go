@@ -36,7 +36,10 @@ func (s *HttpServer) Type() codec.NetServerType {
 
 func (s *HttpServer) Start(network codec.NetworkConf) error {
 	spec := &HttpServerSpec{}
-	spec.FromJson(network.Configuration)
+	err := spec.FromJson(network.Configuration)
+	if err != nil {
+		return err
+	}
 	spec.Port = network.Port
 
 	if len(spec.Paths) == 0 {

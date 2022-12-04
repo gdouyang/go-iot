@@ -2,7 +2,6 @@ package httpserver
 
 import (
 	"compress/gzip"
-	"encoding/json"
 	"go-iot/codec"
 	"io"
 	"net/http"
@@ -36,28 +35,31 @@ func (s *httpSession) GetDeviceId() string {
 
 func (s *httpSession) Disconnect() error {
 	_, err := s.w.Write([]byte(""))
+	if err != nil {
+		logs.Warn("http Disconnect error:", err)
+	}
 	return err
 }
 
-func (s *httpSession) Response(msg interface{}) error {
-	var err error
-	switch t := msg.(type) {
-	case string:
-		_, err = s.w.Write([]byte(t))
-	case map[string]interface{}:
-		b, err1 := json.Marshal(t)
-		if err1 != nil {
-			logs.Warn("map to json string error:", err)
-		}
-		s.w.Header().Add("Content-Type", "")
-		_, err = s.w.Write([]byte(b))
-	default:
-		logs.Warn("unsupport msg:", msg)
-	}
+func (s *httpSession) Response(msg string) error {
+	_, err := s.w.Write([]byte(msg))
 	if err != nil {
-		logs.Warn("Error during message writing:", err)
+		logs.Warn("http Response error:", err)
 	}
 	return err
+}
+
+func (s *httpSession) ResponseJSON(msg string) error {
+	s.ResponseHeader("Content-Type", "application/json; charset=utf-8")
+	_, err := s.w.Write([]byte(msg))
+	if err != nil {
+		logs.Warn("http ResponseJSON error:", err)
+	}
+	return err
+}
+
+func (s *httpSession) ResponseHeader(key string, value string) {
+	s.w.Header().Add("Content-Type", "application/json; charset=utf-8")
 }
 
 func (s *httpSession) readData() error {

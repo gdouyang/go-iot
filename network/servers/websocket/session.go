@@ -52,7 +52,7 @@ func (s *websocketSession) Disconnect() error {
 func (s *websocketSession) SendText(msg string) error {
 	err := s.conn.WriteMessage(websocket.TextMessage, []byte(msg))
 	if err != nil {
-		logs.Warn("Error during message writing:", err)
+		logs.Warn("Error during websocket SendText:", err)
 	}
 	return err
 }
@@ -65,7 +65,7 @@ func (s *websocketSession) SendBinary(msg string) error {
 	}
 	err = s.conn.WriteMessage(websocket.BinaryMessage, payload)
 	if err != nil {
-		logs.Warn("Error during message writing:", err)
+		logs.Warn("Error during websocket SendBinary:", err)
 	}
 	return err
 }
@@ -86,7 +86,7 @@ func (s *websocketSession) readLoop() {
 	for {
 		messageType, message, err := s.conn.ReadMessage()
 		if err != nil {
-			logs.Error("Error during message reading:", err)
+			logs.Error("Error during websocket message reading:", err)
 			break
 		}
 		// logs.Info("Received: %s", message)

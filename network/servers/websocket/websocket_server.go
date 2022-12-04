@@ -39,7 +39,10 @@ func (s *WebSocketServer) Type() codec.NetServerType {
 
 func (s *WebSocketServer) Start(network codec.NetworkConf) error {
 	spec := &WebsocketServerSpec{}
-	spec.FromJson(network.Configuration)
+	err := spec.FromJson(network.Configuration)
+	if err != nil {
+		return err
+	}
 	spec.Port = network.Port
 
 	if len(spec.Paths) == 0 {
@@ -101,7 +104,7 @@ func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Upgrade our raw HTTP connection to a websocket based one
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		logs.Error("Error during connection upgradation:", err)
+		logs.Error("Error during websocket connection upgradation:", err)
 		return
 	}
 

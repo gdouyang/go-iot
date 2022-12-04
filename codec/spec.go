@@ -92,6 +92,9 @@ func (ctx *BaseContext) GetSession() Session {
 
 func (ctx *BaseContext) GetConfig(key string) string {
 	device := ctx.GetDevice()
+	if device == nil {
+		return ""
+	}
 	return device.GetConfig(key)
 }
 
