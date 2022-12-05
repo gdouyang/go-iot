@@ -67,15 +67,16 @@ func TestThreadSafe(t *testing.T) {
 	go _thread(t, match)
 	go _thread(t, match)
 	go _thread(t, match)
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 2)
 }
 
 func _thread(t *testing.T, match *eventbus.AntPathMatcher) {
 	for i := 0; i < 100; i++ {
-		variables, err := match.ExtractUriTemplateVariables("/abc/123/{name}/{type}", "/abc/123/test/1")
+		typ := fmt.Sprintf("%v", i)
+		variables, err := match.ExtractUriTemplateVariables("/abc/123/{name"+typ+"}/{type}", "/abc/123/test/"+typ)
 		assert.Nil(t, err)
-		assert.Equal(t, "test", variables["name"])
-		assert.Equal(t, "1", variables["type"])
+		assert.Equal(t, "test", variables["name"+typ])
+		assert.Equal(t, typ, variables["type"])
 	}
 	fmt.Println("thread ")
 }
