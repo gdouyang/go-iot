@@ -39,6 +39,7 @@ func TestMatcher(t *testing.T) {
 	assert.True(t, match.Match("/abc/123/{name}/{type}", "/abc/123/test/1"))
 	assert.True(t, match.Match("/abc/123/{name}/**", "/abc/123/test/1/"))
 	assert.True(t, match.Match("/abc/123/{name}/**", "/abc/123/test/1/1"))
+	assert.True(t, match.Match("/**", "/abc/123/test/1/1"))
 	{
 		variables, err := match.ExtractUriTemplateVariables("/abc/123/{name}/{type}", "/abc/123/test/1")
 		assert.Nil(t, err)
@@ -54,6 +55,7 @@ func TestMatcher(t *testing.T) {
 	}
 	assert.False(t, match.Match("/abc/123/{name}/{type}", "/abc/123/test/1/"))
 	assert.False(t, match.Match("/abc/123/*/*", "/abc/123/test/1/"))
+	assert.False(t, match.Match("/", "/abc/123/test/1"))
 	assert.False(t, regexp.MustCompile("abc").Match([]byte("Abc")))
 }
 

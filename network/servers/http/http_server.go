@@ -4,30 +4,33 @@ import (
 	"crypto/tls"
 	"fmt"
 	"go-iot/codec"
+	"go-iot/codec/eventbus"
 	"go-iot/network/servers"
 	"net"
 	"net/http"
-	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
 )
 
 func init() {
 	servers.RegServer(func() codec.NetServer {
-		return &HttpServer{}
+		return NewServer()
 	})
 }
 
 type (
 	HttpServer struct {
-		productId string
-		spec      *HttpServerSpec
-		server    *http.Server
+		productId   string
+		spec        *HttpServerSpec
+		server      *http.Server
+		pathmatcher eventbus.AntPathMatcher
 	}
 )
 
 func NewServer() *HttpServer {
-	return &HttpServer{}
+	return &HttpServer{
+		pathmatcher: *eventbus.NewAntPathMatcher(),
+	}
 }
 
 func (s *HttpServer) Type() codec.NetServerType {
@@ -42,8 +45,8 @@ func (s *HttpServer) Start(network codec.NetworkConf) error {
 	}
 	spec.Port = network.Port
 
-	if len(spec.Paths) == 0 {
-		spec.Paths = append(spec.Paths, "/")
+	if len(spec.Routers) == 0 {
+		spec.Routers = append(spec.Routers, Router{Id: 1, Url: "/**"})
 	}
 
 	s.productId = network.ProductId
@@ -87,8 +90,8 @@ func (s *HttpServer) Start(network codec.NetworkConf) error {
 
 func (s *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	allow := false
-	for _, path := range s.spec.Paths {
-		if strings.HasPrefix(r.RequestURI, path) {
+	for _, route := range s.spec.Routers {
+		if s.pathmatcher.Match(route.Url, r.RequestURI) {
 			allow = true
 			break
 		}

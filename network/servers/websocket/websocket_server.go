@@ -4,10 +4,10 @@ import (
 	"crypto/tls"
 	"fmt"
 	"go-iot/codec"
+	"go-iot/codec/eventbus"
 	"go-iot/network/servers"
 	"net"
 	"net/http"
-	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/gorilla/websocket"
@@ -15,7 +15,7 @@ import (
 
 func init() {
 	servers.RegServer(func() codec.NetServer {
-		return &WebSocketServer{}
+		return NewServer()
 	})
 }
 
@@ -23,14 +23,17 @@ var upgrader = websocket.Upgrader{} // use default options
 
 type (
 	WebSocketServer struct {
-		productId string
-		spec      *WebsocketServerSpec
-		server    *http.Server
+		productId   string
+		spec        *WebsocketServerSpec
+		server      *http.Server
+		pathmatcher eventbus.AntPathMatcher
 	}
 )
 
 func NewServer() *WebSocketServer {
-	return &WebSocketServer{}
+	return &WebSocketServer{
+		pathmatcher: *eventbus.NewAntPathMatcher(),
+	}
 }
 
 func (s *WebSocketServer) Type() codec.NetServerType {
@@ -45,8 +48,8 @@ func (s *WebSocketServer) Start(network codec.NetworkConf) error {
 	}
 	spec.Port = network.Port
 
-	if len(spec.Paths) == 0 {
-		spec.Paths = append(spec.Paths, "/")
+	if len(spec.Routers) == 0 {
+		spec.Routers = append(spec.Routers, Router{Id: 1, Url: "/**"})
 	}
 
 	s.productId = network.ProductId
@@ -91,8 +94,8 @@ func (s *WebSocketServer) Start(network codec.NetworkConf) error {
 
 func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	allow := false
-	for _, path := range s.spec.Paths {
-		if strings.HasPrefix(r.RequestURI, path) {
+	for _, route := range s.spec.Routers {
+		if s.pathmatcher.Match(route.Url, r.RequestURI) {
 			allow = true
 			break
 		}

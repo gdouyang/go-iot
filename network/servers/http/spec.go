@@ -15,7 +15,11 @@ type (
 		Port        int32                 `json:"port"`
 		UseTLS      bool                  `json:"useTLS"`
 		Certificate []servers.Certificate `json:"certificate"`
-		Paths       []string              `json:"paths"`
+		Routers     []Router              `json:"routers"`
+	}
+	Router struct {
+		Id  int32
+		Url string
 	}
 )
 
@@ -24,6 +28,13 @@ func (spec *HttpServerSpec) FromJson(str string) error {
 	if err != nil {
 		return fmt.Errorf("http server spec failed: %v", err)
 	}
+	routers := []Router{}
+	for _, v := range spec.Routers {
+		if len(v.Url) > 0 {
+			routers = append(routers, v)
+		}
+	}
+	spec.Routers = routers
 	return nil
 }
 
