@@ -80,6 +80,12 @@ func ListStartNetwork() ([]models.Network, error) {
 }
 
 func AddNetWork(ob *models.Network) error {
+	//插入数据
+	o := orm.NewOrm()
+	return AddNetWorkTx(ob, o)
+}
+
+func AddNetWorkTx(ob *models.Network, o orm.DML) error {
 	if !codec.IsNetClientType(ob.Type) {
 		if ob.Port <= 1024 || ob.Port > 65535 {
 			return errors.New("invalid port number")
@@ -102,7 +108,6 @@ func AddNetWork(ob *models.Network) error {
 		}
 	}
 	//插入数据
-	o := orm.NewOrm()
 	ob.CreateTime = time.Now()
 	_, err := o.Insert(ob)
 	if err != nil {
@@ -227,7 +232,13 @@ func GetUnuseNetwork() (*models.Network, error) {
 	if err != nil && err != orm.ErrNoRows {
 		return nil, err
 	}
-	if len(result.ProductId) == 0 {
+	if len(result.ProductId) == 0 && result.Id > 0 {
+		if len(result.CodecId) == 0 {
+			return nil, fmt.Errorf("network codecId is empty id: %d", result.Id)
+		}
+		if len(result.Type) == 0 {
+			return nil, fmt.Errorf("network type is empty id: %d", result.Id)
+		}
 		return &result, nil
 	}
 	return nil, errors.New("network is all used")

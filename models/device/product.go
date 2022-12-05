@@ -105,11 +105,11 @@ func AddProduct(ob *models.Product, networkType string) error {
 			return err
 		}
 		if codec.IsNetClientType(networkType) {
-			err := network.AddNetWork(&models.Network{
+			err := network.AddNetWorkTx(&models.Network{
 				ProductId: ob.Id,
 				Type:      networkType,
 				State:     models.Stop,
-			})
+			}, txOrm)
 			return err
 		} else {
 			nw, err := network.GetUnuseNetwork()
