@@ -1,7 +1,7 @@
 package eventbus
 
 import (
-	"log"
+	"fmt"
 	"regexp"
 	"strings"
 	"sync"
@@ -381,49 +381,49 @@ func (that *AntPathMatcher) ExtractPathWithinPattern(pattern string, path string
 	return builder
 }
 
-func (that *AntPathMatcher) ExtractUriTemplateVariables(pattern string, path string) map[string]string {
+func (that *AntPathMatcher) ExtractUriTemplateVariables(pattern string, path string) (map[string]string, error) {
 	var variables map[string]string = map[string]string{}
 	result := that.doMatch(pattern, path, true, &variables)
 	if !result {
-		log.Fatalln("Pattern \"" + pattern + "\" is not a match for \"" + path + "\"")
+		return nil, fmt.Errorf("pattern \"" + pattern + "\" is not a match for \"" + path + "\"")
 	}
-	return variables
+	return variables, nil
 }
 
-func (that *AntPathMatcher) Combine(pattern1 string, pattern2 string) string {
+func (that *AntPathMatcher) Combine(pattern1 string, pattern2 string) (string, error) {
 	if len(strings.TrimSpace(pattern1)) == 0 && len(strings.TrimSpace(pattern2)) == 0 {
-		return ""
+		return "", nil
 	}
 	if len(strings.TrimSpace(pattern1)) == 0 {
-		return pattern2
+		return pattern2, nil
 	}
 	if len(strings.TrimSpace(pattern2)) == 0 {
-		return pattern1
+		return pattern1, nil
 	}
 
 	pattern1ContainsUriVar := strings.Contains(pattern1, "{")
 	if pattern1 != pattern2 && !pattern1ContainsUriVar && that.Match(pattern1, pattern2) {
 		// /* + /hotel -> /hotel ; "/*.*" + "/*.html" -> /*.html
 		// However /user + /user -> /usr/user ; /{foo} + /bar -> /{foo}/bar
-		return pattern2
+		return pattern2, nil
 	}
 
 	// /hotels/* + /booking -> /hotels/booking
 	// /hotels/* + booking -> /hotels/booking
 	if strings.HasSuffix(pattern1, that.pathSeparatorPatternCache.endsOnWildCard) {
-		return that.concat(pattern1[0:len(pattern1)-2], pattern2)
+		return that.concat(pattern1[0:len(pattern1)-2], pattern2), nil
 	}
 
 	// /hotels/** + /booking -> /hotels/**/booking
 	// /hotels/** + booking -> /hotels/**/booking
 	if strings.HasSuffix(pattern1, that.pathSeparatorPatternCache.endsOnDoubleWildCard) {
-		return that.concat(pattern1, pattern2)
+		return that.concat(pattern1, pattern2), nil
 	}
 
 	starDotPos1 := strings.Index(pattern1, "*.")
 	if pattern1ContainsUriVar || starDotPos1 == -1 || that.pathSeparator == (".") {
 		// simply concatenate the two patterns
-		return that.concat(pattern1, pattern2)
+		return that.concat(pattern1, pattern2), nil
 	}
 
 	ext1 := pattern1[starDotPos1+1:]
@@ -439,13 +439,13 @@ func (that *AntPathMatcher) Combine(pattern1 string, pattern2 string) string {
 	ext1All := (ext1 == (".*") || len(ext1) == 0)
 	ext2All := (ext2 == (".*") || len(ext2) == 0)
 	if !ext1All && !ext2All {
-		log.Fatalln("Cannot combine patterns: " + pattern1 + " vs " + pattern2)
+		return "", fmt.Errorf("cannot combine patterns: %s vs %s", pattern1, pattern2)
 	}
 	ext := ext1
 	if ext1All {
 		ext = ext2
 	}
-	return file2 + ext
+	return file2 + ext, nil
 }
 
 func (that *AntPathMatcher) concat(path1 string, path2 string) string {
@@ -470,25 +470,31 @@ type antPathStringMatcher struct {
 const _GLOB_PATTERN string = "\\?|\\*|\\{((?:\\{[^/]+?}|[^/{}]|\\\\[{}])+?)}"
 const _DEFAULT_VARIABLE_PATTERN string = "(.*)"
 
+var _GLOB_PATTERN_REGEXP *regexp.Regexp
+
+func init() {
+	_GLOB_PATTERN_REGEXP = regexp.MustCompile(_GLOB_PATTERN)
+}
+
 func newAntPathStringMatcher(pattern string, caseSensitive bool) antPathStringMatcher {
 	var that antPathStringMatcher
 	var patternBuilder string
-	re, _ := regexp.Compile(_GLOB_PATTERN)
-	all := re.FindAll([]byte(pattern), -1)
+	re := _GLOB_PATTERN_REGEXP //regexp.Compile(_GLOB_PATTERN)
+	groups := re.FindStringSubmatch(pattern)
 	allIndex := re.FindAllIndex([]byte(pattern), -1)
 	end := 0
-	for index, m := range all {
+	for index := range allIndex {
 		patternBuilder += that.quote(pattern, end, allIndex[index][0])
-		match := string(m)
+		match := groups[0]
 		if match == "?" {
 			patternBuilder += "."
 		} else if match == "*" {
 			patternBuilder += ".*"
-		} else if strings.HasPrefix(match, "{") && strings.HasPrefix(match, "}") {
+		} else if strings.HasPrefix(match, "{") && strings.HasSuffix(match, "}") {
 			colonIdx := strings.Index(match, ":")
 			if colonIdx == -1 {
 				patternBuilder += _DEFAULT_VARIABLE_PATTERN
-				that.variableNames = append(that.variableNames, match)
+				that.variableNames = append(that.variableNames, groups[1])
 			} else {
 				variablePattern := match[colonIdx+1 : len(match)-1]
 				patternBuilder += "("
@@ -521,17 +527,12 @@ func (that *antPathStringMatcher) matchStrings(str string, uriTemplateVariables 
 	all := re.FindAll([]byte(str), -1)
 	if len(all) > 0 {
 		if uriTemplateVariables != nil {
-			// SPR-8455
-			if len(that.variableNames) != len(all) {
-				log.Fatalln("The number of capturing groups in the pattern segment " +
-					that.pattern.String() + " does not match the number of URI template variables it defines, " +
-					"which can occur if capturing groups are used in a URI template regex. " +
-					"Use non-capturing groups instead.")
-			}
-			for i := 1; i <= len(all); i++ {
-				name := that.variableNames[i-1]
-				value := all[i]
-				(*uriTemplateVariables)[name] = string(value)
+			if len(that.variableNames) == len(all) {
+				for i := 0; i < len(all); i++ {
+					name := that.variableNames[i]
+					value := all[i]
+					(*uriTemplateVariables)[name] = string(value)
+				}
 			}
 		}
 		return true
