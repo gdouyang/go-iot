@@ -236,9 +236,6 @@ func GetUnuseNetwork() (*models.Network, error) {
 		if len(result.CodecId) == 0 {
 			return nil, fmt.Errorf("network codecId is empty id: %d", result.Id)
 		}
-		if len(result.Type) == 0 {
-			return nil, fmt.Errorf("network type is empty id: %d", result.Id)
-		}
 		return &result, nil
 	}
 	return nil, errors.New("network is all used")
