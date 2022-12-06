@@ -19,8 +19,7 @@ type (
 		Routers              []Router              `json:"routers"`
 	}
 	Router struct {
-		Id  int32
-		Url string
+		Url string `json:"url"`
 	}
 )
 

@@ -46,7 +46,7 @@ func (s *HttpServer) Start(network codec.NetworkConf) error {
 	spec.Port = network.Port
 
 	if len(spec.Routers) == 0 {
-		spec.Routers = append(spec.Routers, Router{Id: 1, Url: "/**"})
+		spec.Routers = append(spec.Routers, Router{Url: "/**"})
 	}
 
 	s.productId = network.ProductId
