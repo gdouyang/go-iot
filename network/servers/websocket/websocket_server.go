@@ -120,7 +120,7 @@ func (s *WebSocketServer) Reload() error {
 }
 
 func (s *WebSocketServer) Stop() error {
-	return nil
+	return s.server.Close()
 }
 
 func (s *WebSocketServer) TotalConnection() int32 {

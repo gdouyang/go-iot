@@ -23,9 +23,11 @@ type (
 )
 
 func (spec *HttpServerSpec) FromJson(str string) error {
-	err := json.Unmarshal([]byte(str), spec)
-	if err != nil {
-		return fmt.Errorf("http server spec failed: %v", err)
+	if len(str) > 0 {
+		err := json.Unmarshal([]byte(str), spec)
+		if err != nil {
+			return fmt.Errorf("http server spec failed: %v", err)
+		}
 	}
 	routers := []Router{}
 	for _, v := range spec.Routers {

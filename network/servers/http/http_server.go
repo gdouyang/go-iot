@@ -112,7 +112,7 @@ func (s *HttpServer) Reload() error {
 }
 
 func (s *HttpServer) Stop() error {
-	return nil
+	return s.server.Close()
 }
 
 func (s *HttpServer) TotalConnection() int32 {
