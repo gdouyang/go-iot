@@ -107,7 +107,7 @@ func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Upgrade our raw HTTP connection to a websocket based one
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		logs.Error("Error during websocket connection upgradation:", err)
+		logs.Error("Error during [%s] websocket connection upgradation:%v", s.productId, err)
 		return
 	}
 
