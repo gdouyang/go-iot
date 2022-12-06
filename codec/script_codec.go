@@ -30,8 +30,9 @@ func newScriptCodec(network NetworkConf) (Codec, error) {
 	vm := otto.New()
 	_, err := vm.Run(network.Script)
 	sc := &ScriptCodec{
-		script: network.Script,
-		vm:     vm,
+		script:    network.Script,
+		productId: network.ProductId,
+		vm:        vm,
 	}
 	RegCodec(network.ProductId, sc)
 	regDeviceLifeCycle(network.ProductId, sc)
@@ -57,6 +58,7 @@ func newScriptCodec(network NetworkConf) (Codec, error) {
 // js脚本编解码
 type ScriptCodec struct {
 	script         string
+	productId      string
 	vm             *otto.Otto
 	onConnect      bool
 	onMessage      bool
@@ -136,14 +138,14 @@ func (c *ScriptCodec) funcInvoke(name string, param interface{}) otto.Value {
 	if fn.IsDefined() {
 		defer func() {
 			if err := recover(); err != nil {
-				logs.Error(err)
+				logs.Error("productId: [%s], error: %v", c.productId, err)
 				logs.Error(string(debug.Stack()))
 			}
 		}()
 		// logs.Warn(fmt.Sprintf("%p", &fn))
 		resp, err := fn.Call(otto.Value{}, param)
 		if err != nil {
-			logs.Error(err)
+			logs.Error("productId: [%s], error: %v", c.productId, err)
 		}
 		return resp
 	}
