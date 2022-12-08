@@ -67,7 +67,11 @@ func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClie
 		return nil, token.Error()
 	}
 	session.client = client
-	c := codec.NewCodec(network)
+	c, err := codec.NewCodec(network)
+	if err != nil {
+		session.Disconnect()
+		return nil, err
+	}
 	session.codec = c
 	session.deviceOnline(deviceId)
 

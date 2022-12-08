@@ -9,9 +9,9 @@ import (
 )
 
 func init() {
-	regCodecCreator(CodecIdScriptCode, func(network NetworkConf) Codec {
-		codec, _ := newScriptCodec(network)
-		return codec
+	regCodecCreator(CodecIdScriptCode, func(network NetworkConf) (Codec, error) {
+		codec, err := newScriptCodec(network)
+		return codec, err
 	})
 }
 
@@ -29,14 +29,14 @@ const (
 func newScriptCodec(network NetworkConf) (Codec, error) {
 	vm := otto.New()
 	_, err := vm.Run(network.Script)
+	if err != nil {
+		return nil, err
+	}
 	sc := &ScriptCodec{
 		script:    network.Script,
 		productId: network.ProductId,
 		vm:        vm,
 	}
-	RegCodec(network.ProductId, sc)
-	regDeviceLifeCycle(network.ProductId, sc)
-
 	var val, _ = vm.Get(OnConnect)
 	sc.onConnect = val.IsDefined()
 	val, _ = vm.Get(OnMessage)
@@ -52,7 +52,10 @@ func newScriptCodec(network NetworkConf) (Codec, error) {
 	val, _ = vm.Get(OnStateChecker)
 	sc.onStateChecker = val.IsDefined()
 
-	return sc, err
+	RegCodec(network.ProductId, sc)
+	regDeviceLifeCycle(network.ProductId, sc)
+
+	return sc, nil
 }
 
 // js脚本编解码

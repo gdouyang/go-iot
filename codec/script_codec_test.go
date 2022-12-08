@@ -5,6 +5,7 @@ import (
 	"go-iot/codec"
 	"testing"
 
+	"github.com/beego/beego/v2/core/logs"
 	"github.com/robertkrimen/otto"
 )
 
@@ -49,7 +50,10 @@ function OnStateChecker(context) {
 }
 `,
 	}
-	c := codec.NewCodec(network)
+	c, err := codec.NewCodec(network)
+	if err != nil {
+		logs.Error(err)
+	}
 	c.OnConnect(&codec.MockContext{DeviceId: "fff"})
 	c.OnInvoke(&codec.MockContext{DeviceId: "fff"})
 	c.OnMessage(&codec.MockContext{DeviceId: "fff"})

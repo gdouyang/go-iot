@@ -26,14 +26,14 @@ func RegCodec(productId string, c Codec) {
 	codecMap.Store(productId, c)
 }
 
-func NewCodec(network NetworkConf) Codec {
-	c := codecFactory[network.CodecId](network)
-	return c
+func NewCodec(network NetworkConf) (Codec, error) {
+	c, err := codecFactory[network.CodecId](network)
+	return c, err
 }
 
-var codecFactory = map[string]func(network NetworkConf) Codec{}
+var codecFactory = map[string]func(network NetworkConf) (Codec, error){}
 
-func regCodecCreator(codecId string, creator func(network NetworkConf) Codec) {
+func regCodecCreator(codecId string, creator func(network NetworkConf) (Codec, error)) {
 	_, ok := codecFactory[codecId]
 	if ok {
 		logs.Error("codec " + codecId + " is exist")
@@ -43,10 +43,10 @@ func regCodecCreator(codecId string, creator func(network NetworkConf) Codec) {
 }
 
 func regDeviceLifeCycle(productId string, liefcycle DeviceLifecycle) {
-	val, ok := deviceLifeCycleMap.Load(productId)
-	if val == nil || !ok {
-		deviceLifeCycleMap.Store(productId, liefcycle)
-	}
+	// val, ok := deviceLifeCycleMap.Load(productId)
+	// if val == nil || !ok {
+	deviceLifeCycleMap.Store(productId, liefcycle)
+	// }
 }
 
 func GetDeviceLifeCycle(productId string) DeviceLifecycle {
