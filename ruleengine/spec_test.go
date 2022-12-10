@@ -122,7 +122,7 @@ func TestTirgger(t *testing.T) {
 	data["b"] = 2
 	res, err = trigger.Evaluate(data)
 	assert.Nil(t, err)
-	assert.False(t, res)
+	assert.True(t, res)
 
 	trigger = ruleengine.Trigger{
 		FilterType: "event",
@@ -148,7 +148,7 @@ func TestTirgger(t *testing.T) {
 	}
 	assert.Equal(t, "a == 1 && b == 2", trigger.GetExpression())
 	data = map[string]interface{}{}
-	data["a"] = "1"
+	data["a"] = "1a"
 	data["b"] = 2
 	res, err = trigger.Evaluate(data)
 	assert.Nil(t, err)

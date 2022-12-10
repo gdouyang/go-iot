@@ -131,13 +131,22 @@ func (c *ConditionFilter) getExpression() string {
 	default:
 		oper = "=="
 	}
-	if c.DataType == tsl.TypeString || c.DataType == tsl.TypeEnum || c.DataType == tsl.TypeDate {
+	switch c.DataType {
+	case tsl.TypeString:
+	case tsl.TypeEnum:
+	case tsl.TypeDate:
+	case tsl.TypeBool:
+	case tsl.TypePassword:
+		if oper == "==" || oper == "!=" {
+			oper = oper + "="
+		}
 		return fmt.Sprintf("%s %s \"%s\"", c.Key, oper, c.Value)
-	} else if c.DataType == "this" {
+	case "this":
 		return "true" // event self is happen
-	} else {
+	default:
 		return fmt.Sprintf("%s %s %s", c.Key, oper, c.Value)
 	}
+	return ""
 }
 
 // 抖动限制
