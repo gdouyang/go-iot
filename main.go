@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	_ "go-iot/api"
+	"go-iot/codec"
 	"go-iot/models"
 	_ "go-iot/network/servers/registry"
 	_ "go-iot/notify/registry"
 	"net/http"
+	"strings"
 
 	"github.com/beego/beego/v2/core/config"
 	"github.com/beego/beego/v2/core/logs"
@@ -17,16 +19,42 @@ func main() {
 	{
 		configLog()
 	}
+	setEsConfig()
 	dataSourceName, err := config.String("db.url")
 	if err != nil {
 		logs.Error("get dataSourceName failed")
 	}
+
 	models.DefaultDbConfig.Url = dataSourceName
 	models.InitDb()
 	web.ErrorHandler("404", func(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(404)
 	})
 	web.Run()
+}
+
+func setEsConfig() {
+	{
+		esurl, err := config.String("es.url")
+		if err != nil {
+			logs.Error("get es.url failed")
+		}
+		codec.ES_URL = strings.TrimSpace(esurl)
+	}
+	{
+		esusername, err := config.String("es.usename")
+		if err != nil {
+			logs.Error("get es.usename failed")
+		}
+		codec.ES_USERNAME = strings.TrimSpace(esusername)
+	}
+	{
+		password, err := config.String("es.password")
+		if err != nil {
+			logs.Error("get es.password failed")
+		}
+		codec.ES_PASSWORD = strings.TrimSpace(password)
+	}
 }
 
 func configLog() {

@@ -26,6 +26,10 @@ const (
 	event_const      = "event"
 )
 
+var ES_URL string = "http://localhost:9200"
+var ES_PASSWORD string = ""
+var ES_USERNAME string = ""
+
 // es时序保存
 type EsTimeSeries struct {
 	sync.RWMutex
@@ -352,11 +356,15 @@ func getEsClient() (*elasticsearch.Client, error) {
 	//
 	// An `ELASTICSEARCH_URL` environment variable will be used when exported.
 	//
-	es, err := elasticsearch.NewClient(elasticsearch.Config{
-		Addresses: []string{"http://localhost:9200"},
-		// Username:  "username",
-		// Password:  "password",
-	})
+	addrs := strings.Split(ES_URL, ",")
+	config := elasticsearch.Config{
+		Addresses: addrs,
+	}
+	if len(ES_USERNAME) > 0 {
+		config.Username = ES_USERNAME
+		config.Password = ES_PASSWORD
+	}
+	es, err := elasticsearch.NewClient(config)
 	return es, err
 }
 
