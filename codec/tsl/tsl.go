@@ -198,9 +198,9 @@ func (v *ValueTypeEnum) convert(data map[string]interface{}) error {
 }
 
 type ValueTypeEnumEle struct {
+	Id    string `json:"id"`
 	Text  string `json:"text"`
 	Value string `json:"value"`
-	Id    string `json:"id"`
 }
 
 type ValueTypeInt struct {
@@ -263,6 +263,7 @@ func (v *ValueTypeFloat) convert(data map[string]interface{}) error {
 }
 
 type ValueTypeObject struct {
+	Type       string        `json:"type"`
 	Properties []TslProperty `json:"properties"`
 }
 
