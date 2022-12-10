@@ -91,15 +91,17 @@ func startRuningNetClient() {
 		return
 	}
 	for _, nw := range list {
-		devices, err := device.ListClientDeviceByProductId(nw.ProductId)
-		if err != nil {
-			logs.Error(err)
-			continue
-		}
-		for _, devId := range devices {
-			err := connectClientDevice(devId)
+		if len(nw.Configuration) > 0 {
+			devices, err := device.ListClientDeviceByProductId(nw.ProductId)
 			if err != nil {
 				logs.Error(err)
+				continue
+			}
+			for _, devId := range devices {
+				err := connectClientDevice(devId)
+				if err != nil {
+					logs.Error(err)
+				}
 			}
 		}
 	}
