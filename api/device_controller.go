@@ -41,6 +41,7 @@ func init() {
 		web.NSRouter("/:id/connect", &DeviceController{}, "post:Connect"),
 		web.NSRouter("/:id/disconnect", &DeviceController{}, "post:Disconnect"),
 		web.NSRouter("/:id/deploy", &DeviceController{}, "post:Deploy"),
+		web.NSRouter("/:id/undeploy", &DeviceController{}, "post:Undeploy"),
 		web.NSRouter("/:id/cmd", &DeviceController{}, "post:CmdInvoke"),
 		web.NSRouter("/query-property/:id", &DeviceController{}, "get:QueryProperty"),
 	)
@@ -237,29 +238,32 @@ func (ctl *DeviceController) Connect() {
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
-	dev, err := device.GetDeviceMust(ob.Id)
+	err := connectClientDevice(ob.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
 		return
+	}
+}
+
+func connectClientDevice(deviceId string) error {
+	dev, err := device.GetDeviceMust(deviceId)
+	if err != nil {
+		return err
 	}
 	nw, err := network.GetByProductId(dev.ProductId)
 	if err != nil {
-		resp = models.JsonRespError(err)
-		return
+		return err
 	}
 	if nw == nil {
-		resp = models.JsonRespError(fmt.Errorf("product [%s] not have network config", dev.ProductId))
-		return
+		return fmt.Errorf("product [%s] not have network config", dev.ProductId)
 	}
 	if !codec.IsNetClientType(nw.Type) {
-		resp = models.JsonRespError(errors.New("only client type net can do it"))
-		return
+		return errors.New("only client type net can do it")
 	}
 	// 进行连接
-	devoper := codec.GetDeviceManager().Get(ob.Id)
+	devoper := codec.GetDeviceManager().Get(deviceId)
 	if devoper == nil {
-		resp = models.JsonRespError(errors.New("devoper is nil"))
-		return
+		return errors.New("devoper is nil")
 	}
 	if codec.TCP_CLIENT == codec.NetClientType(nw.Type) {
 		spec := &tcpclient.TcpClientSpec{}
@@ -267,8 +271,7 @@ func (ctl *DeviceController) Connect() {
 		spec.Host = devoper.GetConfig("host")
 		port, err := strconv.Atoi(devoper.GetConfig("port"))
 		if err != nil {
-			resp = models.JsonRespError(errors.New("port is not number"))
-			return
+			return errors.New("port is not number")
 		}
 		spec.Port = int32(port)
 		b, _ := json.Marshal(spec)
@@ -279,8 +282,7 @@ func (ctl *DeviceController) Connect() {
 		spec.Host = devoper.GetConfig("host")
 		port, err := strconv.Atoi(devoper.GetConfig("port"))
 		if err != nil {
-			resp = models.JsonRespError(errors.New("port is not number"))
-			return
+			return errors.New("port is not number")
 		}
 		spec.Port = int32(port)
 		spec.ClientId = devoper.GetConfig("clientId")
@@ -289,12 +291,15 @@ func (ctl *DeviceController) Connect() {
 		b, _ := json.Marshal(spec)
 		nw.Configuration = string(b)
 	}
-	err = clients.Connect(ob.Id, convertCodecNetwork(*nw))
+	err = clients.Connect(deviceId, convertCodecNetwork(*nw))
 	if err != nil {
-		resp = models.JsonRespError(err)
-		return
+		return err
 	}
-	device.UpdateOnlineStatus(ob.Id, models.ONLINE)
+	err = device.UpdateOnlineStatus(deviceId, models.ONLINE)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (ctl *DeviceController) Disconnect() {
@@ -347,6 +352,27 @@ func (ctl *DeviceController) Deploy() {
 	if len(dev.State) == 0 || dev.State == models.NoActive {
 		device.UpdateOnlineStatus(ob.Id, models.OFFLINE)
 	}
+	// TODO
+}
+
+func (ctl *DeviceController) Undeploy() {
+	if ctl.isForbidden(deviceResource, SaveAction) {
+		return
+	}
+	var resp = models.JsonRespOk()
+	defer func() {
+		ctl.Data["json"] = resp
+		ctl.ServeJSON()
+	}()
+	var ob *models.Device = &models.Device{
+		Id: ctl.Ctx.Input.Param(":id"),
+	}
+	_, err := device.GetDeviceMust(ob.Id)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	device.UpdateOnlineStatus(ob.Id, models.NoActive)
 	// TODO
 }
 

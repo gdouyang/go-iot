@@ -53,6 +53,23 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	return pr, nil
 }
 
+func ListClientDeviceByProductId(productId string) ([]string, error) {
+	o := orm.NewOrm()
+	qs := o.QueryTable(models.Device{})
+	qs = qs.Filter("ProductId", productId)
+
+	var result []models.Device
+	_, err := qs.All(&result, "id")
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, v := range result {
+		ids = append(ids, v.Id)
+	}
+	return ids, nil
+}
+
 func AddDevice(ob *models.Device) error {
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
 		return errors.New("id, name not be empty")

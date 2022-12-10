@@ -28,7 +28,10 @@ func (c *TcpClient) Type() codec.NetClientType {
 
 func (c *TcpClient) Connect(deviceId string, network codec.NetworkConf) error {
 	spec := &TcpClientSpec{}
-	spec.FromJson(network.Configuration)
+	err := spec.FromJson(network.Configuration)
+	if err != nil {
+		return err
+	}
 	if spec.Port == 0 {
 		return errors.New("port must gt 0 and le 65535")
 	}

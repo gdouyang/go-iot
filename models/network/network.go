@@ -79,6 +79,21 @@ func ListStartNetwork() ([]models.Network, error) {
 	return result, nil
 }
 
+func ListStartNetClient() ([]models.Network, error) {
+	o := orm.NewOrm()
+	qs := o.QueryTable(&models.Network{})
+
+	qs = qs.Filter("Port", 0).Filter("productId__isnull", false)
+
+	var result []models.Network
+	_, err := qs.All(&result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func AddNetWork(ob *models.Network) error {
 	//插入数据
 	o := orm.NewOrm()

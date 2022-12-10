@@ -2,6 +2,7 @@ package api
 
 import (
 	"go-iot/models"
+	device "go-iot/models/device"
 	"go-iot/models/network"
 	"go-iot/models/notify"
 	"go-iot/models/rule"
@@ -14,9 +15,10 @@ import (
 
 func init() {
 	models.OnDbInit(func() {
-		go startRuningNetwork()
+		go startRuningNetServer()
 		go startRuningRule()
 		go startRuningNotify()
+		go startRuningNetClient()
 	})
 }
 
@@ -65,7 +67,7 @@ func startRuningNotify() {
 	}
 }
 
-func startRuningNetwork() {
+func startRuningNetServer() {
 	logs.Info("start runing network")
 	list, err := network.ListStartNetwork()
 	if err != nil {
@@ -77,6 +79,28 @@ func startRuningNetwork() {
 		err := servers.StartServer(config)
 		if err != nil {
 			logs.Error(err)
+		}
+	}
+}
+
+func startRuningNetClient() {
+	logs.Info("start runing netclient")
+	list, err := network.ListStartNetClient()
+	if err != nil {
+		logs.Error(err)
+		return
+	}
+	for _, nw := range list {
+		devices, err := device.ListClientDeviceByProductId(nw.ProductId)
+		if err != nil {
+			logs.Error(err)
+			continue
+		}
+		for _, devId := range devices {
+			err := connectClientDevice(devId)
+			if err != nil {
+				logs.Error(err)
+			}
 		}
 	}
 }
