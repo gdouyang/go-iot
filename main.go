@@ -50,8 +50,9 @@ func configLog() {
 	if len(filename) == 0 {
 		filename = "go-iot.log"
 	}
+	logs.GetBeeLogger().SetLevel(level)
 	err = logs.SetLogger(logs.AdapterFile, fmt.Sprintf(`{"filename":"%s","level":%d,"maxlines":0,
-	"maxsize":0,"daily":true,"maxdays":10,"color":true}`, filename, level))
+	"maxsize":0,"daily":true,"maxdays":10,"color":false}`, filename, level))
 	if err != nil {
 		panic(err)
 	}

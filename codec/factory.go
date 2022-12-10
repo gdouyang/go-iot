@@ -52,7 +52,7 @@ func regDeviceLifeCycle(productId string, liefcycle DeviceLifecycle) {
 func GetDeviceLifeCycle(productId string) DeviceLifecycle {
 	val, ok := deviceLifeCycleMap.Load(productId)
 	if val == nil || !ok {
-		logs.Error(fmt.Sprintf("%s not found DeviceLifecycle", productId))
+		logs.Warn(fmt.Sprintf("%s not found DeviceLifecycle", productId))
 	} else {
 		v := val.(DeviceLifecycle)
 		return v
