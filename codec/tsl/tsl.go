@@ -155,43 +155,36 @@ func (p *TslProperty) UnmarshalJSON(d []byte) error {
 	p.Name = alias.Name
 	p.Expands = alias.Expands
 	p.Type = fmt.Sprintf("%v", t)
+	var valueType IValueType
 	switch p.Type {
 	case TypeEnum:
-		valueType := ValueTypeEnum{}
-		err = valueType.convert(alias.ValueType)
-		p.ValueType = valueType
+		valueType = &ValueTypeEnum{}
 	case TypeInt:
-		valueType := ValueTypeInt{}
-		err = valueType.convert(alias.ValueType)
-		p.ValueType = valueType
+		valueType = &ValueTypeInt{}
 	case TypeLong:
-		valueType := ValueTypeInt{}
-		err = valueType.convert(alias.ValueType)
-		p.ValueType = valueType
+		valueType = &ValueTypeInt{}
 	case TypeString:
-		valueType := ValueTypeString{}
-		err = valueType.convert(alias.ValueType)
-		p.ValueType = valueType
+		valueType = &ValueTypeString{}
+	case TypeBool:
+		valueType = &ValueTypeBool{}
 	case TypePassword:
-		valueType := ValueTypePassword{}
-		err = valueType.convert(alias.ValueType)
-		p.ValueType = valueType
+		valueType = &ValueTypePassword{}
 	case TypeFloat:
-		valueType := ValueTypeFloat{}
-		err = valueType.convert(alias.ValueType)
-		p.ValueType = valueType
+		valueType = &ValueTypeFloat{}
 	case TypeDouble:
-		valueType := ValueTypeFloat{}
-		err = valueType.convert(alias.ValueType)
-		p.ValueType = valueType
+		valueType = &ValueTypeFloat{}
 	case TypeObject:
-		valueType := ValueTypeObject{}
-		err = valueType.convert(alias.ValueType)
-		p.ValueType = valueType
+		valueType = &ValueTypeObject{}
 	default:
 		return fmt.Errorf("valueType %v is invalid", t)
 	}
+	err = valueType.convert(alias.ValueType)
+	p.ValueType = valueType
 	return err
+}
+
+type IValueType interface {
+	convert(data map[string]interface{}) error
 }
 
 type ValueTypeEnum struct {
@@ -217,6 +210,19 @@ type ValueTypeInt struct {
 }
 
 func (v *ValueTypeInt) convert(data map[string]interface{}) error {
+	str, _ := json.Marshal(data)
+	return json.Unmarshal(str, v)
+}
+
+type ValueTypeBool struct {
+	Type       string `json:"type"`
+	TrueText   string `json:"trueText"`
+	TrueValue  string `json:"trueValue"`
+	FalseText  string `json:"falseText"`
+	FalseValue string `json:"falseValue"`
+}
+
+func (v *ValueTypeBool) convert(data map[string]interface{}) error {
 	str, _ := json.Marshal(data)
 	return json.Unmarshal(str, v)
 }

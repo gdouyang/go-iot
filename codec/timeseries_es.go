@@ -366,7 +366,7 @@ func (t *EsTimeSeries) _appendMapping(properties *map[string]interface{}, p tsl.
 	case tsl.TypeDouble:
 		(*properties)[p.Id] = esType{Type: "double"}
 	case tsl.TypeBool:
-		(*properties)[p.Id] = esType{Type: "boolean"}
+		(*properties)[p.Id] = esType{Type: "keyword"}
 	case tsl.TypeEnum:
 		(*properties)[p.Id] = esType{Type: "keyword"}
 	case tsl.TypeString:
