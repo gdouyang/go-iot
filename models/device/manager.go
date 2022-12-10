@@ -2,6 +2,8 @@ package models
 
 import (
 	"go-iot/codec"
+	"go-iot/codec/eventbus"
+	"go-iot/models"
 	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -10,6 +12,16 @@ import (
 func init() {
 	codec.RegDeviceManager(&DbDeviceManager{cache: make(map[string]codec.Device)})
 	codec.RegProductManager(&DbProductManager{cache: make(map[string]codec.Product)})
+	eventbus.Subscribe(eventbus.GetOfflineTopic("*", "*"), func(msg eventbus.Message) {
+		if m, ok := msg.(*eventbus.OfflineMessage); ok {
+			UpdateOnlineStatus(m.DeviceId, models.OFFLINE)
+		}
+	})
+	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
+		if m, ok := msg.(*eventbus.OnlineMessage); ok {
+			UpdateOnlineStatus(m.DeviceId, models.ONLINE)
+		}
+	})
 }
 
 // DbDeviceManager
