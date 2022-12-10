@@ -1,6 +1,9 @@
 package tcpclient
 
-import "go-iot/codec"
+import (
+	"encoding/hex"
+	"go-iot/codec"
+)
 
 type tcpContext struct {
 	codec.BaseContext
@@ -13,4 +16,8 @@ func (ctx *tcpContext) GetMessage() interface{} {
 
 func (ctx *tcpContext) MsgToString() string {
 	return string(ctx.Data)
+}
+
+func (ctx *tcpContext) HexMsg() string {
+	return hex.EncodeToString(ctx.Data)
 }

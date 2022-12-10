@@ -1,6 +1,7 @@
 package tcpserver
 
 import (
+	"encoding/hex"
 	"go-iot/codec"
 )
 
@@ -15,4 +16,8 @@ func (ctx *tcpContext) GetMessage() interface{} {
 
 func (ctx *tcpContext) MsgToString() string {
 	return string(ctx.Data)
+}
+
+func (ctx *tcpContext) HexMsg() string {
+	return hex.EncodeToString(ctx.Data)
 }

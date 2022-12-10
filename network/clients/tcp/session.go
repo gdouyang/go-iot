@@ -1,6 +1,7 @@
 package tcpclient
 
 import (
+	"encoding/hex"
 	"go-iot/codec"
 	tcpserver "go-iot/network/servers/tcp"
 	"net"
@@ -32,9 +33,25 @@ type tcpSession struct {
 	done      chan struct{}
 }
 
-func (s *tcpSession) Send(msg interface{}) error {
-	s.conn.Write([]byte(msg.(string)))
-	return nil
+func (s *tcpSession) Send(msg string) error {
+	_, err := s.conn.Write([]byte(msg))
+	if err != nil {
+		logs.Error("tcpclient Send error:", err)
+	}
+	return err
+}
+
+func (s *tcpSession) SendHex(msgHex string) error {
+	b, err := hex.DecodeString(msgHex)
+	if err != nil {
+		logs.Error("tcpclient hex decode error:", err)
+		return err
+	}
+	_, err = s.conn.Write(b)
+	if err != nil {
+		logs.Error("tcpclient SendHex error:", err)
+	}
+	return err
 }
 
 func (s *tcpSession) Disconnect() error {
@@ -71,7 +88,7 @@ func (s *tcpSession) readLoop() {
 
 		if keepAlive > 0 {
 			if err := s.conn.SetDeadline(time.Now().Add(timeOut)); err != nil {
-				logs.Error("set read timeout failed: %s", s.deviceId)
+				logs.Error("tcpclient set read timeout failed: %s", s.deviceId)
 			}
 		}
 
@@ -79,7 +96,7 @@ func (s *tcpSession) readLoop() {
 		data, err := s.delimeter.Read()
 		//3.2 数据读尽、读取错误 关闭 socket 连接
 		if err != nil {
-			logs.Error("read error: " + err.Error())
+			logs.Error("tcpclient read error: " + err.Error())
 			break
 		}
 		sc := codec.GetCodec(s.productId)

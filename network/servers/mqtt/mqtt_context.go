@@ -1,6 +1,7 @@
 package mqttserver
 
 import (
+	"encoding/hex"
 	"go-iot/codec"
 	"net"
 	"strings"
@@ -77,6 +78,10 @@ func (ctx *mqttContext) GetMessage() interface{} {
 
 func (ctx *mqttContext) MsgToString() string {
 	return string(ctx.Data)
+}
+
+func (ctx *mqttContext) HexMsg() string {
+	return hex.EncodeToString(ctx.Data)
 }
 
 func (ctx *mqttContext) GetClientId() string {

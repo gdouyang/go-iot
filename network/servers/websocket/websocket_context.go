@@ -1,6 +1,7 @@
 package websocketsocker
 
 import (
+	"encoding/hex"
 	"go-iot/codec"
 	"net/http"
 	"net/url"
@@ -23,6 +24,10 @@ func (ctx *websocketContext) GetMessage() interface{} {
 
 func (ctx *websocketContext) MsgToString() string {
 	return string(ctx.Data)
+}
+
+func (ctx *websocketContext) HexMsg() string {
+	return hex.EncodeToString(ctx.Data)
 }
 
 func (ctx *websocketContext) IsTextMessage() bool {
