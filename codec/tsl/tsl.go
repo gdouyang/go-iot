@@ -25,6 +25,10 @@ type TslData struct {
 	Properties []TslProperty `json:"properties"`
 }
 
+func NewTslData() *TslData {
+	return &TslData{}
+}
+
 func (tsl *TslData) FromJson(text string) error {
 	err := json.Unmarshal([]byte(text), tsl)
 	return err

@@ -298,6 +298,12 @@ func (ctl *ProductController) ModifyTsl() {
 	var update models.Product
 	update.Id = ob.Id
 	update.Metadata = ob.Metadata
+	tslData := tsl.NewTslData()
+	err = tslData.FromJson(update.Metadata)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
 	err = product.UpdateProduct(&update)
 	if err != nil {
 		resp = models.JsonRespError(err)
