@@ -130,6 +130,8 @@ func (c *ConditionFilter) getExpression() string {
 	}
 	if c.DataType == "string" {
 		return fmt.Sprintf("%s %s \"%s\"", c.Key, oper, c.Value)
+	} else if c.DataType == "this" {
+		return "true"
 	} else {
 		return fmt.Sprintf("%s %s %s", c.Key, oper, c.Value)
 	}
