@@ -56,7 +56,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 func ListClientDeviceByProductId(productId string) ([]string, error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.Device{})
-	qs = qs.Filter("ProductId", productId)
+	qs = qs.Filter("ProductId", productId).Filter("State", models.OFFLINE)
 
 	var result []models.Device
 	_, err := qs.All(&result, "id")
