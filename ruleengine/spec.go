@@ -3,6 +3,7 @@ package ruleengine
 import (
 	"fmt"
 	"go-iot/codec/eventbus"
+	"go-iot/codec/tsl"
 	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -127,8 +128,10 @@ func (c *ConditionFilter) getExpression() string {
 		oper = ">="
 	case "lte":
 		oper = "<="
+	default:
+		oper = "=="
 	}
-	if c.DataType == "string" {
+	if c.DataType == tsl.TypeString || c.DataType == tsl.TypeEnum || c.DataType == tsl.TypeDate {
 		return fmt.Sprintf("%s %s \"%s\"", c.Key, oper, c.Value)
 	} else if c.DataType == "this" {
 		return "true" // event self is happen

@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	TypeEnum   = "enum"
+	TypeEnum   = "enum" // 枚举类型
 	TypeInt    = "int"
 	TypeLong   = "long"
 	TypeString = "string"
