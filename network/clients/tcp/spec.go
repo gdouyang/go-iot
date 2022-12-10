@@ -25,7 +25,7 @@ type (
 func (spec *TcpClientSpec) FromJson(str string) error {
 	err := json.Unmarshal([]byte(str), spec)
 	if err != nil {
-		return fmt.Errorf("tcpclient FromJson error:%v", err)
+		return fmt.Errorf("tcpclient spec error:%v", err)
 	}
 	return nil
 }

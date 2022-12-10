@@ -30,7 +30,7 @@ type (
 func (spec *TcpServerSpec) FromJson(str string) error {
 	err := json.Unmarshal([]byte(str), spec)
 	if err != nil {
-		return fmt.Errorf("tcp server spec failed: %v", err)
+		return fmt.Errorf("tcp server spec error: %v", err)
 	}
 	return nil
 }

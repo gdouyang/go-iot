@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-iot/network/servers"
-
-	"github.com/beego/beego/v2/core/logs"
 )
 
 type MQTTClientSpec struct {
@@ -21,11 +19,12 @@ type MQTTClientSpec struct {
 	Certificate  []servers.Certificate `json:"certificate"`
 }
 
-func (spec *MQTTClientSpec) FromJson(str string) {
+func (spec *MQTTClientSpec) FromJson(str string) error {
 	err := json.Unmarshal([]byte(str), spec)
 	if err != nil {
-		logs.Error(err)
+		return fmt.Errorf("mqtt client spec error: %v", err)
 	}
+	return nil
 }
 
 func (spec *MQTTClientSpec) TlsConfig() (*tls.Config, error) {

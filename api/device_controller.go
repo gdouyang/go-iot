@@ -267,7 +267,10 @@ func connectClientDevice(deviceId string) error {
 	}
 	if codec.TCP_CLIENT == codec.NetClientType(nw.Type) {
 		spec := &tcpclient.TcpClientSpec{}
-		spec.FromJson(nw.Configuration)
+		err = spec.FromJson(nw.Configuration)
+		if err != nil {
+			return err
+		}
 		spec.Host = devoper.GetConfig("host")
 		port, err := strconv.Atoi(devoper.GetConfig("port"))
 		if err != nil {
@@ -278,7 +281,10 @@ func connectClientDevice(deviceId string) error {
 		nw.Configuration = string(b)
 	} else if codec.MQTT_CLIENT == codec.NetClientType(nw.Type) {
 		spec := &mqttclient.MQTTClientSpec{}
-		spec.FromJson(nw.Configuration)
+		err = spec.FromJson(nw.Configuration)
+		if err != nil {
+			return err
+		}
 		spec.Host = devoper.GetConfig("host")
 		port, err := strconv.Atoi(devoper.GetConfig("port"))
 		if err != nil {

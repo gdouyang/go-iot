@@ -42,7 +42,7 @@ type (
 func (spec *MQTTServerSpec) FromJson(str string) error {
 	err := json.Unmarshal([]byte(str), spec)
 	if err != nil {
-		return fmt.Errorf("mqtt broker spec failed: %v", err)
+		return fmt.Errorf("mqtt broker spec error: %v", err)
 	}
 	return nil
 }
