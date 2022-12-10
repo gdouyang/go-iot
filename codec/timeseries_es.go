@@ -21,6 +21,11 @@ func init() {
 	timeSeriseMap[TIME_SERISE_ES] = &EsTimeSeries{dataCh: make(chan string, 1000)}
 }
 
+const (
+	properties_const = "properties"
+	event_const      = "event"
+)
+
 // es时序保存
 type EsTimeSeries struct {
 	sync.RWMutex
@@ -29,8 +34,8 @@ type EsTimeSeries struct {
 	batchTaskRun bool
 }
 
-func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
-	validProperty := product.GetTslProperty()
+func (t *EsTimeSeries) SaveProperties(product Product, d1 map[string]interface{}) error {
+	validProperty := product.GetTsl().PropertiesMap()
 	if validProperty == nil {
 		return errors.New("not have tsl property, dont save timeseries data")
 	}
@@ -56,7 +61,7 @@ func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
 		logs.Error("Error marshaling document: %s", err)
 	}
 
-	index := t.getIndex(product)
+	index := t.getIndex(product, properties_const)
 	o := `{ "index" : { "_index" : "` + index + `" } }` + "\n" + string(data) + "\n"
 	t.dataCh <- o
 	if !t.batchTaskRun {
@@ -77,6 +82,52 @@ func (t *EsTimeSeries) Save(product Product, d1 map[string]interface{}) error {
 	// }
 	// _, err = doRequest(req)
 	// return err
+}
+
+func (t *EsTimeSeries) SaveEvents(product Product, eventId string, d1 map[string]interface{}) error {
+	validProperty := product.GetTsl().EventsMap()
+	if validProperty == nil {
+		return errors.New("not have tsl property, dont save timeseries data")
+	}
+	event, ok := validProperty[eventId]
+	if !ok {
+		return fmt.Errorf("eventId [%s] not found", eventId)
+	}
+	emap := event.PropertiesMap()
+	for key := range d1 {
+		if key == tsl.PropertyDeviceId {
+			continue
+		}
+		if _, ok := emap[key]; !ok {
+			delete(d1, key)
+		}
+	}
+	if len(d1) == 0 {
+		return errors.New("data is empty, dont save timeseries data")
+	}
+	deviceId := d1[tsl.PropertyDeviceId]
+	if deviceId == nil {
+		return errors.New("not have deviceId, dont save event timeseries data")
+	}
+	d1["collectTime_"] = time.Now().Format("2006-01-02 15:04:05.000")
+	// Build the request body.
+	data, err := json.Marshal(d1)
+	if err != nil {
+		logs.Error("Error marshaling document: %s", err)
+	}
+
+	index := t.getIndex(product, event_const)
+	o := `{ "index" : { "_index" : "` + index + `" } }` + "\n" + string(data) + "\n"
+	t.dataCh <- o
+	if !t.batchTaskRun {
+		t.Lock()
+		defer t.Unlock()
+		t.batchTaskRun = true
+		go t.batchSave()
+	}
+	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
+	eventbus.PublishEvent(&evt)
+	return nil
 }
 
 func (t *EsTimeSeries) batchSave() {
@@ -144,7 +195,7 @@ func (t *EsTimeSeries) QueryProperty(product Product, param map[string]interface
 		return nil, err
 	}
 	req := esapi.SearchRequest{
-		Index: []string{t.getIndex(product)},
+		Index: []string{t.getIndex(product, properties_const)},
 		Body:  bytes.NewReader(data),
 	}
 	r, err := doRequest(req)
@@ -166,8 +217,8 @@ func (t *EsTimeSeries) QueryProperty(product Product, param map[string]interface
 	return resp, err
 }
 
-func (t *EsTimeSeries) getIndex(product Product) string {
-	index := "properties-" + product.GetId() + "-" + time.Now().Format("200601")
+func (t *EsTimeSeries) getIndex(product Product, typ string) string {
+	index := typ + "-" + product.GetId() + "-" + time.Now().Format("200601")
 	return index
 }
 
@@ -181,7 +232,7 @@ func (t *EsTimeSeries) propertiesTplMapping(product Product, model *tsl.TslData)
 	properties["collectTime_"] = esType{Type: "date", Format: defaultDateFormat}
 
 	var payload map[string]interface{} = map[string]interface{}{
-		"index_patterns": []string{fmt.Sprintf("properties-%s-*", product.GetId())},
+		"index_patterns": []string{fmt.Sprintf("%s-%s-*", properties_const, product.GetId())},
 		"order":          0,
 		// "template": map[string]interface{}{
 		"settings": map[string]interface{}{
@@ -219,7 +270,7 @@ func (t *EsTimeSeries) eventsTplMapping(product Product, model *tsl.TslData) err
 		properties["collectTime_"] = esType{Type: "date", Format: defaultDateFormat}
 
 		var payload map[string]interface{} = map[string]interface{}{
-			"index_patterns": []string{fmt.Sprintf("event-%s-%s-*", product.GetId(), e.Id)},
+			"index_patterns": []string{fmt.Sprintf("%s-%s-%s-*", event_const, product.GetId(), e.Id)}, // event-{productId}-{eventId}-*
 			"order":          0,
 			// "template": map[string]interface{}{
 			"settings": map[string]interface{}{
@@ -271,11 +322,17 @@ func (t *EsTimeSeries) _appendMapping(properties *map[string]interface{}, p tsl.
 		(*properties)[p.Id] = esType{Type: "date", Format: defaultDateFormat}
 	case tsl.TypeObject:
 		object := p.ValueType.(tsl.ValueTypeObject)
-		for _, p := range object.Properties {
-			t._appendMapping(properties, p)
+		var objMapping map[string]interface{} = map[string]interface{}{}
+		for _, p1 := range object.Properties {
+			t._appendMapping(&objMapping, p1)
+		}
+		(*properties)[p.Id] = map[string]interface{}{
+			"properties": objMapping,
 		}
 	default:
-		(*properties)[p.Id] = esType{Type: "keyword"}
+		if len(p.Id) > 0 {
+			(*properties)[p.Id] = esType{Type: "keyword"}
+		}
 	}
 }
 

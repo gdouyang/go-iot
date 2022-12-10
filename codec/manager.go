@@ -104,19 +104,27 @@ func (d *DefaultDevice) GetConfig(key string) string {
 	return ""
 }
 
-func NewProduct(id string, config map[string]string, tsId string) *DefaultProdeuct {
+func NewProduct(id string, config map[string]string, tsId string, tsltext string) (*DefaultProdeuct, error) {
+	tslData := tsl.NewTslData()
+	if len(tsltext) > 0 {
+		err := tslData.FromJson(tsltext)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &DefaultProdeuct{
 		Id:           id,
 		Config:       config,
 		TimeSeriesId: tsId,
-	}
+		tslData:      tslData,
+	}, nil
 }
 
 type DefaultProdeuct struct {
 	Id           string
 	Config       map[string]string
 	TimeSeriesId string
-	TslProperty  map[string]tsl.TslProperty
+	tslData      *tsl.TslData
 	TslFunction  map[string]tsl.TslFunction
 }
 
@@ -133,11 +141,9 @@ func (p *DefaultProdeuct) GetConfig(key string) string {
 func (p *DefaultProdeuct) GetTimeSeries() TimeSeriesSave {
 	return GetTimeSeries(p.TimeSeriesId)
 }
-func (p *DefaultProdeuct) GetTslProperty() map[string]tsl.TslProperty {
-	return p.TslProperty
-}
-func (p *DefaultProdeuct) GetTslFunction() map[string]tsl.TslFunction {
-	return p.TslFunction
+
+func (p *DefaultProdeuct) GetTsl() *tsl.TslData {
+	return p.tslData
 }
 
 // memDeviceManager

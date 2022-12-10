@@ -249,7 +249,11 @@ func (ctl *ProductController) Deploy() {
 	}
 	p1 := codec.GetProductManager().Get(ob.Id)
 	if p1 == nil {
-		p1 = codec.NewProduct(ob.Id, make(map[string]string), codec.TIME_SERISE_ES)
+		p1, err = codec.NewProduct(ob.Id, make(map[string]string), codec.TIME_SERISE_ES, ob.Metadata)
+		if err != nil {
+			resp = models.JsonRespError(err)
+			return
+		}
 		codec.GetProductManager().Put(p1)
 	}
 	err = p1.GetTimeSeries().PublishModel(p1, tsl)

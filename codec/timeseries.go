@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	TIME_SERISE_ES   = "es"
-	TIME_SERISE_MOCK = "mock"
+	TIME_SERISE_ES   = "es"   // 时序数据存储策略es
+	TIME_SERISE_MOCK = "mock" // 时序数据存储策略mock
 )
 
 var timeSeriseMap map[string]TimeSeriesSave = map[string]TimeSeriesSave{}
@@ -25,7 +25,8 @@ func GetTimeSeries(id string) TimeSeriesSave {
 // 时序保存
 type TimeSeriesSave interface {
 	// 保存时序数据
-	Save(product Product, data map[string]interface{}) error
+	SaveProperties(product Product, data map[string]interface{}) error
+	SaveEvents(product Product, eventId string, data map[string]interface{}) error
 	// 发布模型
 	PublishModel(product Product, model tsl.TslData) error
 	// 查询属性
@@ -36,8 +37,12 @@ type TimeSeriesSave interface {
 type MockTimeSeries struct {
 }
 
-func (t *MockTimeSeries) Save(product Product, data map[string]interface{}) error {
-	logs.Info("save timeseries data: ", data)
+func (t *MockTimeSeries) SaveProperties(product Product, data map[string]interface{}) error {
+	logs.Info("SaveProperties data: ", data)
+	return nil
+}
+func (t *MockTimeSeries) SaveEvents(product Product, eventId string, data map[string]interface{}) error {
+	logs.Info("SaveEvents data: ", data)
 	return nil
 }
 

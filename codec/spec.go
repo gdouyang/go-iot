@@ -35,10 +35,7 @@ type (
 		GetId() string
 		GetConfig(key string) string
 		GetTimeSeries() TimeSeriesSave
-		// 产品物模型属性
-		GetTslProperty() map[string]tsl.TslProperty
-		// 产品物模型功能
-		GetTslFunction() map[string]tsl.TslFunction
+		GetTsl() *tsl.TslData
 	}
 	// 设备信息
 	Device interface {
@@ -118,6 +115,12 @@ func (ctx *BaseContext) GetConfig(key string) string {
 
 // save time series data
 func (ctx *BaseContext) SaveProperties(data map[string]interface{}) {
+	ctx._saveProperties("", data)
+}
+func (ctx *BaseContext) SaveEvents(eventId string, data map[string]interface{}) {
+	ctx._saveProperties(eventId, data)
+}
+func (ctx *BaseContext) _saveProperties(eventId string, data map[string]interface{}) {
 	p := ctx.GetProduct()
 	if p == nil {
 		logs.Error("product not found " + ctx.ProductId)
@@ -130,7 +133,11 @@ func (ctx *BaseContext) SaveProperties(data map[string]interface{}) {
 	if _, ok := data["deviceId"]; !ok {
 		data["deviceId"] = ctx.DeviceId
 	}
-	p.GetTimeSeries().Save(p, data)
+	if len(eventId) == 0 {
+		p.GetTimeSeries().SaveProperties(p, data)
+	} else {
+		p.GetTimeSeries().SaveEvents(p, eventId, data)
+	}
 }
 
 func (ctx *BaseContext) ReplyOk() {

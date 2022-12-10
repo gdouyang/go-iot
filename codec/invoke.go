@@ -30,11 +30,15 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 	if product == nil {
 		return fmt.Errorf("product %s not found", productId)
 	}
-	tslF, ok := product.GetTslFunction()[message.FunctionId]
-	if !ok {
-		return fmt.Errorf("function %s of tsl not found", message.FunctionId)
+	tslF := product.GetTsl().FunctionsMap()
+	if len(tslF) == 0 {
+		return fmt.Errorf("product [%s] have no functions", productId)
 	}
-	if tslF.Async {
+	function, ok := tslF[message.FunctionId]
+	if !ok {
+		return fmt.Errorf("function [%s] of tsl not found", message.FunctionId)
+	}
+	if function.Async {
 		go func() {
 			codec.OnInvoke(&FuncInvokeContext{
 				deviceId:  message.DeviceId,

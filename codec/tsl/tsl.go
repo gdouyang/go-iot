@@ -3,6 +3,7 @@ package tsl
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -50,6 +51,14 @@ func (tsl *TslData) FunctionsMap() map[string]TslFunction {
 	return tslF
 }
 
+func (tsl *TslData) EventsMap() map[string]TslEvent {
+	tslF := map[string]TslEvent{}
+	for _, p := range tsl.Events {
+		tslF[p.Id] = p
+	}
+	return tslF
+}
+
 type TslFunction struct {
 	// function id
 	Id   string `json:"id"`
@@ -87,7 +96,7 @@ type TslEvent struct {
 	Properties []TslProperty `json:"properties"`
 }
 
-func (p *TslEvent) UnmarshalJSON(d []byte) error {
+func (e *TslEvent) UnmarshalJSON(d []byte) error {
 	var alias struct {
 		Id         string        `json:"id"`
 		Name       string        `json:"name"`
@@ -97,10 +106,18 @@ func (p *TslEvent) UnmarshalJSON(d []byte) error {
 	if err != nil {
 		return fmt.Errorf("event of tsl has error: [%s], data: %s", err.Error(), string(d))
 	}
-	p.Id = alias.Id
-	p.Name = alias.Name
-	p.Properties = alias.Properties
+	e.Id = alias.Id
+	e.Name = alias.Name
+	e.Properties = alias.Properties
 	return nil
+}
+
+func (e *TslEvent) PropertiesMap() map[string]TslProperty {
+	tslP := map[string]TslProperty{}
+	for _, p := range e.Properties {
+		tslP[p.Id] = p
+	}
+	return tslP
 }
 
 type TslProperty struct {
@@ -127,6 +144,12 @@ func (p *TslProperty) UnmarshalJSON(d []byte) error {
 	if !ok {
 		return nil
 	}
+	if len(strings.TrimSpace(alias.Id)) == 0 {
+		return fmt.Errorf("id of tslProperty must be persent")
+	}
+	p.Id = alias.Id
+	p.Name = alias.Name
+	p.Expands = alias.Expands
 	p.Type = fmt.Sprintf("%v", t)
 	switch p.Type {
 	case TypeEnum:
