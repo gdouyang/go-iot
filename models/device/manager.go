@@ -2,7 +2,6 @@ package models
 
 import (
 	"go-iot/codec"
-	"go-iot/codec/tsl"
 	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -75,11 +74,6 @@ func (m *DbProductManager) Get(productId string) codec.Product {
 			m.cache[productId] = nil
 			return nil
 		}
-		d := tsl.TslData{}
-		err := d.FromJson(data.Metadata)
-		if err != nil {
-			logs.Error(err)
-		}
 		config := map[string]string{}
 		for _, item := range data.Metaconfig {
 			config[item.Property] = item.Value
@@ -88,14 +82,12 @@ func (m *DbProductManager) Get(productId string) codec.Product {
 		if len(storePolicy) == 0 {
 			storePolicy = codec.TIME_SERISE_ES
 		}
-		product = &codec.DefaultProdeuct{
-			Id:           data.Id,
-			Config:       config,
-			TimeSeriesId: data.StorePolicy,
-			TslProperty:  d.PropertiesMap(),
-			TslFunction:  d.FunctionsMap(),
+		product, err := codec.NewProduct(data.Id, config, data.StorePolicy, data.Metadata)
+		if err != nil {
+			logs.Error("newProduct error: ", err)
+		} else {
+			m.Put(product)
 		}
-		m.Put(product)
 	}
 	return product
 }

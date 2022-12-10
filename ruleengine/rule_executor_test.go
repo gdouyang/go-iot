@@ -1,6 +1,7 @@
 package ruleengine_test
 
 import (
+	"encoding/json"
 	"go-iot/codec"
 	"go-iot/codec/eventbus"
 	"go-iot/codec/tsl"
@@ -31,23 +32,32 @@ func TestRule(t *testing.T) {
 	}
 	err := ruleengine.Start(1, &rule)
 	assert.Nil(t, err)
-	var propMap = map[string]tsl.TslProperty{
-		"light":   {Id: "light", Name: "亮度", ValueType: map[string]interface{}{"type": "int"}},
-		"current": {Id: "current", Name: "电流", ValueType: map[string]interface{}{"type": "double"}},
-		"obj":     {Id: "obj", Name: "obj", ValueType: map[string]interface{}{"properties": []tsl.TslProperty{{Id: "name", Name: "name", ValueType: map[string]interface{}{"type": "string"}}}}},
+	tslData := tsl.NewTslData()
+	tslData.Properties = []tsl.TslProperty{
+		{Id: "light", Name: "亮度", ValueType: map[string]interface{}{"type": "int"}},
+		{Id: "current", Name: "电流", ValueType: map[string]interface{}{"type": "double"}},
+		{Id: "obj", Name: "obj", ValueType: map[string]interface{}{"properties": []tsl.TslProperty{{Id: "name", Name: "name", ValueType: map[string]interface{}{"type": "string"}}}}},
 	}
+	b, err := json.Marshal(tslData)
+	assert.Nil(t, err)
+
 	codec.DefaultManagerId = "mem"
-	codec.GetProductManager().Put(&codec.DefaultProdeuct{Id: "test123", TslProperty: propMap})
-	codec.GetDeviceManager().Put(&codec.DefaultDevice{Id: "1234"})
-	eventbus.Publish(eventbus.GetMesssageTopic("test123", "1234"), &ruleengine.AlarmEvent{
-		DeviceId:  "1234",
-		ProductId: "test123",
-		Data: map[string]interface{}{
-			"deviceId": "1234",
-			"light":    "32",
-			"current":  "22",
-			"obj":      map[string]string{"name": "test"},
-		},
-	})
-	time.Sleep(time.Second * 1)
+	prod, err := codec.NewProduct("test123", map[string]string{}, codec.TIME_SERISE_MOCK, string(b))
+	assert.Nil(t, err)
+	assert.NotNil(t, prod)
+	if prod != nil {
+		codec.GetProductManager().Put(prod)
+		codec.GetDeviceManager().Put(&codec.DefaultDevice{Id: "1234"})
+		eventbus.Publish(eventbus.GetMesssageTopic("test123", "1234"), &ruleengine.AlarmEvent{
+			DeviceId:  "1234",
+			ProductId: "test123",
+			Data: map[string]interface{}{
+				"deviceId": "1234",
+				"light":    "32",
+				"current":  "22",
+				"obj":      map[string]string{"name": "test"},
+			},
+		})
+		time.Sleep(time.Second * 1)
+	}
 }

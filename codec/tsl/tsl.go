@@ -32,7 +32,10 @@ func NewTslData() *TslData {
 
 func (tsl *TslData) FromJson(text string) error {
 	err := json.Unmarshal([]byte(text), tsl)
-	return err
+	if err != nil {
+		return fmt.Errorf("tsl parse error: %v", err)
+	}
+	return nil
 }
 
 func (tsl *TslData) PropertiesMap() map[string]TslProperty {
@@ -75,8 +78,8 @@ func (p *TslFunction) UnmarshalJSON(d []byte) error {
 		Name string `json:"name"`
 		// 是否异步调用
 		Async   bool          `json:"async"`
-		Inputs  []TslProperty `json:"inputs"`
-		Outputs TslProperty   `json:"output"`
+		Inputs  []TslProperty `json:"inputs,omitempty"`
+		Outputs TslProperty   `json:"output,omitempty"`
 	}
 	err := json.Unmarshal(d, &alias)
 	if err != nil {
@@ -124,7 +127,7 @@ type TslProperty struct {
 	Id        string                 `json:"id"`
 	Name      string                 `json:"name"`
 	ValueType interface{}            `json:"valueType"`
-	Expands   map[string]interface{} `json:"expands"`
+	Expands   map[string]interface{} `json:"expands,omitempty"`
 	Type      string                 `json:"-"`
 }
 
@@ -133,7 +136,7 @@ func (p *TslProperty) UnmarshalJSON(d []byte) error {
 		Id        string                 `json:"id"`
 		Name      string                 `json:"name"`
 		ValueType map[string]interface{} `json:"valueType"`
-		Expands   map[string]interface{} `json:"expands"`
+		Expands   map[string]interface{} `json:"expands,omitempty"`
 		Type      string                 `json:"-"`
 	}
 	err := json.Unmarshal(d, &alias)
