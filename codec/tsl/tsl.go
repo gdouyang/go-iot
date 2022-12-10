@@ -7,15 +7,16 @@ import (
 )
 
 const (
-	TypeEnum   = "enum" // 枚举类型
-	TypeInt    = "int"
-	TypeLong   = "long"
-	TypeString = "string"
-	TypeBool   = "bool"
-	TypeFloat  = "float"
-	TypeDouble = "double"
-	TypeDate   = "date"
-	TypeObject = "object"
+	TypeEnum     = "enum" // 枚举类型
+	TypeInt      = "int"
+	TypeLong     = "long"
+	TypeString   = "string"
+	TypeBool     = "bool"
+	TypeFloat    = "float"
+	TypeDouble   = "double"
+	TypeDate     = "date"
+	TypePassword = "password"
+	TypeObject   = "object"
 
 	PropertyDeviceId = "deviceId"
 )
@@ -171,6 +172,10 @@ func (p *TslProperty) UnmarshalJSON(d []byte) error {
 		valueType := ValueTypeString{}
 		err = valueType.convert(alias.ValueType)
 		p.ValueType = valueType
+	case TypePassword:
+		valueType := ValueTypePassword{}
+		err = valueType.convert(alias.ValueType)
+		p.ValueType = valueType
 	case TypeFloat:
 		valueType := ValueTypeFloat{}
 		err = valueType.convert(alias.ValueType)
@@ -223,6 +228,17 @@ type ValueTypeString struct {
 }
 
 func (v *ValueTypeString) convert(data map[string]interface{}) error {
+	str, _ := json.Marshal(data)
+	return json.Unmarshal(str, v)
+}
+
+type ValueTypePassword struct {
+	Type string `json:"type"`
+	Max  int32  `json:"max"`
+	Min  int32  `json:"min"`
+}
+
+func (v *ValueTypePassword) convert(data map[string]interface{}) error {
 	str, _ := json.Marshal(data)
 	return json.Unmarshal(str, v)
 }

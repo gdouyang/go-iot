@@ -357,20 +357,22 @@ func (t *EsTimeSeries) logsTplMapping(product Product) error {
 func (t *EsTimeSeries) _appendMapping(properties *map[string]interface{}, p tsl.TslProperty) {
 	valType := strings.TrimSpace(p.Type)
 	switch valType {
-	case tsl.TypeEnum:
-		(*properties)[p.Id] = esType{Type: "keyword"}
 	case tsl.TypeInt:
 		(*properties)[p.Id] = esType{Type: "int"}
 	case tsl.TypeLong:
 		(*properties)[p.Id] = esType{Type: "long"}
-	case tsl.TypeString:
-		(*properties)[p.Id] = esType{Type: "keyword"}
 	case tsl.TypeFloat:
 		(*properties)[p.Id] = esType{Type: "float"}
 	case tsl.TypeDouble:
 		(*properties)[p.Id] = esType{Type: "double"}
 	case tsl.TypeBool:
 		(*properties)[p.Id] = esType{Type: "boolean"}
+	case tsl.TypeEnum:
+		(*properties)[p.Id] = esType{Type: "keyword"}
+	case tsl.TypeString:
+		(*properties)[p.Id] = esType{Type: "keyword"}
+	case tsl.TypePassword:
+		(*properties)[p.Id] = esType{Type: "keyword"}
 	case tsl.TypeDate:
 		(*properties)[p.Id] = esType{Type: "date", Format: defaultDateFormat}
 	case tsl.TypeObject:
