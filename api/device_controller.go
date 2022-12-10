@@ -154,6 +154,7 @@ func (ctl *DeviceController) GetDetail() {
 				}
 			}
 		}
+		device.UpdateOnlineStatus(ob.Id, alins.State)
 	}
 	resp.Data = alins
 }
