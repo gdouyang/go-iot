@@ -2,11 +2,13 @@ package tsl
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 const (
 	TypeEnum   = "enum"
 	TypeInt    = "int"
+	TypeLong   = "long"
 	TypeString = "string"
 	TypeBool   = "bool"
 	TypeFloat  = "float"
@@ -54,51 +56,107 @@ type TslFunction struct {
 	Outputs TslProperty   `json:"output"`
 }
 
+func (p *TslFunction) UnmarshalJSON(d []byte) error {
+	var alias struct {
+		Id   string `json:"id"`
+		Name string `json:"name"`
+		// 是否异步调用
+		Async   bool          `json:"async"`
+		Inputs  []TslProperty `json:"inputs"`
+		Outputs TslProperty   `json:"output"`
+	}
+	err := json.Unmarshal(d, &alias)
+	if err != nil {
+		return fmt.Errorf("function of tsl has error: [%s], data: %s", err.Error(), string(d))
+	}
+	p.Id = alias.Id
+	p.Name = alias.Name
+	p.Async = alias.Async
+	p.Inputs = alias.Inputs
+	p.Outputs = alias.Outputs
+	return nil
+}
+
 type TslEvent struct {
 	Id         string        `json:"id"`
 	Name       string        `json:"name"`
 	Properties []TslProperty `json:"properties"`
 }
 
+func (p *TslEvent) UnmarshalJSON(d []byte) error {
+	var alias struct {
+		Id         string        `json:"id"`
+		Name       string        `json:"name"`
+		Properties []TslProperty `json:"properties"`
+	}
+	err := json.Unmarshal(d, &alias)
+	if err != nil {
+		return fmt.Errorf("event of tsl has error: [%s], data: %s", err.Error(), string(d))
+	}
+	p.Id = alias.Id
+	p.Name = alias.Name
+	p.Properties = alias.Properties
+	return nil
+}
+
 type TslProperty struct {
 	Id        string                 `json:"id"`
 	Name      string                 `json:"name"`
-	ValueType map[string]interface{} `json:"valueType"`
+	ValueType interface{}            `json:"valueType"`
 	Expands   map[string]interface{} `json:"expands"`
+	Type      string                 `json:"-"`
 }
 
-func (p *TslProperty) GetValueType() interface{} {
-	t, ok := p.ValueType["type"]
-	if !ok {
-		return p.ValueType
+func (p *TslProperty) UnmarshalJSON(d []byte) error {
+	var alias struct {
+		Id        string                 `json:"id"`
+		Name      string                 `json:"name"`
+		ValueType map[string]interface{} `json:"valueType"`
+		Expands   map[string]interface{} `json:"expands"`
+		Type      string                 `json:"-"`
 	}
-	switch t.(string) {
+	err := json.Unmarshal(d, &alias)
+	if err != nil {
+		return err
+	}
+	t, ok := alias.ValueType["type"]
+	if !ok {
+		return nil
+	}
+	p.Type = fmt.Sprintf("%v", t)
+	switch p.Type {
 	case TypeEnum:
 		valueType := ValueTypeEnum{}
-		valueType.convert(p.ValueType)
-		return valueType
+		err = valueType.convert(alias.ValueType)
+		p.ValueType = valueType
 	case TypeInt:
 		valueType := ValueTypeInt{}
-		valueType.convert(p.ValueType)
-		return valueType
+		err = valueType.convert(alias.ValueType)
+		p.ValueType = valueType
+	case TypeLong:
+		valueType := ValueTypeInt{}
+		err = valueType.convert(alias.ValueType)
+		p.ValueType = valueType
 	case TypeString:
 		valueType := ValueTypeString{}
-		valueType.convert(p.ValueType)
-		return valueType
+		err = valueType.convert(alias.ValueType)
+		p.ValueType = valueType
 	case TypeFloat:
 		valueType := ValueTypeFloat{}
-		valueType.convert(p.ValueType)
-		return valueType
+		err = valueType.convert(alias.ValueType)
+		p.ValueType = valueType
 	case TypeDouble:
 		valueType := ValueTypeFloat{}
-		valueType.convert(p.ValueType)
-		return valueType
+		err = valueType.convert(alias.ValueType)
+		p.ValueType = valueType
 	case TypeObject:
 		valueType := ValueTypeObject{}
-		valueType.convert(p.ValueType)
-		return valueType
+		err = valueType.convert(alias.ValueType)
+		p.ValueType = valueType
+	default:
+		return fmt.Errorf("valueType %v is invalid", t)
 	}
-	return p.ValueType
+	return err
 }
 
 type ValueTypeEnum struct {

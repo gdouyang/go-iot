@@ -110,25 +110,20 @@ func (t *EsTimeSeries) save() {
 
 func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) error {
 	logs.Info("PublishModel: ", model)
-	mapping := t.convertMapping(product, &model)
-	// Build the request body.
-	data, err := json.Marshal(mapping)
+	err := t.propertiesTplMapping(product, &model)
 	if err != nil {
-		logs.Error("Error marshaling document: %s", err)
+		return err
 	}
-	logs.Info(string(data))
-	// Set up the request object.
-	req := esapi.IndicesPutTemplateRequest{
-		Name: product.GetId() + "-month-tpl",
-		Body: bytes.NewReader(data),
+	err = t.eventsTplMapping(product, &model)
+	if err != nil {
+		return err
 	}
-	_, err = doRequest(req)
 	return err
 }
 
 func (t *EsTimeSeries) QueryProperty(product Product, param map[string]interface{}) (map[string]interface{}, error) {
 	if _, ok := param[tsl.PropertyDeviceId]; !ok {
-		return nil, errors.New("deviceId property not persent")
+		return nil, errors.New("property deviceId must be persent")
 	}
 	body := map[string]interface{}{
 		"query": map[string]interface{}{
@@ -172,39 +167,21 @@ func (t *EsTimeSeries) QueryProperty(product Product, param map[string]interface
 }
 
 func (t *EsTimeSeries) getIndex(product Product) string {
-	index := product.GetId() + "-" + time.Now().Format("200601")
+	index := "properties-" + product.GetId() + "-" + time.Now().Format("200601")
 	return index
 }
 
 // 把物模型转换成es mapping
-func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[string]interface{} {
+func (t *EsTimeSeries) propertiesTplMapping(product Product, model *tsl.TslData) error {
 	var properties map[string]interface{} = map[string]interface{}{}
 	for _, p := range model.Properties {
-		valType := strings.TrimSpace(p.ValueType["type"].(string))
-		switch valType {
-		case tsl.TypeEnum:
-			properties[p.Id] = esType{Type: "keyword"}
-		case tsl.TypeInt:
-			properties[p.Id] = esType{Type: "long"}
-		case tsl.TypeString:
-			properties[p.Id] = esType{Type: "keyword"}
-		case tsl.TypeFloat:
-			properties[p.Id] = esType{Type: "float"}
-		case tsl.TypeDouble:
-			properties[p.Id] = esType{Type: "double"}
-		case tsl.TypeBool:
-			properties[p.Id] = esType{Type: "boolean"}
-		case tsl.TypeDate:
-			properties[p.Id] = esType{Type: "date", Format: defaultDateFormat}
-		default:
-			properties[p.Id] = esType{Type: "keyword"}
-		}
+		t._appendMapping(&properties, p)
 	}
 	properties["deviceId"] = esType{Type: "keyword"}
 	properties["collectTime_"] = esType{Type: "date", Format: defaultDateFormat}
 
 	var payload map[string]interface{} = map[string]interface{}{
-		"index_patterns": []string{product.GetId() + "-*"},
+		"index_patterns": []string{fmt.Sprintf("properties-%s-*", product.GetId())},
 		"order":          0,
 		// "template": map[string]interface{}{
 		"settings": map[string]interface{}{
@@ -217,7 +194,89 @@ func (t *EsTimeSeries) convertMapping(product Product, model *tsl.TslData) map[s
 		},
 		// },
 	}
-	return payload
+	// Build the request body.
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("propertiesTplMapping error: %s", err.Error())
+	}
+	logs.Info(string(data))
+	// Set up the request object.
+	req := esapi.IndicesPutTemplateRequest{
+		Name: fmt.Sprintf("properties_%s_template", product.GetId()),
+		Body: bytes.NewReader(data),
+	}
+	_, err = doRequest(req)
+	return err
+}
+
+func (t *EsTimeSeries) eventsTplMapping(product Product, model *tsl.TslData) error {
+	var properties map[string]interface{} = map[string]interface{}{}
+	for _, e := range model.Events {
+		for _, p := range e.Properties {
+			t._appendMapping(&properties, p)
+		}
+		properties["deviceId"] = esType{Type: "keyword"}
+		properties["collectTime_"] = esType{Type: "date", Format: defaultDateFormat}
+
+		var payload map[string]interface{} = map[string]interface{}{
+			"index_patterns": []string{fmt.Sprintf("event-%s-%s-*", product.GetId(), e.Id)},
+			"order":          0,
+			// "template": map[string]interface{}{
+			"settings": map[string]interface{}{
+				"number_of_shards":   "1",
+				"number_of_replicas": "0",
+			},
+			"mappings": map[string]interface{}{
+				"dynamic":    false,
+				"properties": properties,
+			},
+			// },
+		}
+		data, err := json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("eventsTplMapping error: %s", err.Error())
+		}
+		logs.Info(string(data))
+		// Set up the request object.
+		req := esapi.IndicesPutTemplateRequest{
+			Name: fmt.Sprintf("event_%s_%s_template", product.GetId(), e.Id),
+			Body: bytes.NewReader(data),
+		}
+		_, err = doRequest(req)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *EsTimeSeries) _appendMapping(properties *map[string]interface{}, p tsl.TslProperty) {
+	valType := strings.TrimSpace(p.Type)
+	switch valType {
+	case tsl.TypeEnum:
+		(*properties)[p.Id] = esType{Type: "keyword"}
+	case tsl.TypeInt:
+		(*properties)[p.Id] = esType{Type: "int"}
+	case tsl.TypeLong:
+		(*properties)[p.Id] = esType{Type: "long"}
+	case tsl.TypeString:
+		(*properties)[p.Id] = esType{Type: "keyword"}
+	case tsl.TypeFloat:
+		(*properties)[p.Id] = esType{Type: "float"}
+	case tsl.TypeDouble:
+		(*properties)[p.Id] = esType{Type: "double"}
+	case tsl.TypeBool:
+		(*properties)[p.Id] = esType{Type: "boolean"}
+	case tsl.TypeDate:
+		(*properties)[p.Id] = esType{Type: "date", Format: defaultDateFormat}
+	case tsl.TypeObject:
+		object := p.ValueType.(tsl.ValueTypeObject)
+		for _, p := range object.Properties {
+			t._appendMapping(properties, p)
+		}
+	default:
+		(*properties)[p.Id] = esType{Type: "keyword"}
+	}
 }
 
 const defaultDateFormat string = "yyyy-MM||yyyy-MM-dd||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd HH:mm:ss.SSS||epoch_millis"

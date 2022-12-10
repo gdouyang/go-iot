@@ -25,7 +25,7 @@ func ValueConvert1(propMap map[string]TslProperty, data *map[string]interface{})
 		if prop, ok := propMap[key]; !ok {
 			delete(*data, key)
 		} else {
-			valType := fmt.Sprintf("%v", prop.ValueType["type"])
+			valType := fmt.Sprintf("%v", prop.Type)
 			switch valType {
 			case TypeEnum:
 				switch value.(type) {

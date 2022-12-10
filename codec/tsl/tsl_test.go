@@ -89,6 +89,7 @@ const text = `
       },
       "description": null,
       "valueType": {
+				"type": "object",
         "properties": [
           {
             "id": "name",
@@ -190,18 +191,18 @@ func TestTsl(t *testing.T) {
 		log.Println(e.Id)
 		log.Println(e.Name)
 		for _, p := range e.Properties {
-			log.Println(p.GetValueType())
+			log.Println(p.ValueType)
 		}
 	}
 	for _, e := range d.Functions {
 		log.Println(e.Id)
 		for _, p := range e.Inputs {
-			log.Println(p.GetValueType())
+			log.Println(p.ValueType)
 		}
-		log.Println(e.Outputs.GetValueType())
+		log.Println(e.Outputs.ValueType)
 	}
 	for _, e := range d.Properties {
-		log.Println(e.GetValueType())
+		log.Println(e.ValueType)
 	}
 	s := fmt.Sprintf("%v", 1)
 	log.Println(s)
