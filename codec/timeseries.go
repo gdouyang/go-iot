@@ -27,11 +27,19 @@ type TimeSeriesSave interface {
 	// 发布模型
 	PublishModel(product Product, model tsl.TslData) error
 	// 查询属性
-	QueryProperty(product Product, param map[string]interface{}) (map[string]interface{}, error)
+	QueryProperty(product Product, param QueryParam) (map[string]interface{}, error)
 	// 保存时序数据
 	SaveProperties(product Product, data map[string]interface{}) error
 	SaveEvents(product Product, eventId string, data map[string]interface{}) error
 	SaveLogs(product Product, data map[string]interface{}) error
+}
+
+type QueryParam struct {
+	Type     string                 `json:"type"`
+	DeviceId string                 `json:"deviceId"`
+	PageNum  int32                  `json:"pageNum"`
+	PageSize int32                  `json:"pageSize"`
+	Param    map[string]interface{} `json:"param"`
 }
 
 // mock
@@ -42,7 +50,7 @@ func (t *MockTimeSeries) PublishModel(product Product, model tsl.TslData) error 
 	logs.Info("PublishModel: ", model)
 	return nil
 }
-func (t *MockTimeSeries) QueryProperty(product Product, param map[string]interface{}) (map[string]interface{}, error) {
+func (t *MockTimeSeries) QueryProperty(product Product, param QueryParam) (map[string]interface{}, error) {
 	logs.Info("QueryProperty: ")
 	return nil, nil
 }

@@ -56,14 +56,19 @@ func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) error {
 	return err
 }
 
-func (t *EsTimeSeries) QueryProperty(product Product, param map[string]interface{}) (map[string]interface{}, error) {
-	if _, ok := param[tsl.PropertyDeviceId]; !ok {
-		return nil, errors.New("property deviceId must be persent")
+func (t *EsTimeSeries) QueryProperty(product Product, param QueryParam) (map[string]interface{}, error) {
+	if len(param.DeviceId) == 0 {
+		return nil, errors.New("deviceId must be persent")
+	}
+	if param.Type != properties_const && param.Type != event_const && param.Type != devicelogs_const {
+		return nil, fmt.Errorf("type is invalid, must be [%s, %s, %s]", properties_const, event_const, devicelogs_const)
 	}
 	body := map[string]interface{}{
+		"from": param.PageNum,
+		"size": param.PageSize,
 		"query": map[string]interface{}{
 			"term": map[string]interface{}{
-				tsl.PropertyDeviceId: param[tsl.PropertyDeviceId],
+				tsl.PropertyDeviceId: param.DeviceId,
 			},
 		},
 		"sort": []map[string]interface{}{
@@ -79,11 +84,13 @@ func (t *EsTimeSeries) QueryProperty(product Product, param map[string]interface
 		return nil, err
 	}
 	req := esapi.SearchRequest{
-		Index: []string{t.getIndex(product, properties_const)},
+		Index: []string{t.getIndex(product, param.Type)},
 		Body:  bytes.NewReader(data),
 	}
 	r, err := doRequest(req)
-	var resp map[string]interface{} = map[string]interface{}{}
+	var resp map[string]interface{} = map[string]interface{}{
+		"pageNum": param.PageNum,
+	}
 	if err == nil && r != nil {
 		total := int(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64))
 		resp["totalCount"] = total
@@ -242,7 +249,7 @@ func (t *EsTimeSeries) getIndex(product Product, typ string) string {
 func (t *EsTimeSeries) propertiesTplMapping(product Product, model *tsl.TslData) error {
 	var properties map[string]interface{} = map[string]interface{}{}
 	for _, p := range model.Properties {
-		t._appendMapping(&properties, p)
+		(properties)[p.Id] = t.createElasticProperty(p)
 	}
 	properties["deviceId"] = esType{Type: "keyword"}
 	properties["collectTime_"] = esType{Type: "date", Format: defaultDateFormat}
@@ -280,7 +287,7 @@ func (t *EsTimeSeries) eventsTplMapping(product Product, model *tsl.TslData) err
 	var properties map[string]interface{} = map[string]interface{}{}
 	for _, e := range model.Events {
 		for _, p := range e.Properties {
-			t._appendMapping(&properties, p)
+			(properties)[p.Id] = t.createElasticProperty(p)
 		}
 		properties["deviceId"] = esType{Type: "keyword"}
 		properties["collectTime_"] = esType{Type: "date", Format: defaultDateFormat}
@@ -320,6 +327,7 @@ func (t *EsTimeSeries) eventsTplMapping(product Product, model *tsl.TslData) err
 func (t *EsTimeSeries) logsTplMapping(product Product) error {
 	var properties map[string]interface{} = map[string]interface{}{}
 	properties["deviceId"] = esType{Type: "keyword"}
+	properties["type"] = esType{Type: "keyword", IgnoreAbove: "512"}
 	properties["content"] = esType{Type: "keyword", IgnoreAbove: "512"}
 	properties["collectTime_"] = esType{Type: "date", Format: defaultDateFormat}
 
@@ -354,41 +362,46 @@ func (t *EsTimeSeries) logsTplMapping(product Product) error {
 	return nil
 }
 
-func (t *EsTimeSeries) _appendMapping(properties *map[string]interface{}, p tsl.TslProperty) {
+func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) interface{} {
 	valType := strings.TrimSpace(p.Type)
 	switch valType {
 	case tsl.TypeInt:
-		(*properties)[p.Id] = esType{Type: "int"}
+		return esType{Type: "int"}
 	case tsl.TypeLong:
-		(*properties)[p.Id] = esType{Type: "long"}
+		return esType{Type: "long"}
 	case tsl.TypeFloat:
-		(*properties)[p.Id] = esType{Type: "float"}
+		return esType{Type: "float"}
 	case tsl.TypeDouble:
-		(*properties)[p.Id] = esType{Type: "double"}
+		return esType{Type: "double"}
 	case tsl.TypeBool:
-		(*properties)[p.Id] = esType{Type: "keyword"}
+		return esType{Type: "keyword", IgnoreAbove: "512"}
 	case tsl.TypeEnum:
-		(*properties)[p.Id] = esType{Type: "keyword"}
+		return esType{Type: "keyword", IgnoreAbove: "512"}
 	case tsl.TypeString:
-		(*properties)[p.Id] = esType{Type: "keyword"}
+		return esType{Type: "keyword", IgnoreAbove: "512"}
 	case tsl.TypePassword:
-		(*properties)[p.Id] = esType{Type: "keyword"}
+		return esType{Type: "keyword", IgnoreAbove: "512"}
 	case tsl.TypeDate:
-		(*properties)[p.Id] = esType{Type: "date", Format: defaultDateFormat}
+		return esType{Type: "date", Format: defaultDateFormat}
+	case tsl.TypeArray:
+		array := p.ValueType.(tsl.ValueTypeArray)
+		return t.createElasticProperty(array.ElementType)
 	case tsl.TypeObject:
 		object := p.ValueType.(tsl.ValueTypeObject)
-		var objMapping map[string]interface{} = map[string]interface{}{}
+		var mapping map[string]interface{} = map[string]interface{}{}
 		for _, p1 := range object.Properties {
-			t._appendMapping(&objMapping, p1)
+			mapping[p1.Id] = t.createElasticProperty(p1)
 		}
-		(*properties)[p.Id] = map[string]interface{}{
-			"properties": objMapping,
+		return map[string]interface{}{
+			"type":       "nested",
+			"properties": mapping,
 		}
 	default:
 		if len(p.Id) > 0 {
-			(*properties)[p.Id] = esType{Type: "keyword"}
+			return esType{Type: "keyword", IgnoreAbove: "512"}
 		}
 	}
+	return nil
 }
 
 const defaultDateFormat string = "yyyy-MM||yyyy-MM-dd||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd HH:mm:ss.SSS||epoch_millis"

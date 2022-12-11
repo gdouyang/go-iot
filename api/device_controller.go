@@ -43,7 +43,7 @@ func init() {
 		web.NSRouter("/:id/deploy", &DeviceController{}, "post:Deploy"),
 		web.NSRouter("/:id/undeploy", &DeviceController{}, "post:Undeploy"),
 		web.NSRouter("/:id/cmd", &DeviceController{}, "post:CmdInvoke"),
-		web.NSRouter("/query-property/:id", &DeviceController{}, "get:QueryProperty"),
+		web.NSRouter("/propertys/:id/query", &DeviceController{}, "post:QueryProperty"),
 	)
 	web.AddNamespace(ns)
 
@@ -428,6 +428,14 @@ func (ctl *DeviceController) QueryProperty() {
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
+	var param codec.QueryParam
+	err := ctl.BindJSON(&param)
+	if err != nil {
+		resp = models.JsonRespError(err)
+		return
+	}
+	param.DeviceId = ob.Id
+
 	device, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
 		resp = models.JsonRespError(err)
@@ -435,11 +443,9 @@ func (ctl *DeviceController) QueryProperty() {
 	}
 	product := codec.GetProductManager().Get(device.ProductId)
 	if product == nil {
-		resp = models.JsonRespError(errors.New("not found product"))
+		resp = models.JsonRespError(fmt.Errorf("not found product %s", device.ProductId))
 		return
 	}
-	param := map[string]interface{}{}
-	param["deviceId"] = ob.Id
 	res, err := product.GetTimeSeries().QueryProperty(product, param)
 	if err != nil {
 		resp = models.JsonRespError(err)

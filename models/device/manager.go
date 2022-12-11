@@ -94,11 +94,12 @@ func (m *DbProductManager) Get(productId string) codec.Product {
 		if len(storePolicy) == 0 {
 			storePolicy = codec.TIME_SERISE_ES
 		}
-		product, err := codec.NewProduct(data.Id, config, data.StorePolicy, data.Metadata)
+		produ, err := codec.NewProduct(data.Id, config, data.StorePolicy, data.Metadata)
 		if err != nil {
 			logs.Error("newProduct error: ", err)
 		} else {
-			m.Put(product)
+			product = produ
+			m.Put(produ)
 		}
 	}
 	return product

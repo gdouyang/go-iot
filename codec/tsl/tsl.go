@@ -16,7 +16,9 @@ const (
 	TypeDouble   = "double"
 	TypeDate     = "date"
 	TypePassword = "password"
+	TypeFile     = "file"
 	TypeObject   = "object"
+	TypeArray    = "array"
 
 	PropertyDeviceId = "deviceId"
 )
@@ -173,6 +175,10 @@ func (p *TslProperty) UnmarshalJSON(d []byte) error {
 		valueType = &ValueTypeFloat{}
 	case TypeDouble:
 		valueType = &ValueTypeFloat{}
+	case TypeFile:
+		valueType = &ValueTypeFile{}
+	case TypeArray:
+		valueType = &ValueTypeArray{}
 	case TypeObject:
 		valueType = &ValueTypeObject{}
 	default:
@@ -249,6 +255,16 @@ func (v *ValueTypePassword) convert(data map[string]interface{}) error {
 	return json.Unmarshal(str, v)
 }
 
+type ValueTypeFile struct {
+	Type     string `json:"type"`
+	BodyType string `json:"bodyType"` // url, base64
+}
+
+func (v *ValueTypeFile) convert(data map[string]interface{}) error {
+	str, _ := json.Marshal(data)
+	return json.Unmarshal(str, v)
+}
+
 type ValueTypeFloat struct {
 	Type  string `json:"type"`
 	Scale int32  `json:"scale"`
@@ -268,6 +284,16 @@ type ValueTypeObject struct {
 }
 
 func (v *ValueTypeObject) convert(data map[string]interface{}) error {
+	str, _ := json.Marshal(data)
+	return json.Unmarshal(str, v)
+}
+
+type ValueTypeArray struct {
+	Type        string      `json:"type"`
+	ElementType TslProperty `json:"elementType"`
+}
+
+func (v *ValueTypeArray) convert(data map[string]interface{}) error {
 	str, _ := json.Marshal(data)
 	return json.Unmarshal(str, v)
 }
