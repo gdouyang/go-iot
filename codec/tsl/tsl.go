@@ -157,50 +157,60 @@ func (p *TslProperty) UnmarshalJSON(d []byte) error {
 	p.Name = alias.Name
 	p.Expands = alias.Expands
 	p.Type = fmt.Sprintf("%v", t)
-	var valueType IValueType
 	switch p.Type {
 	case TypeEnum:
-		valueType = &ValueTypeEnum{}
+		valueType := ValueTypeEnum{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	case TypeInt:
-		valueType = &ValueTypeInt{}
+		valueType := ValueTypeInt{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	case TypeLong:
-		valueType = &ValueTypeInt{}
+		valueType := ValueTypeInt{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	case TypeString:
-		valueType = &ValueTypeString{}
+		valueType := ValueTypeString{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	case TypeBool:
-		valueType = &ValueTypeBool{}
+		valueType := ValueTypeBool{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	case TypePassword:
-		valueType = &ValueTypePassword{}
+		valueType := ValueTypePassword{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	case TypeFloat:
-		valueType = &ValueTypeFloat{}
+		valueType := ValueTypeFloat{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	case TypeDouble:
-		valueType = &ValueTypeFloat{}
+		valueType := ValueTypeFloat{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	case TypeFile:
-		valueType = &ValueTypeFile{}
+		valueType := ValueTypeFile{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	case TypeArray:
-		valueType = &ValueTypeArray{}
+		valueType := ValueTypeArray{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	case TypeObject:
-		valueType = &ValueTypeObject{}
+		valueType := ValueTypeObject{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	default:
 		return fmt.Errorf("valueType %v is invalid", t)
 	}
-	err = valueType.convert(alias.ValueType)
-	p.ValueType = valueType
 	return err
-}
-
-type IValueType interface {
-	convert(data map[string]interface{}) error
 }
 
 type ValueTypeEnum struct {
 	Type     string             `json:"type"`
 	Elements []ValueTypeEnumEle `json:"elements"`
-}
-
-func (v *ValueTypeEnum) convert(data map[string]interface{}) error {
-	str, _ := json.Marshal(data)
-	return json.Unmarshal(str, v)
 }
 
 type ValueTypeEnumEle struct {
@@ -215,11 +225,6 @@ type ValueTypeInt struct {
 	Min  int32  `json:"min"`
 }
 
-func (v *ValueTypeInt) convert(data map[string]interface{}) error {
-	str, _ := json.Marshal(data)
-	return json.Unmarshal(str, v)
-}
-
 type ValueTypeBool struct {
 	Type       string `json:"type"`
 	TrueText   string `json:"trueText"`
@@ -228,20 +233,10 @@ type ValueTypeBool struct {
 	FalseValue string `json:"falseValue"`
 }
 
-func (v *ValueTypeBool) convert(data map[string]interface{}) error {
-	str, _ := json.Marshal(data)
-	return json.Unmarshal(str, v)
-}
-
 type ValueTypeString struct {
 	Type string `json:"type"`
 	Max  int32  `json:"max"`
 	Min  int32  `json:"min"`
-}
-
-func (v *ValueTypeString) convert(data map[string]interface{}) error {
-	str, _ := json.Marshal(data)
-	return json.Unmarshal(str, v)
 }
 
 type ValueTypePassword struct {
@@ -250,19 +245,9 @@ type ValueTypePassword struct {
 	Min  int32  `json:"min"`
 }
 
-func (v *ValueTypePassword) convert(data map[string]interface{}) error {
-	str, _ := json.Marshal(data)
-	return json.Unmarshal(str, v)
-}
-
 type ValueTypeFile struct {
 	Type     string `json:"type"`
 	BodyType string `json:"bodyType"` // url, base64
-}
-
-func (v *ValueTypeFile) convert(data map[string]interface{}) error {
-	str, _ := json.Marshal(data)
-	return json.Unmarshal(str, v)
 }
 
 type ValueTypeFloat struct {
@@ -273,19 +258,9 @@ type ValueTypeFloat struct {
 	Min   int32  `json:"min"`
 }
 
-func (v *ValueTypeFloat) convert(data map[string]interface{}) error {
-	str, _ := json.Marshal(data)
-	return json.Unmarshal(str, v)
-}
-
 type ValueTypeObject struct {
 	Type       string        `json:"type"`
 	Properties []TslProperty `json:"properties"`
-}
-
-func (v *ValueTypeObject) convert(data map[string]interface{}) error {
-	str, _ := json.Marshal(data)
-	return json.Unmarshal(str, v)
 }
 
 type ValueTypeArray struct {
@@ -293,7 +268,10 @@ type ValueTypeArray struct {
 	ElementType TslProperty `json:"elementType"`
 }
 
-func (v *ValueTypeArray) convert(data map[string]interface{}) error {
-	str, _ := json.Marshal(data)
+func convert(data map[string]interface{}, v any) error {
+	str, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
 	return json.Unmarshal(str, v)
 }
