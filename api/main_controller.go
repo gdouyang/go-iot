@@ -115,7 +115,17 @@ func (c *RespController) RespOkData(data interface{}) error {
 }
 
 func (c *RespController) RespError(err error) error {
-	return c.Ctx.Output.JSON(models.JsonRespError(err), false, false)
+	resp := models.JsonRespError(err)
+	if c.Ctx.Output.Status == 0 {
+		c.Ctx.Output.Status = 400
+		resp.Code = 400
+	}
+	return c.Ctx.Output.JSON(resp, false, false)
+}
+
+func (c *RespController) Resp(resp models.JsonResp) error {
+	c.Ctx.Output.Status = resp.Code
+	return c.Ctx.Output.JSON(resp, false, false)
 }
 
 type AuthController struct {
