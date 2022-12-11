@@ -72,7 +72,7 @@ func ListClientDeviceByProductId(productId string) ([]string, error) {
 
 func AddDevice(ob *models.Device) error {
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
-		return errors.New("id, name not be empty")
+		return errors.New("id, name must be present")
 	}
 	rs, err := GetDevice(ob.Id)
 	if err != nil {
@@ -94,7 +94,7 @@ func AddDevice(ob *models.Device) error {
 
 func UpdateDevice(ob *models.Device) error {
 	if len(ob.Id) == 0 {
-		return errors.New("id not be empty")
+		return errors.New("id must be present")
 	}
 	//更新数据
 	o := orm.NewOrm()
@@ -121,10 +121,10 @@ func UpdateDevice(ob *models.Device) error {
 // 更新在线状态
 func UpdateOnlineStatus(id string, state string) error {
 	if len(id) == 0 {
-		return errors.New("id not be empty")
+		return errors.New("id must be present")
 	}
 	if len(state) == 0 {
-		return errors.New("state not be empty")
+		return errors.New("state must be present")
 	}
 	o := orm.NewOrm()
 	var ob = models.Device{Id: id, State: state}
@@ -137,7 +137,7 @@ func UpdateOnlineStatus(id string, state string) error {
 
 func DeleteDevice(ob *models.Device) error {
 	if len(ob.Id) == 0 {
-		return errors.New("id not be empty")
+		return errors.New("id must be present")
 	}
 	o := orm.NewOrm()
 	_, err := o.Delete(ob)
@@ -149,7 +149,7 @@ func DeleteDevice(ob *models.Device) error {
 
 func GetDevice(deviceId string) (*models.DeviceModel, error) {
 	if len(deviceId) == 0 {
-		return nil, errors.New("deviceId not be empty")
+		return nil, errors.New("deviceId must be present")
 	}
 	o := orm.NewOrm()
 	p := models.Device{Id: deviceId}

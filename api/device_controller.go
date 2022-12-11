@@ -59,24 +59,19 @@ func (ctl *DeviceController) List() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob models.PageQuery
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 
 	res, err := device.ListDevice(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp.Data = res
+	ctl.RespOkData(res)
 }
 
 // 查询单个设备
@@ -84,41 +79,31 @@ func (ctl *DeviceController) GetOne() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	ob, err := device.GetDeviceMust(ctl.Ctx.Input.Param(":id"))
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp.Data = ob
+	ctl.RespOkData(ob)
 }
 
 func (ctl *DeviceController) GetDetail() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	ob, err := device.GetDeviceMust(ctl.Ctx.Input.Param(":id"))
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	product, err := device.GetProductMust(ob.ProductId)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	nw, err := network.GetByProductId(ob.ProductId)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	var alins = struct {
@@ -156,7 +141,7 @@ func (ctl *DeviceController) GetDetail() {
 		}
 		device.UpdateOnlineStatus(ob.Id, alins.State)
 	}
-	resp.Data = alins
+	ctl.RespOkData(alins)
 }
 
 // 添加设备
@@ -164,22 +149,18 @@ func (ctl *DeviceController) Add() {
 	if ctl.isForbidden(deviceResource, CretaeAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob models.Device
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	err = device.AddDevice(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
 }
 
 // 更新设备信息
@@ -187,23 +168,19 @@ func (ctl *DeviceController) Update() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob models.DeviceModel
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	en := ob.ToEnitty()
 	err = device.UpdateDevice(&en)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
 }
 
 // 删除设备
@@ -211,19 +188,15 @@ func (ctl *DeviceController) Delete() {
 	if ctl.isForbidden(deviceResource, DeleteAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
 	err := device.DeleteDevice(ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
 }
 
 // client设备连接
@@ -231,19 +204,15 @@ func (ctl *DeviceController) Connect() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
 	err := connectClientDevice(ob.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
 }
 
 func connectClientDevice(deviceId string) error {
@@ -313,74 +282,62 @@ func (ctl *DeviceController) Disconnect() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
 	_, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	session := codec.GetSessionManager().Get(ob.Id)
 	if session != nil {
 		err := session.Disconnect()
 		if err != nil {
-			resp = models.JsonRespError(err)
+			ctl.RespError(err)
 			return
 		}
 	} else {
-		resp = models.JsonRespError(errors.New("device is offline"))
+		ctl.RespError(errors.New("device is offline"))
 		return
 	}
+	ctl.RespOk()
 }
 
 func (ctl *DeviceController) Deploy() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
 	dev, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	if len(dev.State) == 0 || dev.State == models.NoActive {
 		device.UpdateOnlineStatus(ob.Id, models.OFFLINE)
 	}
 	// TODO
+	ctl.RespOk()
 }
 
 func (ctl *DeviceController) Undeploy() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
 	}
 	_, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	device.UpdateOnlineStatus(ob.Id, models.NoActive)
 	// TODO
+	ctl.RespOk()
 }
 
 // 命令下发
@@ -388,30 +345,26 @@ func (ctl *DeviceController) CmdInvoke() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	deviceId := ctl.Ctx.Input.Param(":id")
 
 	var ob msg.FuncInvoke
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	ob.DeviceId = deviceId
 	device, err := device.GetDeviceMust(ob.DeviceId)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	err = codec.DoCmdInvoke(device.ProductId, ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
 }
 
 // 查询设备属性
@@ -419,11 +372,6 @@ func (ctl *DeviceController) QueryProperty() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 
 	var ob *models.Device = &models.Device{
 		Id: ctl.Ctx.Input.Param(":id"),
@@ -431,25 +379,25 @@ func (ctl *DeviceController) QueryProperty() {
 	var param codec.QueryParam
 	err := ctl.BindJSON(&param)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	param.DeviceId = ob.Id
 
 	device, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	product := codec.GetProductManager().Get(device.ProductId)
 	if product == nil {
-		resp = models.JsonRespError(fmt.Errorf("not found product %s", device.ProductId))
+		ctl.RespError(fmt.Errorf("not found product %s", device.ProductId))
 		return
 	}
 	res, err := product.GetTimeSeries().QueryProperty(product, param)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp.Data = res
+	ctl.RespOkData(res)
 }

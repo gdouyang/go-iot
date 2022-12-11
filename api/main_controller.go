@@ -101,17 +101,32 @@ func (s *HttpSession) GetPermission() map[string]bool {
 	return p.(map[string]bool)
 }
 
-// base controller
-type AuthController struct {
+// base controllers
+type RespController struct {
 	web.Controller
+}
+
+func (c *RespController) RespOk() error {
+	return c.Ctx.Output.JSON(models.JsonRespOk(), false, false)
+}
+
+func (c *RespController) RespOkData(data interface{}) error {
+	return c.Ctx.Output.JSON(models.JsonRespOkData(data), false, false)
+}
+
+func (c *RespController) RespError(err error) error {
+	return c.Ctx.Output.JSON(models.JsonRespError(err), false, false)
+}
+
+type AuthController struct {
+	RespController
 }
 
 func (c *AuthController) Prepare() {
 	s := c.GetSession()
 	if s == nil {
 		c.Ctx.Output.Status = 401
-		c.Data["json"] = models.JsonRespError(errors.New("Unauthorized"))
-		c.ServeJSON()
+		c.RespError(errors.New("Unauthorized"))
 		c.StopRun()
 	}
 }
@@ -121,8 +136,7 @@ func (c *AuthController) isForbidden(r Resource, rc ResourceAction) bool {
 	permission := session.GetPermission()
 	if _, ok := permission[r.Id+":"+rc.Id]; !ok {
 		c.Ctx.Output.Status = 403
-		c.Data["json"] = models.JsonRespError(errors.New("Forbidden"))
-		c.ServeJSON()
+		c.RespError(errors.New("Forbidden"))
 		return true
 	}
 	return false

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"go-iot/models"
 	user "go-iot/models/base"
 
 	"github.com/beego/beego/v2/server/web"
@@ -27,15 +26,10 @@ type MenuController struct {
 }
 
 func (ctl *MenuController) List() {
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	u := ctl.GetCurrentUser()
 	roles, err := user.GetUserRelRoleByUserId(u.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	roleId := int64(0)
@@ -44,8 +38,8 @@ func (ctl *MenuController) List() {
 	}
 	permission, err := user.GetPermissionByRoleId(roleId, false)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp.Data = permission.Permissions
+	ctl.RespOkData(permission.Permissions)
 }

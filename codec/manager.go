@@ -194,7 +194,7 @@ func (m *memProductManager) Put(product Product) {
 		panic("product not be nil")
 	}
 	if len(product.GetId()) == 0 {
-		panic("product id not be empty")
+		panic("product id must be present")
 	}
 	m.cache[product.GetId()] = product
 }

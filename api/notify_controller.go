@@ -50,33 +50,27 @@ func (ctl *NotifyController) List() {
 
 	res, err := notify.ListNotify(&ob)
 	if err != nil {
-		ctl.Data["json"] = models.JsonRespError(err)
+		ctl.RespError(err)
 	} else {
-		ctl.Data["json"] = models.JsonRespOkData(res)
+		ctl.RespOkData(res)
 	}
-	ctl.ServeJSON()
 }
 
 func (ctl *NotifyController) ListAll() {
 	if ctl.isForbidden(notifyResource, QueryAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob models.Notify
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	res, err := notify.ListAll(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 	} else {
-		resp = models.JsonRespOkData(res)
+		ctl.RespOkData(res)
 	}
 }
 
@@ -84,34 +78,24 @@ func (ctl *NotifyController) Get() {
 	if ctl.isForbidden(notifyResource, QueryAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	u, err := notify.GetNotifyMust(int64(_id))
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOkData(u)
+	ctl.RespOkData(u)
 }
 
 func (ctl *NotifyController) Types() {
 	if ctl.isForbidden(notifyResource, QueryAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	list := notify1.GetAllNotify()
 	var list1 []map[string]interface{}
 	for _, v := range list {
@@ -121,70 +105,53 @@ func (ctl *NotifyController) Types() {
 			"config": v.Meta(),
 		})
 	}
-	resp = models.JsonRespOkData(list1)
+	ctl.RespOkData(list1)
 }
 
 func (ctl *NotifyController) Add() {
 	if ctl.isForbidden(notifyResource, CretaeAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob models.Notify
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	err = notify.AddNotify(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func (ctl *NotifyController) Update() {
 	if ctl.isForbidden(notifyResource, SaveAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob models.Notify
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	err = notify.UpdateNotify(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func (ctl *NotifyController) Delete() {
 	if ctl.isForbidden(notifyResource, DeleteAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		ctl.RespError(err)
 		return
 	}
 	var ob *models.Notify = &models.Notify{
@@ -192,10 +159,10 @@ func (ctl *NotifyController) Delete() {
 	}
 	err = notify.DeleteNotify(ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func (ctl *NotifyController) Enable() {
@@ -213,21 +180,15 @@ func (ctl *NotifyController) Disable() {
 }
 
 func (ctl *NotifyController) enable(flag bool) {
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	m, err := notify.GetNotifyMust(int64(_id))
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	var state string = models.Started
@@ -235,7 +196,7 @@ func (ctl *NotifyController) enable(flag bool) {
 		config := notify1.NotifyConfig{Config: m.Config, Template: m.Template}
 		err = notify1.EnableNotify(m.Type, m.Id, config)
 		if err != nil {
-			resp = models.JsonRespError(err)
+			ctl.RespError(err)
 			return
 		}
 	} else {
@@ -247,8 +208,8 @@ func (ctl *NotifyController) enable(flag bool) {
 		State: state,
 	})
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }

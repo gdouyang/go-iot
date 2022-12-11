@@ -73,7 +73,7 @@ func ListUser(page *models.PageQuery) (*models.PageResult, error) {
 
 func AddUser(ob *models.User) error {
 	if len(ob.Password) == 0 {
-		return errors.New("password not be empty")
+		return errors.New("password must be present")
 	}
 	rs, err := GetUserByEntity(models.User{Username: ob.Username})
 	if err != nil {
@@ -95,7 +95,7 @@ func AddUser(ob *models.User) error {
 
 func UpdateUser(ob *models.User) error {
 	if len(ob.Nickname) == 0 {
-		return fmt.Errorf("nickname not be empty")
+		return fmt.Errorf("nickname must be present")
 	}
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "Nickname", "Email", "Desc")
@@ -107,10 +107,10 @@ func UpdateUser(ob *models.User) error {
 
 func UpdateUserPwd(ob *models.User) error {
 	if ob.Id == 0 {
-		return errors.New("id not be empty")
+		return errors.New("id must be present")
 	}
 	if len(ob.Username) == 0 {
-		return errors.New("username not be empty")
+		return errors.New("username must be present")
 	}
 	Md5Pwd(ob)
 	//更新数据
@@ -131,7 +131,7 @@ func Md5Pwd(ob *models.User) {
 
 func UpdateUserEnable(ob *models.User) error {
 	if ob.Id == 0 {
-		return errors.New("id not be empty")
+		return errors.New("id must be present")
 	}
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "enableFlag")

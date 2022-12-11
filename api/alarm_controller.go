@@ -41,32 +41,26 @@ func (ctl *AlarmController) PageAlarmLog() {
 
 	res, err := alarm.PageAlarmLog(&ob)
 	if err != nil {
-		ctl.Data["json"] = models.JsonRespError(err)
+		ctl.RespError(err)
 	} else {
-		ctl.Data["json"] = models.JsonRespOkData(res)
+		ctl.RespOkData(res)
 	}
-	ctl.ServeJSON()
 }
 
 func (ctl *AlarmController) SolveAlarmLog() {
 	if ctl.isForbidden(alarmResource, SaveAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
 	var ob models.AlarmLog
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	err = alarm.SolveAlarmLog(ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
 }

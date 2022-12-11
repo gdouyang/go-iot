@@ -30,13 +30,13 @@ func (c *MqttClient) Connect(deviceId string, network codec.NetworkConf) error {
 		return err
 	}
 	if len(spec.Host) == 0 {
-		return errors.New("host not be empty")
+		return errors.New("host must be present")
 	}
 	if spec.Port == 0 {
 		return errors.New("port is invalidate")
 	}
 	if len(spec.ClientId) == 0 {
-		return errors.New("clientId not be empty")
+		return errors.New("clientId must be present")
 	}
 
 	session, err := newClientSession(deviceId, network, &spec)

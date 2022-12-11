@@ -71,7 +71,7 @@ func ListAllProduct() ([]models.Product, error) {
 
 func AddProduct(ob *models.Product, networkType string) error {
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
-		return errors.New("id and name not be empty")
+		return errors.New("id and name must be present")
 	}
 	if len(ob.Id) > 32 {
 		return errors.New("id length must less 32")
@@ -128,7 +128,7 @@ func AddProduct(ob *models.Product, networkType string) error {
 
 func UpdateProduct(ob *models.Product) error {
 	if len(ob.Id) == 0 {
-		return errors.New("id not be empty")
+		return errors.New("id must be present")
 	}
 	if len(ob.Id) > 32 {
 		return errors.New("id length must less 32")
@@ -164,7 +164,7 @@ func UpdateProduct(ob *models.Product) error {
 
 func UpdateProductState(ob *models.Product) error {
 	if len(ob.Id) == 0 {
-		return errors.New("id not be empty")
+		return errors.New("id must be present")
 	}
 	//更新数据
 	o := orm.NewOrm()
@@ -178,7 +178,7 @@ func UpdateProductState(ob *models.Product) error {
 
 func DeleteProduct(ob *models.Product) error {
 	if len(ob.Id) == 0 {
-		return errors.New("id not be empty")
+		return errors.New("id must be present")
 	}
 	o := orm.NewOrm()
 	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {

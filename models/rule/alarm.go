@@ -83,7 +83,7 @@ func AddAlarmLog(q models.AlarmLog) error {
 
 func SolveAlarmLog(q models.AlarmLog) error {
 	if q.Id == 0 {
-		return errors.New("id not be empty")
+		return errors.New("id must be present")
 	}
 	q.State = "solve"
 	o := orm.NewOrm()

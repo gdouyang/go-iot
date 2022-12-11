@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/base64"
-	"go-iot/models"
 	"go-iot/network/util"
 	"io"
 	"net/http"
@@ -41,37 +40,27 @@ type FileRootController struct {
 }
 
 func (ctl *FileRootController) Base64() {
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	f, _, err := ctl.GetFile("file")
 	if err != nil {
 		if err.Error() != "http: no such file" {
-			resp = models.JsonRespError(err)
+			ctl.RespError(err)
 			return
 		}
 	}
 	defer f.Close()
 	b, err := io.ReadAll(f)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	base64Str := base64.StdEncoding.EncodeToString(b)
-	resp.Data = base64Str
+	ctl.RespOkData(base64Str)
 }
 
 func (ctl *FileRootController) Upload() {
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	f, h, err := ctl.GetFile("file")
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	defer f.Close()
@@ -83,8 +72,8 @@ func (ctl *FileRootController) Upload() {
 	os.Mkdir("./files", os.ModePerm)
 	err = ctl.SaveToFile("file", "./files/"+fileName)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp.Data = "api/file/" + fileName
+	ctl.RespOkData("api/file/" + fileName)
 }

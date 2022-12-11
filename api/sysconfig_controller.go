@@ -27,23 +27,18 @@ func init() {
 }
 
 type AnonSysConfigController struct {
-	web.Controller
+	RespController
 }
 
 func (ctl *AnonSysConfigController) Get() {
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	c, err := base.GetSysconfig("sysconfig")
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	res := map[string]interface{}{}
 	if c == nil {
-		resp.Data = res
+		ctl.RespOkData(res)
 		return
 	}
 	if len(c.Config) > 0 {
@@ -51,7 +46,7 @@ func (ctl *AnonSysConfigController) Get() {
 		if err != nil {
 			logs.Error(err)
 		}
-		resp.Data = res
+		ctl.RespOkData(res)
 	}
 }
 
@@ -60,23 +55,18 @@ type SysConfigController struct {
 }
 
 func (ctl *SysConfigController) Update() {
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob = struct {
 		Id     string                 `json:"id"`
 		Config map[string]interface{} `json:"config"`
 	}{}
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	str, err := json.Marshal(ob.Config)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	c := &models.SystemConfig{
@@ -85,7 +75,7 @@ func (ctl *SysConfigController) Update() {
 	}
 	old, err := base.GetSysconfig(c.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	if old == nil {
@@ -94,8 +84,8 @@ func (ctl *SysConfigController) Update() {
 		err = base.UpdateSysconfig(c)
 	}
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }

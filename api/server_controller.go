@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"go-iot/codec"
 	"go-iot/models"
 	"go-iot/models/network"
@@ -25,93 +24,75 @@ func init() {
 }
 
 type ServerController struct {
-	web.Controller
+	AuthController
 }
 
-func (c *ServerController) List() {
+func (ctl *ServerController) List() {
 	var ob models.PageQuery
-	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
-
-	defer c.ServeJSON()
+	ctl.BindJSON(&ob)
 
 	res, err := network.ListNetwork(&ob)
 	if err != nil {
-		c.Data["json"] = models.JsonRespError(err)
+		ctl.RespError(err)
 	} else {
-		c.Data["json"] = models.JsonRespOkData(res)
+		ctl.RespOkData(res)
 	}
 }
 
-func (c *ServerController) Add() {
-	var resp models.JsonResp
-	resp.Success = true
+func (ctl *ServerController) Add() {
 	var ob models.Network
-
-	defer c.ServeJSON()
-
-	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
+	ctl.BindJSON(&ob)
 	err := network.AddNetWork(&ob)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		ctl.RespError(err)
+		return
 	}
-	c.Data["json"] = &resp
+	ctl.RespOk()
 }
 
-func (c *ServerController) Update() {
-	var resp models.JsonResp
-	resp.Success = true
+func (ctl *ServerController) Update() {
 	var ob models.Network
-
-	defer c.ServeJSON()
-
-	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
+	ctl.BindJSON(&ob)
 	err := network.AddNetWork(&ob)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		ctl.RespError(err)
+		return
 	}
-	c.Data["json"] = &resp
+	ctl.RespOk()
 }
 
-func (c *ServerController) Delete() {
+func (ctl *ServerController) Delete() {
 	var ob models.Network
-	json.Unmarshal(c.Ctx.Input.RequestBody, &ob)
+	ctl.BindJSON(&ob)
 	err := network.DeleteNetwork(&ob)
-	var resp models.JsonResp
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		ctl.RespError(err)
+		return
 	}
-	c.Data["json"] = &resp
-	c.ServeJSON()
+	ctl.RespOk()
 }
 
-func (c *ServerController) Start() {
+func (ctl *ServerController) Start() {
 	var resp models.JsonResp
-	id := c.Ctx.Input.Param(":id")
-	defer c.ServeJSON()
-
+	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		ctl.RespError(err)
 		return
 	}
 	nw, err := network.GetNetwork(int64(_id))
 	resp.Success = true
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
-	} else {
-		config := convertCodecNetwork(nw)
-		err = servers.StartServer(config)
-		if err != nil {
-			resp.Msg = err.Error()
-			resp.Success = false
-		}
+		ctl.RespError(err)
+		return
 	}
-	c.Data["json"] = resp
+	config := convertCodecNetwork(nw)
+	err = servers.StartServer(config)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	ctl.RespOk()
 }
 
 func convertCodecNetwork(nw models.Network) codec.NetworkConf {
@@ -127,30 +108,23 @@ func convertCodecNetwork(nw models.Network) codec.NetworkConf {
 	return config
 }
 
-func (c *ServerController) Meters() {
-	var resp models.JsonResp
-	defer c.ServeJSON()
-
-	id := c.Ctx.Input.Param(":id")
+func (ctl *ServerController) Meters() {
+	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		ctl.RespError(err)
 		return
 	}
 	nw, err := network.GetNetwork(int64(_id))
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
-	} else {
-		s := servers.GetServer(nw.ProductId)
-		if s != nil {
-			m := map[string]interface{}{}
-			m["totalConnection"] = s.TotalConnection()
-			resp.Data = m
-			resp.Success = true
-		}
+		ctl.RespError(err)
+		return
 	}
-
-	c.Data["json"] = resp
+	s := servers.GetServer(nw.ProductId)
+	if s != nil {
+		m := map[string]interface{}{}
+		m["totalConnection"] = s.TotalConnection()
+		ctl.RespOkData(m)
+	}
+	ctl.RespOk()
 }

@@ -47,99 +47,76 @@ func (ctl *UserController) List() {
 
 	res, err := user.ListUser(&ob)
 	if err != nil {
-		ctl.Data["json"] = models.JsonRespError(err)
+		ctl.RespError(err)
 	} else {
-		ctl.Data["json"] = models.JsonRespOkData(res)
+		ctl.RespOkData(res)
 	}
-	ctl.ServeJSON()
 }
 
 func (ctl *UserController) Get() {
 	if ctl.isForbidden(userResource, QueryAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	u, err := user.GetUser(int64(_id))
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	u.Password = ""
-	resp = models.JsonRespOkData(u)
+	ctl.RespOkData(u)
 }
 
 func (ctl *UserController) Add() {
 	if ctl.isForbidden(userResource, CretaeAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob models.User
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 
 	err = user.AddUser(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func (ctl *UserController) Update() {
 	if ctl.isForbidden(userResource, SaveAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob models.User
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	err = user.UpdateUser(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func (ctl *UserController) Delete() {
 	if ctl.isForbidden(userResource, DeleteAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		ctl.RespError(err)
 		return
 	}
 	var ob *models.User = &models.User{
@@ -147,26 +124,20 @@ func (ctl *UserController) Delete() {
 	}
 	err = user.DeleteUser(ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func (ctl *UserController) Enable() {
 	if ctl.isForbidden(userResource, SaveAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	var ob *models.User = &models.User{
@@ -175,26 +146,20 @@ func (ctl *UserController) Enable() {
 	}
 	err = user.UpdateUserEnable(ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func (ctl *UserController) Disable() {
 	if ctl.isForbidden(userResource, SaveAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	var ob *models.User = &models.User{
@@ -203,8 +168,8 @@ func (ctl *UserController) Disable() {
 	}
 	err = user.UpdateUserEnable(ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }

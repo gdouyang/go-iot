@@ -70,7 +70,7 @@ func ListRule(r *models.Rule) ([]models.Rule, error) {
 
 func AddRule(ob *models.RuleModel) error {
 	if len(ob.Name) == 0 {
-		return errors.New("name not be empty")
+		return errors.New("name must be present")
 	}
 	rs, err := GetRule(ob.Id)
 	if err != nil {
@@ -172,10 +172,10 @@ func UpdateRule(ob *models.RuleModel) error {
 // 更新在线状态
 func UpdateRuleStatus(state string, id int64) error {
 	if id == 0 {
-		return errors.New("id not be empty")
+		return errors.New("id must be present")
 	}
 	if len(state) == 0 {
-		return errors.New("state not be empty")
+		return errors.New("state must be present")
 	}
 	o := orm.NewOrm()
 	var ob = &models.Rule{Id: id, State: state}

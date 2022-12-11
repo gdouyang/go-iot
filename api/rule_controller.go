@@ -48,97 +48,74 @@ func (ctl *RuleController) List() {
 
 	res, err := rule.PageRule(&ob)
 	if err != nil {
-		ctl.Data["json"] = models.JsonRespError(err)
+		ctl.RespError(err)
 	} else {
-		ctl.Data["json"] = models.JsonRespOkData(res)
+		ctl.RespOkData(res)
 	}
-	ctl.ServeJSON()
 }
 
 func (ctl *RuleController) Get() {
 	if ctl.isForbidden(sceneResource, QueryAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	u, err := rule.GetRuleMust(int64(_id))
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOkData(u)
+	ctl.RespOkData(u)
 }
 
 func (ctl *RuleController) Add() {
 	if ctl.isForbidden(sceneResource, CretaeAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob models.RuleModel
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	err = rule.AddRule(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func (ctl *RuleController) Update() {
 	if ctl.isForbidden(sceneResource, SaveAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob models.RuleModel
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	err = rule.UpdateRule(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func (ctl *RuleController) Delete() {
 	if ctl.isForbidden(sceneResource, DeleteAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		ctl.RespError(err)
 		return
 	}
 	var ob *models.Rule = &models.Rule{
@@ -146,10 +123,10 @@ func (ctl *RuleController) Delete() {
 	}
 	err = rule.DeleteRule(ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func (ctl *RuleController) Enable() {
@@ -167,21 +144,15 @@ func (ctl *RuleController) Disable() {
 }
 
 func (ctl *RuleController) enable(flag bool) {
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	m, err := rule.GetRuleMust(int64(_id))
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	var state string = models.Started
@@ -189,7 +160,7 @@ func (ctl *RuleController) enable(flag bool) {
 		rule := ruleModelToRuleExecutor(m)
 		err = ruleengine.Start(m.Id, &rule)
 		if err != nil {
-			resp = models.JsonRespError(err)
+			ctl.RespError(err)
 			return
 		}
 	} else {
@@ -199,10 +170,10 @@ func (ctl *RuleController) enable(flag bool) {
 
 	err = rule.UpdateRuleStatus(state, m.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func ruleModelToRuleExecutor(m *models.RuleModel) ruleengine.RuleExecutor {

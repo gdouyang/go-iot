@@ -23,72 +23,56 @@ type UserInfoController struct {
 }
 
 func (ctl *UserInfoController) Get() {
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	u := ctl.GetCurrentUser()
 	if u == nil {
-		resp = models.JsonRespError(errors.New("user not login"))
+		ctl.RespError(errors.New("user not login"))
 		return
 	}
 	u1 := *u
 	u1.Password = ""
 	permission, err := user.GetPermissionByUserId(u1.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
-	resp.Data = struct {
+	ctl.RespOkData(struct {
 		models.User
 		Role *user.RolePermissionDTO `json:"role"`
-	}{User: u1, Role: permission}
+	}{User: u1, Role: permission})
 }
 
 func (ctl *UserInfoController) SaveBasic() {
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob models.User
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	ob.Id = ctl.GetCurrentUser().Id
 	err = user.UpdateUser(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }
 
 func (ctl *UserInfoController) UpdatePwd() {
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob struct {
 		Password    string `json:"password"`
 		PasswordOld string `json:"passwordOld"`
 	}
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	if len(ob.PasswordOld) == 0 {
-		resp = models.JsonRespError(errors.New("passwrodOld not be empty"))
+		ctl.RespError(errors.New("passwrodOld must be present"))
 		return
 	}
 	if len(ob.Password) == 0 {
-		resp = models.JsonRespError(errors.New("passwrod not be empty"))
+		ctl.RespError(errors.New("passwrod must be present"))
 		return
 	}
 	u1 := models.User{
@@ -99,11 +83,11 @@ func (ctl *UserInfoController) UpdatePwd() {
 	user.Md5Pwd(&u1)
 	old, err := user.GetUser(u1.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	if old.Password != u1.Password {
-		resp = models.JsonRespError(errors.New("old password is incorrect"))
+		ctl.RespError(errors.New("old password is incorrect"))
 		return
 	}
 	//
@@ -114,8 +98,8 @@ func (ctl *UserInfoController) UpdatePwd() {
 	}
 	err = user.UpdateUserPwd(&u)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp = models.JsonRespOk()
+	ctl.RespOk()
 }

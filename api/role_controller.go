@@ -49,95 +49,74 @@ func (ctl *RoleController) List() {
 
 	res, err := role.ListRole(&ob)
 	if err != nil {
-		ctl.Data["json"] = models.JsonRespError(err)
+		ctl.RespError(err)
 	} else {
-		ctl.Data["json"] = models.JsonRespOkData(res)
+		ctl.RespOkData(res)
 	}
-	ctl.ServeJSON()
 }
 
 func (ctl *RoleController) Get() {
 	if ctl.isForbidden(roleResource, QueryAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	u, err := role.GetRole(int64(_id))
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
-	resp.Data = u
+	ctl.RespOkData(u)
 }
 
 func (ctl *RoleController) Add() {
 	if ctl.isForbidden(roleResource, CretaeAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
 	var ob role.RoleDTO
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	err = role.AddRole(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
 }
 
 func (ctl *RoleController) Update() {
 	if ctl.isForbidden(roleResource, SaveAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob role.RoleDTO
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	err = role.UpdateRole(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
 }
 
 func (ctl *RoleController) Delete() {
 	if ctl.isForbidden(roleResource, DeleteAction) {
 		return
 	}
-	var resp = models.JsonRespOk()
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	var ob *models.Role = &models.Role{
@@ -145,31 +124,25 @@ func (ctl *RoleController) Delete() {
 	}
 	err = role.DeleteRole(ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
 }
 
 func (ctl *RoleController) RefMenus() {
 	if ctl.isForbidden(roleResource, QueryAction) {
 		return
 	}
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
-
 	id := ctl.Ctx.Input.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
-		resp.Msg = err.Error()
-		resp.Success = false
+		ctl.RespError(err)
 		return
 	}
 	list, err := role.GetAuthResourctByRole(int64(_id), role.ResTypeRole)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	var result []struct {
@@ -180,7 +153,7 @@ func (ctl *RoleController) RefMenus() {
 		var ac []role.MenuAction
 		err := json.Unmarshal([]byte(r.Action), &ac)
 		if err != nil {
-			resp = models.JsonRespError(err)
+			ctl.RespError(err)
 			return
 		}
 		var r1 = struct {
@@ -192,5 +165,5 @@ func (ctl *RoleController) RefMenus() {
 		}
 		result = append(result, r1)
 	}
-	resp = models.JsonRespOkData(result)
+	ctl.RespOkData(result)
 }

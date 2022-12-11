@@ -93,7 +93,7 @@ func UpdateNotify(ob *models.Notify) error {
 
 func UpdateNotifyState(ob *models.Notify) error {
 	if ob.Id == 0 {
-		return errors.New("id not be empty")
+		return errors.New("id must be present")
 	}
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "state")

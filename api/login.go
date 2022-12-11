@@ -17,15 +17,10 @@ func init() {
 }
 
 type LoginController struct {
-	web.Controller
+	RespController
 }
 
 func (ctl *LoginController) LoginJson() {
-	var resp models.JsonResp
-	defer func() {
-		ctl.Data["json"] = resp
-		ctl.ServeJSON()
-	}()
 	var ob = struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -33,17 +28,17 @@ func (ctl *LoginController) LoginJson() {
 
 	err := ctl.BindJSON(&ob)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 
 	u, err := user.GetUserByEntity(models.User{Username: ob.Username})
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	if u == nil {
-		resp = models.JsonRespError(errors.New("username or password invalid"))
+		ctl.RespError(errors.New("username or password invalid"))
 		return
 	}
 	u1 := models.User{
@@ -53,17 +48,17 @@ func (ctl *LoginController) LoginJson() {
 	user.Md5Pwd(&u1)
 	old, err := user.GetUser(u.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	if u1.Password != old.Password {
-		resp = models.JsonRespError(errors.New("username or password invalid"))
+		ctl.RespError(errors.New("username or password invalid"))
 		return
 	}
 
 	permission, err := user.GetPermissionByUserId(u.Id)
 	if err != nil {
-		resp = models.JsonRespError(err)
+		ctl.RespError(err)
 		return
 	}
 	var actionMap = map[string]bool{}
@@ -72,9 +67,9 @@ func (ctl *LoginController) LoginJson() {
 			actionMap[ac.Action] = true
 		}
 	}
-	resp = models.JsonRespOk()
 	session := defaultSessionManager.Login(&ctl.Controller, u)
 	session.SetPermission(actionMap)
+	ctl.RespOk()
 }
 
 type LogoutController struct {
