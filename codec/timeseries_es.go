@@ -181,12 +181,11 @@ func (t *EsTimeSeries) SaveEvents(product Product, eventId string, d1 map[string
 	return nil
 }
 
-func (t *EsTimeSeries) SaveLogs(product Product, d1 map[string]interface{}) error {
-	deviceId := d1[tsl.PropertyDeviceId]
-	if deviceId == nil {
-		return errors.New("not have deviceId, dont save event timeseries data")
+func (t *EsTimeSeries) SaveLogs(product Product, d1 LogData) error {
+	if len(d1.DeviceId) == 0 {
+		return errors.New("deviceId must be present, dont save event timeseries data")
 	}
-	d1["collectTime_"] = time.Now().Format("2006-01-02 15:04:05.000")
+	d1.CollectTime_ = time.Now().Format("2006-01-02 15:04:05.000")
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
@@ -195,8 +194,6 @@ func (t *EsTimeSeries) SaveLogs(product Product, d1 map[string]interface{}) erro
 
 	index := t.getIndex(product, devicelogs_const)
 	t.commit(index, string(data))
-	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
-	eventbus.PublishEvent(&evt)
 	return nil
 }
 

@@ -31,7 +31,14 @@ type TimeSeriesSave interface {
 	// 保存时序数据
 	SaveProperties(product Product, data map[string]interface{}) error
 	SaveEvents(product Product, eventId string, data map[string]interface{}) error
-	SaveLogs(product Product, data map[string]interface{}) error
+	SaveLogs(product Product, data LogData) error
+}
+
+type LogData struct {
+	Type         string `json:"type"`
+	DeviceId     string `json:"deviceId"`
+	Content      string `json:"content"`
+	CollectTime_ string `json:"collectTime_"`
 }
 
 type QueryParam struct {
@@ -62,7 +69,7 @@ func (t *MockTimeSeries) SaveEvents(product Product, eventId string, data map[st
 	logs.Info("SaveEvents data: ", data)
 	return nil
 }
-func (t *MockTimeSeries) SaveLogs(product Product, data map[string]interface{}) error {
+func (t *MockTimeSeries) SaveLogs(product Product, data LogData) error {
 	logs.Info("SaveLogs data: ", data)
 	return nil
 }
