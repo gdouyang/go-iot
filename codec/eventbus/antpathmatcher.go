@@ -80,7 +80,7 @@ func (that *AntPathMatcher) MatchStart(pattern string, path string) bool {
 	return that.doMatch(pattern, path, false, nil)
 }
 
-func (that *AntPathMatcher) doMatch(pattern string, path string, fullMatch bool, uriTemplateVariables *map[string]string) bool {
+func (that *AntPathMatcher) doMatch(pattern string, path string, fullMatch bool, uriTemplateVariables map[string]string) bool {
 	if len(path) == 0 || strings.HasPrefix(path, that.pathSeparator) != strings.HasPrefix(pattern, that.pathSeparator) {
 		return false
 	}
@@ -327,7 +327,7 @@ func tokenizeToStringArray(str string, delimiters string, trimTokens bool, ignor
 }
 
 func (that *AntPathMatcher) matchStrings(pattern string, str string,
-	uriTemplateVariables *map[string]string) bool {
+	uriTemplateVariables map[string]string) bool {
 	m := that.getStringMatcher(pattern)
 	return m.matchStrings(str, uriTemplateVariables)
 }
@@ -383,7 +383,7 @@ func (that *AntPathMatcher) ExtractPathWithinPattern(pattern string, path string
 
 func (that *AntPathMatcher) ExtractUriTemplateVariables(pattern string, path string) (map[string]string, error) {
 	var variables map[string]string = map[string]string{}
-	result := that.doMatch(pattern, path, true, &variables)
+	result := that.doMatch(pattern, path, true, variables)
 	if !result {
 		return nil, fmt.Errorf("pattern \"" + pattern + "\" is not a match for \"" + path + "\"")
 	}
@@ -522,7 +522,7 @@ func (that *antPathStringMatcher) quote(s string, start int, end int) string {
 	return regexp.QuoteMeta(s[start:end])
 }
 
-func (that *antPathStringMatcher) matchStrings(str string, uriTemplateVariables *map[string]string) bool {
+func (that *antPathStringMatcher) matchStrings(str string, uriTemplateVariables map[string]string) bool {
 	re := that.pattern
 	all := re.FindAll([]byte(str), -1)
 	if len(all) > 0 {
@@ -531,7 +531,7 @@ func (that *antPathStringMatcher) matchStrings(str string, uriTemplateVariables 
 				for i := 0; i < len(all); i++ {
 					name := that.variableNames[i]
 					value := all[i]
-					(*uriTemplateVariables)[name] = string(value)
+					(uriTemplateVariables)[name] = string(value)
 				}
 			}
 		}
