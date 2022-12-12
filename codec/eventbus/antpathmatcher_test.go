@@ -12,22 +12,6 @@ import (
 
 func TestMatcher(t *testing.T) {
 	assert.True(t, true)
-	var m1 map[string]string = map[string]string{}
-	m1["a"] = "aaa"
-	fmt.Println("m1:", m1)
-
-	t1(m1)
-	fmt.Println("m1:", m1)
-
-	var m21 map[string]string = map[string]string{}
-	m21 = m1
-	m21["a"] = "ccc"
-	fmt.Println("m21:", m21)
-
-	fmt.Println("m1:", m1)
-
-	var m3 map[string]string
-	fmt.Println("m3:", m3)
 
 	match := eventbus.NewAntPathMatcher()
 	assert.True(t, match.Match("/a/b/c", "/a/b/c"))
@@ -57,11 +41,6 @@ func TestMatcher(t *testing.T) {
 	assert.False(t, match.Match("/abc/123/*/*", "/abc/123/test/1/"))
 	assert.False(t, match.Match("/", "/abc/123/test/1"))
 	assert.False(t, regexp.MustCompile("abc").Match([]byte("Abc")))
-}
-
-func t1(m2 map[string]string) {
-	m2["a"] = "bbb"
-	fmt.Println("m2:", m2)
 }
 
 func TestThreadSafe(t *testing.T) {
