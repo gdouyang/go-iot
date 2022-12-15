@@ -40,6 +40,7 @@ type (
 	// 设备信息
 	Device interface {
 		GetId() string
+		GetProductId() string
 		// 获取会话
 		GetSession() Session
 		GetData() map[string]string
@@ -76,10 +77,14 @@ type BaseContext struct {
 func (ctx *BaseContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
+		device := GetDeviceManager().Get(deviceId)
+		if device == nil {
+			logs.Warn("device [%s] not exist, skip online", deviceId)
+			return
+		}
 		ctx.DeviceId = deviceId
 		ctx.GetSession().SetDeviceId(deviceId)
 		GetSessionManager().Put(deviceId, ctx.GetSession())
-		logs.Info("device %s online", deviceId)
 	}
 }
 

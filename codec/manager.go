@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"go-iot/codec/eventbus"
 	"go-iot/codec/tsl"
 	"sync"
 )
@@ -30,12 +31,26 @@ func (sm *SessionManager) Get(deviceId string) Session {
 
 func (sm *SessionManager) Put(deviceId string, session Session) {
 	sm.sessionMap.Store(deviceId, session)
+	device := GetDeviceManager().Get(deviceId)
+	if device != nil {
+		eventbus.PublishOnline(&eventbus.OnlineMessage{
+			DeviceId:  deviceId,
+			ProductId: device.GetProductId(),
+		})
+	}
 }
 
 func (sm *SessionManager) DelLocal(deviceId string) {
 	if val, ok := sm.sessionMap.LoadAndDelete(deviceId); ok {
 		sess := val.(Session)
 		sess.Disconnect()
+		device := GetDeviceManager().Get(deviceId)
+		if device != nil {
+			eventbus.PublishOffline(&eventbus.OfflineMessage{
+				DeviceId:  deviceId,
+				ProductId: device.GetProductId(),
+			})
+		}
 	}
 }
 
@@ -84,6 +99,9 @@ type DefaultDevice struct {
 
 func (d *DefaultDevice) GetId() string {
 	return d.Id
+}
+func (d *DefaultDevice) GetProductId() string {
+	return d.ProductId
 }
 func (d *DefaultDevice) GetSession() Session {
 	s := GetSessionManager().Get(d.Id)

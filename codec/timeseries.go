@@ -44,9 +44,13 @@ type LogData struct {
 type QueryParam struct {
 	Type     string                 `json:"type"`
 	DeviceId string                 `json:"deviceId"`
-	PageNum  int32                  `json:"pageNum"`
-	PageSize int32                  `json:"pageSize"`
+	PageNum  int                    `json:"pageNum"`
+	PageSize int                    `json:"pageSize"`
 	Param    map[string]interface{} `json:"param"`
+}
+
+func (page *QueryParam) PageOffset() int {
+	return (page.PageNum - 1) * page.PageSize
 }
 
 // mock

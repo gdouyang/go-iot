@@ -227,18 +227,6 @@ func (b *Broker) handleConn(conn net.Conn) {
 	if oldClient, ok := b.clients[cid]; ok {
 		logs.Debug("client %v take over by new client with same name", oldClient.info.cid)
 		go oldClient.close()
-
-	} else if b.spec.MaxAllowedConnection > 0 {
-		if len(b.clients) >= b.spec.MaxAllowedConnection {
-			logs.Debug("client %v not get connect permission from rate limiter", connect.ClientIdentifier)
-			connack.ReturnCode = packets.ErrRefusedServerUnavailable
-			err = connack.Write(conn)
-			if err != nil {
-				logs.Error("connack back to client %s failed: %s", connect.ClientIdentifier, err)
-			}
-			b.Unlock()
-			return
-		}
 	}
 	b.clients[client.info.cid] = client
 	b.Unlock()
@@ -272,8 +260,12 @@ func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 		}
 		s := &Session{}
 		s.init(b, connect)
-		// make device online
-		s.deviceOnline(client.info.deviceId)
+		// here connect is valid, make device online
+		baseContext := &codec.BaseContext{
+			ProductId: b.productId,
+			Session:   s,
+		}
+		baseContext.DeviceOnline(client.info.deviceId)
 		client.session = s
 	}
 }

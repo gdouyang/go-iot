@@ -64,7 +64,7 @@ func (t *EsTimeSeries) QueryProperty(product Product, param QueryParam) (map[str
 		return nil, fmt.Errorf("type is invalid, must be [%s, %s, %s]", properties_const, event_const, devicelogs_const)
 	}
 	body := map[string]interface{}{
-		"from": param.PageNum,
+		"from": param.PageOffset(),
 		"size": param.PageSize,
 		"query": map[string]interface{}{
 			"term": map[string]interface{}{

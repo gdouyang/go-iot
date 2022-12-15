@@ -2,7 +2,6 @@ package mqttserver
 
 import (
 	"encoding/base64"
-	"go-iot/codec"
 	"sync"
 	"time"
 
@@ -228,9 +227,4 @@ func (s *Session) SetDeviceId(deviceId string) {
 }
 func (s *Session) GetDeviceId() string {
 	return s.info.deviceId
-}
-
-func (s *Session) deviceOnline(deviceId string) {
-	s.SetDeviceId(deviceId)
-	codec.GetSessionManager().Put(deviceId, s)
 }

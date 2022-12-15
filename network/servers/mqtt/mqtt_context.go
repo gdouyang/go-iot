@@ -40,15 +40,25 @@ func (ctx *authContext) GetUserName() string {
 func (ctx *authContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
+		device := codec.GetDeviceManager().Get(deviceId)
+		if device == nil {
+			ctx.authFail1(packets.ErrRefusedIDRejected)
+			return
+		}
 		ctx.DeviceId = deviceId
 		ctx.client.info.deviceId = deviceId
 		ctx.authFail = false
+		// after auth success, when set session will call DeviceOnline
 	}
 }
 
 func (ctx *authContext) AuthFail() {
+	ctx.authFail1(packets.ErrRefusedNotAuthorised)
+}
+
+func (ctx *authContext) authFail1(code int) {
 	ctx.authFail = true
-	ctx.connack.ReturnCode = packets.ErrRefusedNotAuthorised
+	ctx.connack.ReturnCode = byte(code)
 	err := ctx.connack.Write(ctx.conn)
 	if err != nil {
 		logs.Error("send connack to client %s failed: %s", ctx.GetClientId(), err)
