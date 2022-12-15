@@ -91,6 +91,12 @@ func (t *EsTimeSeries) QueryProperty(product Product, param QueryParam) (map[str
 			filter = append(filter, term)
 		}
 	}
+	if param.PageNum <= 0 {
+		param.PageNum = 1
+	}
+	if param.PageSize <= 0 {
+		param.PageSize = 10
+	}
 	body := map[string]interface{}{
 		"from": param.PageOffset(),
 		"size": param.PageSize,

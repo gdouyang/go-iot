@@ -135,9 +135,7 @@ func (ctx *BaseContext) _saveProperties(eventId string, data map[string]interfac
 		logs.Warn("device not offline")
 		return
 	}
-	if _, ok := data["deviceId"]; !ok {
-		data["deviceId"] = ctx.DeviceId
-	}
+	data["deviceId"] = ctx.DeviceId
 	if len(eventId) == 0 {
 		p.GetTimeSeries().SaveProperties(p, data)
 	} else {
