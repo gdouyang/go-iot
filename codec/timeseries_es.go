@@ -63,17 +63,45 @@ func (t *EsTimeSeries) QueryProperty(product Product, param QueryParam) (map[str
 	if param.Type != properties_const && param.Type != event_const && param.Type != devicelogs_const {
 		return nil, fmt.Errorf("type is invalid, must be [%s, %s, %s]", properties_const, event_const, devicelogs_const)
 	}
+	filter := []map[string]interface{}{
+		{"term": map[string]interface{}{
+			tsl.PropertyDeviceId: param.DeviceId,
+		},
+		}}
+	for key, val := range param.Condition {
+		s := fmt.Sprintf("%v", val)
+		if len(strings.TrimSpace(s)) > 0 && s != "<nil>" {
+			var term map[string]interface{} = map[string]interface{}{}
+			if strings.Contains(key, "$IN") {
+				prop := strings.ReplaceAll(key, "$IN", "")
+				term["terms"] = map[string]interface{}{prop: strings.Split(s, ",")}
+			} else if strings.Contains(key, "$BTW") {
+				prop := strings.ReplaceAll(key, "$BTW", "")
+				vals := strings.Split(s, ",")
+				if len(vals) < 1 {
+					continue
+				}
+				term["range"] = map[string]interface{}{prop: map[string]interface{}{
+					"gte": vals[0],
+					"lte": vals[1],
+				}}
+			} else {
+				term["term"] = map[string]interface{}{key: val}
+			}
+			filter = append(filter, term)
+		}
+	}
 	body := map[string]interface{}{
 		"from": param.PageOffset(),
 		"size": param.PageSize,
 		"query": map[string]interface{}{
-			"term": map[string]interface{}{
-				tsl.PropertyDeviceId: param.DeviceId,
+			"bool": map[string]interface{}{
+				"filter": filter,
 			},
 		},
 		"sort": []map[string]interface{}{
 			{
-				"collectTime_": map[string]interface{}{
+				"createTime": map[string]interface{}{
 					"order": "desc",
 				},
 			},
@@ -95,7 +123,7 @@ func (t *EsTimeSeries) QueryProperty(product Product, param QueryParam) (map[str
 		total := int(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64))
 		resp["totalCount"] = total
 		// convert each hit to result.
-		var list []map[string]interface{}
+		var list []map[string]interface{} = []map[string]interface{}{}
 		for _, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
 			d := (hit.(map[string]interface{})["_source"].(map[string]interface{}))
 			list = append(list, d)
@@ -128,7 +156,7 @@ func (t *EsTimeSeries) SaveProperties(product Product, d1 map[string]interface{}
 	if deviceId == nil {
 		return errors.New("not have deviceId, dont save timeseries data")
 	}
-	d1["collectTime_"] = time.Now().Format("2006-01-02 15:04:05.000")
+	d1["createTime"] = time.Now().Format("2006-01-02 15:04:05.000")
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
@@ -167,7 +195,7 @@ func (t *EsTimeSeries) SaveEvents(product Product, eventId string, d1 map[string
 	if deviceId == nil {
 		return errors.New("not have deviceId, dont save event timeseries data")
 	}
-	d1["collectTime_"] = time.Now().Format("2006-01-02 15:04:05.000")
+	d1["createTime"] = time.Now().Format("2006-01-02 15:04:05.000")
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
@@ -185,7 +213,7 @@ func (t *EsTimeSeries) SaveLogs(product Product, d1 LogData) error {
 	if len(d1.DeviceId) == 0 {
 		return errors.New("deviceId must be present, dont save event timeseries data")
 	}
-	d1.CollectTime_ = time.Now().Format("2006-01-02 15:04:05.000")
+	d1.CreateTime = time.Now().Format("2006-01-02 15:04:05.000")
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
@@ -249,7 +277,7 @@ func (t *EsTimeSeries) propertiesTplMapping(product Product, model *tsl.TslData)
 		(properties)[p.Id] = t.createElasticProperty(p)
 	}
 	properties["deviceId"] = esType{Type: "keyword"}
-	properties["collectTime_"] = esType{Type: "date", Format: defaultDateFormat}
+	properties["createTime"] = esType{Type: "date", Format: defaultDateFormat}
 
 	var payload map[string]interface{} = map[string]interface{}{
 		"index_patterns": []string{fmt.Sprintf("%s-%s-*", properties_const, product.GetId())},
@@ -287,7 +315,7 @@ func (t *EsTimeSeries) eventsTplMapping(product Product, model *tsl.TslData) err
 			(properties)[p.Id] = t.createElasticProperty(p)
 		}
 		properties["deviceId"] = esType{Type: "keyword"}
-		properties["collectTime_"] = esType{Type: "date", Format: defaultDateFormat}
+		properties["createTime"] = esType{Type: "date", Format: defaultDateFormat}
 
 		var payload map[string]interface{} = map[string]interface{}{
 			"index_patterns": []string{fmt.Sprintf("%s-%s-%s-*", event_const, product.GetId(), e.Id)}, // event-{productId}-{eventId}-*
@@ -326,7 +354,7 @@ func (t *EsTimeSeries) logsTplMapping(product Product) error {
 	properties["deviceId"] = esType{Type: "keyword"}
 	properties["type"] = esType{Type: "keyword", IgnoreAbove: "512"}
 	properties["content"] = esType{Type: "keyword", IgnoreAbove: "512"}
-	properties["collectTime_"] = esType{Type: "date", Format: defaultDateFormat}
+	properties["createTime"] = esType{Type: "date", Format: defaultDateFormat}
 
 	var payload map[string]interface{} = map[string]interface{}{
 		"index_patterns": []string{fmt.Sprintf("%s-%s-*", devicelogs_const, product.GetId())}, // devicelogs-{productId}-{eventId}-*

@@ -35,18 +35,18 @@ type TimeSeriesSave interface {
 }
 
 type LogData struct {
-	Type         string `json:"type"`
-	DeviceId     string `json:"deviceId"`
-	Content      string `json:"content"`
-	CollectTime_ string `json:"collectTime_"`
+	Type       string `json:"type"`
+	DeviceId   string `json:"deviceId"`
+	Content    string `json:"content"`
+	CreateTime string `json:"createTime"`
 }
 
 type QueryParam struct {
-	Type     string                 `json:"type"`
-	DeviceId string                 `json:"deviceId"`
-	PageNum  int                    `json:"pageNum"`
-	PageSize int                    `json:"pageSize"`
-	Param    map[string]interface{} `json:"param"`
+	Type      string                 `json:"type"`
+	DeviceId  string                 `json:"deviceId"`
+	PageNum   int                    `json:"pageNum"`
+	PageSize  int                    `json:"pageSize"`
+	Condition map[string]interface{} `json:"condition"`
 }
 
 func (page *QueryParam) PageOffset() int {
