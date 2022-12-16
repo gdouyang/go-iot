@@ -1,6 +1,7 @@
 package mqttclient
 
 import (
+	"encoding/hex"
 	"fmt"
 	"go-iot/codec"
 	"strings"
@@ -86,9 +87,18 @@ func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClie
 	return session, nil
 }
 
-func (s *clientSession) Publish(topic string, msg interface{}) error {
+func (s *clientSession) Publish(topic string, msg string) error {
 	s.client.Publish(topic, QoS0, false, msg)
 	return nil
+}
+
+func (s *clientSession) PublishHex(topic string, payload string) {
+	b, err := hex.DecodeString(payload)
+	if err != nil {
+		logs.Error("mqtt client hex decode error:", err)
+		return
+	}
+	s.client.Publish(topic, QoS0, false, b)
 }
 
 func (s *clientSession) PublishQos1(topic string, msg interface{}) error {
