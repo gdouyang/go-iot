@@ -55,15 +55,26 @@ func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClie
 		choke:     make(chan MQTT.Message),
 		done:      make(chan struct{}),
 	}
-	opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
-		session.choke <- msg
-	})
+	if len(spec.Topics) == 0 {
+		opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
+			session.choke <- msg
+		})
+	}
 	opts.SetConnectionLostHandler(func(c MQTT.Client, err error) {
 		logs.Info("connection lost clientId:%s, err:%s ", opts.ClientID, err.Error())
 		close(session.done)
 	})
 
 	client := MQTT.NewClient(opts)
+	if len(spec.Topics) > 0 {
+		var filters map[string]byte = map[string]byte{}
+		for key, v := range spec.Topics {
+			filters[key] = byte(v)
+		}
+		client.SubscribeMultiple(filters, func(client MQTT.Client, msg MQTT.Message) {
+			session.choke <- msg
+		})
+	}
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		return nil, token.Error()
 	}
