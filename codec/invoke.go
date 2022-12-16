@@ -38,6 +38,10 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 	if !ok {
 		return fmt.Errorf("function [%s] of tsl not found", message.FunctionId)
 	}
+	if product != nil {
+		b, _ := json.Marshal(message)
+		product.GetTimeSeries().SaveLogs(product, LogData{DeviceId: message.DeviceId, Type: "call", Content: string(b)})
+	}
 	if function.Async {
 		go func() {
 			codec.OnInvoke(&FuncInvokeContext{
@@ -72,10 +76,27 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 		}(ctx)
 		select {
 		case <-ctx.Done():
-			return errors.New("invoke timeout")
+			err = errors.New("invoke timeout")
+			replyLog(product, message, err.Error())
+			return err
 		case err := <-message.Replay:
+			replyLog(product, message, err.Error())
 			return err
 		}
+	}
+}
+
+func replyLog(product Product, message msg.FuncInvoke, reply string) {
+	if product != nil {
+		aligs := struct {
+			msg.FuncInvoke
+			Reply string `json:"reply"`
+		}{
+			FuncInvoke: message,
+			Reply:      reply,
+		}
+		b, _ := json.Marshal(aligs)
+		product.GetTimeSeries().SaveLogs(product, LogData{DeviceId: message.DeviceId, Type: "reply", Content: string(b)})
 	}
 }
 
