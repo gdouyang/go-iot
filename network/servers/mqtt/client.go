@@ -43,11 +43,7 @@ var processPacketMap = map[string]processFnWithErr{
 	"*packets.UnsubscribePacket": pipelineWrapper(processUnsubscribe, Unsubscribe),
 	"*packets.PingreqPacket":     nilErrWrapper(processPingreq),
 	"*packets.PubackPacket":      nilErrWrapper(processPuback),
-	"*packets.PublishPacket": func(c *Client, packet packets.ControlPacket) error {
-		publish := packet.(*packets.PublishPacket)
-		logs.Debug("client %s process publish %v", c.info.cid, publish.TopicName)
-		return pipelineWrapper(processPublish, Publish)(c, packet)
-	},
+	"*packets.PublishPacket":     pipelineWrapper(processPublish, Publish),
 }
 
 type (
@@ -233,6 +229,7 @@ func pipelineWrapper(fn processFn, packetType PacketType) processFnWithErr {
 
 func processPublish(c *Client, packet packets.ControlPacket) {
 	publish := packet.(*packets.PublishPacket)
+	logs.Debug("client %s process publish %v", c.info.cid, publish.TopicName)
 	switch publish.Qos {
 	case QoS0:
 		// do nothing
@@ -251,7 +248,9 @@ func processPublish(c *Client, packet packets.ControlPacket) {
 			ProductId: c.broker.productId,
 			Session:   c.session,
 		},
-		Data: publish.Payload,
+		Data:      publish.Payload,
+		topic:     publish.TopicName,
+		messageID: publish.MessageID,
 	})
 }
 

@@ -78,8 +78,10 @@ func (ctx *authContext) checkAuth() bool {
 // mqttContext
 type mqttContext struct {
 	codec.BaseContext
-	Data   []byte
-	client *Client
+	client    *Client
+	Data      []byte
+	topic     string
+	messageID uint16
 }
 
 func (ctx *mqttContext) GetMessage() interface{} {
@@ -92,6 +94,14 @@ func (ctx *mqttContext) MsgToString() string {
 
 func (ctx *mqttContext) HexMsg() string {
 	return hex.EncodeToString(ctx.Data)
+}
+
+func (ctx *mqttContext) Topic() string {
+	return ctx.topic
+}
+
+func (ctx *mqttContext) MessageID() uint16 {
+	return ctx.messageID
 }
 
 func (ctx *mqttContext) GetClientId() string {
