@@ -3,6 +3,8 @@ package api
 import (
 	"container/list"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"go-iot/codec/eventbus"
 	device "go-iot/models/device"
 	"net/http"
@@ -14,7 +16,7 @@ import (
 )
 
 func init() {
-	web.Router("/api/realtime/:deviceId/property", &RealtimeWebSocketController{}, "get:Join")
+	web.Router("/api/realtime/:deviceId/:type", &RealtimeWebSocketController{}, "get:Join")
 
 	go writeLoop()
 }
@@ -23,6 +25,7 @@ func init() {
 type subscriber struct {
 	ProductId string
 	DeviceId  string
+	topic     string
 	Addr      string
 	Conn      *websocket.Conn // Only for WebSocket users; otherwise nil.
 }
@@ -45,7 +48,12 @@ type RealtimeWebSocketController struct {
 func (ctl *RealtimeWebSocketController) Join() {
 	deviceId := ctl.Param(":deviceId")
 	if len(deviceId) == 0 {
-		ctl.Redirect("/", 302)
+		ctl.RespError(errors.New("deviceId must be present"))
+		return
+	}
+	typ := ctl.Param(":type")
+	if len(typ) == 0 {
+		ctl.RespError(errors.New("type must be present"))
 		return
 	}
 	dev, err := device.GetDeviceMust(deviceId)
@@ -65,12 +73,13 @@ func (ctl *RealtimeWebSocketController) Join() {
 
 	// Join.
 	addr := ws.RemoteAddr().String()
-	subscribe <- subscriber{ProductId: dev.ProductId, DeviceId: deviceId, Addr: addr, Conn: ws}
+	topic := fmt.Sprintf("/device/%s/%s/%s", dev.ProductId, dev.Id, typ)
+	subscribe <- subscriber{ProductId: dev.ProductId, DeviceId: deviceId, topic: topic, Addr: addr, Conn: ws}
 	defer func() {
-		unsubscribe <- subscriber{ProductId: dev.ProductId, DeviceId: deviceId, Addr: addr}
+		unsubscribe <- subscriber{ProductId: dev.ProductId, DeviceId: deviceId, topic: topic, Addr: addr}
 	}()
 
-	eventbus.Subscribe(eventbus.GetMesssageTopic(dev.ProductId, dev.Id), send)
+	eventbus.Subscribe(topic, send)
 
 	// Message receive loop.
 	for {
@@ -122,7 +131,7 @@ func writeLoop() {
 				}
 			}
 			if subs.Len() == 0 {
-				eventbus.UnSubscribe(eventbus.GetMesssageTopic(unsub.ProductId, unsub.DeviceId), send)
+				eventbus.UnSubscribe(unsub.topic, send)
 			}
 		}
 	}
