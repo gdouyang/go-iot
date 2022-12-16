@@ -245,7 +245,7 @@ func (t *EsTimeSeries) commit(index string, text string) {
 func (t *EsTimeSeries) batchSave() {
 	for {
 		select {
-		case <-time.After(time.Duration(1) * time.Millisecond * 10000):
+		case <-time.After(time.Duration(1) * time.Millisecond * 5000):
 			t.save()
 		case d := <-t.dataCh:
 			t.batchData = append(t.batchData, d)
