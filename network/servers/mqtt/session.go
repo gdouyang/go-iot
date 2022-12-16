@@ -2,6 +2,7 @@ package mqttserver
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"sync"
 	"time"
 
@@ -61,7 +62,9 @@ func (s *Session) init(b *Broker, connect *packets.ConnectPacket) error {
 	s.info.CleanFlag = connect.CleanSession
 	s.info.Topics = make(map[string]int)
 
-	go s.backgroundResendPending()
+	if !s.cleanSession() {
+		go s.backgroundResendPending()
+	}
 	return nil
 }
 
@@ -85,19 +88,6 @@ func (s *Session) unsubscribe(topics []string) error {
 	return nil
 }
 
-func (s *Session) allSubscribes() ([]string, []byte, error) {
-	s.Lock()
-
-	var sub []string
-	var qos []byte
-	for k, v := range s.info.Topics {
-		sub = append(sub, k)
-		qos = append(qos, byte(v))
-	}
-	s.Unlock()
-	return sub, qos, nil
-}
-
 func (s *Session) getPacketFromMsg(topic string, payload []byte, qos byte) *packets.PublishPacket {
 	p := packets.NewControlPacket(packets.Publish).(*packets.PublishPacket)
 	p.Qos = qos
@@ -108,14 +98,6 @@ func (s *Session) getPacketFromMsg(topic string, payload []byte, qos byte) *pack
 	// the session will give unique id from 0 to 65535 and do this again and again
 	s.nextID++
 	return p
-}
-
-func (s *Session) Publish(topic string, payload string) {
-	s.publish(topic, []byte(payload), QoS0)
-}
-
-func (s *Session) PublishQos1(topic string, payload string) {
-	s.publish(topic, []byte(payload), QoS1)
 }
 
 func (s *Session) publish(topic string, payload []byte, qos byte) {
@@ -159,6 +141,25 @@ func (s *Session) close() {
 	close(s.done)
 }
 
+func (s *Session) backgroundResendPending() {
+	debugLogTime := time.Now().Add(time.Minute)
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-s.done:
+			return
+		case <-ticker.C:
+			s.doResend()
+		}
+		if time.Now().After(debugLogTime) {
+			logs.Debug("session %v resend", s.info.ClientID)
+			debugLogTime = time.Now().Add(time.Minute)
+		}
+	}
+}
+
 func (s *Session) doResend() {
 	client := s.broker.getClient(s.info.ClientID)
 	s.Lock()
@@ -192,23 +193,28 @@ func (s *Session) doResend() {
 	}
 }
 
-func (s *Session) backgroundResendPending() {
-	debugLogTime := time.Now().Add(time.Minute)
-	ticker := time.NewTicker(200 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-s.done:
-			return
-		case <-ticker.C:
-			s.doResend()
-		}
-		if time.Now().After(debugLogTime) {
-			logs.Debug("session %v resend", s.info.ClientID)
-			debugLogTime = time.Now().Add(time.Minute)
-		}
+// device session functions
+func (s *Session) Publish(topic string, payload string) {
+	var qos int
+	qos, ok := s.info.Topics[topic]
+	if !ok {
+		qos = int(QoS0)
 	}
+	s.publish(topic, []byte(payload), byte(qos))
+}
+
+func (s *Session) PublishHex(topic string, payload string) {
+	b, err := hex.DecodeString(payload)
+	if err != nil {
+		logs.Error("mqtt hex decode error:", err)
+		return
+	}
+	var qos int
+	qos, ok := s.info.Topics[topic]
+	if !ok {
+		qos = int(QoS0)
+	}
+	s.publish(topic, b, byte(qos))
 }
 
 func (s *Session) Disconnect() error {

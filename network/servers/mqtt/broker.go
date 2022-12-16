@@ -258,15 +258,15 @@ func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 		if prevSess != nil {
 			prevSess.close()
 		}
-		s := &Session{}
-		s.init(b, connect)
+		sess := &Session{}
+		sess.init(b, connect)
 		// here connect is valid, make device online
 		baseContext := &codec.BaseContext{
 			ProductId: b.productId,
-			Session:   s,
+			Session:   sess,
 		}
 		baseContext.DeviceOnline(client.info.deviceId)
-		client.session = s
+		client.session = sess
 	}
 }
 
@@ -287,16 +287,6 @@ func (b *Broker) removeClient(clientID string) {
 		}
 	}
 	b.Unlock()
-}
-
-func (b *Broker) currentClients() map[string]struct{} {
-	ans := make(map[string]struct{})
-	b.Lock()
-	for k := range b.clients {
-		ans[k] = struct{}{}
-	}
-	b.Unlock()
-	return ans
 }
 
 func (b *Broker) TotalConnection() int32 {
