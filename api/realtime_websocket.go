@@ -62,7 +62,8 @@ func (ctl *RealtimeWebSocketController) Join() {
 		return
 	}
 	// Upgrade from http request to WebSocket.
-	ws, err := websocket.Upgrade(ctl.Ctx.ResponseWriter, ctl.Ctx.Request, nil, 1024, 1024)
+	var upgrader = websocket.Upgrader{} // use default options
+	ws, err := upgrader.Upgrade(ctl.Ctx.ResponseWriter, ctl.Ctx.Request, nil)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(ctl.Ctx.ResponseWriter, "Not a websocket handshake", 400)
 		return
