@@ -59,12 +59,11 @@ func (s *Session) init(b *Broker, connect *packets.ConnectPacket) error {
 	s.info = &SessionInfo{}
 	s.info.Name = connect.Username
 	s.info.ClientID = connect.ClientIdentifier
-	s.info.CleanFlag = connect.CleanSession
+	s.info.CleanFlag = true //connect.CleanSession not supported currently
 	s.info.Topics = make(map[string]int)
 
-	if !s.cleanSession() {
-		go s.backgroundResendPending()
-	}
+	go s.backgroundResendPending()
+
 	return nil
 }
 
