@@ -124,6 +124,7 @@ const (
 
 type Message interface {
 	Type() MessageType
+	GetDeviceId() string
 }
 
 type PropertiesMessage struct {
@@ -142,6 +143,9 @@ func NewPropertiesMessage(deviceId string, productId string, data map[string]int
 
 func (m *PropertiesMessage) Type() MessageType {
 	return PROP
+}
+func (m *PropertiesMessage) GetDeviceId() string {
+	return m.DeviceId
 }
 
 type EventMessage struct {
@@ -162,6 +166,10 @@ func (m *EventMessage) Type() MessageType {
 	return EVENT
 }
 
+func (m *EventMessage) GetDeviceId() string {
+	return m.DeviceId
+}
+
 type OnlineMessage struct {
 	DeviceId  string
 	ProductId string
@@ -171,6 +179,10 @@ func (m *OnlineMessage) Type() MessageType {
 	return ONLINE
 }
 
+func (m *OnlineMessage) GetDeviceId() string {
+	return m.DeviceId
+}
+
 type OfflineMessage struct {
 	DeviceId  string
 	ProductId string
@@ -178,4 +190,7 @@ type OfflineMessage struct {
 
 func (m *OfflineMessage) Type() MessageType {
 	return OFFLINE
+}
+func (m *OfflineMessage) GetDeviceId() string {
+	return m.DeviceId
 }

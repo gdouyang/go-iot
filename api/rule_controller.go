@@ -58,7 +58,7 @@ func (ctl *RuleController) Get() {
 	if ctl.isForbidden(sceneResource, QueryAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -112,7 +112,7 @@ func (ctl *RuleController) Delete() {
 	if ctl.isForbidden(sceneResource, DeleteAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -144,7 +144,7 @@ func (ctl *RuleController) Disable() {
 }
 
 func (ctl *RuleController) enable(flag bool) {
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)

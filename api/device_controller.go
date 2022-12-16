@@ -79,7 +79,7 @@ func (ctl *DeviceController) GetOne() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	ob, err := device.GetDeviceMust(ctl.Ctx.Input.Param(":id"))
+	ob, err := device.GetDeviceMust(ctl.Param(":id"))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -91,7 +91,7 @@ func (ctl *DeviceController) GetDetail() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	ob, err := device.GetDeviceMust(ctl.Ctx.Input.Param(":id"))
+	ob, err := device.GetDeviceMust(ctl.Param(":id"))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -189,7 +189,7 @@ func (ctl *DeviceController) Delete() {
 		return
 	}
 	var ob *models.Device = &models.Device{
-		Id: ctl.Ctx.Input.Param(":id"),
+		Id: ctl.Param(":id"),
 	}
 	err := device.DeleteDevice(ob)
 	if err != nil {
@@ -205,7 +205,7 @@ func (ctl *DeviceController) Connect() {
 		return
 	}
 	var ob *models.Device = &models.Device{
-		Id: ctl.Ctx.Input.Param(":id"),
+		Id: ctl.Param(":id"),
 	}
 	err := connectClientDevice(ob.Id)
 	if err != nil {
@@ -283,7 +283,7 @@ func (ctl *DeviceController) Disconnect() {
 		return
 	}
 	var ob *models.Device = &models.Device{
-		Id: ctl.Ctx.Input.Param(":id"),
+		Id: ctl.Param(":id"),
 	}
 	_, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
@@ -309,7 +309,7 @@ func (ctl *DeviceController) Deploy() {
 		return
 	}
 	var ob *models.Device = &models.Device{
-		Id: ctl.Ctx.Input.Param(":id"),
+		Id: ctl.Param(":id"),
 	}
 	dev, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
@@ -328,7 +328,7 @@ func (ctl *DeviceController) Undeploy() {
 		return
 	}
 	var ob *models.Device = &models.Device{
-		Id: ctl.Ctx.Input.Param(":id"),
+		Id: ctl.Param(":id"),
 	}
 	_, err := device.GetDeviceMust(ob.Id)
 	if err != nil {
@@ -345,7 +345,7 @@ func (ctl *DeviceController) CmdInvoke() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	deviceId := ctl.Ctx.Input.Param(":id")
+	deviceId := ctl.Param(":id")
 
 	var ob msg.FuncInvoke
 	err := ctl.BindJSON(&ob)
@@ -374,7 +374,7 @@ func (ctl *DeviceController) QueryProperty() {
 	}
 
 	var ob *models.Device = &models.Device{
-		Id: ctl.Ctx.Input.Param(":id"),
+		Id: ctl.Param(":id"),
 	}
 	var param codec.QueryParam
 	err := ctl.BindJSON(&param)

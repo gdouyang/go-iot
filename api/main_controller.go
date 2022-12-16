@@ -106,6 +106,11 @@ type RespController struct {
 	web.Controller
 }
 
+// return request param
+func (c *RespController) Param(key string) string {
+	return c.Ctx.Input.Param(key)
+}
+
 func (c *RespController) RespOk() error {
 	return c.Ctx.Output.JSON(models.JsonRespOk(), false, false)
 }

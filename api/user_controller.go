@@ -57,7 +57,7 @@ func (ctl *UserController) Get() {
 	if ctl.isForbidden(userResource, QueryAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -113,7 +113,7 @@ func (ctl *UserController) Delete() {
 	if ctl.isForbidden(userResource, DeleteAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -134,7 +134,7 @@ func (ctl *UserController) Enable() {
 	if ctl.isForbidden(userResource, SaveAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -156,7 +156,7 @@ func (ctl *UserController) Disable() {
 	if ctl.isForbidden(userResource, SaveAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)

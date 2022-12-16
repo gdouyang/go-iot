@@ -59,7 +59,7 @@ func (ctl *RoleController) Get() {
 	if ctl.isForbidden(roleResource, QueryAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -113,7 +113,7 @@ func (ctl *RoleController) Delete() {
 	if ctl.isForbidden(roleResource, DeleteAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -134,7 +134,7 @@ func (ctl *RoleController) RefMenus() {
 	if ctl.isForbidden(roleResource, QueryAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)

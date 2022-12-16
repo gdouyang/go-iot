@@ -78,7 +78,7 @@ func (ctl *NotifyController) Get() {
 	if ctl.isForbidden(notifyResource, QueryAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -148,7 +148,7 @@ func (ctl *NotifyController) Delete() {
 	if ctl.isForbidden(notifyResource, DeleteAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -180,7 +180,7 @@ func (ctl *NotifyController) Disable() {
 }
 
 func (ctl *NotifyController) enable(flag bool) {
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)

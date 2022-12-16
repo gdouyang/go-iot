@@ -139,7 +139,7 @@ func (ctl *ProductController) Get() {
 		return
 	}
 
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	p, err := product.GetProductMust(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -164,7 +164,7 @@ func (ctl *ProductController) Delete() {
 		return
 	}
 
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	var ob *models.Product = &models.Product{
 		Id: id,
 	}
@@ -191,7 +191,7 @@ func (ctl *ProductController) Deploy() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	ob, err := product.GetProductMust(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -235,7 +235,7 @@ func (ctl *ProductController) Undeploy() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	ob, err := product.GetProductMust(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -278,7 +278,7 @@ func (ctl *ProductController) GetNetwork() {
 	if ctl.isForbidden(productResource, QueryAction) {
 		return
 	}
-	productId := ctl.Ctx.Input.Param(":productId")
+	productId := ctl.Param(":productId")
 
 	nw, err := network.GetByProductId(productId)
 	if err != nil {
@@ -339,7 +339,7 @@ func (ctl *ProductController) RunNetwork() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
-	productId := ctl.Ctx.Input.Param(":productId")
+	productId := ctl.Param(":productId")
 	state := ctl.Ctx.Input.Query("state")
 
 	nw, err := network.GetByProductId(productId)

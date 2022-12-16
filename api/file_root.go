@@ -20,11 +20,11 @@ func init() {
 }
 
 type FileAnonController struct {
-	web.Controller
+	RespController
 }
 
 func (ctl *FileAnonController) File() {
-	name := ctl.Ctx.Input.Param(":name")
+	name := ctl.Param(":name")
 
 	path := "./files/" + name
 	exists, _ := util.FileExists(path)

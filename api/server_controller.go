@@ -74,7 +74,7 @@ func (ctl *ServerController) Delete() {
 
 func (ctl *ServerController) Start() {
 	var resp models.JsonResp
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -109,7 +109,7 @@ func convertCodecNetwork(nw models.Network) codec.NetworkConf {
 }
 
 func (ctl *ServerController) Meters() {
-	id := ctl.Ctx.Input.Param(":id")
+	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
