@@ -128,13 +128,15 @@ type Message interface {
 }
 
 type PropertiesMessage struct {
-	DeviceId  string
-	ProductId string
-	Data      map[string]interface{}
+	Typ       string                 `json:"type"`
+	DeviceId  string                 `json:"deviceId"`
+	ProductId string                 `json:"productId"`
+	Data      map[string]interface{} `json:"data"`
 }
 
 func NewPropertiesMessage(deviceId string, productId string, data map[string]interface{}) PropertiesMessage {
 	return PropertiesMessage{
+		Typ:       string(PROP),
 		DeviceId:  deviceId,
 		ProductId: productId,
 		Data:      data,
@@ -149,13 +151,15 @@ func (m *PropertiesMessage) GetDeviceId() string {
 }
 
 type EventMessage struct {
-	DeviceId  string
-	ProductId string
-	Data      map[string]interface{}
+	Typ       string                 `json:"type"`
+	DeviceId  string                 `json:"deviceId"`
+	ProductId string                 `json:"productId"`
+	Data      map[string]interface{} `json:"data"`
 }
 
 func NewEventMessage(deviceId string, productId string, data map[string]interface{}) EventMessage {
 	return EventMessage{
+		Typ:       string(EVENT),
 		DeviceId:  deviceId,
 		ProductId: productId,
 		Data:      data,
@@ -171,8 +175,17 @@ func (m *EventMessage) GetDeviceId() string {
 }
 
 type OnlineMessage struct {
-	DeviceId  string
-	ProductId string
+	Typ       string `json:"type"`
+	DeviceId  string `json:"deviceId"`
+	ProductId string `json:"productId"`
+}
+
+func NewOnlineMessage(deviceId string, productId string) OnlineMessage {
+	return OnlineMessage{
+		Typ:       string(ONLINE),
+		DeviceId:  deviceId,
+		ProductId: productId,
+	}
 }
 
 func (m *OnlineMessage) Type() MessageType {
@@ -184,8 +197,17 @@ func (m *OnlineMessage) GetDeviceId() string {
 }
 
 type OfflineMessage struct {
-	DeviceId  string
-	ProductId string
+	Typ       string `json:"type"`
+	DeviceId  string `json:"deviceId"`
+	ProductId string `json:"productId"`
+}
+
+func NewOfflineMessage(deviceId string, productId string) OfflineMessage {
+	return OfflineMessage{
+		Typ:       string(OFFLINE),
+		DeviceId:  deviceId,
+		ProductId: productId,
+	}
 }
 
 func (m *OfflineMessage) Type() MessageType {

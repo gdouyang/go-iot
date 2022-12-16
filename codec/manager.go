@@ -33,10 +33,8 @@ func (sm *SessionManager) Put(deviceId string, session Session) {
 	sm.sessionMap.Store(deviceId, session)
 	device := GetDeviceManager().Get(deviceId)
 	if device != nil {
-		eventbus.PublishOnline(&eventbus.OnlineMessage{
-			DeviceId:  deviceId,
-			ProductId: device.GetProductId(),
-		})
+		evt := eventbus.NewOnlineMessage(deviceId, device.GetProductId())
+		eventbus.PublishOnline(&evt)
 	}
 }
 
@@ -46,10 +44,8 @@ func (sm *SessionManager) DelLocal(deviceId string) {
 		sess.Disconnect()
 		device := GetDeviceManager().Get(deviceId)
 		if device != nil {
-			eventbus.PublishOffline(&eventbus.OfflineMessage{
-				DeviceId:  deviceId,
-				ProductId: device.GetProductId(),
-			})
+			evt := eventbus.NewOfflineMessage(deviceId, device.GetProductId())
+			eventbus.PublishOffline(&evt)
 		}
 	}
 }
