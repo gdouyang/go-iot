@@ -22,6 +22,10 @@ func (e *AlarmEvent) Type() eventbus.MessageType {
 	return eventbus.ALARM
 }
 
+func (e *AlarmEvent) GetDeviceId() string {
+	return e.DeviceId
+}
+
 type TriggerType string
 
 const (
