@@ -17,7 +17,7 @@ func TestMatcher(t *testing.T) {
 	assert.True(t, match.Match("/a/b/c", "/a/b/c"))
 	assert.True(t, match.Match("/a/b/{c}", "/a/b/c"))
 	assert.True(t, match.Match("/a/b/{c}/{d}", "/a/b/c/d"))
-	assert.True(t, match.Match("/a/b/*/*", "/a/b/c/d"))
+	assert.True(t, match.Match("/a/b/*/*", "/a/b/c/d11"))
 	assert.True(t, match.Match("/abc/123/{name}", "/abc/123/test"))
 	assert.True(t, match.Match("/abc/123/{name}/**", "/abc/123/test/1"))
 	assert.True(t, match.Match("/abc/123/{name}/{type}", "/abc/123/test/1"))

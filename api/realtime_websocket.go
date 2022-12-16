@@ -121,11 +121,9 @@ func writeLoop() {
 				suber := sub.Value.(*subscriber)
 				if suber.Addr == unsub.Addr {
 					subs.Remove(sub)
-					// Clone connection.
 					ws := suber.Conn
 					if ws != nil {
 						ws.Close()
-						logs.Error("NorthWebSocket closed:", unsub)
 					}
 					break
 				}
