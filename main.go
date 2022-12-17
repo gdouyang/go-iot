@@ -18,17 +18,13 @@ import (
 )
 
 func main() {
-	{
-		configLog()
-	}
-	setEsConfig()
-	dataSourceName, err := config.String("db.url")
-	if err != nil {
-		logs.Error("get dataSourceName failed")
-	}
 
-	models.DefaultDbConfig.Url = dataSourceName
+	configLog()
+	setDefaultConfig()
+
+	models.DefaultDbConfig.Url = getConfigString("db.url")
 	models.InitDb()
+
 	web.BConfig.RecoverFunc = defaultRecoverPanic
 	web.ErrorHandler("404", func(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(404)
@@ -58,55 +54,56 @@ func defaultRecoverPanic(ctx *context.Context, cfg *web.Config) {
 	}
 }
 
-func setEsConfig() {
+func setDefaultConfig() {
 	{
-		esurl, err := config.String("es.url")
-		if err != nil {
-			logs.Error("get es.url failed")
-		}
-		codec.ES_URL = strings.TrimSpace(esurl)
+		codec.DefaultManagerId = getConfigString("device.manager.id")
 	}
 	{
-		esusername, err := config.String("es.usename")
-		if err != nil {
-			logs.Error("get es.usename failed")
-		}
-		codec.ES_USERNAME = strings.TrimSpace(esusername)
+		codec.DefaultEsConfig.Url = getConfigString("es.url")
+		codec.DefaultEsConfig.Username = getConfigString("es.usename")
+		codec.DefaultEsConfig.Password = getConfigString("es.password")
 	}
 	{
-		password, err := config.String("es.password")
-		if err != nil {
-			logs.Error("get es.password failed")
-		}
-		codec.ES_PASSWORD = strings.TrimSpace(password)
+		codec.DefaultRedisConfig.Addr = getConfigString("redis.addr")
+		codec.DefaultRedisConfig.Password = getConfigString("redis.password")
+		codec.DefaultRedisConfig.DB = getConfigInt("redis.db")
 	}
 }
 
 func configLog() {
-	logLevel, err := config.String("logs.level")
-	if err != nil {
-		logs.Error("get logs.level failed")
-	}
+	logLevel := getConfigString("logs.level")
 	level := 7
 	switch logLevel {
 	case "info":
 		level = logs.LevelInfo
-	case "wran":
+	case "warn":
 		level = logs.LevelWarn
 	case "error":
 		level = logs.LevelError
 	}
-	filename, err := config.String("logs.filename")
-	if err != nil {
-		logs.Error("get logs.filename failed")
-	}
+	filename := getConfigString("logs.filename")
 	if len(filename) == 0 {
 		filename = "go-iot.log"
 	}
 	logs.GetBeeLogger().SetLevel(level)
-	err = logs.SetLogger(logs.AdapterFile, fmt.Sprintf(`{"filename":"%s","level":%d,"maxlines":0,
+	err := logs.SetLogger(logs.AdapterFile, fmt.Sprintf(`{"filename":"%s","level":%d,"maxlines":0,
 	"maxsize":0,"daily":true,"maxdays":10,"color":false}`, filename, level))
 	if err != nil {
 		panic(err)
 	}
+}
+
+func getConfigString(key string) string {
+	data, err := config.String(key)
+	if err != nil {
+		panic(err)
+	}
+	return strings.TrimSpace(data)
+}
+func getConfigInt(key string) int {
+	data, err := config.Int(key)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }

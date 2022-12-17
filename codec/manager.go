@@ -93,6 +93,15 @@ type DefaultDevice struct {
 	Config    map[string]string
 }
 
+func NewDevice(devieId string, productId string) *DefaultDevice {
+	return &DefaultDevice{
+		Id:        devieId,
+		ProductId: productId,
+		Data:      make(map[string]string),
+		Config:    make(map[string]string),
+	}
+}
+
 func (d *DefaultDevice) GetId() string {
 	return d.Id
 }
@@ -118,7 +127,14 @@ func (d *DefaultDevice) GetConfig(key string) string {
 	return ""
 }
 
-func NewProduct(id string, config map[string]string, tsId string, tsltext string) (*DefaultProdeuct, error) {
+type DefaultProdeuct struct {
+	Id          string
+	Config      map[string]string
+	StorePolicy string
+	TslData     *tsl.TslData
+}
+
+func NewProduct(id string, config map[string]string, storePolicy string, tsltext string) (*DefaultProdeuct, error) {
 	tslData := tsl.NewTslData()
 	if len(tsltext) > 0 {
 		err := tslData.FromJson(tsltext)
@@ -127,19 +143,11 @@ func NewProduct(id string, config map[string]string, tsId string, tsltext string
 		}
 	}
 	return &DefaultProdeuct{
-		Id:           id,
-		Config:       config,
-		TimeSeriesId: tsId,
-		tslData:      tslData,
+		Id:          id,
+		Config:      config,
+		StorePolicy: storePolicy,
+		TslData:     tslData,
 	}, nil
-}
-
-type DefaultProdeuct struct {
-	Id           string
-	Config       map[string]string
-	TimeSeriesId string
-	tslData      *tsl.TslData
-	TslFunction  map[string]tsl.TslFunction
 }
 
 func (p *DefaultProdeuct) GetId() string {
@@ -153,11 +161,11 @@ func (p *DefaultProdeuct) GetConfig(key string) string {
 }
 
 func (p *DefaultProdeuct) GetTimeSeries() TimeSeriesSave {
-	return GetTimeSeries(p.TimeSeriesId)
+	return GetTimeSeries(p.StorePolicy)
 }
 
 func (p *DefaultProdeuct) GetTsl() *tsl.TslData {
-	return p.tslData
+	return p.TslData
 }
 
 // memDeviceManager

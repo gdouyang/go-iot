@@ -58,9 +58,9 @@ var network codec.NetworkConf = codec.NetworkConf{
 }
 
 var product codec.Product = &codec.DefaultProdeuct{
-	Id:           "test-product",
-	Config:       make(map[string]string),
-	TimeSeriesId: "mock",
+	Id:          "test-product",
+	Config:      make(map[string]string),
+	StorePolicy: "mock",
 }
 
 func init() {

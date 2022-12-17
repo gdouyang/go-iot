@@ -65,7 +65,25 @@ type (
 		// 获取产品操作
 		GetProduct() Product
 	}
+
+	RedisConfig struct {
+		Addr     string
+		Password string
+		DB       int
+	}
+	EsConfig struct {
+		Url      string
+		Username string
+		Password string
+	}
 )
+
+var DefaultRedisConfig RedisConfig = RedisConfig{
+	Addr: "127.0.0:6379",
+}
+var DefaultEsConfig EsConfig = EsConfig{
+	Url: "http://localhost:9200",
+}
 
 // base context
 type BaseContext struct {

@@ -27,6 +27,7 @@ type TslData struct {
 	Functions  []TslFunction `json:"functions"`
 	Events     []TslEvent    `json:"events"`
 	Properties []TslProperty `json:"properties"`
+	Text       string        `json:"-"`
 }
 
 func NewTslData() *TslData {
@@ -38,6 +39,7 @@ func (tsl *TslData) FromJson(text string) error {
 	if err != nil {
 		return fmt.Errorf("tsl parse error: %v", err)
 	}
+	tsl.Text = text
 	return nil
 }
 

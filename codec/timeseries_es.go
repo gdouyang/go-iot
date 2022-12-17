@@ -27,10 +27,6 @@ const (
 	devicelogs_const = "devicelogs"
 )
 
-var ES_URL string = "http://localhost:9200"
-var ES_PASSWORD string = ""
-var ES_USERNAME string = ""
-
 // es时序保存
 type EsTimeSeries struct {
 	sync.RWMutex
@@ -40,7 +36,6 @@ type EsTimeSeries struct {
 }
 
 func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) error {
-	logs.Info("PublishModel: ", model)
 	err := t.propertiesTplMapping(product, &model)
 	if err != nil {
 		return err
@@ -452,13 +447,13 @@ func getEsClient() (*elasticsearch.Client, error) {
 	//
 	// An `ELASTICSEARCH_URL` environment variable will be used when exported.
 	//
-	addrs := strings.Split(ES_URL, ",")
+	addrs := strings.Split(DefaultEsConfig.Url, ",")
 	config := elasticsearch.Config{
 		Addresses: addrs,
 	}
-	if len(ES_USERNAME) > 0 {
-		config.Username = ES_USERNAME
-		config.Password = ES_PASSWORD
+	if len(DefaultEsConfig.Username) > 0 {
+		config.Username = DefaultEsConfig.Username
+		config.Password = DefaultEsConfig.Password
 	}
 	es, err := elasticsearch.NewClient(config)
 	return es, err

@@ -319,7 +319,8 @@ func (ctl *DeviceController) Deploy() {
 	if len(dev.State) == 0 || dev.State == models.NoActive {
 		device.UpdateOnlineStatus(ob.Id, models.OFFLINE)
 	}
-	// TODO
+	device := codec.NewDevice(dev.Id, dev.ProductId)
+	codec.GetDeviceManager().Put(device)
 	ctl.RespOk()
 }
 

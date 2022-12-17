@@ -106,11 +106,11 @@ func (m *DbProductManager) Get(productId string) codec.Product {
 		if err != nil {
 			logs.Error("newProduct error: ", err)
 		} else {
-			product = produ
-			m.Put(produ)
+			m.cache[productId] = produ
+			return produ
 		}
 	}
-	return product
+	return nil
 }
 
 func (m *DbProductManager) Put(product codec.Product) {

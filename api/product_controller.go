@@ -212,15 +212,12 @@ func (ctl *ProductController) Deploy() {
 		ctl.RespError(errors.New("tsl properties must be persent"))
 		return
 	}
-	p1 := codec.GetProductManager().Get(ob.Id)
-	if p1 == nil {
-		p1, err = codec.NewProduct(ob.Id, make(map[string]string), codec.TIME_SERISE_ES, ob.Metadata)
-		if err != nil {
-			ctl.RespError(err)
-			return
-		}
-		codec.GetProductManager().Put(p1)
+	p1, err := codec.NewProduct(ob.Id, make(map[string]string), codec.TIME_SERISE_ES, ob.Metadata)
+	if err != nil {
+		ctl.RespError(err)
+		return
 	}
+	codec.GetProductManager().Put(p1)
 	err = p1.GetTimeSeries().PublishModel(p1, tsl)
 	if err != nil {
 		ctl.RespError(err)

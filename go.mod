@@ -6,6 +6,7 @@ require (
 	github.com/beego/beego/v2 v2.0.2
 	github.com/eclipse/paho.mqtt.golang v1.4.1
 	github.com/elastic/go-elasticsearch/v8 v8.4.0
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f
@@ -18,6 +19,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/elastic/elastic-transport-go/v8 v8.1.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
