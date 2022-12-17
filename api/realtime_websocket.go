@@ -18,27 +18,17 @@ import (
 func init() {
 	web.Router("/api/realtime/:deviceId/:type", &RealtimeWebSocketController{}, "get:Join")
 
-	go writeLoop()
+	go realtimeInstance.writeLoop()
 }
 
-// 订阅者
-type subscriber struct {
-	ProductId string
-	DeviceId  string
-	topic     string
-	Addr      string
-	Conn      *websocket.Conn // Only for WebSocket users; otherwise nil.
-}
-
-var (
-	// Channel for new join users.
-	subscribe = make(chan subscriber, 10)
+var realtimeInstance *realtime = &realtime{
+	subscribe: make(chan subscriber, 10),
 	// Channel for exit users.
-	unsubscribe = make(chan subscriber, 10)
+	unsubscribe: make(chan subscriber, 10),
 	// Send events here to publish them.
-	publish     = make(chan eventbus.Message, 10)
-	subscribers = map[string]*list.List{}
-)
+	publish:     make(chan eventbus.Message, 10),
+	subscribers: map[string]*list.List{},
+}
 
 type RealtimeWebSocketController struct {
 	AuthController
@@ -62,7 +52,9 @@ func (ctl *RealtimeWebSocketController) Join() {
 		return
 	}
 	// Upgrade from http request to WebSocket.
-	var upgrader = websocket.Upgrader{} // use default options
+	var upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	} // use default options
 	ws, err := upgrader.Upgrade(ctl.Ctx.ResponseWriter, ctl.Ctx.Request, nil)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(ctl.Ctx.ResponseWriter, "Not a websocket handshake", 400)
@@ -75,12 +67,12 @@ func (ctl *RealtimeWebSocketController) Join() {
 	// Join.
 	addr := ws.RemoteAddr().String()
 	topic := fmt.Sprintf("/device/%s/%s/%s", dev.ProductId, dev.Id, typ)
-	subscribe <- subscriber{ProductId: dev.ProductId, DeviceId: deviceId, topic: topic, Addr: addr, Conn: ws}
+	realtimeInstance.subscribe <- subscriber{ProductId: dev.ProductId, DeviceId: deviceId, topic: topic, Addr: addr, Conn: ws}
 	defer func() {
-		unsubscribe <- subscriber{ProductId: dev.ProductId, DeviceId: deviceId, topic: topic, Addr: addr}
+		realtimeInstance.unsubscribe <- subscriber{ProductId: dev.ProductId, DeviceId: deviceId, topic: topic, Addr: addr}
 	}()
 
-	eventbus.Subscribe(topic, send)
+	eventbus.Subscribe(topic, realtimeInstance.send)
 
 	// Message receive loop.
 	for {
@@ -91,23 +83,39 @@ func (ctl *RealtimeWebSocketController) Join() {
 	}
 }
 
-func send(msg eventbus.Message) {
-	publish <- msg
+type realtime struct {
+	subscribe   chan subscriber
+	unsubscribe chan subscriber
+	publish     chan eventbus.Message
+	subscribers map[string]*list.List
 }
 
-func writeLoop() {
+// 订阅者
+type subscriber struct {
+	ProductId string
+	DeviceId  string
+	topic     string
+	Addr      string
+	Conn      *websocket.Conn // Only for WebSocket users; otherwise nil.
+}
+
+func (e *realtime) send(msg eventbus.Message) {
+	e.publish <- msg
+}
+
+func (e *realtime) writeLoop() {
 	for {
 		select {
-		case sub := <-subscribe:
+		case sub := <-e.subscribe:
 			l := sync.Mutex{}
 			l.Lock()
 			defer l.Unlock()
-			if _, ok := subscribers[sub.DeviceId]; !ok {
-				subscribers[sub.DeviceId] = list.New()
+			if _, ok := e.subscribers[sub.DeviceId]; !ok {
+				e.subscribers[sub.DeviceId] = list.New()
 			}
-			subscribers[sub.DeviceId].PushBack(&sub)
-		case event := <-publish:
-			subs := subscribers[event.GetDeviceId()]
+			e.subscribers[sub.DeviceId].PushBack(&sub)
+		case event := <-e.publish:
+			subs := e.subscribers[event.GetDeviceId()]
 			for sub := subs.Front(); sub != nil; sub = sub.Next() {
 				suber := sub.Value.(*subscriber)
 				ws := suber.Conn
@@ -116,8 +124,8 @@ func writeLoop() {
 					ws.WriteMessage(websocket.TextMessage, d)
 				}
 			}
-		case unsub := <-unsubscribe:
-			subs := subscribers[unsub.DeviceId]
+		case unsub := <-e.unsubscribe:
+			subs := e.subscribers[unsub.DeviceId]
 			for sub := subs.Front(); sub != nil; sub = sub.Next() {
 				suber := sub.Value.(*subscriber)
 				if suber.Addr == unsub.Addr {
@@ -130,7 +138,7 @@ func writeLoop() {
 				}
 			}
 			if subs.Len() == 0 {
-				eventbus.UnSubscribe(unsub.topic, send)
+				eventbus.UnSubscribe(unsub.topic, e.send)
 			}
 		}
 	}
