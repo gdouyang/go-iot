@@ -21,6 +21,7 @@ func newClient() *redis.Client {
 		Addr:     codec.DefaultRedisConfig.Addr,
 		Password: codec.DefaultRedisConfig.Password,
 		DB:       codec.DefaultRedisConfig.DB,
+		PoolSize: codec.DefaultRedisConfig.PoolSize,
 	})
 }
 

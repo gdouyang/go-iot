@@ -70,6 +70,7 @@ type (
 		Addr     string
 		Password string
 		DB       int
+		PoolSize int
 	}
 	EsConfig struct {
 		Url      string
@@ -79,7 +80,8 @@ type (
 )
 
 var DefaultRedisConfig RedisConfig = RedisConfig{
-	Addr: "127.0.0:6379",
+	Addr:     "127.0.0:6379",
+	PoolSize: 10,
 }
 var DefaultEsConfig EsConfig = EsConfig{
 	Url: "http://localhost:9200",
