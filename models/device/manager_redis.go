@@ -16,13 +16,21 @@ func init() {
 	codec.RegProductManager(&redisProductManager{cache: make(map[string]codec.Product)})
 }
 
+var rdb *redis.Client
+
 func newClient() *redis.Client {
-	return redis.NewClient(&redis.Options{
-		Addr:     codec.DefaultRedisConfig.Addr,
-		Password: codec.DefaultRedisConfig.Password,
-		DB:       codec.DefaultRedisConfig.DB,
-		PoolSize: codec.DefaultRedisConfig.PoolSize,
-	})
+	if rdb == nil {
+		var mutex sync.Mutex
+		mutex.Lock()
+		defer mutex.Unlock()
+		rdb = redis.NewClient(&redis.Options{
+			Addr:     codec.DefaultRedisConfig.Addr,
+			Password: codec.DefaultRedisConfig.Password,
+			DB:       codec.DefaultRedisConfig.DB,
+			PoolSize: codec.DefaultRedisConfig.PoolSize,
+		})
+	}
+	return rdb
 }
 
 // redisDeviceManager
