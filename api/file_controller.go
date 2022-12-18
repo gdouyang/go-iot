@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/base64"
-	"go-iot/network/util"
+	"go-iot/codec/util"
 	"io"
 	"net/http"
 	"os"

@@ -3,7 +3,9 @@ package models
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"go-iot/codec"
+	"go-iot/codec/util"
 	"sync"
 	"time"
 
@@ -47,16 +49,21 @@ func (m *redisDeviceManager) Get(deviceId string) codec.Device {
 		config := map[string]string{}
 		err = json.Unmarshal([]byte(data["config"]), &config)
 		if err != nil {
-			logs.Error(err)
+			logs.Error("device config parse error:", err)
 		}
 		dat := map[string]string{}
 		err = json.Unmarshal([]byte(data["data"]), &dat)
 		if err != nil {
-			logs.Error(err)
+			logs.Error("device data parse error:", err)
+		}
+		createId, err := util.StringToInt64(data["createId"])
+		if err != nil {
+			logs.Error("device createId parse error:", err)
 		}
 		dev := &codec.DefaultDevice{
 			Id:        data["id"],
 			ProductId: data["product"],
+			CreateId:  createId,
 			Config:    config,
 			Data:      dat,
 		}
@@ -77,6 +84,7 @@ func (m *redisDeviceManager) Put(device codec.Device) {
 		"config":    string(byt),
 		"productId": p.ProductId,
 		"data":      string(dat),
+		"createId":  fmt.Sprintf("%v", p.CreateId),
 	}
 	rdb := codec.GetRedisClient()
 	rdb.HSet(ctx, "goiot:device:"+p.Id, data).Err()
