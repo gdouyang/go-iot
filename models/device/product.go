@@ -17,7 +17,7 @@ import (
 )
 
 // 分页查询设备
-func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
+func PageProduct(page *models.PageQuery, createId int64) (*models.PageResult, error) {
 	var pr *models.PageResult
 	var dev models.Product
 	err1 := json.Unmarshal(page.Condition, &dev)
@@ -36,6 +36,7 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 	if len(dev.Name) > 0 {
 		qs = qs.Filter("name__contains", dev.Name)
 	}
+	qs = qs.Filter("createId", createId)
 
 	count, err := qs.Count()
 	if err != nil {
@@ -55,10 +56,11 @@ func ListProduct(page *models.PageQuery) (*models.PageResult, error) {
 	return pr, nil
 }
 
-func ListAllProduct() ([]models.Product, error) {
+func ListAllProduct(createId int64) ([]models.Product, error) {
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.Product{})
+	qs = qs.Filter("createId", createId)
 
 	var result []models.Product
 	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "Desc", "CreateId", "CreateTime"}
@@ -182,9 +184,12 @@ func DeleteProduct(ob *models.Product) error {
 	}
 	o := orm.NewOrm()
 	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		_, err := txOrm.Delete(ob)
+		num, err := txOrm.Delete(ob)
 		if err != nil {
 			return err
+		}
+		if num == 0 {
+			return errors.New("product not exist")
 		}
 		nw, err := network.GetByProductId(ob.Id)
 		if err != nil {

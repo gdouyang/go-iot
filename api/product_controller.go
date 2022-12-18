@@ -59,7 +59,7 @@ func (ctl *ProductController) Page() {
 		ctl.RespError(err)
 		return
 	}
-	res, err := product.ListProduct(&ob)
+	res, err := product.PageProduct(&ob, ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 	} else {
@@ -72,7 +72,7 @@ func (ctl *ProductController) List() {
 	if ctl.isForbidden(productResource, QueryAction) {
 		return
 	}
-	res, err := product.ListAllProduct()
+	res, err := product.ListAllProduct(ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 	} else {
@@ -104,7 +104,7 @@ func (ctl *ProductController) Add() {
 	if len(ob.StorePolicy) == 0 {
 		ob.StorePolicy = codec.TIME_SERISE_ES
 	}
-
+	ob.CreateId = ctl.GetCurrentUser().Id
 	err = product.AddProduct(&ob, aligns.NetworkType)
 	if err != nil {
 		ctl.RespError(err)
@@ -120,6 +120,11 @@ func (ctl *ProductController) Update() {
 	}
 	var ob models.ProductModel
 	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = ctl.getProductAndCheckCreate(ob.Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -140,7 +145,7 @@ func (ctl *ProductController) Get() {
 	}
 
 	id := ctl.Param(":id")
-	p, err := product.GetProductMust(id)
+	p, err := ctl.getProductAndCheckCreate(id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -168,6 +173,11 @@ func (ctl *ProductController) Delete() {
 	var ob *models.Product = &models.Product{
 		Id: id,
 	}
+	_, err := ctl.getProductAndCheckCreate(ob.Id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 	// when delete product stop server first
 	s := servers.GetServer(id)
 	if s != nil {
@@ -178,7 +188,7 @@ func (ctl *ProductController) Delete() {
 		}
 	}
 	// then delete product
-	err := product.DeleteProduct(ob)
+	err = product.DeleteProduct(ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -192,7 +202,7 @@ func (ctl *ProductController) Deploy() {
 		return
 	}
 	id := ctl.Param(":id")
-	ob, err := product.GetProductMust(id)
+	ob, err := ctl.getProductAndCheckCreate(id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -233,9 +243,13 @@ func (ctl *ProductController) Undeploy() {
 		return
 	}
 	id := ctl.Param(":id")
-	ob, err := product.GetProductMust(id)
+	ob, err := ctl.getProductAndCheckCreate(id)
 	if err != nil {
 		ctl.RespError(err)
+		return
+	}
+	if ob.CreateId != ctl.GetCurrentUser().Id {
+		ctl.RespError(errors.New("product is not you created"))
 		return
 	}
 	ob.State = false
@@ -249,6 +263,11 @@ func (ctl *ProductController) ModifyTsl() {
 	}
 	var ob models.Product
 	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = ctl.getProductAndCheckCreate(ob.Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -306,6 +325,11 @@ func (ctl *ProductController) UpdateNetwork() {
 		ctl.RespError(errors.New("productId must be present"))
 		return
 	}
+	_, err = ctl.getProductAndCheckCreate(ob.ProductId)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 
 	nw, err := network.GetByProductId(ob.ProductId)
 	if err != nil {
@@ -338,7 +362,11 @@ func (ctl *ProductController) RunNetwork() {
 	}
 	productId := ctl.Param(":productId")
 	state := ctl.Ctx.Input.Query("state")
-
+	_, err := ctl.getProductAndCheckCreate(productId)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 	nw, err := network.GetByProductId(productId)
 	if err != nil {
 		ctl.RespError(err)
@@ -381,4 +409,15 @@ func (ctl *ProductController) RunNetwork() {
 	}
 	network.UpdateNetwork(nw)
 	ctl.RespOk()
+}
+
+func (ctl *ProductController) getProductAndCheckCreate(productId string) (*models.ProductModel, error) {
+	ob1, err := product.GetProductMust(productId)
+	if err != nil {
+		return nil, err
+	}
+	if ob1.CreateId != ctl.GetCurrentUser().Id {
+		return nil, errors.New("product is not you created")
+	}
+	return ob1, nil
 }

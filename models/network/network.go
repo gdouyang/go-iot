@@ -253,5 +253,5 @@ func GetUnuseNetwork() (*models.Network, error) {
 		}
 		return &result, nil
 	}
-	return nil, errors.New("network is all used")
+	return nil, errors.New("no port is available to start the network service")
 }
