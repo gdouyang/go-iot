@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"go-iot/models"
 	user "go-iot/models/base"
 	"strconv"
@@ -21,7 +22,7 @@ var userResource = Resource{
 
 func init() {
 	ns := web.NewNamespace("/api/user",
-		web.NSRouter("/page", &UserController{}, "post:List"),
+		web.NSRouter("/page", &UserController{}, "post:Page"),
 		web.NSRouter("/", &UserController{}, "post:Add"),
 		web.NSRouter("/", &UserController{}, "put:Update"),
 		web.NSRouter("/:id", &UserController{}, "get:Get"),
@@ -38,14 +39,14 @@ type UserController struct {
 	AuthController
 }
 
-func (ctl *UserController) List() {
+func (ctl *UserController) Page() {
 	if ctl.isForbidden(userResource, QueryAction) {
 		return
 	}
 	var ob models.PageQuery
 	ctl.BindJSON(&ob)
 
-	res, err := user.ListUser(&ob)
+	res, err := user.PageUser(&ob, ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 	} else {
@@ -63,7 +64,7 @@ func (ctl *UserController) Get() {
 		ctl.RespError(err)
 		return
 	}
-	u, err := user.GetUser(int64(_id))
+	u, err := ctl.getUserAndCheckCreateId(int64(_id))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -82,7 +83,7 @@ func (ctl *UserController) Add() {
 		ctl.RespError(err)
 		return
 	}
-
+	ob.CreateId = ctl.GetCurrentUser().Id
 	err = user.AddUser(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -97,6 +98,11 @@ func (ctl *UserController) Update() {
 	}
 	var ob models.User
 	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = ctl.getUserAndCheckCreateId(ob.Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -119,6 +125,11 @@ func (ctl *UserController) Delete() {
 		ctl.RespError(err)
 		return
 	}
+	_, err = ctl.getUserAndCheckCreateId(int64(_id))
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 	var ob *models.User = &models.User{
 		Id: int64(_id),
 	}
@@ -136,6 +147,11 @@ func (ctl *UserController) Enable() {
 	}
 	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = ctl.getUserAndCheckCreateId(int64(_id))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -162,6 +178,11 @@ func (ctl *UserController) Disable() {
 		ctl.RespError(err)
 		return
 	}
+	_, err = ctl.getUserAndCheckCreateId(int64(_id))
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 	var ob *models.User = &models.User{
 		Id:         int64(_id),
 		EnableFlag: false,
@@ -172,4 +193,15 @@ func (ctl *UserController) Disable() {
 		return
 	}
 	ctl.RespOk()
+}
+
+func (ctl *UserController) getUserAndCheckCreateId(roleId int64) (*models.User, error) {
+	ob, err := user.GetUser(roleId)
+	if err != nil {
+		return nil, err
+	}
+	if ob.CreateId != ctl.GetCurrentUser().Id {
+		return nil, errors.New("data is not you created")
+	}
+	return ob, nil
 }

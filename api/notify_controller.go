@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"go-iot/models"
 	"go-iot/models/notify"
 	notify1 "go-iot/notify"
@@ -22,7 +23,7 @@ var notifyResource = Resource{
 
 func init() {
 	ns := web.NewNamespace("/api/notifier/config",
-		web.NSRouter("/page", &NotifyController{}, "post:List"),
+		web.NSRouter("/page", &NotifyController{}, "post:Page"),
 		web.NSRouter("/list", &NotifyController{}, "post:ListAll"),
 		web.NSRouter("/", &NotifyController{}, "post:Add"),
 		web.NSRouter("/:id", &NotifyController{}, "put:Update"),
@@ -41,14 +42,14 @@ type NotifyController struct {
 	AuthController
 }
 
-func (ctl *NotifyController) List() {
+func (ctl *NotifyController) Page() {
 	if ctl.isForbidden(notifyResource, QueryAction) {
 		return
 	}
 	var ob models.PageQuery
 	ctl.BindJSON(&ob)
 
-	res, err := notify.ListNotify(&ob)
+	res, err := notify.PageNotify(&ob, ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 	} else {
@@ -66,6 +67,7 @@ func (ctl *NotifyController) ListAll() {
 		ctl.RespError(err)
 		return
 	}
+	ob.CreateId = ctl.GetCurrentUser().Id
 	res, err := notify.ListAll(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -84,7 +86,7 @@ func (ctl *NotifyController) Get() {
 		ctl.RespError(err)
 		return
 	}
-	u, err := notify.GetNotifyMust(int64(_id))
+	u, err := ctl.getNotifyAndCheckCreateId(int64(_id))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -118,6 +120,7 @@ func (ctl *NotifyController) Add() {
 		ctl.RespError(err)
 		return
 	}
+	ob.CreateId = ctl.GetCurrentUser().Id
 	err = notify.AddNotify(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -136,6 +139,11 @@ func (ctl *NotifyController) Update() {
 		ctl.RespError(err)
 		return
 	}
+	_, err = ctl.getNotifyAndCheckCreateId(ob.Id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 	err = notify.UpdateNotify(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -150,6 +158,11 @@ func (ctl *NotifyController) Delete() {
 	}
 	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = ctl.getNotifyAndCheckCreateId(int64(_id))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -186,7 +199,7 @@ func (ctl *NotifyController) enable(flag bool) {
 		ctl.RespError(err)
 		return
 	}
-	m, err := notify.GetNotifyMust(int64(_id))
+	m, err := ctl.getNotifyAndCheckCreateId(int64(_id))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -212,4 +225,15 @@ func (ctl *NotifyController) enable(flag bool) {
 		return
 	}
 	ctl.RespOk()
+}
+
+func (ctl *NotifyController) getNotifyAndCheckCreateId(id int64) (*models.Notify, error) {
+	ob, err := notify.GetNotifyMust(id)
+	if err != nil {
+		return nil, err
+	}
+	if ob.CreateId != ctl.GetCurrentUser().Id {
+		return nil, errors.New("data is not you created")
+	}
+	return ob, nil
 }

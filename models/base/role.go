@@ -18,7 +18,7 @@ const (
 )
 
 // 分页查询设备
-func ListRole(page *models.PageQuery) (*models.PageResult, error) {
+func PageRole(page *models.PageQuery, createId int64) (*models.PageResult, error) {
 	var pr *models.PageResult
 	var n models.Role
 	err1 := json.Unmarshal(page.Condition, &n)
@@ -37,6 +37,7 @@ func ListRole(page *models.PageQuery) (*models.PageResult, error) {
 	if len(n.Name) > 0 {
 		qs = qs.Filter("name__contains", n.Name)
 	}
+	qs = qs.Filter("createId", createId)
 
 	count, err := qs.Count()
 	if err != nil {

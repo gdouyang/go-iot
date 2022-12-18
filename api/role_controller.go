@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"go-iot/models"
 	role "go-iot/models/base"
 	"strconv"
@@ -23,7 +24,7 @@ var roleResource = Resource{
 // 产品管理
 func init() {
 	ns := web.NewNamespace("/api/role",
-		web.NSRouter("/page", &RoleController{}, "post:List"),
+		web.NSRouter("/page", &RoleController{}, "post:Page"),
 		web.NSRouter("/", &RoleController{}, "post:Add"),
 		web.NSRouter("/", &RoleController{}, "put:Update"),
 		web.NSRouter("/:id", &RoleController{}, "get:Get"),
@@ -40,14 +41,14 @@ type RoleController struct {
 }
 
 // 查询列表
-func (ctl *RoleController) List() {
+func (ctl *RoleController) Page() {
 	if ctl.isForbidden(roleResource, QueryAction) {
 		return
 	}
 	var ob models.PageQuery
 	ctl.BindJSON(&ob)
 
-	res, err := role.ListRole(&ob)
+	res, err := role.PageRole(&ob, ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 	} else {
@@ -61,6 +62,11 @@ func (ctl *RoleController) Get() {
 	}
 	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = ctl.getRoleAndCheckCreateId(int64(_id))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -83,6 +89,7 @@ func (ctl *RoleController) Add() {
 		ctl.RespError(err)
 		return
 	}
+	ob.CreateId = ctl.GetCurrentUser().Id
 	err = role.AddRole(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -97,6 +104,11 @@ func (ctl *RoleController) Update() {
 	}
 	var ob role.RoleDTO
 	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = ctl.getRoleAndCheckCreateId(ob.Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -122,6 +134,11 @@ func (ctl *RoleController) Delete() {
 	var ob *models.Role = &models.Role{
 		Id: int64(_id),
 	}
+	_, err = ctl.getRoleAndCheckCreateId(int64(_id))
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 	err = role.DeleteRole(ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -136,6 +153,11 @@ func (ctl *RoleController) RefMenus() {
 	}
 	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = ctl.getRoleAndCheckCreateId(int64(_id))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -166,4 +188,15 @@ func (ctl *RoleController) RefMenus() {
 		result = append(result, r1)
 	}
 	ctl.RespOkData(result)
+}
+
+func (ctl *RoleController) getRoleAndCheckCreateId(roleId int64) (*models.Role, error) {
+	ob, err := role.GetRole(roleId)
+	if err != nil {
+		return nil, err
+	}
+	if ob.CreateId != ctl.GetCurrentUser().Id {
+		return nil, errors.New("data is not you created")
+	}
+	return ob, nil
 }

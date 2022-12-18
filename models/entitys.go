@@ -3,7 +3,7 @@ package models
 import "time"
 
 type User struct {
-	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
+	Id         int64     `json:"id" orm:"pk;column(id_);auto"` // user id
 	Nickname   string    `json:"nickname" orm:"column(nickname_);description(昵称)"`
 	Username   string    `json:"username" orm:"column(username_);description(账号)"`
 	Password   string    `json:"password,omitempty" orm:"column(password_);description(密码)"`
@@ -15,7 +15,7 @@ type User struct {
 }
 
 type Role struct {
-	Id         int64     `json:"id" orm:"pk;column(id_);auto"`
+	Id         int64     `json:"id" orm:"pk;column(id_);auto"` // role id
 	Name       string    `json:"name" orm:"column(name_);description(角色名)"`
 	Desc       string    `json:"desc" orm:"column(desc_);description(描述)"`
 	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`

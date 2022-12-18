@@ -22,7 +22,7 @@ var sceneResource = Resource{
 
 func init() {
 	ns := web.NewNamespace("/api/rule",
-		web.NSRouter("/page", &RuleController{}, "post:List"),
+		web.NSRouter("/page", &RuleController{}, "post:Page"),
 		web.NSRouter("/", &RuleController{}, "post:Add"),
 		web.NSRouter("/:id", &RuleController{}, "put:Update"),
 		web.NSRouter("/:id", &RuleController{}, "get:Get"),
@@ -39,7 +39,7 @@ type RuleController struct {
 	AuthController
 }
 
-func (ctl *RuleController) List() {
+func (ctl *RuleController) Page() {
 	if ctl.isForbidden(sceneResource, QueryAction) {
 		return
 	}

@@ -29,7 +29,7 @@ func init() {
 }
 
 // 分页查询设备
-func ListUser(page *models.PageQuery) (*models.PageResult, error) {
+func PageUser(page *models.PageQuery, createId int64) (*models.PageResult, error) {
 	var pr *models.PageResult
 	var n models.User
 	err1 := json.Unmarshal(page.Condition, &n)
@@ -51,6 +51,7 @@ func ListUser(page *models.PageQuery) (*models.PageResult, error) {
 	if len(n.Nickname) > 0 {
 		qs = qs.Filter("nickname__contains", n.Nickname)
 	}
+	qs = qs.Filter("createId", createId)
 
 	count, err := qs.Count()
 	if err != nil {

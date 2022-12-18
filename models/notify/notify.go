@@ -10,7 +10,7 @@ import (
 )
 
 // 分页查询设备
-func ListNotify(page *models.PageQuery) (*models.PageResult, error) {
+func PageNotify(page *models.PageQuery, createId int64) (*models.PageResult, error) {
 	var pr *models.PageResult
 	var n models.Notify
 	err1 := json.Unmarshal(page.Condition, &n)
@@ -28,6 +28,7 @@ func ListNotify(page *models.PageQuery) (*models.PageResult, error) {
 	if len(n.Type) > 0 {
 		qs = qs.Filter("type", n.Type)
 	}
+	qs = qs.Filter("createId", createId)
 
 	count, err := qs.Count()
 	if err != nil {
@@ -60,6 +61,7 @@ func ListAll(ob *models.Notify) ([]models.Notify, error) {
 	if len(ob.State) > 0 {
 		qs = qs.Filter("State", ob.State)
 	}
+	qs = qs.Filter("createId", ob.CreateId)
 
 	var result []models.Notify
 	_, err := qs.All(&result)
