@@ -21,6 +21,7 @@ func newSession(conn *websocket.Conn, r *http.Request, productId string) *websoc
 		form:       r.Form,
 		requestURI: r.RequestURI,
 		productId:  productId,
+		done:       make(chan struct{}),
 	}
 	return session
 }
@@ -33,6 +34,8 @@ type websocketSession struct {
 	requestURI string
 	deviceId   string
 	productId  string
+	done       chan struct{}
+	isClose    bool
 }
 
 func (s *websocketSession) SetDeviceId(deviceId string) {
@@ -44,6 +47,11 @@ func (s *websocketSession) GetDeviceId() string {
 }
 
 func (s *websocketSession) Disconnect() error {
+	if s.isClose {
+		return nil
+	}
+	close(s.done)
+	s.isClose = true
 	err := s.conn.Close()
 	codec.GetSessionManager().DelLocal(s.deviceId)
 	return err
@@ -84,6 +92,11 @@ func (s *websocketSession) readLoop() {
 		requestURI: s.requestURI,
 	})
 	for {
+		select {
+		case <-s.done:
+			return
+		default:
+		}
 		messageType, message, err := s.conn.ReadMessage()
 		if err != nil {
 			logs.Error("Error during websocket message reading:", err)

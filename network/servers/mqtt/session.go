@@ -3,6 +3,7 @@ package mqttserver
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"go-iot/codec"
 	"sync"
 	"time"
 
@@ -31,6 +32,7 @@ type (
 		pending      map[uint16]*Message
 		pendingQueue []uint16
 		nextID       uint16
+		isClose      bool
 	}
 
 	// Message is the message send from broker to client
@@ -136,10 +138,6 @@ func (s *Session) cleanSession() bool {
 	return s.info.CleanFlag
 }
 
-func (s *Session) close() {
-	close(s.done)
-}
-
 func (s *Session) backgroundResendPending() {
 	debugLogTime := time.Now().Add(time.Minute)
 	ticker := time.NewTicker(200 * time.Millisecond)
@@ -218,11 +216,12 @@ func (s *Session) PublishHex(topic string, payload string) {
 
 func (s *Session) Disconnect() error {
 	if !s.cleanSession() {
-		s.close()
-	}
-	client := s.broker.getClient(s.info.ClientID)
-	if client != nil {
-		client.closeAndDelSession()
+		if s.isClose {
+			return nil
+		}
+		close(s.done)
+		s.isClose = true
+		codec.GetSessionManager().DelLocal(s.info.deviceId)
 	}
 	return nil
 }

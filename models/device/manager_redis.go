@@ -38,31 +38,38 @@ func (m *redisDeviceManager) Get(deviceId string) *codec.Device {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 		rdb := codec.GetRedisClient()
-		data, err := rdb.HGetAll(ctx, "goiot:product:"+deviceId).Result()
+		data, err := rdb.HGetAll(ctx, "goiot:device:"+deviceId).Result()
 		if err != nil {
 			logs.Error(err)
 		}
-		if data == nil {
+		if len(data) == 0 {
 			m.cache[deviceId] = nil
 			return nil
 		}
 		config := map[string]string{}
-		err = json.Unmarshal([]byte(data["config"]), &config)
-		if err != nil {
-			logs.Error("device config parse error:", err)
+		if str, ok := data["config"]; ok {
+			err = json.Unmarshal([]byte(str), &config)
+			if err != nil {
+				logs.Error("device config parse error:", err)
+			}
 		}
 		dat := map[string]string{}
-		err = json.Unmarshal([]byte(data["data"]), &dat)
-		if err != nil {
-			logs.Error("device data parse error:", err)
+		if str, ok := data["data"]; ok {
+			err = json.Unmarshal([]byte(str), &dat)
+			if err != nil {
+				logs.Error("device data parse error:", err)
+			}
 		}
-		createId, err := util.StringToInt64(data["createId"])
-		if err != nil {
-			logs.Error("device createId parse error:", err)
+		var createId int64
+		if str, ok := data["createId"]; ok {
+			createId, err = util.StringToInt64(str)
+			if err != nil {
+				logs.Error("device createId parse error:", err)
+			}
 		}
 		dev := &codec.Device{
 			Id:        data["id"],
-			ProductId: data["product"],
+			ProductId: data["productId"],
 			CreateId:  createId,
 			Config:    config,
 			Data:      dat,
@@ -74,19 +81,19 @@ func (m *redisDeviceManager) Get(deviceId string) *codec.Device {
 }
 
 func (m *redisDeviceManager) Put(device *codec.Device) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	defer cancel()
 	p := device
 	byt, _ := json.Marshal(p.Config)
 	dat, _ := json.Marshal(p.Data)
 	data := map[string]string{
 		"id":        p.Id,
-		"config":    string(byt),
 		"productId": p.ProductId,
-		"data":      string(dat),
 		"createId":  fmt.Sprintf("%v", p.CreateId),
+		"config":    string(byt),
+		"data":      string(dat),
 	}
 	rdb := codec.GetRedisClient()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
 	rdb.HSet(ctx, "goiot:device:"+p.Id, data).Err()
 	m.cache[device.GetId()] = device
 }
@@ -115,13 +122,16 @@ func (m *redisProductManager) Get(productId string) *codec.Product {
 		if err != nil {
 			logs.Error(err)
 		}
-		if data == nil {
+		if len(data) == 0 {
 			m.cache[productId] = nil
+			return nil
 		}
 		config := map[string]string{}
-		err = json.Unmarshal([]byte(data["config"]), &config)
-		if err != nil {
-			logs.Error(err)
+		if str, ok := data["config"]; ok {
+			err = json.Unmarshal([]byte(str), &config)
+			if err != nil {
+				logs.Error("device config parse error:", err)
+			}
 		}
 		produ, err := codec.NewProduct(data["id"], config, data["storePolicy"], data["tslData"])
 		if err != nil {
@@ -145,8 +155,8 @@ func (m *redisProductManager) Put(product *codec.Product) {
 	byt, _ := json.Marshal(p.Config)
 	data := map[string]string{
 		"id":          p.Id,
-		"config":      string(byt),
 		"storePolicy": p.StorePolicy,
+		"config":      string(byt),
 		"tslData":     p.TslData.Text,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)

@@ -107,7 +107,7 @@ func (b *Broker) Stop() error {
 	b.Lock()
 	defer b.Unlock()
 	for _, v := range b.clients {
-		go v.closeAndDelSession()
+		go v.close()
 	}
 	b.clients = nil
 	return nil
@@ -236,7 +236,7 @@ func (b *Broker) handleConn(conn net.Conn) {
 	err = connack.Write(conn)
 	if err != nil {
 		logs.Error("send connack to client %s failed: %s", connect.ClientIdentifier, err)
-		client.closeAndDelSession()
+		client.close()
 		return
 	}
 
@@ -256,7 +256,7 @@ func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 		client.session = prevSess
 	} else {
 		if prevSess != nil {
-			prevSess.close()
+			prevSess.Disconnect()
 		}
 		sess := &Session{}
 		sess.init(b, connect)

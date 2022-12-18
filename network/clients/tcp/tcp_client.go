@@ -69,7 +69,6 @@ func (c *TcpClient) readLoop() {
 	}
 
 	sc.OnConnect(context)
-
 	session.readLoop()
 }
 

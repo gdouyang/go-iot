@@ -126,9 +126,9 @@ func NewDevice(devieId string, productId string, createId int64) *Device {
 	return &Device{
 		Id:        devieId,
 		ProductId: productId,
+		CreateId:  createId,
 		Data:      make(map[string]string),
 		Config:    make(map[string]string),
-		CreateId:  createId,
 	}
 }
 

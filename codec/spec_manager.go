@@ -38,9 +38,7 @@ func (sm *SessionManager) Put(deviceId string, session Session) {
 }
 
 func (sm *SessionManager) DelLocal(deviceId string) {
-	if val, ok := sm.sessionMap.LoadAndDelete(deviceId); ok {
-		sess := val.(Session)
-		sess.Disconnect()
+	if _, ok := sm.sessionMap.LoadAndDelete(deviceId); ok {
 		device := GetDeviceManager().Get(deviceId)
 		if device != nil {
 			evt := eventbus.NewOfflineMessage(deviceId, device.GetProductId())

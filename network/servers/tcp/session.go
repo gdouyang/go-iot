@@ -27,6 +27,7 @@ type tcpSession struct {
 	keepalive uint16
 	delimeter Delimeter
 	done      chan struct{}
+	isClose   bool
 }
 
 func (s *tcpSession) Send(msg string) error {
@@ -51,7 +52,11 @@ func (s *tcpSession) SendHex(msgHex string) error {
 }
 
 func (s *tcpSession) Disconnect() error {
+	if s.isClose {
+		return nil
+	}
 	close(s.done)
+	s.isClose = true
 	err := s.conn.Close()
 	codec.GetSessionManager().DelLocal(s.deviceId)
 	return err
@@ -85,7 +90,7 @@ func (s *tcpSession) readLoop() {
 		data, err := s.delimeter.Read()
 		//3.2 数据读尽、读取错误 关闭 socket 连接
 		if err != nil {
-			logs.Error("read error: " + err.Error())
+			logs.Debug("tcp server read error: " + err.Error())
 			break
 		}
 		sc := codec.GetCodec(s.productId)

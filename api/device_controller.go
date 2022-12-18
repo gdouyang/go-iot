@@ -14,7 +14,6 @@ import (
 	tcpclient "go-iot/network/clients/tcp"
 	"strconv"
 
-	"github.com/beego/beego/v2/core/logs"
 	"github.com/beego/beego/v2/server/web"
 )
 
@@ -135,8 +134,6 @@ func (ctl *DeviceController) GetDetail() {
 					if state == models.ONLINE {
 						alins.State = models.ONLINE
 					}
-				} else {
-					logs.Warn("OnStateChecker device [%s] err: ", ob.Id, err)
 				}
 			}
 		}
@@ -328,8 +325,12 @@ func (ctl *DeviceController) Deploy() {
 	if len(dev.State) == 0 || dev.State == models.NoActive {
 		device.UpdateOnlineStatus(deviceId, models.OFFLINE)
 	}
-	device := codec.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
-	codec.GetDeviceManager().Put(device)
+	devopr := codec.GetDeviceManager().Get(dev.Id)
+	if devopr == nil {
+		devopr = codec.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
+	}
+	devopr.Config = dev.Metaconfig
+	codec.GetDeviceManager().Put(devopr)
 	ctl.RespOk()
 }
 

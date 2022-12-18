@@ -115,8 +115,7 @@ func newClient(connect *packets.ConnectPacket, broker *Broker, conn net.Conn) *C
 
 func (c *Client) readLoop() {
 	defer func() {
-		c.closeAndDelSession()
-		c.broker.removeClient(c.info.cid)
+		c.close()
 	}()
 	keepAlive := time.Duration(c.info.keepalive) * time.Second
 	timeOut := keepAlive + keepAlive/2
@@ -172,7 +171,7 @@ func (c *Client) writeLoop() {
 			err := p.Write(c.conn)
 			if err != nil {
 				logs.Error("write packet %v to client %s failed: %s", p.String(), c.info.cid, err)
-				c.closeAndDelSession()
+				c.close()
 			}
 		case <-c.done:
 			return
@@ -190,17 +189,13 @@ func (c *Client) close() {
 	atomic.StoreInt32(&c.statusFlag, Disconnected)
 	close(c.done) // 删除
 	c.broker.deleteSession(c.info.cid)
+	c.broker.removeClient(c.info.cid)
 	c.conn.Close()
 	c.Unlock()
 }
 
 func (c *Client) disconnected() bool {
 	return atomic.LoadInt32(&c.statusFlag) == Disconnected
-}
-
-func (c *Client) closeAndDelSession() {
-	c.close()
-	codec.GetSessionManager().DelLocal(c.info.deviceId)
 }
 
 func (c *Client) Done() <-chan struct{} {

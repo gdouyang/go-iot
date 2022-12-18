@@ -34,6 +34,7 @@ type clientSession struct {
 	CleanFlag bool
 	choke     chan MQTT.Message
 	done      chan struct{}
+	isClose   bool
 	codec     codec.Codec
 }
 
@@ -118,6 +119,10 @@ func (s *clientSession) PublishQos1(topic string, msg interface{}) error {
 }
 
 func (s *clientSession) Disconnect() error {
+	if s.isClose {
+		return nil
+	}
+	s.isClose = true
 	s.client.Disconnect(250)
 	codec.GetSessionManager().DelLocal(s.deviceId)
 	return nil
