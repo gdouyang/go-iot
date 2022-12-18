@@ -47,7 +47,7 @@ func TestRule(t *testing.T) {
 	assert.NotNil(t, prod)
 	if prod != nil {
 		codec.GetProductManager().Put(prod)
-		codec.GetDeviceManager().Put(&codec.DefaultDevice{Id: "1234"})
+		codec.GetDeviceManager().Put(&codec.Device{Id: "1234"})
 		eventbus.Publish(eventbus.GetMesssageTopic("test123", "1234"), &ruleengine.AlarmEvent{
 			DeviceId:  "1234",
 			ProductId: "test123",

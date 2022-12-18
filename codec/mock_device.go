@@ -12,12 +12,12 @@ func (ctx *MockContext) GetMessage() interface{} {
 }
 
 // 获取设备操作
-func (ctx *MockContext) GetDevice() Device {
+func (ctx *MockContext) GetDevice() *Device {
 	return GetDeviceManager().Get(ctx.DeviceId)
 }
 
 // 获取产品操作
-func (ctx *MockContext) GetProduct() Product {
+func (ctx *MockContext) GetProduct() *Product {
 	return GetProductManager().Get(ctx.ProductId)
 }
 

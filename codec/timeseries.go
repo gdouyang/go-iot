@@ -25,13 +25,13 @@ func GetTimeSeries(id string) TimeSeriesSave {
 // 时序保存
 type TimeSeriesSave interface {
 	// 发布模型
-	PublishModel(product Product, model tsl.TslData) error
+	PublishModel(product *Product, model tsl.TslData) error
 	// 查询属性
-	QueryProperty(product Product, param QueryParam) (map[string]interface{}, error)
+	QueryProperty(product *Product, param QueryParam) (map[string]interface{}, error)
 	// 保存时序数据
-	SaveProperties(product Product, data map[string]interface{}) error
-	SaveEvents(product Product, eventId string, data map[string]interface{}) error
-	SaveLogs(product Product, data LogData) error
+	SaveProperties(product *Product, data map[string]interface{}) error
+	SaveEvents(product *Product, eventId string, data map[string]interface{}) error
+	SaveLogs(product *Product, data LogData) error
 }
 
 type LogData struct {
@@ -57,23 +57,23 @@ func (page *QueryParam) PageOffset() int {
 type MockTimeSeries struct {
 }
 
-func (t *MockTimeSeries) PublishModel(product Product, model tsl.TslData) error {
+func (t *MockTimeSeries) PublishModel(product *Product, model tsl.TslData) error {
 	logs.Info("PublishModel: ", model)
 	return nil
 }
-func (t *MockTimeSeries) QueryProperty(product Product, param QueryParam) (map[string]interface{}, error) {
+func (t *MockTimeSeries) QueryProperty(product *Product, param QueryParam) (map[string]interface{}, error) {
 	logs.Info("QueryProperty: ")
 	return nil, nil
 }
-func (t *MockTimeSeries) SaveProperties(product Product, data map[string]interface{}) error {
+func (t *MockTimeSeries) SaveProperties(product *Product, data map[string]interface{}) error {
 	logs.Info("SaveProperties data: ", data)
 	return nil
 }
-func (t *MockTimeSeries) SaveEvents(product Product, eventId string, data map[string]interface{}) error {
+func (t *MockTimeSeries) SaveEvents(product *Product, eventId string, data map[string]interface{}) error {
 	logs.Info("SaveEvents data: ", data)
 	return nil
 }
-func (t *MockTimeSeries) SaveLogs(product Product, data LogData) error {
+func (t *MockTimeSeries) SaveLogs(product *Product, data LogData) error {
 	logs.Info("SaveLogs data: ", data)
 	return nil
 }

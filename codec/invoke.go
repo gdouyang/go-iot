@@ -86,7 +86,7 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 	}
 }
 
-func replyLog(product Product, message msg.FuncInvoke, reply string) {
+func replyLog(product *Product, message msg.FuncInvoke, reply string) {
 	if product != nil {
 		aligs := struct {
 			msg.FuncInvoke
@@ -116,12 +116,12 @@ func (ctx *FuncInvokeContext) GetSession() Session {
 }
 
 // 获取设备操作
-func (ctx *FuncInvokeContext) GetDevice() Device {
+func (ctx *FuncInvokeContext) GetDevice() *Device {
 	return GetDeviceManager().Get(ctx.deviceId)
 }
 
 // 获取产品操作
-func (ctx *FuncInvokeContext) GetProduct() Product {
+func (ctx *FuncInvokeContext) GetProduct() *Product {
 	return GetProductManager().Get(ctx.productId)
 }
 

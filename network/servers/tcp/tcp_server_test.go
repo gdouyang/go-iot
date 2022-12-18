@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"go-iot/codec"
+	"go-iot/models"
 	_ "go-iot/models/device"
 	tcpserver "go-iot/network/servers/tcp"
 	"net"
@@ -40,9 +41,10 @@ function OnConnect(context) {
   console.log("OnConnect: " + JSON.stringify(context))
 }
 function OnMessage(context) {
-	context.SaveProperties({"msg": context.MsgToString()})
 	var data = JSON.parse(context.MsgToString())
   console.log("OnMessage: deviceId = " + data.deviceId)
+	context.DeviceOnline(data.deviceId)
+	context.SaveProperties({"msg": context.MsgToString()})
 }
 function OnInvoke(context) {
 	console.log("OnInvoke: " + JSON.stringify(context))
@@ -57,15 +59,18 @@ var network codec.NetworkConf = codec.NetworkConf{
 	Script:    script,
 }
 
-var product codec.Product = &codec.DefaultProdeuct{
+var product *codec.Product = &codec.Product{
 	Id:          "test-product",
 	Config:      make(map[string]string),
 	StorePolicy: "mock",
 }
 
 func init() {
+	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
+	models.InitDb()
+
 	codec.GetProductManager().Put(product)
-	var device codec.Device = &codec.DefaultDevice{
+	device := &codec.Device{
 		Id:        "1234",
 		ProductId: product.GetId(),
 		Data:      make(map[string]string),

@@ -13,21 +13,21 @@ import (
 )
 
 func init() {
-	codec.RegDeviceManager(&redisDeviceManager{cache: make(map[string]codec.Device)})
-	codec.RegProductManager(&redisProductManager{cache: make(map[string]codec.Product)})
+	codec.RegDeviceManager(&redisDeviceManager{cache: make(map[string]*codec.Device)})
+	codec.RegProductManager(&redisProductManager{cache: make(map[string]*codec.Product)})
 }
 
 // redisDeviceManager
 type redisDeviceManager struct {
 	sync.RWMutex
-	cache map[string]codec.Device
+	cache map[string]*codec.Device
 }
 
 func (p *redisDeviceManager) Id() string {
 	return "redis"
 }
 
-func (m *redisDeviceManager) Get(deviceId string) codec.Device {
+func (m *redisDeviceManager) Get(deviceId string) *codec.Device {
 	device, ok := m.cache[deviceId]
 	if ok {
 		return device
@@ -60,7 +60,7 @@ func (m *redisDeviceManager) Get(deviceId string) codec.Device {
 		if err != nil {
 			logs.Error("device createId parse error:", err)
 		}
-		dev := &codec.DefaultDevice{
+		dev := &codec.Device{
 			Id:        data["id"],
 			ProductId: data["product"],
 			CreateId:  createId,
@@ -73,10 +73,10 @@ func (m *redisDeviceManager) Get(deviceId string) codec.Device {
 	return nil
 }
 
-func (m *redisDeviceManager) Put(device codec.Device) {
+func (m *redisDeviceManager) Put(device *codec.Device) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	p := device.(*codec.DefaultDevice)
+	p := device
 	byt, _ := json.Marshal(p.Config)
 	dat, _ := json.Marshal(p.Data)
 	data := map[string]string{
@@ -93,14 +93,14 @@ func (m *redisDeviceManager) Put(device codec.Device) {
 
 type redisProductManager struct {
 	sync.RWMutex
-	cache map[string]codec.Product
+	cache map[string]*codec.Product
 }
 
 func (p *redisProductManager) Id() string {
 	return "redis"
 }
 
-func (m *redisProductManager) Get(productId string) codec.Product {
+func (m *redisProductManager) Get(productId string) *codec.Product {
 	product, ok := m.cache[productId]
 	if ok {
 		return product
@@ -134,14 +134,14 @@ func (m *redisProductManager) Get(productId string) codec.Product {
 	return nil
 }
 
-func (m *redisProductManager) Put(product codec.Product) {
+func (m *redisProductManager) Put(product *codec.Product) {
 	if product == nil {
 		panic("product not be nil")
 	}
 	if len(product.GetId()) == 0 {
 		panic("product id must be present")
 	}
-	p := product.(*codec.DefaultProdeuct)
+	p := product
 	byt, _ := json.Marshal(p.Config)
 	data := map[string]string{
 		"id":          p.Id,

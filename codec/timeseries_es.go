@@ -35,7 +35,7 @@ type EsTimeSeries struct {
 	batchTaskRun bool
 }
 
-func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) error {
+func (t *EsTimeSeries) PublishModel(product *Product, model tsl.TslData) error {
 	err := t.propertiesTplMapping(product, &model)
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func (t *EsTimeSeries) PublishModel(product Product, model tsl.TslData) error {
 	return err
 }
 
-func (t *EsTimeSeries) QueryProperty(product Product, param QueryParam) (map[string]interface{}, error) {
+func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[string]interface{}, error) {
 	if len(param.DeviceId) == 0 {
 		return nil, errors.New("deviceId must be persent")
 	}
@@ -137,7 +137,7 @@ func (t *EsTimeSeries) QueryProperty(product Product, param QueryParam) (map[str
 	return resp, err
 }
 
-func (t *EsTimeSeries) SaveProperties(product Product, d1 map[string]interface{}) error {
+func (t *EsTimeSeries) SaveProperties(product *Product, d1 map[string]interface{}) error {
 	validProperty := product.GetTsl().PropertiesMap()
 	if validProperty == nil {
 		return errors.New("not have tsl property, dont save timeseries data")
@@ -171,7 +171,7 @@ func (t *EsTimeSeries) SaveProperties(product Product, d1 map[string]interface{}
 	return nil
 }
 
-func (t *EsTimeSeries) SaveEvents(product Product, eventId string, d1 map[string]interface{}) error {
+func (t *EsTimeSeries) SaveEvents(product *Product, eventId string, d1 map[string]interface{}) error {
 	validProperty := product.GetTsl().EventsMap()
 	if validProperty == nil {
 		return errors.New("not have tsl property, dont save timeseries data")
@@ -210,7 +210,7 @@ func (t *EsTimeSeries) SaveEvents(product Product, eventId string, d1 map[string
 	return nil
 }
 
-func (t *EsTimeSeries) SaveLogs(product Product, d1 LogData) error {
+func (t *EsTimeSeries) SaveLogs(product *Product, d1 LogData) error {
 	if len(d1.DeviceId) == 0 {
 		return errors.New("deviceId must be present, dont save event timeseries data")
 	}
@@ -266,13 +266,13 @@ func (t *EsTimeSeries) save() {
 	}
 }
 
-func (t *EsTimeSeries) getIndex(product Product, typ string) string {
+func (t *EsTimeSeries) getIndex(product *Product, typ string) string {
 	index := typ + "-" + product.GetId() + "-" + time.Now().Format("200601")
 	return index
 }
 
 // 把物模型转换成es mapping
-func (t *EsTimeSeries) propertiesTplMapping(product Product, model *tsl.TslData) error {
+func (t *EsTimeSeries) propertiesTplMapping(product *Product, model *tsl.TslData) error {
 	var properties map[string]interface{} = map[string]interface{}{}
 	for _, p := range model.Properties {
 		(properties)[p.Id] = t.createElasticProperty(p)
@@ -309,7 +309,7 @@ func (t *EsTimeSeries) propertiesTplMapping(product Product, model *tsl.TslData)
 	return err
 }
 
-func (t *EsTimeSeries) eventsTplMapping(product Product, model *tsl.TslData) error {
+func (t *EsTimeSeries) eventsTplMapping(product *Product, model *tsl.TslData) error {
 	var properties map[string]interface{} = map[string]interface{}{}
 	for _, e := range model.Events {
 		for _, p := range e.Properties {
@@ -350,7 +350,7 @@ func (t *EsTimeSeries) eventsTplMapping(product Product, model *tsl.TslData) err
 	return nil
 }
 
-func (t *EsTimeSeries) logsTplMapping(product Product) error {
+func (t *EsTimeSeries) logsTplMapping(product *Product) error {
 	var properties map[string]interface{} = map[string]interface{}{}
 	properties["deviceId"] = esType{Type: "keyword"}
 	properties["type"] = esType{Type: "keyword", IgnoreAbove: "512"}

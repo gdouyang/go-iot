@@ -30,23 +30,6 @@ type (
 		// 设备状态检查
 		OnStateChecker(ctx DeviceLifecycleContext) (string, error)
 	}
-	// 产品信息
-	Product interface {
-		GetId() string
-		GetConfig(key string) string
-		GetTimeSeries() TimeSeriesSave
-		GetTsl() *tsl.TslData
-	}
-	// 设备信息
-	Device interface {
-		GetId() string
-		GetProductId() string
-		GetCreateId() int64
-		// 获取会话
-		GetSession() Session
-		GetData() map[string]string
-		GetConfig(key string) string
-	}
 	// 会话信息
 	Session interface {
 		Disconnect() error
@@ -62,9 +45,9 @@ type (
 	//  设备生命周期上下文
 	DeviceLifecycleContext interface {
 		// 获取设备操作
-		GetDevice() Device
+		GetDevice() *Device
 		// 获取产品操作
-		GetProduct() Product
+		GetProduct() *Product
 	}
 
 	RedisConfig struct {
@@ -89,14 +72,14 @@ var DefaultEsConfig EsConfig = EsConfig{
 }
 
 // default product impl
-type DefaultProdeuct struct {
+type Product struct {
 	Id          string
 	Config      map[string]string
 	StorePolicy string
 	TslData     *tsl.TslData
 }
 
-func NewProduct(id string, config map[string]string, storePolicy string, tsltext string) (*DefaultProdeuct, error) {
+func NewProduct(id string, config map[string]string, storePolicy string, tsltext string) (*Product, error) {
 	tslData := tsl.NewTslData()
 	if len(tsltext) > 0 {
 		err := tslData.FromJson(tsltext)
@@ -104,7 +87,7 @@ func NewProduct(id string, config map[string]string, storePolicy string, tsltext
 			return nil, err
 		}
 	}
-	return &DefaultProdeuct{
+	return &Product{
 		Id:          id,
 		Config:      config,
 		StorePolicy: storePolicy,
@@ -112,26 +95,26 @@ func NewProduct(id string, config map[string]string, storePolicy string, tsltext
 	}, nil
 }
 
-func (p *DefaultProdeuct) GetId() string {
+func (p *Product) GetId() string {
 	return p.Id
 }
-func (p *DefaultProdeuct) GetConfig(key string) string {
+func (p *Product) GetConfig(key string) string {
 	if v, ok := p.Config[key]; ok {
 		return v
 	}
 	return ""
 }
 
-func (p *DefaultProdeuct) GetTimeSeries() TimeSeriesSave {
+func (p *Product) GetTimeSeries() TimeSeriesSave {
 	return GetTimeSeries(p.StorePolicy)
 }
 
-func (p *DefaultProdeuct) GetTsl() *tsl.TslData {
+func (p *Product) GetTsl() *tsl.TslData {
 	return p.TslData
 }
 
 // default device impl
-type DefaultDevice struct {
+type Device struct {
 	Id        string
 	ProductId string
 	CreateId  int64
@@ -139,8 +122,8 @@ type DefaultDevice struct {
 	Config    map[string]string
 }
 
-func NewDevice(devieId string, productId string, createId int64) *DefaultDevice {
-	return &DefaultDevice{
+func NewDevice(devieId string, productId string, createId int64) *Device {
+	return &Device{
 		Id:        devieId,
 		ProductId: productId,
 		Data:      make(map[string]string),
@@ -149,23 +132,23 @@ func NewDevice(devieId string, productId string, createId int64) *DefaultDevice 
 	}
 }
 
-func (d *DefaultDevice) GetId() string {
+func (d *Device) GetId() string {
 	return d.Id
 }
-func (d *DefaultDevice) GetProductId() string {
+func (d *Device) GetProductId() string {
 	return d.ProductId
 }
-func (d *DefaultDevice) GetCreateId() int64 {
+func (d *Device) GetCreateId() int64 {
 	return d.CreateId
 }
-func (d *DefaultDevice) GetSession() Session {
+func (d *Device) GetSession() Session {
 	s := GetSessionManager().Get(d.Id)
 	return s
 }
-func (d *DefaultDevice) GetData() map[string]string {
+func (d *Device) GetData() map[string]string {
 	return d.Data
 }
-func (d *DefaultDevice) GetConfig(key string) string {
+func (d *Device) GetConfig(key string) string {
 	if v, ok := d.Config[key]; ok {
 		return v
 	}
@@ -187,29 +170,32 @@ type BaseContext struct {
 func (ctx *BaseContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
-		device := GetDeviceManager().Get(deviceId)
-		if device == nil {
-			logs.Warn("device [%s] not exist, skip online", deviceId)
-			return
+		sess := GetSessionManager().Get(deviceId)
+		if sess == nil {
+			device := GetDeviceManager().Get(deviceId)
+			if device == nil {
+				logs.Warn("device [%s] not exist, skip online", deviceId)
+				return
+			}
+			ctx.DeviceId = deviceId
+			ctx.GetSession().SetDeviceId(deviceId)
+			GetSessionManager().Put(deviceId, ctx.GetSession())
 		}
-		ctx.DeviceId = deviceId
-		ctx.GetSession().SetDeviceId(deviceId)
-		GetSessionManager().Put(deviceId, ctx.GetSession())
 	}
 }
 
-func (ctx *BaseContext) GetDevice() Device {
+func (ctx *BaseContext) GetDevice() *Device {
 	return ctx.GetDeviceById(ctx.DeviceId)
 }
 
-func (ctx *BaseContext) GetDeviceById(deviceId string) Device {
+func (ctx *BaseContext) GetDeviceById(deviceId string) *Device {
 	if len(ctx.DeviceId) == 0 {
 		return nil
 	}
 	return GetDeviceManager().Get(deviceId)
 }
 
-func (ctx *BaseContext) GetProduct() Product {
+func (ctx *BaseContext) GetProduct() *Product {
 	if len(ctx.ProductId) == 0 {
 		return nil
 	}
@@ -242,7 +228,7 @@ func (ctx *BaseContext) _saveProperties(eventId string, data map[string]interfac
 		return
 	}
 	if ctx.GetDevice() == nil {
-		logs.Warn("device not offline")
+		logs.Warn("device is offline")
 		return
 	}
 	data["deviceId"] = ctx.DeviceId

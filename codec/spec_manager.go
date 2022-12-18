@@ -6,8 +6,8 @@ import (
 )
 
 func init() {
-	RegDeviceManager(&memDeviceManager{cache: make(map[string]Device)})
-	RegProductManager(&memProductManager{cache: make(map[string]Product)})
+	RegDeviceManager(&memDeviceManager{cache: make(map[string]*Device)})
+	RegProductManager(&memProductManager{cache: make(map[string]*Product)})
 }
 
 // session
@@ -50,7 +50,7 @@ func (sm *SessionManager) DelLocal(deviceId string) {
 }
 
 // db, mem, redis
-var DefaultManagerId = "db"
+var DefaultManagerId = "mem"
 
 // device and product manager
 var deviceManagerMap map[string]DeviceManager = map[string]DeviceManager{}
@@ -74,28 +74,28 @@ func RegProductManager(m ProductManager) {
 // DeviceManager
 type DeviceManager interface {
 	Id() string
-	Get(deviceId string) Device
-	Put(device Device)
+	Get(deviceId string) *Device
+	Put(device *Device)
 }
 
 // ProductManager
 type ProductManager interface {
 	Id() string
-	Get(productId string) Product
-	Put(product Product)
+	Get(productId string) *Product
+	Put(product *Product)
 }
 
 // memDeviceManager
 type memDeviceManager struct {
 	sync.RWMutex
-	cache map[string]Device
+	cache map[string]*Device
 }
 
 func (p *memDeviceManager) Id() string {
 	return "mem"
 }
 
-func (m *memDeviceManager) Get(deviceId string) Device {
+func (m *memDeviceManager) Get(deviceId string) *Device {
 	device, ok := m.cache[deviceId]
 	if ok {
 		return device
@@ -103,7 +103,7 @@ func (m *memDeviceManager) Get(deviceId string) Device {
 	return device
 }
 
-func (m *memDeviceManager) Put(device Device) {
+func (m *memDeviceManager) Put(device *Device) {
 	if device == nil {
 		panic("device not be nil")
 	}
@@ -113,14 +113,14 @@ func (m *memDeviceManager) Put(device Device) {
 // memProductManager
 type memProductManager struct {
 	sync.RWMutex
-	cache map[string]Product
+	cache map[string]*Product
 }
 
 func (p *memProductManager) Id() string {
 	return "mem"
 }
 
-func (m *memProductManager) Get(productId string) Product {
+func (m *memProductManager) Get(productId string) *Product {
 	product, ok := m.cache[productId]
 	if ok {
 		return product
@@ -128,7 +128,7 @@ func (m *memProductManager) Get(productId string) Product {
 	return product
 }
 
-func (m *memProductManager) Put(product Product) {
+func (m *memProductManager) Put(product *Product) {
 	if product == nil {
 		panic("product not be nil")
 	}

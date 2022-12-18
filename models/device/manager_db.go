@@ -10,8 +10,8 @@ import (
 )
 
 func init() {
-	codec.RegDeviceManager(&DbDeviceManager{cache: make(map[string]codec.Device)})
-	codec.RegProductManager(&DbProductManager{cache: make(map[string]codec.Product)})
+	codec.RegDeviceManager(&DbDeviceManager{cache: make(map[string]*codec.Device)})
+	codec.RegProductManager(&DbProductManager{cache: make(map[string]*codec.Product)})
 	eventbus.Subscribe(eventbus.GetOfflineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OfflineMessage); ok {
 			UpdateOnlineStatus(m.DeviceId, models.OFFLINE)
@@ -35,14 +35,14 @@ func init() {
 // DbDeviceManager
 type DbDeviceManager struct {
 	sync.RWMutex
-	cache map[string]codec.Device
+	cache map[string]*codec.Device
 }
 
 func (p *DbDeviceManager) Id() string {
 	return "db"
 }
 
-func (m *DbDeviceManager) Get(deviceId string) codec.Device {
+func (m *DbDeviceManager) Get(deviceId string) *codec.Device {
 	device, ok := m.cache[deviceId]
 	if ok {
 		return device
@@ -56,7 +56,7 @@ func (m *DbDeviceManager) Get(deviceId string) codec.Device {
 			return nil
 		}
 
-		device = &codec.DefaultDevice{
+		device = &codec.Device{
 			Id:        data.Id,
 			ProductId: data.ProductId,
 			Config:    data.Metaconfig,
@@ -67,21 +67,21 @@ func (m *DbDeviceManager) Get(deviceId string) codec.Device {
 	return device
 }
 
-func (m *DbDeviceManager) Put(device codec.Device) {
+func (m *DbDeviceManager) Put(device *codec.Device) {
 	m.cache[device.GetId()] = device
 }
 
 // DbProductManager
 type DbProductManager struct {
 	sync.RWMutex
-	cache map[string]codec.Product
+	cache map[string]*codec.Product
 }
 
 func (p *DbProductManager) Id() string {
 	return "db"
 }
 
-func (m *DbProductManager) Get(productId string) codec.Product {
+func (m *DbProductManager) Get(productId string) *codec.Product {
 	product, ok := m.cache[productId]
 	if ok {
 		return product
@@ -113,7 +113,7 @@ func (m *DbProductManager) Get(productId string) codec.Product {
 	return nil
 }
 
-func (m *DbProductManager) Put(product codec.Product) {
+func (m *DbProductManager) Put(product *codec.Product) {
 	if product == nil {
 		panic("product not be nil")
 	}
