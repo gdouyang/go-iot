@@ -12,7 +12,7 @@ import (
 )
 
 // 分页查询设备
-func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
+func PageDevice(page *models.PageQuery, createId int64) (*models.PageResult, error) {
 	var pr *models.PageResult
 	var dev models.Device
 	err := json.Unmarshal(page.Condition, &dev)
@@ -35,6 +35,7 @@ func ListDevice(page *models.PageQuery) (*models.PageResult, error) {
 	if len(dev.ProductId) > 0 {
 		qs = qs.Filter("ProductId", dev.ProductId)
 	}
+	qs = qs.Filter("CreateId", createId)
 
 	count, err := qs.Count()
 	if err != nil {
@@ -135,12 +136,12 @@ func UpdateOnlineStatus(id string, state string) error {
 	return nil
 }
 
-func DeleteDevice(ob *models.Device) error {
-	if len(ob.Id) == 0 {
+func DeleteDevice(deviceId string) error {
+	if len(deviceId) == 0 {
 		return errors.New("id must be present")
 	}
 	o := orm.NewOrm()
-	_, err := o.Delete(ob)
+	_, err := o.Delete(&models.Device{Id: deviceId})
 	if err != nil {
 		return err
 	}

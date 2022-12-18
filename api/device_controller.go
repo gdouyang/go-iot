@@ -32,7 +32,7 @@ var deviceResource = Resource{
 // 设备管理
 func init() {
 	ns := web.NewNamespace("/api/device",
-		web.NSRouter("/page", &DeviceController{}, "post:List"),
+		web.NSRouter("/page", &DeviceController{}, "post:Page"),
 		web.NSRouter("/", &DeviceController{}, "post:Add"),
 		web.NSRouter("/", &DeviceController{}, "put:Update"),
 		web.NSRouter("/:id", &DeviceController{}, "delete:Delete"),
@@ -55,7 +55,7 @@ type DeviceController struct {
 }
 
 // 查询设备列表
-func (ctl *DeviceController) List() {
+func (ctl *DeviceController) Page() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
@@ -66,7 +66,7 @@ func (ctl *DeviceController) List() {
 		return
 	}
 
-	res, err := device.ListDevice(&ob)
+	res, err := device.PageDevice(&ob, ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -79,7 +79,8 @@ func (ctl *DeviceController) GetOne() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	ob, err := device.GetDeviceMust(ctl.Param(":id"))
+	deviceId := ctl.Param(":id")
+	ob, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -91,7 +92,7 @@ func (ctl *DeviceController) GetDetail() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	ob, err := device.GetDeviceMust(ctl.Param(":id"))
+	ob, err := ctl.getDeviceAndCheckCreateId(ctl.Param(":id"))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -155,6 +156,7 @@ func (ctl *DeviceController) Add() {
 		ctl.RespError(err)
 		return
 	}
+	ob.CreateId = ctl.GetCurrentUser().Id
 	err = device.AddDevice(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -174,6 +176,11 @@ func (ctl *DeviceController) Update() {
 		ctl.RespError(err)
 		return
 	}
+	_, err = ctl.getDeviceAndCheckCreateId(ob.Id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 	en := ob.ToEnitty()
 	err = device.UpdateDevice(&en)
 	if err != nil {
@@ -188,10 +195,13 @@ func (ctl *DeviceController) Delete() {
 	if ctl.isForbidden(deviceResource, DeleteAction) {
 		return
 	}
-	var ob *models.Device = &models.Device{
-		Id: ctl.Param(":id"),
+	deviceId := ctl.Param(":id")
+	_, err := ctl.getDeviceAndCheckCreateId(deviceId)
+	if err != nil {
+		ctl.RespError(err)
+		return
 	}
-	err := device.DeleteDevice(ob)
+	err = device.DeleteDevice(deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -204,10 +214,13 @@ func (ctl *DeviceController) Connect() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	var ob *models.Device = &models.Device{
-		Id: ctl.Param(":id"),
+	deviceId := ctl.Param(":id")
+	_, err := ctl.getDeviceAndCheckCreateId(deviceId)
+	if err != nil {
+		ctl.RespError(err)
+		return
 	}
-	err := connectClientDevice(ob.Id)
+	err = connectClientDevice(deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -282,15 +295,13 @@ func (ctl *DeviceController) Disconnect() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	var ob *models.Device = &models.Device{
-		Id: ctl.Param(":id"),
-	}
-	_, err := device.GetDeviceMust(ob.Id)
+	deviceId := ctl.Param(":id")
+	_, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	session := codec.GetSessionManager().Get(ob.Id)
+	session := codec.GetSessionManager().Get(deviceId)
 	if session != nil {
 		err := session.Disconnect()
 		if err != nil {
@@ -308,16 +319,14 @@ func (ctl *DeviceController) Deploy() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	var ob *models.Device = &models.Device{
-		Id: ctl.Param(":id"),
-	}
-	dev, err := device.GetDeviceMust(ob.Id)
+	deviceId := ctl.Param(":id")
+	dev, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
 	if len(dev.State) == 0 || dev.State == models.NoActive {
-		device.UpdateOnlineStatus(ob.Id, models.OFFLINE)
+		device.UpdateOnlineStatus(deviceId, models.OFFLINE)
 	}
 	device := codec.NewDevice(dev.Id, dev.ProductId)
 	codec.GetDeviceManager().Put(device)
@@ -328,15 +337,13 @@ func (ctl *DeviceController) Undeploy() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	var ob *models.Device = &models.Device{
-		Id: ctl.Param(":id"),
-	}
-	_, err := device.GetDeviceMust(ob.Id)
+	deviceId := ctl.Param(":id")
+	_, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	device.UpdateOnlineStatus(ob.Id, models.NoActive)
+	device.UpdateOnlineStatus(deviceId, models.NoActive)
 	// TODO
 	ctl.RespOk()
 }
@@ -355,7 +362,7 @@ func (ctl *DeviceController) CmdInvoke() {
 		return
 	}
 	ob.DeviceId = deviceId
-	device, err := device.GetDeviceMust(ob.DeviceId)
+	device, err := ctl.getDeviceAndCheckCreateId(ob.DeviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -374,18 +381,16 @@ func (ctl *DeviceController) QueryProperty() {
 		return
 	}
 
-	var ob *models.Device = &models.Device{
-		Id: ctl.Param(":id"),
-	}
+	deviceId := ctl.Param(":id")
 	var param codec.QueryParam
 	err := ctl.BindJSON(&param)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	param.DeviceId = ob.Id
+	param.DeviceId = deviceId
 
-	device, err := device.GetDeviceMust(ob.Id)
+	device, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -401,4 +406,15 @@ func (ctl *DeviceController) QueryProperty() {
 		return
 	}
 	ctl.RespOkData(res)
+}
+
+func (ctl *DeviceController) getDeviceAndCheckCreateId(deviceId string) (*models.DeviceModel, error) {
+	ob, err := device.GetDeviceMust(deviceId)
+	if err != nil {
+		return nil, err
+	}
+	if ob.CreateId != ctl.GetCurrentUser().Id {
+		return nil, errors.New("device is not you created")
+	}
+	return ob, nil
 }
