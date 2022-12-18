@@ -41,6 +41,7 @@ type (
 	Device interface {
 		GetId() string
 		GetProductId() string
+		GetCreateId() int64
 		// 获取会话
 		GetSession() Session
 		GetData() map[string]string
@@ -85,6 +86,95 @@ var DefaultRedisConfig RedisConfig = RedisConfig{
 }
 var DefaultEsConfig EsConfig = EsConfig{
 	Url: "http://localhost:9200",
+}
+
+// default product impl
+type DefaultProdeuct struct {
+	Id          string
+	Config      map[string]string
+	StorePolicy string
+	TslData     *tsl.TslData
+}
+
+func NewProduct(id string, config map[string]string, storePolicy string, tsltext string) (*DefaultProdeuct, error) {
+	tslData := tsl.NewTslData()
+	if len(tsltext) > 0 {
+		err := tslData.FromJson(tsltext)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &DefaultProdeuct{
+		Id:          id,
+		Config:      config,
+		StorePolicy: storePolicy,
+		TslData:     tslData,
+	}, nil
+}
+
+func (p *DefaultProdeuct) GetId() string {
+	return p.Id
+}
+func (p *DefaultProdeuct) GetConfig(key string) string {
+	if v, ok := p.Config[key]; ok {
+		return v
+	}
+	return ""
+}
+
+func (p *DefaultProdeuct) GetTimeSeries() TimeSeriesSave {
+	return GetTimeSeries(p.StorePolicy)
+}
+
+func (p *DefaultProdeuct) GetTsl() *tsl.TslData {
+	return p.TslData
+}
+
+// default device impl
+type DefaultDevice struct {
+	Id        string
+	ProductId string
+	CreateId  int64
+	Data      map[string]string
+	Config    map[string]string
+}
+
+func NewDevice(devieId string, productId string, createId int64) *DefaultDevice {
+	return &DefaultDevice{
+		Id:        devieId,
+		ProductId: productId,
+		Data:      make(map[string]string),
+		Config:    make(map[string]string),
+		CreateId:  createId,
+	}
+}
+
+func (d *DefaultDevice) GetId() string {
+	return d.Id
+}
+func (d *DefaultDevice) GetProductId() string {
+	return d.ProductId
+}
+func (d *DefaultDevice) GetCreateId() int64 {
+	return d.CreateId
+}
+func (d *DefaultDevice) GetSession() Session {
+	s := GetSessionManager().Get(d.Id)
+	return s
+}
+func (d *DefaultDevice) GetData() map[string]string {
+	return d.Data
+}
+func (d *DefaultDevice) GetConfig(key string) string {
+	if v, ok := d.Config[key]; ok {
+		return v
+	}
+	p := GetProductManager().Get(d.ProductId)
+	if p != nil {
+		v := p.GetConfig(key)
+		return v
+	}
+	return ""
 }
 
 // base context

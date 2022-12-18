@@ -15,6 +15,7 @@ type AlarmEvent struct {
 	DeviceId  string
 	RuleId    int64
 	AlarmName string
+	CreateId  int64
 	Data      map[string]interface{}
 }
 

@@ -2,7 +2,6 @@ package codec
 
 import (
 	"go-iot/codec/eventbus"
-	"go-iot/codec/tsl"
 	"sync"
 )
 
@@ -84,88 +83,6 @@ type ProductManager interface {
 	Id() string
 	Get(productId string) Product
 	Put(product Product)
-}
-
-type DefaultDevice struct {
-	Id        string
-	ProductId string
-	Data      map[string]string
-	Config    map[string]string
-}
-
-func NewDevice(devieId string, productId string) *DefaultDevice {
-	return &DefaultDevice{
-		Id:        devieId,
-		ProductId: productId,
-		Data:      make(map[string]string),
-		Config:    make(map[string]string),
-	}
-}
-
-func (d *DefaultDevice) GetId() string {
-	return d.Id
-}
-func (d *DefaultDevice) GetProductId() string {
-	return d.ProductId
-}
-func (d *DefaultDevice) GetSession() Session {
-	s := GetSessionManager().Get(d.Id)
-	return s
-}
-func (d *DefaultDevice) GetData() map[string]string {
-	return d.Data
-}
-func (d *DefaultDevice) GetConfig(key string) string {
-	if v, ok := d.Config[key]; ok {
-		return v
-	}
-	p := GetProductManager().Get(d.ProductId)
-	if p != nil {
-		v := p.GetConfig(key)
-		return v
-	}
-	return ""
-}
-
-type DefaultProdeuct struct {
-	Id          string
-	Config      map[string]string
-	StorePolicy string
-	TslData     *tsl.TslData
-}
-
-func NewProduct(id string, config map[string]string, storePolicy string, tsltext string) (*DefaultProdeuct, error) {
-	tslData := tsl.NewTslData()
-	if len(tsltext) > 0 {
-		err := tslData.FromJson(tsltext)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &DefaultProdeuct{
-		Id:          id,
-		Config:      config,
-		StorePolicy: storePolicy,
-		TslData:     tslData,
-	}, nil
-}
-
-func (p *DefaultProdeuct) GetId() string {
-	return p.Id
-}
-func (p *DefaultProdeuct) GetConfig(key string) string {
-	if v, ok := p.Config[key]; ok {
-		return v
-	}
-	return ""
-}
-
-func (p *DefaultProdeuct) GetTimeSeries() TimeSeriesSave {
-	return GetTimeSeries(p.StorePolicy)
-}
-
-func (p *DefaultProdeuct) GetTsl() *tsl.TslData {
-	return p.TslData
 }
 
 // memDeviceManager
