@@ -8,29 +8,11 @@ import (
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
-	"github.com/go-redis/redis/v8"
 )
 
 func init() {
 	codec.RegDeviceManager(&redisDeviceManager{cache: make(map[string]codec.Device)})
 	codec.RegProductManager(&redisProductManager{cache: make(map[string]codec.Product)})
-}
-
-var rdb *redis.Client
-
-func newClient() *redis.Client {
-	if rdb == nil {
-		var mutex sync.Mutex
-		mutex.Lock()
-		defer mutex.Unlock()
-		rdb = redis.NewClient(&redis.Options{
-			Addr:     codec.DefaultRedisConfig.Addr,
-			Password: codec.DefaultRedisConfig.Password,
-			DB:       codec.DefaultRedisConfig.DB,
-			PoolSize: codec.DefaultRedisConfig.PoolSize,
-		})
-	}
-	return rdb
 }
 
 // redisDeviceManager
@@ -53,7 +35,7 @@ func (m *redisDeviceManager) Get(deviceId string) codec.Device {
 		defer m.Unlock()
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
-		rdb := newClient()
+		rdb := codec.GetRedisClient()
 		data, err := rdb.HGetAll(ctx, "goiot:product:"+deviceId).Result()
 		if err != nil {
 			logs.Error(err)
@@ -96,7 +78,7 @@ func (m *redisDeviceManager) Put(device codec.Device) {
 		"productId": p.ProductId,
 		"data":      string(dat),
 	}
-	rdb := newClient()
+	rdb := codec.GetRedisClient()
 	rdb.HSet(ctx, "goiot:device:"+p.Id, data).Err()
 	m.cache[device.GetId()] = device
 }
@@ -120,7 +102,7 @@ func (m *redisProductManager) Get(productId string) codec.Product {
 		defer m.Unlock()
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
-		rdb := newClient()
+		rdb := codec.GetRedisClient()
 		data, err := rdb.HGetAll(ctx, "goiot:product:"+productId).Result()
 		if err != nil {
 			logs.Error(err)
@@ -161,7 +143,7 @@ func (m *redisProductManager) Put(product codec.Product) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	rdb := newClient()
+	rdb := codec.GetRedisClient()
 	err := rdb.HSet(ctx, "goiot:product:"+p.Id, data).Err()
 	if err != nil {
 		logs.Error(err)
