@@ -392,7 +392,7 @@ func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) interface{} {
 	valType := strings.TrimSpace(p.Type)
 	switch valType {
 	case tsl.TypeInt:
-		return esType{Type: "int"}
+		return esType{Type: "integer"}
 	case tsl.TypeLong:
 		return esType{Type: "long"}
 	case tsl.TypeFloat:
