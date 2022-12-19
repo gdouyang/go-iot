@@ -54,12 +54,12 @@ function OnStateChecker(context) {
 	if err != nil {
 		logs.Error(err)
 	}
-	c.OnConnect(&codec.MockContext{DeviceId: "fff"})
-	c.OnInvoke(&codec.MockContext{DeviceId: "fff"})
-	c.OnMessage(&codec.MockContext{DeviceId: "fff"})
+	c.OnConnect(&codec.BaseContext{DeviceId: "fff"})
+	c.OnInvoke(&codec.BaseContext{DeviceId: "fff"})
+	c.OnMessage(&codec.BaseContext{DeviceId: "fff"})
 	switch m := c.(type) {
 	case codec.DeviceLifecycle:
-		m.OnCreate(&codec.MockContext{DeviceId: "2222"})
+		m.OnCreate(&codec.BaseContext{DeviceId: "2222"})
 	default:
 	}
 }

@@ -227,7 +227,7 @@ func (ctl *ProductController) Deploy() {
 		ctl.RespError(err)
 		return
 	}
-	codec.GetProductManager().Put(p1)
+	codec.PutProduct(p1)
 	err = p1.GetTimeSeries().PublishModel(p1, tsl)
 	if err != nil {
 		ctl.RespError(err)

@@ -15,7 +15,7 @@ func init() {
 	eventbus.Subscribe(eventbus.GetOfflineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OfflineMessage); ok {
 			UpdateOnlineStatus(m.DeviceId, models.OFFLINE)
-			product := codec.GetProductManager().Get(m.ProductId)
+			product := codec.GetProduct(m.ProductId)
 			if product != nil {
 				product.GetTimeSeries().SaveLogs(product, codec.LogData{DeviceId: m.DeviceId, Type: models.OFFLINE})
 			}
@@ -24,7 +24,7 @@ func init() {
 	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OnlineMessage); ok {
 			UpdateOnlineStatus(m.DeviceId, models.ONLINE)
-			product := codec.GetProductManager().Get(m.ProductId)
+			product := codec.GetProduct(m.ProductId)
 			if product != nil {
 				product.GetTimeSeries().SaveLogs(product, codec.LogData{DeviceId: m.DeviceId, Type: models.ONLINE})
 			}

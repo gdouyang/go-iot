@@ -49,13 +49,14 @@ type (
 		// 获取产品操作
 		GetProduct() *Product
 	}
-
+	// config for redis
 	RedisConfig struct {
 		Addr     string
 		Password string
 		DB       int
 		PoolSize int
 	}
+	// config for elasticsearch
 	EsConfig struct {
 		Url      string
 		Username string
@@ -142,7 +143,7 @@ func (d *Device) GetCreateId() int64 {
 	return d.CreateId
 }
 func (d *Device) GetSession() Session {
-	s := GetSessionManager().Get(d.Id)
+	s := GetSession(d.Id)
 	return s
 }
 func (d *Device) GetData() map[string]string {
@@ -152,7 +153,7 @@ func (d *Device) GetConfig(key string) string {
 	if v, ok := d.Config[key]; ok {
 		return v
 	}
-	p := GetProductManager().Get(d.ProductId)
+	p := GetProduct(d.ProductId)
 	if p != nil {
 		v := p.GetConfig(key)
 		return v
@@ -170,16 +171,16 @@ type BaseContext struct {
 func (ctx *BaseContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
-		sess := GetSessionManager().Get(deviceId)
+		sess := GetSession(deviceId)
 		if sess == nil {
-			device := GetDeviceManager().Get(deviceId)
+			device := GetDevice(deviceId)
 			if device == nil {
 				logs.Warn("device [%s] not exist, skip online", deviceId)
 				return
 			}
 			ctx.DeviceId = deviceId
 			ctx.GetSession().SetDeviceId(deviceId)
-			GetSessionManager().Put(deviceId, ctx.GetSession())
+			PutSession(deviceId, ctx.GetSession())
 		}
 	}
 }
@@ -192,18 +193,22 @@ func (ctx *BaseContext) GetDeviceById(deviceId string) *Device {
 	if len(ctx.DeviceId) == 0 {
 		return nil
 	}
-	return GetDeviceManager().Get(deviceId)
+	return GetDevice(deviceId)
 }
 
 func (ctx *BaseContext) GetProduct() *Product {
 	if len(ctx.ProductId) == 0 {
 		return nil
 	}
-	return GetProductManager().Get(ctx.ProductId)
+	return GetProduct(ctx.ProductId)
 }
 
 func (ctx *BaseContext) GetSession() Session {
 	return ctx.Session
+}
+
+func (ctx *BaseContext) GetMessage() interface{} {
+	return nil
 }
 
 func (ctx *BaseContext) GetConfig(key string) string {

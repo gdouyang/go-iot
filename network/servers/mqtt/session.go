@@ -221,7 +221,7 @@ func (s *Session) Disconnect() error {
 		}
 		close(s.done)
 		s.isClose = true
-		codec.GetSessionManager().DelLocal(s.info.deviceId)
+		codec.DelSession(s.info.deviceId)
 	}
 	return nil
 }

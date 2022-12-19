@@ -124,7 +124,7 @@ func (s *clientSession) Disconnect() error {
 	}
 	s.isClose = true
 	s.client.Disconnect(250)
-	codec.GetSessionManager().DelLocal(s.deviceId)
+	codec.DelSession(s.deviceId)
 	return nil
 }
 
@@ -139,7 +139,7 @@ func (s *clientSession) GetDeviceId() string {
 func (s *clientSession) deviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
-		codec.GetSessionManager().Put(deviceId, s)
+		codec.PutSession(deviceId, s)
 	}
 }
 

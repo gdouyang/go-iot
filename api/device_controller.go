@@ -120,7 +120,7 @@ func (ctl *DeviceController) GetDetail() {
 	alins.DeviceModel = *ob
 	if ob.State != models.NoActive {
 		alins.State = models.OFFLINE
-		sess := codec.GetSessionManager().Get(ob.Id)
+		sess := codec.GetSession(ob.Id)
 		if sess != nil {
 			alins.State = models.ONLINE
 		} else {
@@ -241,7 +241,7 @@ func connectClientDevice(deviceId string) error {
 		return errors.New("only client type net can do it")
 	}
 	// 进行连接
-	devoper := codec.GetDeviceManager().Get(deviceId)
+	devoper := codec.GetDevice(deviceId)
 	if devoper == nil {
 		return errors.New("devoper is nil")
 	}
@@ -298,7 +298,7 @@ func (ctl *DeviceController) Disconnect() {
 		ctl.RespError(err)
 		return
 	}
-	session := codec.GetSessionManager().Get(deviceId)
+	session := codec.GetSession(deviceId)
 	if session != nil {
 		err := session.Disconnect()
 		if err != nil {
@@ -325,12 +325,12 @@ func (ctl *DeviceController) Deploy() {
 	if len(dev.State) == 0 || dev.State == models.NoActive {
 		device.UpdateOnlineStatus(deviceId, models.OFFLINE)
 	}
-	devopr := codec.GetDeviceManager().Get(dev.Id)
+	devopr := codec.GetDevice(dev.Id)
 	if devopr == nil {
 		devopr = codec.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
 	}
 	devopr.Config = dev.Metaconfig
-	codec.GetDeviceManager().Put(devopr)
+	codec.PutDevice(devopr)
 	ctl.RespOk()
 }
 
@@ -396,7 +396,7 @@ func (ctl *DeviceController) QueryProperty() {
 		ctl.RespError(err)
 		return
 	}
-	product := codec.GetProductManager().Get(device.ProductId)
+	product := codec.GetProduct(device.ProductId)
 	if product == nil {
 		ctl.RespError(fmt.Errorf("not found product %s", device.ProductId))
 		return

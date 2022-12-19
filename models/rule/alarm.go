@@ -27,7 +27,7 @@ func saveAlarmEvent(data eventbus.Message) {
 			logs.Error(err)
 			return
 		}
-		device := codec.GetDeviceManager().Get(t.DeviceId)
+		device := codec.GetDevice(t.DeviceId)
 		if device == nil {
 			logs.Error("saveAlarmEvent error: device not found")
 			return

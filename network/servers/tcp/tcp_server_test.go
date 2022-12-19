@@ -68,15 +68,14 @@ var product *codec.Product = &codec.Product{
 func init() {
 	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
 	models.InitDb()
-
-	codec.GetProductManager().Put(product)
+	codec.PutProduct(product)
 	device := &codec.Device{
 		Id:        "1234",
 		ProductId: product.GetId(),
 		Data:      make(map[string]string),
 		Config:    make(map[string]string),
 	}
-	codec.GetDeviceManager().Put(device)
+	codec.PutDevice(device)
 }
 func TestServerDelimited(t *testing.T) {
 	network := network

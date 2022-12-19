@@ -40,7 +40,7 @@ func (ctx *authContext) GetUserName() string {
 func (ctx *authContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
-		device := codec.GetDeviceManager().Get(deviceId)
+		device := codec.GetDevice(deviceId)
 		if device == nil {
 			ctx.authFail1(packets.ErrRefusedIDRejected)
 			return

@@ -247,7 +247,7 @@ func (b *Broker) handleConn(conn net.Conn) {
 func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 	// when clean session is false, previous session exist and previous session not clean session,
 	// then we use previous session, otherwise use new session
-	prevS := codec.GetSessionManager().Get(client.info.deviceId)
+	prevS := codec.GetSession(client.info.deviceId)
 	var prevSess *Session = nil
 	if prevS != nil {
 		prevSess = prevS.(*Session)

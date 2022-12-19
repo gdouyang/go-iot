@@ -62,7 +62,7 @@ func (s *tcpSession) Disconnect() error {
 	close(s.done)
 	s.isClose = true
 	err := s.conn.Close()
-	codec.GetSessionManager().DelLocal(s.deviceId)
+	codec.DelSession(s.deviceId)
 	return err
 }
 
@@ -77,7 +77,7 @@ func (s *tcpSession) GetDeviceId() string {
 func (s *tcpSession) deviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
-		codec.GetSessionManager().Put(deviceId, s)
+		codec.PutSession(deviceId, s)
 	}
 }
 

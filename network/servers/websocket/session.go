@@ -53,7 +53,7 @@ func (s *websocketSession) Disconnect() error {
 	close(s.done)
 	s.isClose = true
 	err := s.conn.Close()
-	codec.GetSessionManager().DelLocal(s.deviceId)
+	codec.DelSession(s.deviceId)
 	return err
 }
 

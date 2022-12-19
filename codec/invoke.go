@@ -18,7 +18,7 @@ import (
 
 // 进行功能调用
 func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
-	session := sessionManager.Get(message.DeviceId)
+	session := GetSession(message.DeviceId)
 	if session == nil {
 		return fmt.Errorf("device %s is offline", message.DeviceId)
 	}
@@ -26,7 +26,7 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 	if codec == nil {
 		return fmt.Errorf("codec %s of product not found", productId)
 	}
-	product := GetProductManager().Get(productId)
+	product := GetProduct(productId)
 	if product == nil {
 		return fmt.Errorf("product %s not found", productId)
 	}
@@ -117,12 +117,12 @@ func (ctx *FuncInvokeContext) GetSession() Session {
 
 // 获取设备操作
 func (ctx *FuncInvokeContext) GetDevice() *Device {
-	return GetDeviceManager().Get(ctx.deviceId)
+	return GetDevice(ctx.deviceId)
 }
 
 // 获取产品操作
 func (ctx *FuncInvokeContext) GetProduct() *Product {
-	return GetProductManager().Get(ctx.productId)
+	return GetProduct(ctx.productId)
 }
 
 func (ctx *FuncInvokeContext) ReplyOk() {

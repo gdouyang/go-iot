@@ -11,35 +11,30 @@ func init() {
 }
 
 // session
-var sessionManager *SessionManager = &SessionManager{}
+var sessionManager sync.Map
 
-func GetSessionManager() *SessionManager {
-	return sessionManager
-}
-
-type SessionManager struct {
-	sessionMap sync.Map
-}
-
-func (sm *SessionManager) Get(deviceId string) Session {
-	if val, ok := sm.sessionMap.Load(deviceId); ok {
+// get session from sessionManager
+func GetSession(deviceId string) Session {
+	if val, ok := sessionManager.Load(deviceId); ok {
 		return val.(Session)
 	}
 	return nil
 }
 
-func (sm *SessionManager) Put(deviceId string, session Session) {
-	sm.sessionMap.Store(deviceId, session)
-	device := GetDeviceManager().Get(deviceId)
+// add session to sessionManager
+func PutSession(deviceId string, session Session) {
+	sessionManager.Store(deviceId, session)
+	device := GetDevice(deviceId)
 	if device != nil {
 		evt := eventbus.NewOnlineMessage(deviceId, device.GetProductId())
 		eventbus.PublishOnline(&evt)
 	}
 }
 
-func (sm *SessionManager) DelLocal(deviceId string) {
-	if _, ok := sm.sessionMap.LoadAndDelete(deviceId); ok {
-		device := GetDeviceManager().Get(deviceId)
+// del session from sessionManager
+func DelSession(deviceId string) {
+	if _, ok := sessionManager.LoadAndDelete(deviceId); ok {
+		device := GetDevice(deviceId)
 		if device != nil {
 			evt := eventbus.NewOfflineMessage(deviceId, device.GetProductId())
 			eventbus.PublishOffline(&evt)
@@ -54,12 +49,38 @@ var DefaultManagerId = "mem"
 var deviceManagerMap map[string]DeviceManager = map[string]DeviceManager{}
 var productManagerMap map[string]ProductManager = map[string]ProductManager{}
 
-func GetDeviceManager() DeviceManager {
-	return deviceManagerMap[DefaultManagerId]
+// get device from deviceManager
+func GetDevice(deviceId string) *Device {
+	manager := deviceManagerMap[DefaultManagerId]
+	if manager != nil {
+		return manager.Get(deviceId)
+	}
+	return nil
 }
 
-func GetProductManager() ProductManager {
-	return productManagerMap[DefaultManagerId]
+// add device to deviceManager
+func PutDevice(device *Device) {
+	manager := deviceManagerMap[DefaultManagerId]
+	if manager != nil {
+		manager.Put(device)
+	}
+}
+
+// get product from productManager
+func GetProduct(productId string) *Product {
+	manager := productManagerMap[DefaultManagerId]
+	if manager != nil {
+		return manager.Get(productId)
+	}
+	return nil
+}
+
+// add product to productManager
+func PutProduct(product *Product) {
+	manager := productManagerMap[DefaultManagerId]
+	if manager != nil {
+		manager.Put(product)
+	}
 }
 
 func RegDeviceManager(m DeviceManager) {
