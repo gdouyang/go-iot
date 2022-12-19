@@ -189,16 +189,7 @@ func (ctl *ProductController) Delete() {
 		ctl.RespError(errors.New("product have device, can not delete"))
 		return
 	}
-	// when delete product stop server first
-	s := servers.GetServer(id)
-	if s != nil {
-		err := s.Stop()
-		if err != nil {
-			ctl.RespError(err)
-			return
-		}
-	}
-	// then delete product
+	// delete product
 	err = product.DeleteProduct(&models.Product{Id: id})
 	if err != nil {
 		ctl.RespError(err)
