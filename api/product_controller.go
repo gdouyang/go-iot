@@ -170,15 +170,17 @@ func (ctl *ProductController) Delete() {
 	}
 
 	id := ctl.Param(":id")
-	var ob *models.Product = &models.Product{
-		Id: id,
-	}
-	_, err := ctl.getProductAndCheckCreate(ob.Id)
+	_, err := ctl.getProductAndCheckCreate(id)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	total, err := product.CountDeviceByProductId(ob.Id)
+	server := servers.GetServer(id)
+	if server != nil {
+		ctl.RespError(errors.New("network is runing, please stop first"))
+		return
+	}
+	total, err := product.CountDeviceByProductId(id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -197,7 +199,7 @@ func (ctl *ProductController) Delete() {
 		}
 	}
 	// then delete product
-	err = product.DeleteProduct(ob)
+	err = product.DeleteProduct(&models.Product{Id: id})
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -259,11 +261,6 @@ func (ctl *ProductController) Undeploy() {
 	}
 	if ob.CreateId != ctl.GetCurrentUser().Id {
 		ctl.RespError(errors.New("product is not you created"))
-		return
-	}
-	server := servers.GetServer(id)
-	if server != nil {
-		ctl.RespError(errors.New("network is runing, please stop first"))
 		return
 	}
 	ob.State = false
