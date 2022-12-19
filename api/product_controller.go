@@ -178,6 +178,15 @@ func (ctl *ProductController) Delete() {
 		ctl.RespError(err)
 		return
 	}
+	total, err := product.CountDeviceByProductId(ob.Id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	if total > 0 {
+		ctl.RespError(errors.New("product have device, can not delete"))
+		return
+	}
 	// when delete product stop server first
 	s := servers.GetServer(id)
 	if s != nil {

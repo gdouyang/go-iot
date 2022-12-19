@@ -175,3 +175,16 @@ func GetDeviceMust(deviceId string) (*models.DeviceModel, error) {
 	}
 	return p, nil
 }
+
+func CountDeviceByProductId(productId string) (int64, error) {
+	if len(productId) == 0 {
+		return -1, errors.New("productId must be present")
+	}
+	o := orm.NewOrm()
+	qs := o.QueryTable(&models.Device{}).Filter("productId", productId)
+	count, err := qs.Count()
+	if err != nil {
+		return -1, err
+	}
+	return count, nil
+}
