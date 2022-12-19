@@ -11,7 +11,7 @@ import (
 )
 
 // 分页查询
-func PageRule(page *models.PageQuery) (*models.PageResult, error) {
+func PageRule(page *models.PageQuery, user models.User) (*models.PageResult, error) {
 	var pr *models.PageResult
 	var dev models.Rule
 	err := json.Unmarshal(page.Condition, &dev)
@@ -26,6 +26,7 @@ func PageRule(page *models.PageQuery) (*models.PageResult, error) {
 	if len(dev.Name) > 0 {
 		qs = qs.Filter("name__contains", dev.Name)
 	}
+	qs = qs.Filter("CreateId", user.CreateId)
 
 	count, err := qs.Count()
 	if err != nil {

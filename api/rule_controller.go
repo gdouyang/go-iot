@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"go-iot/models"
 	rule "go-iot/models/rule"
 	"go-iot/ruleengine"
@@ -46,7 +47,7 @@ func (ctl *RuleController) Page() {
 	var ob models.PageQuery
 	ctl.BindJSON(&ob)
 
-	res, err := rule.PageRule(&ob)
+	res, err := rule.PageRule(&ob, *ctl.GetCurrentUser())
 	if err != nil {
 		ctl.RespError(err)
 	} else {
@@ -64,7 +65,7 @@ func (ctl *RuleController) Get() {
 		ctl.RespError(err)
 		return
 	}
-	u, err := rule.GetRuleMust(int64(_id))
+	u, err := ctl.getRuleAndCheckCreateId(int64(_id))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -82,6 +83,7 @@ func (ctl *RuleController) Add() {
 		ctl.RespError(err)
 		return
 	}
+	ob.CreateId = ctl.GetCurrentUser().Id
 	err = rule.AddRule(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -100,6 +102,11 @@ func (ctl *RuleController) Update() {
 		ctl.RespError(err)
 		return
 	}
+	_, err = ctl.getRuleAndCheckCreateId(ob.Id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 	err = rule.UpdateRule(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -114,6 +121,11 @@ func (ctl *RuleController) Delete() {
 	}
 	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = ctl.getRuleAndCheckCreateId(int64(_id))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -150,7 +162,7 @@ func (ctl *RuleController) enable(flag bool) {
 		ctl.RespError(err)
 		return
 	}
-	m, err := rule.GetRuleMust(int64(_id))
+	m, err := ctl.getRuleAndCheckCreateId(int64(_id))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -174,6 +186,17 @@ func (ctl *RuleController) enable(flag bool) {
 		return
 	}
 	ctl.RespOk()
+}
+
+func (ctl *RuleController) getRuleAndCheckCreateId(ruleId int64) (*models.RuleModel, error) {
+	ob, err := rule.GetRuleMust(ruleId)
+	if err != nil {
+		return nil, err
+	}
+	if ob.CreateId != ctl.GetCurrentUser().Id {
+		return nil, errors.New("data is not you created")
+	}
+	return ob, nil
 }
 
 func ruleModelToRuleExecutor(m *models.RuleModel) ruleengine.RuleExecutor {

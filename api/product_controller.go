@@ -250,10 +250,6 @@ func (ctl *ProductController) Undeploy() {
 		ctl.RespError(err)
 		return
 	}
-	if ob.CreateId != ctl.GetCurrentUser().Id {
-		ctl.RespError(errors.New("product is not you created"))
-		return
-	}
 	ob.State = false
 	product.UpdateProductState(&ob.Product)
 	ctl.RespOk()
