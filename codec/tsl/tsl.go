@@ -39,6 +39,36 @@ func (tsl *TslData) FromJson(text string) error {
 	if err != nil {
 		return fmt.Errorf("tsl parse error: %v", err)
 	}
+	{
+		var idMap map[string]bool = map[string]bool{}
+		for _, v := range tsl.Functions {
+			if _, ok := idMap[v.Id]; ok {
+				idMap[v.Id] = true
+			} else {
+				return fmt.Errorf("tsl parse error: functions is repeat [%s]", v.Id)
+			}
+		}
+	}
+	{
+		var idMap map[string]bool = map[string]bool{}
+		for _, v := range tsl.Properties {
+			if _, ok := idMap[v.Id]; ok {
+				idMap[v.Id] = true
+			} else {
+				return fmt.Errorf("tsl parse error: properties is repeat [%s]", v.Id)
+			}
+		}
+	}
+	{
+		var idMap map[string]bool = map[string]bool{}
+		for _, v := range tsl.Events {
+			if _, ok := idMap[v.Id]; ok {
+				idMap[v.Id] = true
+			} else {
+				return fmt.Errorf("tsl parse error: events is repeat [%s]", v.Id)
+			}
+		}
+	}
 	tsl.Text = text
 	return nil
 }
