@@ -261,6 +261,11 @@ func (ctl *ProductController) Undeploy() {
 		ctl.RespError(errors.New("product is not you created"))
 		return
 	}
+	server := servers.GetServer(id)
+	if server != nil {
+		ctl.RespError(errors.New("network is runing, please stop first"))
+		return
+	}
 	ob.State = false
 	product.UpdateProductState(&ob.Product)
 	ctl.RespOk()
