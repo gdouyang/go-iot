@@ -33,7 +33,7 @@ func NewCodec(network NetworkConf) (Codec, error) {
 
 var codecFactory = map[string]func(network NetworkConf) (Codec, error){}
 
-func regCodecCreator(codecId string, creator func(network NetworkConf) (Codec, error)) {
+func RegCodecCreator(codecId string, creator func(network NetworkConf) (Codec, error)) {
 	_, ok := codecFactory[codecId]
 	if ok {
 		logs.Error("codec " + codecId + " is exist")

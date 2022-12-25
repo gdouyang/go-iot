@@ -2,6 +2,7 @@ package modbus
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -51,92 +52,104 @@ func (c *ModbusClient) CloseConnection() error {
 	return err
 }
 
-func (c *ModbusClient) GetValue(commandInfo interface{}) ([]byte, error) {
-	var modbusCommandInfo = commandInfo.(*CommandInfo)
-
-	// Reading value from device
-	var response []byte
-	var err error
-
-	switch modbusCommandInfo.PrimaryTable {
-	case DISCRETES_INPUT:
-		response, err = c.client.ReadDiscreteInputs(modbusCommandInfo.StartingAddress, modbusCommandInfo.Length)
-	case COILS:
-		response, err = c.client.ReadCoils(modbusCommandInfo.StartingAddress, modbusCommandInfo.Length)
-
-	case INPUT_REGISTERS:
-		response, err = c.client.ReadInputRegisters(modbusCommandInfo.StartingAddress, modbusCommandInfo.Length)
-	case HOLDING_REGISTERS:
-		response, err = c.client.ReadHoldingRegisters(modbusCommandInfo.StartingAddress, modbusCommandInfo.Length)
-	default:
-		logs.Error("None supported primary table! ")
-	}
-
+func (s *ModbusClient) ReadDiscreteInputs(startingAddress uint16, length uint16) string {
+	response, err := s.client.ReadDiscreteInputs(startingAddress, length)
 	if err != nil {
-		return response, err
+		logs.Error("ReadDiscreteInputs error: ", err)
 	}
-
-	logs.Info(fmt.Sprintf("Modbus client GetValue's results %v", response))
-
-	return response, nil
+	str := hex.EncodeToString(response)
+	return str
+}
+func (s *ModbusClient) ReadCoils(startingAddress uint16, length uint16) string {
+	response, err := s.client.ReadCoils(startingAddress, length)
+	if err != nil {
+		logs.Error("ReadCoils error: ", err)
+	}
+	str := hex.EncodeToString(response)
+	return str
+}
+func (s *ModbusClient) ReadInputRegisters(startingAddress uint16, length uint16) string {
+	response, err := s.client.ReadInputRegisters(startingAddress, length)
+	if err != nil {
+		logs.Error("ReadInputRegisters error: ", err)
+	}
+	str := hex.EncodeToString(response)
+	return str
+}
+func (s *ModbusClient) ReadHoldingRegisters(startingAddress uint16, length uint16) string {
+	response, err := s.client.ReadHoldingRegisters(startingAddress, length)
+	if err != nil {
+		logs.Error("ReadHoldingRegisters error: ", err)
+	}
+	str := hex.EncodeToString(response)
+	return str
 }
 
-func (c *ModbusClient) SetValue(commandInfo interface{}, value []byte) error {
-	var modbusCommandInfo = commandInfo.(*CommandInfo)
-
-	// Write value to device
-	var result []byte
-	var err error
-
-	switch modbusCommandInfo.PrimaryTable {
-	case DISCRETES_INPUT:
-		err = fmt.Errorf("Error: DISCRETES_INPUT is Read-Only..!!")
-
-	case COILS:
-		result, err = c.client.WriteMultipleCoils(uint16(modbusCommandInfo.StartingAddress), modbusCommandInfo.Length, value)
-
-	case INPUT_REGISTERS:
-		err = fmt.Errorf("Error: INPUT_REGISTERS is Read-Only..!!")
-
-	case HOLDING_REGISTERS:
-		if modbusCommandInfo.Length == 1 {
-			result, err = c.client.WriteSingleRegister(uint16(modbusCommandInfo.StartingAddress), binary.BigEndian.Uint16(value))
-		} else {
-			result, err = c.client.WriteMultipleRegisters(uint16(modbusCommandInfo.StartingAddress), modbusCommandInfo.Length, value)
-		}
-	default:
-	}
-
+func (s *ModbusClient) WriteCoils(startingAddress uint16, length uint16, hexStr string) {
+	value, err := hex.DecodeString(hexStr)
 	if err != nil {
-		return err
+		logs.Error("ReadHoldingRegisters error: ", err)
+		return
+	}
+	result, err := s.client.WriteMultipleCoils(startingAddress, length, value)
+	if err != nil {
+		logs.Error("ReadHoldingRegisters error: ", err)
+		return
 	}
 	logs.Info(fmt.Sprintf("Modbus client SetValue successful, results: %v", result))
-
-	return nil
 }
 
-func NewDeviceClient(connectionInfo *ConnectionInfo) (*ModbusClient, error) {
+func (s *ModbusClient) WriteHoldingRegisters(startingAddress uint16, length uint16, hexStr string) {
+	var result []byte
+	var err error
+	value, err := hex.DecodeString(hexStr)
+	if err != nil {
+		logs.Error("ReadHoldingRegisters error: ", err)
+		return
+	}
+	if length == 1 {
+		result, err = s.client.WriteSingleRegister(startingAddress, binary.BigEndian.Uint16(value))
+		if err != nil {
+			logs.Error("WriteSingleRegister error: ", err)
+			return
+		}
+	} else {
+		result, err = s.client.WriteMultipleRegisters(startingAddress, length, value)
+		if err != nil {
+			logs.Error("WriteMultipleRegisters error: ", err)
+			return
+		}
+	}
+	logs.Info(fmt.Sprintf("Modbus client SetValue successful, results: %v", result))
+}
+
+func NewDeviceClient(protocol string, connectionInfo interface{}) (*ModbusClient, error) {
 	client := new(ModbusClient)
 	var err error
-	if connectionInfo.Protocol == ProtocolTCP {
+	var tcpInfo1 *tcpInfo
+	var rtuInfo1 *rtuInfo
+	if protocol == ProtocolTCP {
 		client.IsModbusTcp = true
+		tcpInfo1 = connectionInfo.(*tcpInfo)
+	} else {
+		rtuInfo1 = connectionInfo.(*rtuInfo)
 	}
 	if client.IsModbusTcp {
-		client.TCPClientHandler.Address = fmt.Sprintf("%s:%d", connectionInfo.Address, connectionInfo.Port)
-		client.TCPClientHandler.SlaveId = byte(connectionInfo.UnitID)
-		client.TCPClientHandler.Timeout = time.Duration(connectionInfo.Timeout) * time.Second
-		client.TCPClientHandler.IdleTimeout = time.Duration(connectionInfo.IdleTimeout) * time.Second
+		client.TCPClientHandler.Address = fmt.Sprintf("%s:%d", tcpInfo1.Address, tcpInfo1.Port)
+		client.TCPClientHandler.SlaveId = byte(tcpInfo1.UnitID)
+		client.TCPClientHandler.Timeout = time.Duration(tcpInfo1.Timeout) * time.Second
+		client.TCPClientHandler.IdleTimeout = time.Duration(tcpInfo1.IdleTimeout) * time.Second
 		client.TCPClientHandler.Logger = log.New(os.Stdout, "", log.LstdFlags)
 	} else {
-		serialParams := strings.Split(connectionInfo.Address, ",")
+		serialParams := strings.Split(rtuInfo1.Address, ",")
 		client.RTUClientHandler.Address = serialParams[0]
-		client.RTUClientHandler.SlaveId = byte(connectionInfo.UnitID)
-		client.RTUClientHandler.Timeout = time.Duration(connectionInfo.Timeout) * time.Second
-		client.RTUClientHandler.IdleTimeout = time.Duration(connectionInfo.IdleTimeout) * time.Second
-		client.RTUClientHandler.BaudRate = connectionInfo.BaudRate
-		client.RTUClientHandler.DataBits = connectionInfo.DataBits
-		client.RTUClientHandler.StopBits = connectionInfo.StopBits
-		client.RTUClientHandler.Parity = connectionInfo.Parity
+		client.RTUClientHandler.SlaveId = byte(rtuInfo1.UnitID)
+		client.RTUClientHandler.Timeout = time.Duration(rtuInfo1.Timeout) * time.Second
+		client.RTUClientHandler.IdleTimeout = time.Duration(rtuInfo1.IdleTimeout) * time.Second
+		client.RTUClientHandler.BaudRate = rtuInfo1.BaudRate
+		client.RTUClientHandler.DataBits = rtuInfo1.DataBits
+		client.RTUClientHandler.StopBits = rtuInfo1.StopBits
+		client.RTUClientHandler.Parity = rtuInfo1.Parity
 		client.RTUClientHandler.Logger = log.New(os.Stdout, "", log.LstdFlags)
 	}
 	return client, err

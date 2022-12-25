@@ -9,8 +9,8 @@ import (
 )
 
 func init() {
-	regCodecCreator(CodecIdScriptCode, func(network NetworkConf) (Codec, error) {
-		codec, err := newScriptCodec(network)
+	RegCodecCreator(CodecIdScriptCode, func(network NetworkConf) (Codec, error) {
+		codec, err := NewScriptCodec(network)
 		return codec, err
 	})
 }
@@ -26,7 +26,21 @@ const (
 	CodecIdScriptCode = "script_codec"
 )
 
-func newScriptCodec(network NetworkConf) (Codec, error) {
+// js脚本编解码
+type ScriptCodec struct {
+	script         string
+	productId      string
+	vm             *otto.Otto
+	onConnect      bool
+	onMessage      bool
+	onInvoke       bool
+	onDeviceCreate bool
+	onDeviceDelete bool
+	onDeviceUpdate bool
+	onStateChecker bool
+}
+
+func NewScriptCodec(network NetworkConf) (Codec, error) {
 	vm := otto.New()
 	_, err := vm.Run(network.Script)
 	if err != nil {
@@ -56,20 +70,6 @@ func newScriptCodec(network NetworkConf) (Codec, error) {
 	regDeviceLifeCycle(network.ProductId, sc)
 
 	return sc, nil
-}
-
-// js脚本编解码
-type ScriptCodec struct {
-	script         string
-	productId      string
-	vm             *otto.Otto
-	onConnect      bool
-	onMessage      bool
-	onInvoke       bool
-	onDeviceCreate bool
-	onDeviceDelete bool
-	onDeviceUpdate bool
-	onStateChecker bool
 }
 
 // 设备连接时

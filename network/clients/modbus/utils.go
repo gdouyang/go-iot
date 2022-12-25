@@ -19,9 +19,9 @@ func castStartingAddress(i interface{}) (uint16, error) {
 
 func normalizeRawType(rawType string) (normalized string, err error) {
 	switch strings.ToUpper(rawType) {
-	case UINT16:
+	case "UINT16":
 		normalized = "Uint16"
-	case INT16:
+	case "INT16":
 		normalized = "Int16"
 	default:
 		return "", fmt.Errorf("the raw type %s is not supported", rawType)
