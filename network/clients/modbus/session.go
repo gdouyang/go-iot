@@ -2,6 +2,7 @@ package modbus
 
 import (
 	"fmt"
+	"go-iot/codec"
 	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -39,44 +40,50 @@ func (s *session) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *session) ReadDiscreteInputs(startingAddress uint16, length uint16) string {
-	var resp string
-	s.connection(func() {
-		resp = s.client.ReadDiscreteInputs(startingAddress, length)
-	})
-	return resp
+func (s *session) ReadDiscreteInputs(startingAddress uint16, length uint16) {
+	s.getValue(DISCRETES_INPUT, startingAddress, length)
 }
-func (s *session) ReadCoils(startingAddress uint16, length uint16) string {
-	var resp string
-	s.connection(func() {
-		resp = s.client.ReadCoils(startingAddress, length)
-	})
-	return resp
+func (s *session) ReadCoils(startingAddress uint16, length uint16) {
+	s.getValue(COILS, startingAddress, length)
 }
-func (s *session) ReadInputRegisters(startingAddress uint16, length uint16) string {
-	var resp string
-	s.connection(func() {
-		resp = s.client.ReadInputRegisters(startingAddress, length)
-	})
-	return resp
+func (s *session) ReadInputRegisters(startingAddress uint16, length uint16) {
+	s.getValue(INPUT_REGISTERS, startingAddress, length)
 }
-func (s *session) ReadHoldingRegisters(startingAddress uint16, length uint16) string {
-	var resp string
+func (s *session) ReadHoldingRegisters(startingAddress uint16, length uint16) {
+	s.getValue(HOLDING_REGISTERS, startingAddress, length)
+}
+
+func (s *session) getValue(typ string, startingAddress uint16, length uint16) {
 	s.connection(func() {
-		resp = s.client.ReadHoldingRegisters(startingAddress, length)
+		data, err := s.client.GetValue(typ, startingAddress, length)
+		if err != nil {
+			return
+		}
+		cod := codec.GetCodec(s.productId)
+		if cod != nil {
+			cod.OnMessage(&context{
+				BaseContext: codec.BaseContext{
+					DeviceId:  s.deviceId,
+					ProductId: s.productId,
+					Session:   s,
+				},
+				Data: data,
+			})
+		}
 	})
-	return resp
 }
 
 func (s *session) WriteCoils(startingAddress uint16, length uint16, hexStr string) {
-	s.connection(func() {
-		s.client.WriteCoils(startingAddress, length, hexStr)
-	})
+	s.setValue(COILS, startingAddress, length, hexStr)
 }
 
 func (s *session) WriteHoldingRegisters(startingAddress uint16, length uint16, hexStr string) {
+	s.setValue(HOLDING_REGISTERS, startingAddress, length, hexStr)
+}
+
+func (s *session) setValue(typ string, startingAddress uint16, length uint16, hexStr string) {
 	s.connection(func() {
-		s.client.WriteHoldingRegisters(startingAddress, length, hexStr)
+		s.client.SetValue(typ, startingAddress, length, hexStr)
 	})
 }
 

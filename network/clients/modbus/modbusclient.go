@@ -3,6 +3,7 @@ package modbus
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -22,7 +23,8 @@ type ModbusClient struct {
 	// TCPClientHandler is ued for holding device RTU connection
 	RTUClientHandler MODBUS.RTUClientHandler
 
-	client MODBUS.Client
+	client    MODBUS.Client
+	productId string
 }
 
 func (c *ModbusClient) OpenConnection() error {
@@ -52,75 +54,68 @@ func (c *ModbusClient) CloseConnection() error {
 	return err
 }
 
-func (s *ModbusClient) ReadDiscreteInputs(startingAddress uint16, length uint16) string {
-	response, err := s.client.ReadDiscreteInputs(startingAddress, length)
-	if err != nil {
-		logs.Error("ReadDiscreteInputs error: ", err)
+func (c *ModbusClient) GetValue(typ string, startingAddress uint16, length uint16) ([]byte, error) {
+	// Reading value from device
+	var response []byte
+	var err error
+
+	switch typ {
+	case DISCRETES_INPUT:
+		response, err = c.client.ReadDiscreteInputs(startingAddress, length)
+	case COILS:
+		response, err = c.client.ReadCoils(startingAddress, length)
+
+	case INPUT_REGISTERS:
+		response, err = c.client.ReadInputRegisters(startingAddress, length)
+	case HOLDING_REGISTERS:
+		response, err = c.client.ReadHoldingRegisters(startingAddress, length)
+	default:
+		return response, errors.New("none supported primary table")
 	}
-	str := hex.EncodeToString(response)
-	return str
-}
-func (s *ModbusClient) ReadCoils(startingAddress uint16, length uint16) string {
-	response, err := s.client.ReadCoils(startingAddress, length)
+
 	if err != nil {
-		logs.Error("ReadCoils error: ", err)
+		return nil, err
 	}
-	str := hex.EncodeToString(response)
-	return str
-}
-func (s *ModbusClient) ReadInputRegisters(startingAddress uint16, length uint16) string {
-	response, err := s.client.ReadInputRegisters(startingAddress, length)
-	if err != nil {
-		logs.Error("ReadInputRegisters error: ", err)
-	}
-	str := hex.EncodeToString(response)
-	return str
-}
-func (s *ModbusClient) ReadHoldingRegisters(startingAddress uint16, length uint16) string {
-	response, err := s.client.ReadHoldingRegisters(startingAddress, length)
-	if err != nil {
-		logs.Error("ReadHoldingRegisters error: ", err)
-	}
-	str := hex.EncodeToString(response)
-	return str
+
+	logs.Info(fmt.Sprintf("Modbus client GetValue's results %v", response))
+
+	return response, nil
 }
 
-func (s *ModbusClient) WriteCoils(startingAddress uint16, length uint16, hexStr string) {
-	value, err := hex.DecodeString(hexStr)
-	if err != nil {
-		logs.Error("ReadHoldingRegisters error: ", err)
-		return
-	}
-	result, err := s.client.WriteMultipleCoils(startingAddress, length, value)
-	if err != nil {
-		logs.Error("ReadHoldingRegisters error: ", err)
-		return
-	}
-	logs.Info(fmt.Sprintf("Modbus client SetValue successful, results: %v", result))
-}
-
-func (s *ModbusClient) WriteHoldingRegisters(startingAddress uint16, length uint16, hexStr string) {
-	var result []byte
+func (c *ModbusClient) SetValue(typ string, startingAddress uint16, length uint16, hexStr string) error {
 	var err error
 	value, err := hex.DecodeString(hexStr)
 	if err != nil {
 		logs.Error("ReadHoldingRegisters error: ", err)
-		return
+		return err
 	}
-	if length == 1 {
-		result, err = s.client.WriteSingleRegister(startingAddress, binary.BigEndian.Uint16(value))
-		if err != nil {
-			logs.Error("WriteSingleRegister error: ", err)
-			return
+	// Write value to device
+	var result []byte
+
+	switch typ {
+	case DISCRETES_INPUT:
+		err = fmt.Errorf("error: DISCRETES_INPUT is Read-Only..!! ")
+	case COILS:
+		result, err = c.client.WriteMultipleCoils(startingAddress, length, value)
+
+	case INPUT_REGISTERS:
+		err = fmt.Errorf("error: INPUT_REGISTERS is Read-Only..!! ")
+
+	case HOLDING_REGISTERS:
+		if length == 1 {
+			result, err = c.client.WriteSingleRegister(startingAddress, binary.BigEndian.Uint16(value))
+		} else {
+			result, err = c.client.WriteMultipleRegisters(startingAddress, length, value)
 		}
-	} else {
-		result, err = s.client.WriteMultipleRegisters(startingAddress, length, value)
-		if err != nil {
-			logs.Error("WriteMultipleRegisters error: ", err)
-			return
-		}
+	default:
+	}
+
+	if err != nil {
+		return err
 	}
 	logs.Info(fmt.Sprintf("Modbus client SetValue successful, results: %v", result))
+
+	return nil
 }
 
 func NewDeviceClient(protocol string, connectionInfo interface{}) (*ModbusClient, error) {
