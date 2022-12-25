@@ -75,8 +75,6 @@ func (s *WebSocketServer) Start(network codec.NetworkConf) error {
 		}
 	}
 
-	codec.NewCodec(network)
-
 	go func() {
 		var err error
 		if spec.UseTLS {

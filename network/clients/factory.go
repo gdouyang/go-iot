@@ -16,8 +16,12 @@ func RegClient(f func() codec.NetClient) {
 func Connect(deviceId string, conf codec.NetworkConf) error {
 	t := codec.NetClientType(conf.Type)
 	if f, ok := m[t]; ok {
+		_, err := codec.NewCodec(conf)
+		if err != nil {
+			return err
+		}
 		s := f()
-		err := s.Connect(deviceId, conf)
+		err = s.Connect(deviceId, conf)
 		if err == nil {
 			instances[deviceId] = s
 		}

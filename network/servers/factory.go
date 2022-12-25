@@ -23,8 +23,12 @@ func StartServer(conf codec.NetworkConf) error {
 	}
 	t := codec.NetServerType(conf.Type)
 	if f, ok := m[t]; ok {
+		_, err := codec.NewCodec(conf)
+		if err != nil {
+			return err
+		}
 		s := f()
-		err := s.Start(conf)
+		err = s.Start(conf)
 		if err != nil {
 			return err
 		}

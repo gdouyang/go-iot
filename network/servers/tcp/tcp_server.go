@@ -58,9 +58,6 @@ func (s *TcpServer) Start(network codec.NetworkConf) error {
 		return err
 	}
 
-	// create codec
-	codec.NewCodec(network)
-
 	go s.run()
 	m[network.ProductId] = s
 	return nil

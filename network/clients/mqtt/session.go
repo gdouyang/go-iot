@@ -80,15 +80,10 @@ func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClie
 		return nil, token.Error()
 	}
 	session.client = client
-	c, err := codec.NewCodec(network)
-	if err != nil {
-		session.Disconnect()
-		return nil, err
-	}
-	session.codec = c
+	session.codec = codec.GetCodec(network.ProductId)
 	session.deviceOnline(deviceId)
 
-	c.OnConnect(&mqttClientContext{
+	session.codec.OnConnect(&mqttClientContext{
 		BaseContext: codec.BaseContext{
 			DeviceId:  session.GetDeviceId(),
 			ProductId: network.ProductId,

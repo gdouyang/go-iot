@@ -46,7 +46,6 @@ func (c *TcpClient) Connect(deviceId string, network codec.NetworkConf) error {
 	c.deviceId = deviceId
 	c.spec = spec
 
-	codec.NewCodec(network)
 	c.productId = network.ProductId
 
 	go c.readLoop()

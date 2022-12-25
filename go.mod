@@ -1,6 +1,6 @@
 module go-iot
 
-go 1.18
+go 1.19
 
 require (
 	github.com/beego/beego/v2 v2.0.2
@@ -8,9 +8,11 @@ require (
 	github.com/elastic/go-elasticsearch/v8 v8.4.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
+	github.com/goburrow/modbus v0.1.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f
 	github.com/robfig/cron/v3 v3.0.0
+	github.com/spf13/cast v1.5.0
 	github.com/stretchr/testify v1.8.1
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
@@ -21,6 +23,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/elastic/elastic-transport-go/v8 v8.1.0 // indirect
+	github.com/goburrow/serial v0.1.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
