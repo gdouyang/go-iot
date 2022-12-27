@@ -9,9 +9,28 @@ import (
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/core/logs"
 )
 
 func init() {
+	models.OnDbInit(func() {
+		o := orm.NewOrm()
+		qs := o.QueryTable(&models.Network{})
+		count, err := qs.Count()
+		if err == nil && count == 0 {
+			AddNetWork(&models.Network{Id: 1, Port: 9000, CodecId: codec.CodecIdScriptCode, State: models.Stop})
+			AddNetWork(&models.Network{Id: 2, Port: 9001, CodecId: codec.CodecIdScriptCode, State: models.Stop})
+			AddNetWork(&models.Network{Id: 3, Port: 9002, CodecId: codec.CodecIdScriptCode, State: models.Stop})
+			AddNetWork(&models.Network{Id: 4, Port: 9003, CodecId: codec.CodecIdScriptCode, State: models.Stop})
+			AddNetWork(&models.Network{Id: 5, Port: 9004, CodecId: codec.CodecIdScriptCode, State: models.Stop})
+			AddNetWork(&models.Network{Id: 6, Port: 9005, CodecId: codec.CodecIdScriptCode, State: models.Stop})
+			AddNetWork(&models.Network{Id: 7, Port: 9006, CodecId: codec.CodecIdScriptCode, State: models.Stop})
+			AddNetWork(&models.Network{Id: 8, Port: 9007, CodecId: codec.CodecIdScriptCode, State: models.Stop})
+			AddNetWork(&models.Network{Id: 9, Port: 9008, CodecId: codec.CodecIdScriptCode, State: models.Stop})
+			AddNetWork(&models.Network{Id: 10, Port: 9009, CodecId: codec.CodecIdScriptCode, State: models.Stop})
+			logs.Info("init networks")
+		}
+	})
 }
 
 // 分页查询设备
