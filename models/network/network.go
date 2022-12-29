@@ -128,7 +128,7 @@ func AddNetWorkTx(ob *models.Network, o orm.DML) error {
 		if err != nil {
 			return err
 		}
-		if rs.Id > 0 {
+		if rs != nil && rs.Id > 0 {
 			return fmt.Errorf("network exist of port[%d] ", ob.Port)
 		}
 	}
