@@ -228,8 +228,10 @@ func (t *EsTimeSeries) SaveLogs(product *Product, d1 LogData) error {
 
 func (t *EsTimeSeries) commit(index string, text string) {
 	o := `{ "index" : { "_index" : "` + index + `" } }` + "\n" + text + "\n"
-	logs.Info("commit data to es, chan length:", len(t.dataCh))
 	t.dataCh <- o
+	if len(t.dataCh) > 200 {
+		logs.Info("commit data to es, chan length:", len(t.dataCh))
+	}
 	if !t.batchTaskRun {
 		t.Lock()
 		defer t.Unlock()
