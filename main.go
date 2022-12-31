@@ -22,7 +22,9 @@ func main() {
 	configLog()
 	setDefaultConfig()
 
-	models.DefaultDbConfig.Url = getConfigString("db.url")
+	getConfigString("db.url", func(s string) {
+		models.DefaultDbConfig.Url = s
+	})
 	models.InitDb()
 
 	web.BConfig.RecoverFunc = defaultRecoverPanic
@@ -56,22 +58,37 @@ func defaultRecoverPanic(ctx *context.Context, cfg *web.Config) {
 
 func setDefaultConfig() {
 	{
-		codec.DefaultManagerId = getConfigString("device.manager.id")
+		getConfigString("device.manager.id", func(s string) {
+			codec.DefaultManagerId = s
+		})
 	}
 	{
-		codec.DefaultEsConfig.Url = getConfigString("es.url")
-		codec.DefaultEsConfig.Username = getConfigString("es.usename")
-		codec.DefaultEsConfig.Password = getConfigString("es.password")
+		getConfigString("es.url", func(s string) {
+			codec.DefaultEsConfig.Url = s
+		})
+		getConfigString("es.usename", func(s string) {
+			codec.DefaultEsConfig.Username = s
+		})
+		getConfigString("es.password", func(s string) {
+			codec.DefaultEsConfig.Password = s
+		})
 	}
 	{
-		codec.DefaultRedisConfig.Addr = getConfigString("redis.addr")
-		codec.DefaultRedisConfig.Password = getConfigString("redis.password")
+		getConfigString("redis.addr", func(s string) {
+			codec.DefaultRedisConfig.Addr = s
+		})
+		getConfigString("redis.password", func(s string) {
+			codec.DefaultRedisConfig.Password = s
+		})
 		codec.DefaultRedisConfig.DB = getConfigInt("redis.db")
 	}
 }
 
 func configLog() {
-	logLevel := getConfigString("logs.level")
+	var logLevel string
+	getConfigString("logs.level", func(s string) {
+		logLevel = s
+	})
 	level := 7
 	switch logLevel {
 	case "info":
@@ -81,10 +98,10 @@ func configLog() {
 	case "error":
 		level = logs.LevelError
 	}
-	filename := getConfigString("logs.filename")
-	if len(filename) == 0 {
+	var filename string = "go-iot.log"
+	getConfigString("logs.filename", func(s string) {
 		filename = "go-iot.log"
-	}
+	})
 	logs.GetBeeLogger().SetLevel(level)
 	err := logs.SetLogger(logs.AdapterFile, fmt.Sprintf(`{"filename":"%s","level":%d,"maxlines":0,
 	"maxsize":0,"daily":true,"maxdays":10,"color":false}`, filename, level))
@@ -93,12 +110,15 @@ func configLog() {
 	}
 }
 
-func getConfigString(key string) string {
+func getConfigString(key string, callback func(string)) {
 	data, err := config.String(key)
 	if err != nil {
 		panic(err)
 	}
-	return strings.TrimSpace(data)
+	val := strings.TrimSpace(data)
+	if len(val) > 0 {
+		callback(val)
+	}
 }
 func getConfigInt(key string) int {
 	data, err := config.Int(key)

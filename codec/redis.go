@@ -1,7 +1,10 @@
 package codec
 
 import (
+	"context"
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -19,6 +22,12 @@ func GetRedisClient() *redis.Client {
 			DB:       DefaultRedisConfig.DB,
 			PoolSize: DefaultRedisConfig.PoolSize,
 		})
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		defer cancel()
+		err := rdb.Ping(ctx).Err()
+		if err != nil {
+			panic(fmt.Sprintf("redis connect error: %v", DefaultRedisConfig))
+		}
 	}
 	return rdb
 }
