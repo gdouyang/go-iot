@@ -3,6 +3,7 @@ package mqttserver
 import (
 	"errors"
 	"go-iot/codec"
+	"io"
 	"net"
 	"reflect"
 	"sync"
@@ -135,7 +136,9 @@ func (c *Client) readLoop() {
 		logs.Debug("client %s readLoop read packet", c.info.cid)
 		packet, err := packets.ReadPacket(c.conn)
 		if err != nil {
-			logs.Error("client %s read packet failed: %v", c.info.cid, err)
+			if err != io.EOF {
+				logs.Error("client %s read packet failed: %v", c.info.cid, err)
+			}
 			return
 		}
 		if _, ok := packet.(*packets.DisconnectPacket); ok {
