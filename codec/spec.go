@@ -233,7 +233,7 @@ func (ctx *BaseContext) _saveProperties(eventId string, data map[string]interfac
 		return
 	}
 	if ctx.GetDevice() == nil {
-		logs.Warn("device is offline")
+		logs.Warn("device [%s] is offline", ctx.DeviceId)
 		return
 	}
 	data["deviceId"] = ctx.DeviceId

@@ -192,6 +192,9 @@ func (c *Client) close() {
 	c.broker.removeClient(c.info.cid)
 	c.conn.Close()
 	c.Unlock()
+	if c.session != nil {
+		c.session.Disconnect()
+	}
 }
 
 func (c *Client) disconnected() bool {

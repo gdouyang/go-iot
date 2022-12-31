@@ -61,6 +61,7 @@ func setDefaultConfig() {
 		getConfigString("device.manager.id", func(s string) {
 			codec.DefaultManagerId = s
 		})
+		logs.Info("default device manager: ", codec.DefaultManagerId)
 	}
 	{
 		getConfigString("es.url", func(s string) {
@@ -72,6 +73,7 @@ func setDefaultConfig() {
 		getConfigString("es.password", func(s string) {
 			codec.DefaultEsConfig.Password = s
 		})
+		logs.Info("es config: ", codec.DefaultEsConfig)
 	}
 	{
 		getConfigString("redis.addr", func(s string) {
@@ -81,6 +83,7 @@ func setDefaultConfig() {
 			codec.DefaultRedisConfig.Password = s
 		})
 		codec.DefaultRedisConfig.DB = getConfigInt("redis.db")
+		logs.Info("redis config: ", codec.DefaultRedisConfig)
 	}
 }
 
