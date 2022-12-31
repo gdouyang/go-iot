@@ -88,6 +88,7 @@ func setDefaultConfig() {
 }
 
 func configLog() {
+	logs.Async(1e3)
 	var logLevel string
 	getConfigString("logs.level", func(s string) {
 		logLevel = s
