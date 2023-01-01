@@ -33,7 +33,7 @@ type DeviceImportController struct {
 
 // 查询设备列表
 func (ctl *DeviceImportController) Download() {
-	if ctl.isForbidden(deviceResource, QueryAction) {
+	if ctl.isForbidden(deviceResource, ImportAction) {
 		return
 	}
 	productId := ctl.Param(":productId")
@@ -68,7 +68,7 @@ var sseCache map[string]string = make(map[string]string)
 
 // 查询单个设备
 func (ctl *DeviceImportController) Import() {
-	if ctl.isForbidden(deviceResource, QueryAction) {
+	if ctl.isForbidden(deviceResource, ImportAction) {
 		return
 	}
 	productId := ctl.Param(":productId")

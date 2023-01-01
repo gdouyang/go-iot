@@ -25,6 +25,7 @@ var deviceResource = Resource{
 		CretaeAction,
 		SaveAction,
 		DeleteAction,
+		ImportAction,
 	},
 }
 
