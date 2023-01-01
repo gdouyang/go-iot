@@ -4,12 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"time"
 
 	"go-iot/models"
 
 	"github.com/beego/beego/v2/client/orm"
 )
+
+func DeviceIdValid(deviceId string) bool {
+	matched, _ := regexp.Match("^[0-9a-zA-Z_\\-]+$", []byte(deviceId))
+	return matched
+}
 
 // 分页查询设备
 func PageDevice(page *models.PageQuery, createId int64) (*models.PageResult, error) {
@@ -74,6 +80,9 @@ func ListClientDeviceByProductId(productId string) ([]string, error) {
 func AddDevice(ob *models.Device) error {
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
 		return errors.New("id, name must be present")
+	}
+	if !DeviceIdValid(ob.Id) {
+		return errors.New("deviceId is invalid")
 	}
 	rs, err := GetDevice(ob.Id)
 	if err != nil {

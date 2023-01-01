@@ -41,6 +41,8 @@ func init() {
 		web.NSRouter("/:id/disconnect", &DeviceController{}, "post:Disconnect"),
 		web.NSRouter("/:id/deploy", &DeviceController{}, "post:Deploy"),
 		web.NSRouter("/:id/undeploy", &DeviceController{}, "post:Undeploy"),
+		web.NSRouter("/batch/_deploy", &DeviceController{}, "post:BatchDeploy"),
+		web.NSRouter("/batch/_undeploy", &DeviceController{}, "post:BatchUndeploy"),
 		web.NSRouter("/:id/cmd", &DeviceController{}, "post:CmdInvoke"),
 		web.NSRouter("/propertys/:id/query", &DeviceController{}, "post:QueryProperty"),
 	)
@@ -317,20 +319,7 @@ func (ctl *DeviceController) Deploy() {
 		return
 	}
 	deviceId := ctl.Param(":id")
-	dev, err := ctl.getDeviceAndCheckCreateId(deviceId)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	if len(dev.State) == 0 || dev.State == models.NoActive {
-		device.UpdateOnlineStatus(deviceId, models.OFFLINE)
-	}
-	devopr := codec.GetDevice(dev.Id)
-	if devopr == nil {
-		devopr = codec.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
-	}
-	devopr.Config = dev.Metaconfig
-	codec.PutDevice(devopr)
+	ctl.enable(deviceId, true)
 	ctl.RespOk()
 }
 
@@ -339,14 +328,61 @@ func (ctl *DeviceController) Undeploy() {
 		return
 	}
 	deviceId := ctl.Param(":id")
-	_, err := ctl.getDeviceAndCheckCreateId(deviceId)
+	ctl.enable(deviceId, false)
+	// TODO
+	ctl.RespOk()
+}
+
+func (ctl *DeviceController) BatchDeploy() {
+	if ctl.isForbidden(deviceResource, SaveAction) {
+		return
+	}
+	var deviceIds []string
+	ctl.BindJSON(&deviceIds)
+	if len(deviceIds) == 0 {
+		ctl.RespError(errors.New("ids must be persent"))
+	}
+	for _, deviceId := range deviceIds {
+		ctl.enable(deviceId, true)
+	}
+	ctl.RespOk()
+}
+
+func (ctl *DeviceController) BatchUndeploy() {
+	if ctl.isForbidden(deviceResource, SaveAction) {
+		return
+	}
+	var deviceIds []string
+	ctl.BindJSON(&deviceIds)
+	if len(deviceIds) == 0 {
+		ctl.RespError(errors.New("ids must be persent"))
+	}
+	for _, deviceId := range deviceIds {
+		ctl.enable(deviceId, false)
+	}
+	// TODO
+	ctl.RespOk()
+}
+
+func (ctl *DeviceController) enable(deviceId string, isEnable bool) {
+	dev, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	device.UpdateOnlineStatus(deviceId, models.NoActive)
-	// TODO
-	ctl.RespOk()
+	if isEnable {
+		if len(dev.State) == 0 || dev.State == models.NoActive {
+			device.UpdateOnlineStatus(deviceId, models.OFFLINE)
+		}
+		devopr := codec.GetDevice(dev.Id)
+		if devopr == nil {
+			devopr = codec.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
+		}
+		devopr.Config = dev.Metaconfig
+		codec.PutDevice(devopr)
+	} else {
+		device.UpdateOnlineStatus(deviceId, models.NoActive)
+	}
 }
 
 // 命令下发

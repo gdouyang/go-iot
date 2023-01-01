@@ -2,6 +2,7 @@ package codec
 
 import (
 	"errors"
+	"fmt"
 	"go-iot/codec/tsl"
 	"strings"
 
@@ -63,6 +64,14 @@ type (
 		Password string
 	}
 )
+
+func (r RedisConfig) String() string {
+	return fmt.Sprintf("[addr=%s, db=%v, poolSize=%v]", r.Addr, r.DB, r.PoolSize)
+}
+
+func (r EsConfig) String() string {
+	return fmt.Sprintf("[url=%s, username=%v]", r.Url, r.Username)
+}
 
 var DefaultRedisConfig RedisConfig = RedisConfig{
 	Addr:     "127.0.0:6379",

@@ -78,6 +78,9 @@ func AddProduct(ob *models.Product, networkType string) error {
 	if len(ob.Id) > 32 {
 		return errors.New("id length must less 32")
 	}
+	if !DeviceIdValid(ob.Id) {
+		return errors.New("productId is invalid")
+	}
 	rs, err := GetProduct(ob.Id)
 	if err != nil {
 		return err
