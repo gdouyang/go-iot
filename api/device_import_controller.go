@@ -131,22 +131,19 @@ func (ctl *DeviceImportController) Import() {
 				total = total + 1
 			}
 			if total%5 == 0 {
-				{
-					mutex := sync.Mutex{}
-					mutex.Lock()
-					defer mutex.Unlock()
-					sseCache[token] = fmt.Sprintf(resp, false, total)
-				}
+				setSseData(token, fmt.Sprintf(resp, false, total))
 			}
 		}
-		{
-			mutex := sync.Mutex{}
-			mutex.Lock()
-			defer mutex.Unlock()
-			sseCache[token] = fmt.Sprintf(resp, true, total)
-		}
+		setSseData(token, fmt.Sprintf(resp, true, total))
 	}()
 	ctl.RespOkData(token)
+}
+
+func setSseData(token string, val string) {
+	mutex := sync.Mutex{}
+	mutex.Lock()
+	defer mutex.Unlock()
+	sseCache[token] = val
 }
 
 func (ctl *DeviceImportController) ImportProcess() {
@@ -164,12 +161,7 @@ func (ctl *DeviceImportController) ImportProcess() {
 		if len(sseCache[token]) > 0 {
 			fmt.Fprintf(w, "data: %s\n\n", sseCache[token])
 
-			{
-				mutex := sync.Mutex{}
-				mutex.Lock()
-				defer mutex.Unlock()
-				sseCache[token] = ""
-			}
+			setSseData(token, "")
 
 			flusher.Flush()
 		}
