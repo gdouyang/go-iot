@@ -17,8 +17,10 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
+var batchBufferSize int = 1000
+
 func init() {
-	timeSeriseMap[TIME_SERISE_ES] = &EsTimeSeries{dataCh: make(chan string, 1000)}
+	timeSeriseMap[TIME_SERISE_ES] = &EsTimeSeries{dataCh: make(chan string, batchBufferSize)}
 }
 
 const (
@@ -229,7 +231,7 @@ func (t *EsTimeSeries) SaveLogs(product *Product, d1 LogData) error {
 func (t *EsTimeSeries) commit(index string, text string) {
 	o := `{ "index" : { "_index" : "` + index + `" } }` + "\n" + text + "\n"
 	t.dataCh <- o
-	if len(t.dataCh) > 200 {
+	if len(t.dataCh) > (batchBufferSize / 2) {
 		logs.Info("commit data to es, chan length:", len(t.dataCh))
 	}
 	if !t.batchTaskRun {
@@ -243,11 +245,11 @@ func (t *EsTimeSeries) commit(index string, text string) {
 func (t *EsTimeSeries) batchSave() {
 	for {
 		select {
-		case <-time.After(time.Duration(1) * time.Millisecond * 5000):
+		case <-time.After(time.Millisecond * 5000): // every 5 sec save data
 			t.save()
 		case d := <-t.dataCh:
 			t.batchData = append(t.batchData, d)
-			if len(t.batchData) >= 10 {
+			if len(t.batchData) >= 100 {
 				t.save()
 			}
 		}
