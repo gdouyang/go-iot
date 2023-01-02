@@ -19,26 +19,26 @@ func (s *modbusSpec) FromJson(str string) error {
 }
 
 type tcpInfo struct {
-	Address string
-	Port    int
-	UnitID  uint8
+	Address string `json:"address"`
+	Port    int    `json:"port"`
+	UnitID  uint8  `json:"unitID"`
 	// Connect & Read timeout(seconds)
-	Timeout int
+	Timeout int `json:"timeout"`
 	// Idle timeout(seconds) to close the connection
-	IdleTimeout int
+	IdleTimeout int `json:"idleTimeout"`
 }
 
 type rtuInfo struct {
-	Address  string
-	BaudRate int
-	DataBits int
-	StopBits int
-	Parity   string
-	UnitID   uint8
+	Address  string `json:"address"`
+	BaudRate int    `json:"baudRate"`
+	DataBits int    `json:"dataBits"`
+	StopBits int    `json:"stopBits"`
+	Parity   string `json:"parity"`
+	UnitID   uint8  `json:"unitID"`
 	// Connect & Read timeout(seconds)
-	Timeout int
+	Timeout int `json:"timeout"`
 	// Idle timeout(seconds) to close the connection
-	IdleTimeout int
+	IdleTimeout int `json:"idleTimeout"`
 }
 
 func createRTUConnectionInfo(rtuProtocol string) (info *rtuInfo, err error) {

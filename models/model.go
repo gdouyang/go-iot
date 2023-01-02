@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"go-iot/codec"
 	"go-iot/ruleengine"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -39,13 +40,13 @@ func (d *DeviceModel) ToEnitty() Device {
 // product
 type ProductModel struct {
 	Product
-	Metaconfig []ProductMetaConfig `json:"metaconfig,omitempty"`
+	Metaconfig []codec.ProductMetaConfig `json:"metaconfig,omitempty"`
 }
 
 func (d *ProductModel) FromEnitty(en Product) {
 	d.Product = en
 	if len(en.Metaconfig) > 0 {
-		m := []ProductMetaConfig{}
+		m := []codec.ProductMetaConfig{}
 		err := json.Unmarshal([]byte(en.Metaconfig), &m)
 		if err != nil {
 			logs.Error(err)
@@ -63,15 +64,6 @@ func (d *ProductModel) ToEnitty() Product {
 		en.Metaconfig = string(v)
 	}
 	return en
-}
-
-// product meta config
-type ProductMetaConfig struct {
-	Property string `json:"property,omitempty"`
-	Type     string `json:"type,omitempty"`
-	Value    string `json:"value,omitempty"`
-	Buildin  bool   `json:"buildin,omitempty"`
-	Desc     string `json:"desc,omitempty"`
 }
 
 // scene

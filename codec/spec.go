@@ -63,6 +63,14 @@ type (
 		Username string
 		Password string
 	}
+	// product meta config
+	ProductMetaConfig struct {
+		Property string `json:"property,omitempty"`
+		Type     string `json:"type,omitempty"`
+		Value    string `json:"value,omitempty"`
+		Buildin  bool   `json:"buildin,omitempty"`
+		Desc     string `json:"desc,omitempty"`
+	}
 )
 
 func (r RedisConfig) String() string {

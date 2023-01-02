@@ -20,8 +20,8 @@ const (
 	MQTT_CLIENT NetClientType = "MQTT_CLIENT"
 	// TCP客户端
 	TCP_CLIENT NetClientType = "TCP_CLIENT"
-	// MODBUS_TCP
-	MODBUS_TCP NetClientType = "MODBUS_TCP"
+	// MODBUS
+	MODBUS NetClientType = "MODBUS"
 )
 
 func IsNetClientType(str string) bool {

@@ -1,7 +1,6 @@
 package modbus
 
 import (
-	"errors"
 	"fmt"
 	"go-iot/codec"
 	"go-iot/network/clients"
@@ -21,7 +20,7 @@ func NewClient() *Client {
 }
 
 func (c *Client) Type() codec.NetClientType {
-	return codec.MODBUS_TCP
+	return codec.MODBUS
 }
 func (c *Client) Connect(deviceId string, network codec.NetworkConf) error {
 	spec := &modbusSpec{}
@@ -30,7 +29,7 @@ func (c *Client) Connect(deviceId string, network codec.NetworkConf) error {
 		return err
 	}
 	if len(spec.Protocol) == 0 {
-		return errors.New("modbus conf protocol must be present")
+		spec.Protocol = ProtocolTCP
 	}
 	if spec.Protocol != ProtocolTCP && spec.Protocol != ProtocolRTU {
 		return fmt.Errorf("modbus protocol must be %s or %s", ProtocolTCP, ProtocolRTU)
