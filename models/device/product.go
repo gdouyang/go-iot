@@ -103,6 +103,11 @@ func AddProduct(ob *models.Product, networkType string) error {
 			c, _ := json.Marshal(list)
 			ob.Metaconfig = string(c)
 		}
+		if codec.MODBUS == codec.NetClientType(networkType) {
+			list := clients.ModbusMetaconfig()
+			c, _ := json.Marshal(list)
+			ob.Metaconfig = string(c)
+		}
 		_, err := txOrm.Insert(ob)
 		if err != nil {
 			return err
