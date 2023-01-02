@@ -2,7 +2,9 @@ package codec
 
 import (
 	"errors"
+	"fmt"
 	"runtime/debug"
+	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/robertkrimen/otto"
@@ -51,6 +53,7 @@ func NewScriptCodec(network NetworkConf) (Codec, error) {
 		productId: network.ProductId,
 		vm:        vm,
 	}
+	consoleRewirte(vm)
 	var val, _ = vm.Get(OnConnect)
 	sc.onConnect = val.IsDefined()
 	val, _ = vm.Get(OnMessage)
@@ -153,4 +156,24 @@ func (c *ScriptCodec) funcInvoke(name string, param interface{}) otto.Value {
 		return resp
 	}
 	return otto.Value{}
+}
+
+func formatForConsole(argumentList []otto.Value) string {
+	output := []string{}
+	for _, argument := range argumentList {
+		output = append(output, fmt.Sprintf("%v", argument))
+	}
+	return strings.Join(output, " ")
+}
+
+func consoleRewirte(vm *otto.Otto) {
+	console, _ := vm.Get("console")
+	console.Object().Set("log", func(call otto.FunctionCall) otto.Value {
+		logs.Debug(formatForConsole(call.ArgumentList))
+		return otto.Value{}
+	})
+	console.Object().Set("error", func(call otto.FunctionCall) otto.Value {
+		logs.Warn(formatForConsole(call.ArgumentList))
+		return otto.Value{}
+	})
 }
