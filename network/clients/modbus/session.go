@@ -39,6 +39,7 @@ func (s *session) Disconnect() error {
 		codec.DelSession(s.deviceId)
 		s.stopped = true
 		close(s.done)
+		close(s.lock)
 	}
 	return nil
 }
