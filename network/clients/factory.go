@@ -63,8 +63,8 @@ func ModbusMetaconfig() []codec.ProductMetaConfig {
 		{Property: "address", Type: "string", Buildin: true, Desc: "The host of remote [127.0.0.1]"},
 		{Property: "port", Type: "number", Buildin: true, Desc: "The port of remote"},
 		{Property: "unitID", Type: "number", Buildin: true, Desc: ""},
-		{Property: "timeout", Type: "number", Buildin: true, Desc: "Connect & Read timeout(seconds)"},
-		{Property: "idleTimeout", Type: "number", Buildin: true, Desc: "Idle timeout(seconds) to close the connection"},
+		{Property: "timeout", Type: "number", Buildin: true, Value: "5", Desc: "Connect & Read timeout(seconds)"},
+		{Property: "idleTimeout", Type: "number", Buildin: true, Value: "5", Desc: "Idle timeout(seconds) to close the connection"},
 
 		// {Property: "baudRate", Type: "number", Buildin: true, Desc: ""},
 		// {Property: "dataBits", Type: "number", Buildin: true, Desc: ""},

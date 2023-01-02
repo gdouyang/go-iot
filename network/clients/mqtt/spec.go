@@ -3,8 +3,11 @@ package mqttclient
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"go-iot/codec"
 	"go-iot/network/servers"
+	"strconv"
 )
 
 type MQTTClientSpec struct {
@@ -42,4 +45,17 @@ func (spec *MQTTClientSpec) TlsConfig() (*tls.Config, error) {
 	}
 
 	return &tls.Config{Certificates: certificates}, nil
+}
+
+func (spec *MQTTClientSpec) SetByConfig(devoper *codec.Device) error {
+	spec.Host = devoper.GetConfig("host")
+	port, err := strconv.Atoi(devoper.GetConfig("port"))
+	if err != nil {
+		return errors.New("port is not number")
+	}
+	spec.Port = int32(port)
+	spec.ClientId = devoper.GetConfig("clientId")
+	spec.Username = devoper.GetConfig("username")
+	spec.Password = devoper.GetConfig("password")
+	return nil
 }

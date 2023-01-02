@@ -10,9 +10,9 @@ import (
 	device "go-iot/models/device"
 	"go-iot/models/network"
 	"go-iot/network/clients"
+	modbus "go-iot/network/clients/modbus"
 	mqttclient "go-iot/network/clients/mqtt"
 	tcpclient "go-iot/network/clients/tcp"
-	"strconv"
 
 	"github.com/beego/beego/v2/server/web"
 )
@@ -240,9 +240,6 @@ func connectClientDevice(deviceId string) error {
 	if nw == nil {
 		return fmt.Errorf("product [%s] not have network config", dev.ProductId)
 	}
-	if !codec.IsNetClientType(nw.Type) {
-		return errors.New("only client type net can do it")
-	}
 	// 进行连接
 	devoper := codec.GetDevice(deviceId)
 	if devoper == nil {
@@ -254,12 +251,10 @@ func connectClientDevice(deviceId string) error {
 		if err != nil {
 			return err
 		}
-		spec.Host = devoper.GetConfig("host")
-		port, err := strconv.Atoi(devoper.GetConfig("port"))
+		err = spec.SetByConfig(devoper)
 		if err != nil {
-			return errors.New("port is not number")
+			return err
 		}
-		spec.Port = int32(port)
 		b, _ := json.Marshal(spec)
 		nw.Configuration = string(b)
 	} else if codec.MQTT_CLIENT == codec.NetClientType(nw.Type) {
@@ -268,17 +263,22 @@ func connectClientDevice(deviceId string) error {
 		if err != nil {
 			return err
 		}
-		spec.Host = devoper.GetConfig("host")
-		port, err := strconv.Atoi(devoper.GetConfig("port"))
+		err = spec.SetByConfig(devoper)
 		if err != nil {
-			return errors.New("port is not number")
+			return err
 		}
-		spec.Port = int32(port)
-		spec.ClientId = devoper.GetConfig("clientId")
-		spec.Username = devoper.GetConfig("username")
-		spec.Password = devoper.GetConfig("password")
 		b, _ := json.Marshal(spec)
 		nw.Configuration = string(b)
+	} else if codec.MODBUS == codec.NetClientType(nw.Type) {
+		spec := &modbus.ModbusSpec{}
+		err = spec.SetTcpByConfig(devoper)
+		if err != nil {
+			return err
+		}
+		b, _ := json.Marshal(spec)
+		nw.Configuration = string(b)
+	} else {
+		return fmt.Errorf("unsupport type %s", nw.Type)
 	}
 	err = clients.Connect(deviceId, convertCodecNetwork(*nw))
 	if err != nil {

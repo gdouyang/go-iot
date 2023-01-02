@@ -23,7 +23,7 @@ func (c *Client) Type() codec.NetClientType {
 	return codec.MODBUS
 }
 func (c *Client) Connect(deviceId string, network codec.NetworkConf) error {
-	spec := &modbusSpec{}
+	spec := &ModbusSpec{}
 	err := spec.FromJson(network.Configuration)
 	if err != nil {
 		return err

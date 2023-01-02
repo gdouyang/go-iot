@@ -134,13 +134,13 @@ func (s *session) unlockAddress(address string) {
 
 // lockableAddress return the lockable address according to the protocol
 func (s *session) lockableAddress(info interface{}) string {
-	var tcpInfo1 *tcpInfo
-	var rtuInfo1 *rtuInfo
+	var tcpInfo1 *TcpInfo
+	var rtuInfo1 *RtuInfo
 	var address string
 	if s.protocol == ProtocolTCP {
 		address = fmt.Sprintf("%s:%d", tcpInfo1.Address, tcpInfo1.Port)
 	} else {
-		rtuInfo1 = info.(*rtuInfo)
+		rtuInfo1 = info.(*RtuInfo)
 		address = rtuInfo1.Address
 	}
 	return address

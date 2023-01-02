@@ -121,13 +121,13 @@ func (c *ModbusClient) SetValue(typ string, startingAddress uint16, length uint1
 func NewDeviceClient(protocol string, connectionInfo interface{}) (*ModbusClient, error) {
 	client := new(ModbusClient)
 	var err error
-	var tcpInfo1 *tcpInfo
-	var rtuInfo1 *rtuInfo
+	var tcpInfo1 *TcpInfo
+	var rtuInfo1 *RtuInfo
 	if protocol == ProtocolTCP {
 		client.IsModbusTcp = true
-		tcpInfo1 = connectionInfo.(*tcpInfo)
+		tcpInfo1 = connectionInfo.(*TcpInfo)
 	} else {
-		rtuInfo1 = connectionInfo.(*rtuInfo)
+		rtuInfo1 = connectionInfo.(*RtuInfo)
 	}
 	if client.IsModbusTcp {
 		client.TCPClientHandler.Address = fmt.Sprintf("%s:%d", tcpInfo1.Address, tcpInfo1.Port)

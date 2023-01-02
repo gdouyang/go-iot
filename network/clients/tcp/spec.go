@@ -3,9 +3,12 @@ package tcpclient
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"go-iot/codec"
 	"go-iot/network/servers"
 	tcpserver "go-iot/network/servers/tcp"
+	"strconv"
 )
 
 type (
@@ -45,4 +48,14 @@ func (spec *TcpClientSpec) TlsConfig() (*tls.Config, error) {
 	}
 
 	return &tls.Config{Certificates: certificates}, nil
+}
+
+func (spec *TcpClientSpec) SetByConfig(devoper *codec.Device) error {
+	spec.Host = devoper.GetConfig("host")
+	port, err := strconv.Atoi(devoper.GetConfig("port"))
+	if err != nil {
+		return errors.New("port is not number")
+	}
+	spec.Port = int32(port)
+	return nil
 }
