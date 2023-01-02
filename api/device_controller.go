@@ -435,7 +435,7 @@ func (ctl *DeviceController) QueryProperty() {
 	}
 	product := codec.GetProduct(device.ProductId)
 	if product == nil {
-		ctl.RespError(fmt.Errorf("not found product %s", device.ProductId))
+		ctl.RespError(fmt.Errorf("not found product %s, make sure product is deployed", device.ProductId))
 		return
 	}
 	res, err := product.GetTimeSeries().QueryProperty(product, param)
