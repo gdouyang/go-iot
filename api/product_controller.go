@@ -374,16 +374,16 @@ func (ctl *ProductController) RunNetwork() {
 		ctl.RespError(errors.New("product not have network, config network first"))
 		return
 	}
-	if codec.IsNetClientType(nw.Type) {
-		ctl.RespError(errors.New("client type net cant run"))
-		return
-	}
 	if len(nw.Type) == 0 {
 		ctl.RespError(errors.New("type of network must be present"))
 		return
 	}
 	if len(nw.Script) == 0 {
 		ctl.RespError(errors.New("script must be present"))
+		return
+	}
+	if codec.IsNetClientType(nw.Type) {
+		ctl.RespError(errors.New("client type net cant run"))
 		return
 	}
 	if state == "start" {

@@ -25,7 +25,7 @@ const (
 )
 
 func IsNetClientType(str string) bool {
-	return TCP_CLIENT == NetClientType(str) || MQTT_CLIENT == NetClientType(str)
+	return TCP_CLIENT == NetClientType(str) || MQTT_CLIENT == NetClientType(str) || MODBUS == NetClientType(str)
 }
 
 // 网络配置
