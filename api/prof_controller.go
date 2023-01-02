@@ -1,7 +1,10 @@
 package api
 
 import (
-	"runtime/pprof"
+	// "runtime/pprof"
+
+	"net/http/pprof"
+	"strings"
 
 	"github.com/beego/beego/v2/server/web"
 )
@@ -17,6 +20,15 @@ var profResource = Resource{
 func init() {
 	ns := web.NewNamespace("/api/prof",
 		web.NSRouter("/", &ProfController{}, "get:Get"),
+		web.NSRouter("/allocs", &ProfController{}, "get:Get"),
+		web.NSRouter("/block", &ProfController{}, "get:Get"),
+		web.NSRouter("/goroutine", &ProfController{}, "get:Get"),
+		web.NSRouter("/cmdline", &ProfController{}, "get:Get"),
+		web.NSRouter("/heap", &ProfController{}, "get:Get"),
+		web.NSRouter("/mutex", &ProfController{}, "get:Get"),
+		web.NSRouter("/profile", &ProfController{}, "get:Get"),
+		web.NSRouter("/threadcreate", &ProfController{}, "get:Get"),
+		web.NSRouter("/trace", &ProfController{}, "get:Get"),
 	)
 	web.AddNamespace(ns)
 
@@ -31,10 +43,6 @@ func (ctl *ProfController) Get() {
 	if ctl.isForbidden(profResource, QueryAction) {
 		return
 	}
-	var resp map[string]interface{} = make(map[string]interface{})
-	profiles := pprof.Profiles()
-	for _, profile := range profiles {
-		resp[profile.Name()] = profile.Count()
-	}
-	ctl.RespOkData(resp)
+	ctl.Ctx.Request.URL.Path = strings.Replace(ctl.Ctx.Request.URL.Path, "/api/prof/", "/debug/pprof/", 1)
+	pprof.Index(ctl.Ctx.ResponseWriter.ResponseWriter, ctl.Ctx.Request)
 }
