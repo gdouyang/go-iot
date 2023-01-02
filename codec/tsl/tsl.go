@@ -3,6 +3,7 @@ package tsl
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -120,6 +121,10 @@ func (p *TslFunction) UnmarshalJSON(d []byte) error {
 	if err != nil {
 		return fmt.Errorf("function of tsl has error: [%s], data: %s", err.Error(), string(d))
 	}
+	err = idCheck(alias.Id)
+	if err != nil {
+		return err
+	}
 	p.Id = alias.Id
 	p.Name = alias.Name
 	p.Async = alias.Async
@@ -144,6 +149,10 @@ func (e *TslEvent) UnmarshalJSON(d []byte) error {
 	if err != nil {
 		return fmt.Errorf("event of tsl has error: [%s], data: %s", err.Error(), string(d))
 	}
+	err = idCheck(alias.Id)
+	if err != nil {
+		return err
+	}
 	e.Id = alias.Id
 	e.Name = alias.Name
 	e.Properties = alias.Properties
@@ -159,11 +168,11 @@ func (e *TslEvent) PropertiesMap() map[string]TslProperty {
 }
 
 type TslProperty struct {
-	Id        string                 `json:"id"`
-	Name      string                 `json:"name"`
-	ValueType interface{}            `json:"valueType"`
-	Expands   map[string]interface{} `json:"expands,omitempty"`
-	Type      string                 `json:"-"`
+	Id        string            `json:"id"`
+	Name      string            `json:"name"`
+	ValueType interface{}       `json:"valueType"`
+	Expands   map[string]string `json:"expands,omitempty"`
+	Type      string            `json:"-"`
 }
 
 func (p *TslProperty) UnmarshalJSON(d []byte) error {
@@ -171,7 +180,7 @@ func (p *TslProperty) UnmarshalJSON(d []byte) error {
 		Id        string                 `json:"id"`
 		Name      string                 `json:"name"`
 		ValueType map[string]interface{} `json:"valueType"`
-		Expands   map[string]interface{} `json:"expands,omitempty"`
+		Expands   map[string]string      `json:"expands,omitempty"`
 		Type      string                 `json:"-"`
 	}
 	err := json.Unmarshal(d, &alias)
@@ -186,6 +195,10 @@ func (p *TslProperty) UnmarshalJSON(d []byte) error {
 		return fmt.Errorf("id of tslProperty must be persent")
 	}
 	p.Id = alias.Id
+	err = idCheck(p.Id)
+	if err != nil {
+		return err
+	}
 	p.Name = alias.Name
 	p.Expands = alias.Expands
 	p.Type = fmt.Sprintf("%v", t)
@@ -306,4 +319,12 @@ func convert(data map[string]interface{}, v any) error {
 		return err
 	}
 	return json.Unmarshal(str, v)
+}
+
+func idCheck(id string) error {
+	matched, _ := regexp.Match("^[0-9a-zA-Z_\\-]+$", []byte(id))
+	if !matched {
+		return fmt.Errorf("%s is invalid", id)
+	}
+	return nil
 }
