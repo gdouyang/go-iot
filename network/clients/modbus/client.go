@@ -43,6 +43,7 @@ func (c *Client) Connect(deviceId string, network codec.NetworkConf) error {
 		return err
 	}
 	codec.PutSession(deviceId, session)
+	session.readLoop()
 	return nil
 }
 

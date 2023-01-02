@@ -28,7 +28,7 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 	}
 	product := GetProduct(productId)
 	if product == nil {
-		return fmt.Errorf("product %s not found", productId)
+		return fmt.Errorf("product %s not found, make sure deployed", productId)
 	}
 	tslF := product.GetTsl().FunctionsMap()
 	if len(tslF) == 0 {
@@ -42,14 +42,15 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 		b, _ := json.Marshal(message)
 		product.GetTimeSeries().SaveLogs(product, LogData{DeviceId: message.DeviceId, Type: "call", Content: string(b)})
 	}
+	invokeContext := &FuncInvokeContext{
+		deviceId:  message.DeviceId,
+		productId: productId,
+		session:   session,
+		message:   message,
+	}
 	if function.Async {
 		go func() {
-			codec.OnInvoke(&FuncInvokeContext{
-				deviceId:  message.DeviceId,
-				productId: productId,
-				session:   session,
-				message:   message,
-			})
+			codec.OnInvoke(invokeContext)
 		}()
 		return nil
 	} else {
@@ -64,12 +65,7 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 
 		message.Replay = make(chan error)
 		go func(ctx context.Context) {
-			err := codec.OnInvoke(&FuncInvokeContext{
-				deviceId:  message.DeviceId,
-				productId: productId,
-				session:   session,
-				message:   message,
-			})
+			err := codec.OnInvoke(invokeContext)
 			if nil != err {
 				replyMap.reply(message.DeviceId, err)
 			}

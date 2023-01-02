@@ -103,9 +103,10 @@ type TslFunction struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
 	// 是否异步调用
-	Async   bool          `json:"async"`
-	Inputs  []TslProperty `json:"inputs"`
-	Outputs TslProperty   `json:"output"`
+	Async   bool              `json:"async"`
+	Inputs  []TslProperty     `json:"inputs"`
+	Outputs TslProperty       `json:"output"`
+	Expands map[string]string `json:"expands,omitempty"`
 }
 
 func (p *TslFunction) UnmarshalJSON(d []byte) error {
