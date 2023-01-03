@@ -7,6 +7,10 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
+const (
+	MODBUS_CODEC = "modbus-script-codec"
+)
+
 var m map[codec.NetClientType]func() codec.NetClient = make(map[codec.NetClientType]func() codec.NetClient)
 var instances map[string]codec.NetClient = make(map[string]codec.NetClient)
 

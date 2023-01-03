@@ -11,21 +11,21 @@ import (
 )
 
 func init() {
-	RegCodecCreator(CodecIdScriptCode, func(network NetworkConf) (Codec, error) {
+	RegCodecCreator(Script_Codec, func(network NetworkConf) (Codec, error) {
 		codec, err := NewScriptCodec(network)
 		return codec, err
 	})
 }
 
 const (
-	OnConnect         = "OnConnect"
-	OnMessage         = "OnMessage"
-	OnInvoke          = "OnInvoke"
-	OnDeviceCreate    = "OnDeviceCreate"
-	OnDeviceDelete    = "OnDeviceDelete"
-	OnDeviceUpdate    = "OnDeviceUpdate"
-	OnStateChecker    = "OnStateChecker"
-	CodecIdScriptCode = "script_codec"
+	OnConnect      = "OnConnect"
+	OnMessage      = "OnMessage"
+	OnInvoke       = "OnInvoke"
+	OnDeviceCreate = "OnDeviceCreate"
+	OnDeviceDelete = "OnDeviceDelete"
+	OnDeviceUpdate = "OnDeviceUpdate"
+	OnStateChecker = "OnStateChecker"
+	Script_Codec   = "script_codec"
 )
 
 // js脚本编解码

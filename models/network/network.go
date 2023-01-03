@@ -18,16 +18,16 @@ func init() {
 		qs := o.QueryTable(&models.Network{})
 		count, err := qs.Count()
 		if err == nil && count == 0 {
-			AddNetWork(&models.Network{Id: 1, Port: 9000, CodecId: codec.CodecIdScriptCode, State: models.Stop})
-			AddNetWork(&models.Network{Id: 2, Port: 9001, CodecId: codec.CodecIdScriptCode, State: models.Stop})
-			AddNetWork(&models.Network{Id: 3, Port: 9002, CodecId: codec.CodecIdScriptCode, State: models.Stop})
-			AddNetWork(&models.Network{Id: 4, Port: 9003, CodecId: codec.CodecIdScriptCode, State: models.Stop})
-			AddNetWork(&models.Network{Id: 5, Port: 9004, CodecId: codec.CodecIdScriptCode, State: models.Stop})
-			AddNetWork(&models.Network{Id: 6, Port: 9005, CodecId: codec.CodecIdScriptCode, State: models.Stop})
-			AddNetWork(&models.Network{Id: 7, Port: 9006, CodecId: codec.CodecIdScriptCode, State: models.Stop})
-			AddNetWork(&models.Network{Id: 8, Port: 9007, CodecId: codec.CodecIdScriptCode, State: models.Stop})
-			AddNetWork(&models.Network{Id: 9, Port: 9008, CodecId: codec.CodecIdScriptCode, State: models.Stop})
-			AddNetWork(&models.Network{Id: 10, Port: 9009, CodecId: codec.CodecIdScriptCode, State: models.Stop})
+			AddNetWork(&models.Network{Id: 1, Port: 9000, State: models.Stop})
+			AddNetWork(&models.Network{Id: 2, Port: 9001, State: models.Stop})
+			AddNetWork(&models.Network{Id: 3, Port: 9002, State: models.Stop})
+			AddNetWork(&models.Network{Id: 4, Port: 9003, State: models.Stop})
+			AddNetWork(&models.Network{Id: 5, Port: 9004, State: models.Stop})
+			AddNetWork(&models.Network{Id: 6, Port: 9005, State: models.Stop})
+			AddNetWork(&models.Network{Id: 7, Port: 9006, State: models.Stop})
+			AddNetWork(&models.Network{Id: 8, Port: 9007, State: models.Stop})
+			AddNetWork(&models.Network{Id: 9, Port: 9008, State: models.Stop})
+			AddNetWork(&models.Network{Id: 10, Port: 9009, State: models.Stop})
 			logs.Info("init networks")
 		}
 	})
@@ -59,9 +59,6 @@ func ListNetwork(page *models.PageQuery) (*models.PageResult, error) {
 	if len(n.ProductId) > 0 {
 		qs = qs.Filter("productId", n.ProductId)
 	}
-	if len(n.CodecId) > 0 {
-		qs = qs.Filter("codecId", n.CodecId)
-	}
 	if len(n.Type) > 0 {
 		qs = qs.Filter("type", n.Type)
 	}
@@ -72,7 +69,7 @@ func ListNetwork(page *models.PageQuery) (*models.PageResult, error) {
 	}
 
 	var result []models.Network
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).All(&result)
+	_, err = qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
 	if err != nil {
 		return nil, err
 	}
@@ -178,12 +175,6 @@ func UpdateNetworkTx(ob *models.Network, o orm.DML) error {
 	if len(ob.Configuration) > 0 {
 		cols = append(cols, "Configuration")
 	}
-	if len(ob.Script) > 0 {
-		cols = append(cols, "Script")
-	}
-	if len(ob.CodecId) > 0 {
-		cols = append(cols, "CodecId")
-	}
 	if len(ob.State) > 0 {
 		cols = append(cols, "State")
 	}
@@ -267,9 +258,6 @@ func GetUnuseNetwork() (*models.Network, error) {
 		return nil, err
 	}
 	if len(result.ProductId) == 0 && result.Id > 0 {
-		if len(result.CodecId) == 0 {
-			return nil, fmt.Errorf("network codecId is empty id: %d", result.Id)
-		}
 		return &result, nil
 	}
 	return nil, errors.New("no port is available to start the network service")

@@ -14,7 +14,7 @@ import (
 
 var concurrentCommandLimit = 100
 
-type session struct {
+type modbusSession struct {
 	deviceId     string
 	productId    string
 	mutex        sync.Mutex
@@ -27,14 +27,14 @@ type session struct {
 	done         chan struct{}
 }
 
-func newSession() *session {
-	return &session{
+func newSession() *modbusSession {
+	return &modbusSession{
 		lock: make(chan bool, 1),
 		done: make(chan struct{}),
 	}
 }
 
-func (s *session) Disconnect() error {
+func (s *modbusSession) Disconnect() error {
 	if !s.stopped {
 		codec.DelSession(s.deviceId)
 		s.stopped = true
@@ -44,63 +44,59 @@ func (s *session) Disconnect() error {
 	return nil
 }
 
-func (s *session) SetDeviceId(deviceId string) {
+func (s *modbusSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
 }
 
-func (s *session) GetDeviceId() string {
+func (s *modbusSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *session) ReadDiscreteInputs(startingAddress uint16, length uint16) {
+func (s *modbusSession) ReadDiscreteInputs(startingAddress uint16, length uint16) {
 	s.getValue(DISCRETES_INPUT, startingAddress, length)
 }
-func (s *session) ReadCoils(startingAddress uint16, length uint16) {
+func (s *modbusSession) ReadCoils(startingAddress uint16, length uint16) {
 	s.getValue(COILS, startingAddress, length)
 }
-func (s *session) ReadInputRegisters(startingAddress uint16, length uint16) {
+func (s *modbusSession) ReadInputRegisters(startingAddress uint16, length uint16) {
 	s.getValue(INPUT_REGISTERS, startingAddress, length)
 }
-func (s *session) ReadHoldingRegisters(startingAddress uint16, length uint16) {
+func (s *modbusSession) ReadHoldingRegisters(startingAddress uint16, length uint16) {
 	s.getValue(HOLDING_REGISTERS, startingAddress, length)
 }
 
-func (s *session) getValue(typ string, startingAddress uint16, length uint16) {
-	s.connection(func() {
-		data, err := s.client.GetValue(typ, startingAddress, length)
-		if err != nil {
-			return
-		}
-		cod := codec.GetCodec(s.productId)
-		if cod != nil {
-			cod.OnMessage(&context{
-				BaseContext: codec.BaseContext{
-					DeviceId:  s.deviceId,
-					ProductId: s.productId,
-					Session:   s,
-				},
-				Data: data,
-			})
-		}
-	})
+func (s *modbusSession) getValue(typ string, startingAddress uint16, length uint16) {
+	data, err := s.client.GetValue(typ, startingAddress, length)
+	if err != nil {
+		return
+	}
+	cod := codec.GetCodec(s.productId)
+	if cod != nil {
+		cod.OnMessage(&context{
+			BaseContext: codec.BaseContext{
+				DeviceId:  s.deviceId,
+				ProductId: s.productId,
+				Session:   s,
+			},
+			Data: data,
+		})
+	}
 }
 
-func (s *session) WriteCoils(startingAddress uint16, length uint16, hexStr string) {
+func (s *modbusSession) WriteCoils(startingAddress uint16, length uint16, hexStr string) {
 	s.setValue(COILS, startingAddress, length, hexStr)
 }
 
-func (s *session) WriteHoldingRegisters(startingAddress uint16, length uint16, hexStr string) {
+func (s *modbusSession) WriteHoldingRegisters(startingAddress uint16, length uint16, hexStr string) {
 	s.setValue(HOLDING_REGISTERS, startingAddress, length, hexStr)
 }
 
-func (s *session) setValue(typ string, startingAddress uint16, length uint16, hexStr string) {
-	s.connection(func() {
-		s.client.SetValue(typ, startingAddress, length, hexStr)
-	})
+func (s *modbusSession) setValue(typ string, startingAddress uint16, length uint16, hexStr string) {
+	s.client.SetValue(typ, startingAddress, length, hexStr)
 }
 
 // lockAddress mark address is unavailable because real device handle one request at a time
-func (s *session) lockAddress(address string) error {
+func (s *modbusSession) lockAddress(address string) error {
 	if s.stopped {
 		return fmt.Errorf("service attempts to stop and unable to handle new request")
 	}
@@ -125,7 +121,7 @@ func (s *session) lockAddress(address string) error {
 }
 
 // unlockAddress remove token after command finish
-func (s *session) unlockAddress(address string) {
+func (s *modbusSession) unlockAddress(address string) {
 	s.mutex.Lock()
 	s.workingCount = s.workingCount - 1
 	s.mutex.Unlock()
@@ -133,7 +129,7 @@ func (s *session) unlockAddress(address string) {
 }
 
 // lockableAddress return the lockable address according to the protocol
-func (s *session) lockableAddress(info interface{}) string {
+func (s *modbusSession) lockableAddress(info interface{}) string {
 	var tcpInfo1 *TcpInfo
 	var rtuInfo1 *RtuInfo
 	var address string
@@ -146,7 +142,7 @@ func (s *session) lockableAddress(info interface{}) string {
 	return address
 }
 
-func (s *session) connection(callback func()) error {
+func (s *modbusSession) connection(callback func()) error {
 	var connectionInfo interface{}
 	var err error
 	if s.protocol == ProtocolTCP {
@@ -188,7 +184,7 @@ func (s *session) connection(callback func()) error {
 	return nil
 }
 
-func (s *session) readLoop() {
+func (s *modbusSession) readLoop() {
 	product := codec.GetProduct(s.productId)
 	if product != nil {
 		for _, f := range product.GetTsl().Functions {
@@ -197,7 +193,7 @@ func (s *session) readLoop() {
 	}
 }
 
-func (s *session) interval(f tsl.TslFunction) {
+func (s *modbusSession) interval(f tsl.TslFunction) {
 	if f.Expands != nil {
 		if val, ok := f.Expands["interval"]; ok {
 			num, err := strconv.Atoi(val)

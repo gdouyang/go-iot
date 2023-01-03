@@ -35,7 +35,8 @@ func init() {
 		web.NSRouter("/:id", &ProductController{}, "delete:Delete"),
 		web.NSRouter("/:id/deploy", &ProductController{}, "post:Deploy"),
 		web.NSRouter("/:id/undeploy", &ProductController{}, "post:Undeploy"),
-		web.NSRouter("/:id/modify-tsl", &ProductController{}, "put:ModifyTsl"),
+		web.NSRouter("/:id/tsl", &ProductController{}, "put:UpdateTsl"),
+		web.NSRouter("/:id/script", &ProductController{}, "put:UpdateScript"),
 		web.NSRouter("/network/:productId", &ProductController{}, "get:GetNetwork"),
 		web.NSRouter("/network", &ProductController{}, "put:UpdateNetwork"),
 		web.NSRouter("/network/:productId/run", &ProductController{}, "post:RunNetwork"),
@@ -129,8 +130,10 @@ func (ctl *ProductController) Update() {
 		ctl.RespError(err)
 		return
 	}
-	ob.Metadata = ""
+
 	pro := ob.ToEnitty()
+	pro.Metadata = ""
+	pro.Script = ""
 	err = product.UpdateProduct(&pro)
 	if err != nil {
 		ctl.RespError(err)
@@ -255,7 +258,7 @@ func (ctl *ProductController) Undeploy() {
 	ctl.RespOk()
 }
 
-func (ctl *ProductController) ModifyTsl() {
+func (ctl *ProductController) UpdateTsl() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
@@ -265,6 +268,7 @@ func (ctl *ProductController) ModifyTsl() {
 		ctl.RespError(err)
 		return
 	}
+	ob.Id = ctl.Param(":id")
 	_, err = ctl.getProductAndCheckCreate(ob.Id)
 	if err != nil {
 		ctl.RespError(err)
@@ -281,6 +285,34 @@ func (ctl *ProductController) ModifyTsl() {
 	}
 	err = product.UpdateProduct(&update)
 	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	ctl.RespOk()
+}
+
+func (ctl *ProductController) UpdateScript() {
+	if ctl.isForbidden(productResource, SaveAction) {
+		return
+	}
+	var ob models.Product
+	var err error
+	if err = ctl.BindJSON(&ob); err != nil {
+		ctl.RespError(err)
+		return
+	}
+	productId := ctl.Param(":id")
+	_, err = ctl.getProductAndCheckCreate(productId)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	var update models.Product = models.Product{
+		Id:     productId,
+		Script: ob.Script,
+	}
+
+	if err = product.UpdateProduct(&update); err != nil {
 		ctl.RespError(err)
 		return
 	}
@@ -342,9 +374,6 @@ func (ctl *ProductController) UpdateNetwork() {
 		}
 	}
 	ob.Id = nw.Id
-	if len(nw.CodecId) == 0 {
-		ob.CodecId = codec.CodecIdScriptCode
-	}
 	err = network.UpdateNetwork(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -360,7 +389,7 @@ func (ctl *ProductController) RunNetwork() {
 	}
 	productId := ctl.Param(":productId")
 	state := ctl.Ctx.Input.Query("state")
-	_, err := ctl.getProductAndCheckCreate(productId)
+	produc, err := ctl.getProductAndCheckCreate(productId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -378,7 +407,7 @@ func (ctl *ProductController) RunNetwork() {
 		ctl.RespError(errors.New("type of network must be present"))
 		return
 	}
-	if len(nw.Script) == 0 {
+	if len(produc.Script) == 0 {
 		ctl.RespError(errors.New("script must be present"))
 		return
 	}
@@ -388,7 +417,11 @@ func (ctl *ProductController) RunNetwork() {
 	}
 	if state == "start" {
 		nw.State = models.Runing
-		config := convertCodecNetwork(*nw)
+		config, err := convertCodecNetwork(*nw)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
 		err = servers.StartServer(config)
 		if err != nil {
 			ctl.RespError(err)

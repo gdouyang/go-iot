@@ -280,7 +280,11 @@ func connectClientDevice(deviceId string) error {
 	} else {
 		return fmt.Errorf("unsupport type %s", nw.Type)
 	}
-	err = clients.Connect(deviceId, convertCodecNetwork(*nw))
+	conf, err := convertCodecNetwork(*nw)
+	if err != nil {
+		return err
+	}
+	err = clients.Connect(deviceId, conf)
 	if err != nil {
 		return err
 	}

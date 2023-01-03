@@ -3,6 +3,7 @@ package api
 import (
 	"go-iot/codec"
 	"go-iot/models"
+	product "go-iot/models/device"
 	"go-iot/models/network"
 	"go-iot/network/servers"
 	"strconv"
@@ -86,7 +87,11 @@ func (ctl *ServerController) Start() {
 		ctl.RespError(err)
 		return
 	}
-	config := convertCodecNetwork(nw)
+	config, err := convertCodecNetwork(nw)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 	err = servers.StartServer(config)
 	if err != nil {
 		ctl.RespError(err)
@@ -95,17 +100,21 @@ func (ctl *ServerController) Start() {
 	ctl.RespOk()
 }
 
-func convertCodecNetwork(nw models.Network) codec.NetworkConf {
+func convertCodecNetwork(nw models.Network) (codec.NetworkConf, error) {
+	pro, err := product.GetProductMust(nw.ProductId)
+	if err != nil {
+		return codec.NetworkConf{}, err
+	}
 	config := codec.NetworkConf{
 		Name:          nw.Name,
 		Port:          nw.Port,
 		ProductId:     nw.ProductId,
 		Configuration: nw.Configuration,
-		Script:        nw.Script,
+		Script:        pro.Script,
 		Type:          nw.Type,
-		CodecId:       nw.CodecId,
+		CodecId:       pro.CodecId,
 	}
-	return config
+	return config, nil
 }
 
 func (ctl *ServerController) Meters() {

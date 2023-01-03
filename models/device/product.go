@@ -46,7 +46,7 @@ func PageProduct(page *models.PageQuery, createId int64) (*models.PageResult, er
 
 	var result []models.Product
 	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "Desc", "CreateId", "CreateTime"}
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).All(&result, cols...)
+	_, err = qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result, cols...)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +93,7 @@ func AddProduct(ob *models.Product, networkType string) error {
 	o := orm.NewOrm()
 	ob.CreateTime = time.Now()
 	err = o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+		ob.CodecId = codec.Script_Codec
 		if codec.TCP_CLIENT == codec.NetClientType(networkType) {
 			list := clients.TcpMetaconfig()
 			c, _ := json.Marshal(list)
@@ -107,6 +108,7 @@ func AddProduct(ob *models.Product, networkType string) error {
 			list := clients.ModbusMetaconfig()
 			c, _ := json.Marshal(list)
 			ob.Metaconfig = string(c)
+			ob.CodecId = clients.MODBUS_CODEC
 		}
 		_, err := txOrm.Insert(ob)
 		if err != nil {
@@ -153,6 +155,9 @@ func UpdateProduct(ob *models.Product) error {
 	}
 	if len(ob.Metaconfig) > 0 {
 		columns = append(columns, "Metaconfig")
+	}
+	if len(ob.Script) > 0 {
+		columns = append(columns, "Script")
 	}
 	if len(ob.Desc) > 0 {
 		columns = append(columns, "Desc")
@@ -209,7 +214,6 @@ func DeleteProduct(ob *models.Product) error {
 				nw.ProductId = ""
 				nw.Type = ""
 				nw.Configuration = ""
-				nw.Script = ""
 				nw.State = "stop"
 				err = network.UpdateNetworkTx(nw, txOrm)
 				return err

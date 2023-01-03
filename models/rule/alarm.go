@@ -67,7 +67,7 @@ func PageAlarmLog(page *models.PageQuery) (*models.PageResult, error) {
 	}
 
 	var result []models.AlarmLog
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).All(&result)
+	_, err = qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
 	if err != nil {
 		return nil, err
 	}

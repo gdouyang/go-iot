@@ -75,8 +75,11 @@ func startRuningNetServer() {
 		return
 	}
 	for _, nw := range list {
-		config := convertCodecNetwork(nw)
-		err := servers.StartServer(config)
+		config, err := convertCodecNetwork(nw)
+		if err != nil {
+			logs.Error(err)
+		}
+		err = servers.StartServer(config)
 		if err != nil {
 			logs.Error(err)
 		}
