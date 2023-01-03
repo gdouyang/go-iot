@@ -94,17 +94,16 @@ func AddProduct(ob *models.Product, networkType string) error {
 	ob.CreateTime = time.Now()
 	err = o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
 		ob.CodecId = codec.Script_Codec
-		if codec.TCP_CLIENT == codec.NetClientType(networkType) {
+		switch codec.NetClientType(networkType) {
+		case codec.TCP_CLIENT:
 			list := clients.TcpMetaconfig()
 			c, _ := json.Marshal(list)
 			ob.Metaconfig = string(c)
-		}
-		if codec.MQTT_CLIENT == codec.NetClientType(networkType) {
+		case codec.MQTT_CLIENT:
 			list := clients.MqttMetaconfig()
 			c, _ := json.Marshal(list)
 			ob.Metaconfig = string(c)
-		}
-		if codec.MODBUS == codec.NetClientType(networkType) {
+		case codec.MODBUS:
 			list := clients.ModbusMetaconfig()
 			c, _ := json.Marshal(list)
 			ob.Metaconfig = string(c)
