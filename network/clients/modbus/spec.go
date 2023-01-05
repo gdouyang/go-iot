@@ -7,60 +7,6 @@ import (
 	"strconv"
 )
 
-type ModbusSpec struct {
-	Protocol string `json:"protocol"`
-	Conf     string `json:"conf"`
-}
-
-func (s *ModbusSpec) FromJson(str string) error {
-	err := json.Unmarshal([]byte(str), s)
-	if err != nil {
-		return fmt.Errorf("modbusSpec FromJson error: %v", err)
-	}
-	return nil
-}
-
-func (s *ModbusSpec) SetTcpByConfig(devoper *codec.Device) error {
-	errorMessage := "unable to create TCP connection info, protocol config '%s' not exist"
-	address := devoper.GetConfig("address")
-	if len(address) == 0 {
-		return fmt.Errorf(errorMessage, "address")
-	}
-	s.Protocol = ProtocolTCP
-	info := TcpInfo{
-		Address: address,
-	}
-	if len(devoper.GetConfig("port")) == 0 {
-		return fmt.Errorf(errorMessage, "port")
-	}
-	port, err := strconv.ParseUint(devoper.GetConfig("port"), 0, 16)
-	if err != nil {
-		return fmt.Errorf("port value out of range(0–65535). Error: %v", err)
-	}
-	info.Port = int(port)
-	if len(devoper.GetConfig("unitID")) == 0 {
-		return fmt.Errorf(errorMessage, "unitID")
-	}
-	unitID, err := strconv.ParseUint(devoper.GetConfig("unitID"), 0, 8)
-	if err != nil {
-		return fmt.Errorf("uintID value out of range(0–255). Error: %v", err)
-	}
-	info.UnitID = byte(unitID)
-	timeout, err := parseIntValue(devoper.GetConfig("timeout"), "timeout")
-	if err != nil {
-		return err
-	}
-	info.Timeout = timeout
-	idleTimeout, err := parseIntValue(devoper.GetConfig("idleTimeout"), "idleTimeout")
-	if err != nil {
-		return err
-	}
-	info.IdleTimeout = idleTimeout
-	b, _ := json.Marshal(info)
-	s.Conf = string(b)
-	return nil
-}
-
 func parseIntValue(str string, key string) (int, error) {
 	if len(str) == 0 {
 		return 5, nil
@@ -84,7 +30,7 @@ type TcpInfo struct {
 
 type RtuInfo struct {
 	Address  string `json:"address"`
-	BaudRate int    `json:"baudRate"`
+	BaudRate int    `json:"baudRate"` // 波特率
 	DataBits int    `json:"dataBits"`
 	StopBits int    `json:"stopBits"`
 	Parity   string `json:"parity"`
@@ -95,8 +41,9 @@ type RtuInfo struct {
 	IdleTimeout int `json:"idleTimeout"`
 }
 
-func createRTUConnectionInfo(rtuProtocol string) (info *RtuInfo, err error) {
-	err = json.Unmarshal([]byte(rtuProtocol), info)
+func createRTUConnectionInfo(rtuProtocol string) (*RtuInfo, error) {
+	info := &RtuInfo{}
+	err := json.Unmarshal([]byte(rtuProtocol), info)
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +55,9 @@ func createRTUConnectionInfo(rtuProtocol string) (info *RtuInfo, err error) {
 	return info, nil
 }
 
-func createTcpConnectionInfo(tcpProtocol string) (info *TcpInfo, err error) {
-	err = json.Unmarshal([]byte(tcpProtocol), info)
+func createTcpConnectionInfo(tcpProtocol string) (*TcpInfo, error) {
+	info := &TcpInfo{}
+	err := json.Unmarshal([]byte(tcpProtocol), info)
 	if err != nil {
 		return nil, err
 	}
@@ -118,4 +66,42 @@ func createTcpConnectionInfo(tcpProtocol string) (info *TcpInfo, err error) {
 	}
 
 	return info, nil
+}
+
+func createTcpConnectionInfoByConfig(devoper *codec.Device) (*TcpInfo, error) {
+	errorMessage := "unable to create TCP connection info, protocol config '%s' not exist"
+	address := devoper.GetConfig("address")
+	if len(address) == 0 {
+		return nil, fmt.Errorf(errorMessage, "address")
+	}
+	info := TcpInfo{
+		Address: address,
+	}
+	if len(devoper.GetConfig("port")) == 0 {
+		return nil, fmt.Errorf(errorMessage, "port")
+	}
+	port, err := strconv.ParseUint(devoper.GetConfig("port"), 0, 16)
+	if err != nil {
+		return nil, fmt.Errorf("port value out of range(0–65535). Error: %v", err)
+	}
+	info.Port = int(port)
+	if len(devoper.GetConfig("unitID")) == 0 {
+		return nil, fmt.Errorf(errorMessage, "unitID")
+	}
+	unitID, err := strconv.ParseUint(devoper.GetConfig("unitID"), 0, 8)
+	if err != nil {
+		return nil, fmt.Errorf("uintID value out of range(0–255). Error: %v", err)
+	}
+	info.UnitID = byte(unitID)
+	timeout, err := parseIntValue(devoper.GetConfig("timeout"), "timeout")
+	if err != nil {
+		return nil, err
+	}
+	info.Timeout = timeout
+	idleTimeout, err := parseIntValue(devoper.GetConfig("idleTimeout"), "idleTimeout")
+	if err != nil {
+		return nil, err
+	}
+	info.IdleTimeout = idleTimeout
+	return &info, nil
 }

@@ -22,8 +22,8 @@ type modbusSession struct {
 	workingCount int
 	stopped      bool
 	client       *ModbusClient
-	protocol     string
-	conf         string
+	tcpInfo      *TcpInfo
+	rtuInfo      *RtuInfo
 	done         chan struct{}
 }
 
@@ -130,33 +130,20 @@ func (s *modbusSession) unlockAddress(address string) {
 
 // lockableAddress return the lockable address according to the protocol
 func (s *modbusSession) lockableAddress(info interface{}) string {
-	var tcpInfo1 *TcpInfo
-	var rtuInfo1 *RtuInfo
 	var address string
-	if s.protocol == ProtocolTCP {
-		address = fmt.Sprintf("%s:%d", tcpInfo1.Address, tcpInfo1.Port)
+	if s.tcpInfo != nil {
+		address = fmt.Sprintf("%s:%d", s.tcpInfo.Address, s.tcpInfo.Port)
 	} else {
-		rtuInfo1 = info.(*RtuInfo)
-		address = rtuInfo1.Address
+		address = s.rtuInfo.Address
 	}
 	return address
 }
 
 func (s *modbusSession) connection(callback func()) error {
-	var connectionInfo interface{}
+	var connectionInfo interface{} = s.tcpInfo
 	var err error
-	if s.protocol == ProtocolTCP {
-		connectionInfo, err = createTcpConnectionInfo(s.conf)
-		if err != nil {
-			logs.Error(err)
-			return err
-		}
-	} else {
-		connectionInfo, err = createRTUConnectionInfo(s.conf)
-		if err != nil {
-			logs.Error(err)
-			return err
-		}
+	if s.rtuInfo != nil {
+		connectionInfo = s.rtuInfo
 	}
 
 	err = s.lockAddress(s.lockableAddress(connectionInfo))
@@ -166,7 +153,11 @@ func (s *modbusSession) connection(callback func()) error {
 	defer s.unlockAddress(s.lockableAddress(connectionInfo))
 
 	// create device client and open connection
-	deviceClient, err := NewDeviceClient(s.protocol, connectionInfo)
+	var protocol string = ProtocolTCP
+	if s.tcpInfo != nil {
+		protocol = ProtocolTCP
+	}
+	deviceClient, err := NewDeviceClient(protocol, connectionInfo)
 	if err != nil {
 		logs.Error("Read command NewDeviceClient failed. err:%v \n", err)
 		return err

@@ -1,7 +1,6 @@
 package modbus
 
 import (
-	"fmt"
 	"go-iot/codec"
 	"go-iot/network/clients"
 )
@@ -23,21 +22,15 @@ func (c *Client) Type() codec.NetClientType {
 	return codec.MODBUS
 }
 func (c *Client) Connect(deviceId string, network codec.NetworkConf) error {
-	spec := &ModbusSpec{}
-	err := spec.FromJson(network.Configuration)
+	devoper := codec.GetDevice(deviceId)
+	tcpInfo, err := createTcpConnectionInfoByConfig(devoper)
 	if err != nil {
 		return err
-	}
-	if len(spec.Protocol) == 0 {
-		spec.Protocol = ProtocolTCP
-	}
-	if spec.Protocol != ProtocolTCP && spec.Protocol != ProtocolRTU {
-		return fmt.Errorf("modbus protocol must be %s or %s", ProtocolTCP, ProtocolRTU)
 	}
 	session := newSession()
 	session.deviceId = deviceId
 	session.productId = network.ProductId
-	session.conf = network.Configuration
+	session.tcpInfo = tcpInfo
 	err = session.connection(func() {})
 	if err != nil {
 		return err

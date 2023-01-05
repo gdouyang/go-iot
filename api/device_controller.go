@@ -10,7 +10,6 @@ import (
 	device "go-iot/models/device"
 	"go-iot/models/network"
 	"go-iot/network/clients"
-	modbus "go-iot/network/clients/modbus"
 	mqttclient "go-iot/network/clients/mqtt"
 	tcpclient "go-iot/network/clients/tcp"
 
@@ -270,13 +269,13 @@ func connectClientDevice(deviceId string) error {
 		b, _ := json.Marshal(spec)
 		nw.Configuration = string(b)
 	} else if codec.MODBUS == codec.NetClientType(nw.Type) {
-		spec := &modbus.ModbusSpec{}
-		err = spec.SetTcpByConfig(devoper)
-		if err != nil {
-			return err
-		}
-		b, _ := json.Marshal(spec)
-		nw.Configuration = string(b)
+		// spec := &modbus.ModbusSpec{}
+		// err = spec.SetTcpByConfig(devoper)
+		// if err != nil {
+		// 	return err
+		// }
+		// b, _ := json.Marshal(spec)
+		// nw.Configuration = string(b)
 	} else {
 		return fmt.Errorf("unsupport type %s", nw.Type)
 	}
