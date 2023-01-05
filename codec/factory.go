@@ -42,7 +42,8 @@ func RegCodecCreator(codecId string, creator func(network NetworkConf) (Codec, e
 	codecFactory[codecId] = creator
 }
 
-func regDeviceLifeCycle(productId string, liefcycle DeviceLifecycle) {
+// device lifecycle
+func RegDeviceLifeCycle(productId string, liefcycle DeviceLifecycle) {
 	// val, ok := deviceLifeCycleMap.Load(productId)
 	// if val == nil || !ok {
 	deviceLifeCycleMap.Store(productId, liefcycle)

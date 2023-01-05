@@ -169,7 +169,10 @@ func (s *modbusSession) connection(callback func()) error {
 		return err
 	}
 
-	defer func() { _ = deviceClient.CloseConnection() }()
+	defer func() {
+		_ = deviceClient.CloseConnection()
+		s.client = nil
+	}()
 	s.client = deviceClient
 	callback()
 	return nil

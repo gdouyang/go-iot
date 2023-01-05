@@ -23,8 +23,7 @@ type ModbusClient struct {
 	// TCPClientHandler is ued for holding device RTU connection
 	RTUClientHandler MODBUS.RTUClientHandler
 
-	client    MODBUS.Client
-	productId string
+	client MODBUS.Client
 }
 
 func (c *ModbusClient) OpenConnection() error {
@@ -58,6 +57,9 @@ func (c *ModbusClient) GetValue(typ string, startingAddress uint16, length uint1
 	// Reading value from device
 	var response []byte
 	var err error
+	if c == nil {
+		return nil, errors.New("modbus client is nil")
+	}
 
 	switch typ {
 	case DISCRETES_INPUT:

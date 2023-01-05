@@ -70,7 +70,7 @@ func NewScriptCodec(network NetworkConf) (Codec, error) {
 	sc.onStateChecker = val.IsDefined()
 
 	RegCodec(network.ProductId, sc)
-	regDeviceLifeCycle(network.ProductId, sc)
+	RegDeviceLifeCycle(network.ProductId, sc)
 
 	return sc, nil
 }

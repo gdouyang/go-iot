@@ -13,7 +13,7 @@ func init() {
 }
 
 type ModbusScriptCodec struct {
-	codec.Codec
+	*codec.ScriptCodec
 }
 
 func NewModbusScriptCodec(network codec.NetworkConf) (codec.Codec, error) {
@@ -21,14 +21,22 @@ func NewModbusScriptCodec(network codec.NetworkConf) (codec.Codec, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ModbusScriptCodec{
-		Codec: c,
-	}, nil
+	sc := &ModbusScriptCodec{
+		ScriptCodec: c.(*codec.ScriptCodec),
+	}
+	codec.RegCodec(network.ProductId, sc)
+	codec.RegDeviceLifeCycle(network.ProductId, sc)
+	return sc, nil
 }
+
+// func (c *ModbusScriptCodec) OnConnect(ctx codec.MessageContext) error {
+// 	c.ScriptCodec.OnConnect(ctx)
+// 	return nil
+// }
 
 // 接收消息
 func (c *ModbusScriptCodec) OnMessage(ctx codec.MessageContext) error {
-	c.Codec.OnMessage(ctx)
+	c.ScriptCodec.OnMessage(ctx)
 	return nil
 }
 
@@ -37,7 +45,7 @@ func (c *ModbusScriptCodec) OnInvoke(ctx codec.MessageContext) error {
 	sess := ctx.GetSession()
 	s := sess.(*modbusSession)
 	s.connection(func() {
-		c.Codec.OnInvoke(ctx)
+		c.ScriptCodec.OnInvoke(ctx)
 	})
 	return nil
 }
