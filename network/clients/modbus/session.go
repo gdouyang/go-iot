@@ -52,34 +52,31 @@ func (s *modbusSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *modbusSession) ReadDiscreteInputs(startingAddress uint16, length uint16) {
-	s.getValue(DISCRETES_INPUT, startingAddress, length)
+func (s *modbusSession) ReadDiscreteInputs(startingAddress uint16, length uint16) *context {
+	return s.getValue(DISCRETES_INPUT, startingAddress, length)
 }
-func (s *modbusSession) ReadCoils(startingAddress uint16, length uint16) {
-	s.getValue(COILS, startingAddress, length)
+func (s *modbusSession) ReadCoils(startingAddress uint16, length uint16) *context {
+	return s.getValue(COILS, startingAddress, length)
 }
-func (s *modbusSession) ReadInputRegisters(startingAddress uint16, length uint16) {
-	s.getValue(INPUT_REGISTERS, startingAddress, length)
+func (s *modbusSession) ReadInputRegisters(startingAddress uint16, length uint16) *context {
+	return s.getValue(INPUT_REGISTERS, startingAddress, length)
 }
-func (s *modbusSession) ReadHoldingRegisters(startingAddress uint16, length uint16) {
-	s.getValue(HOLDING_REGISTERS, startingAddress, length)
+func (s *modbusSession) ReadHoldingRegisters(startingAddress uint16, length uint16) *context {
+	return s.getValue(HOLDING_REGISTERS, startingAddress, length)
 }
 
-func (s *modbusSession) getValue(typ string, startingAddress uint16, length uint16) {
+func (s *modbusSession) getValue(typ string, startingAddress uint16, length uint16) *context {
 	data, err := s.client.GetValue(typ, startingAddress, length)
 	if err != nil {
-		return
+		return nil
 	}
-	cod := codec.GetCodec(s.productId)
-	if cod != nil {
-		cod.OnMessage(&context{
-			BaseContext: codec.BaseContext{
-				DeviceId:  s.deviceId,
-				ProductId: s.productId,
-				Session:   s,
-			},
-			Data: data,
-		})
+	return &context{
+		BaseContext: codec.BaseContext{
+			DeviceId:  s.deviceId,
+			ProductId: s.productId,
+			Session:   s,
+		},
+		Data: data,
 	}
 }
 
