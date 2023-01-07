@@ -18,6 +18,6 @@ func (ctx *tcpContext) MsgToString() string {
 	return string(ctx.Data)
 }
 
-func (ctx *tcpContext) HexMsg() string {
+func (ctx *tcpContext) MsgToHexStr() string {
 	return hex.EncodeToString(ctx.Data)
 }

@@ -92,7 +92,7 @@ func (ctx *mqttContext) MsgToString() string {
 	return string(ctx.Data)
 }
 
-func (ctx *mqttContext) HexMsg() string {
+func (ctx *mqttContext) MsgToHexStr() string {
 	return hex.EncodeToString(ctx.Data)
 }
 

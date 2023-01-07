@@ -22,7 +22,7 @@ func (ctx *context) MsgToString() string {
 	return string(bytes.Trim(ctx.Data, string(rune(0))))
 }
 
-func (ctx *context) HexMsg() string {
+func (ctx *context) MsgToHexStr() string {
 	return hex.EncodeToString(ctx.Data)
 }
 

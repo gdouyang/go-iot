@@ -26,7 +26,7 @@ func (ctx *websocketContext) MsgToString() string {
 	return string(ctx.Data)
 }
 
-func (ctx *websocketContext) HexMsg() string {
+func (ctx *websocketContext) MsgToHexStr() string {
 	return hex.EncodeToString(ctx.Data)
 }
 
