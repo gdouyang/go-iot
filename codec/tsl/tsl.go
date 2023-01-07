@@ -114,9 +114,10 @@ func (p *TslFunction) UnmarshalJSON(d []byte) error {
 		Id   string `json:"id"`
 		Name string `json:"name"`
 		// 是否异步调用
-		Async   bool          `json:"async"`
-		Inputs  []TslProperty `json:"inputs,omitempty"`
-		Outputs TslProperty   `json:"output,omitempty"`
+		Async   bool              `json:"async"`
+		Inputs  []TslProperty     `json:"inputs,omitempty"`
+		Outputs TslProperty       `json:"output,omitempty"`
+		Expands map[string]string `json:"expands,omitempty"`
 	}
 	err := json.Unmarshal(d, &alias)
 	if err != nil {
@@ -131,6 +132,7 @@ func (p *TslFunction) UnmarshalJSON(d []byte) error {
 	p.Async = alias.Async
 	p.Inputs = alias.Inputs
 	p.Outputs = alias.Outputs
+	p.Expands = alias.Expands
 	return nil
 }
 
