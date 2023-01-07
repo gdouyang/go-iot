@@ -1,7 +1,7 @@
 package websocketsocker
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"go-iot/codec"
 	"net/http"
@@ -66,9 +66,9 @@ func (s *websocketSession) SendText(msg string) error {
 }
 
 func (s *websocketSession) SendBinary(msg string) error {
-	payload, err := base64.StdEncoding.DecodeString(msg)
+	payload, err := hex.DecodeString(msg)
 	if err != nil {
-		logs.Warn("Error message, message is not a base64 string:", err)
+		logs.Warn("Error message, message is not a hex string:", err)
 		return err
 	}
 	err = s.conn.WriteMessage(websocket.BinaryMessage, payload)
