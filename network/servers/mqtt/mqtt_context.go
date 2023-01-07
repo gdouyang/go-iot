@@ -37,6 +37,10 @@ func (ctx *authContext) GetUserName() string {
 	return ctx.client.UserName()
 }
 
+func (ctx *authContext) GetPassword() string {
+	return ctx.client.info.password
+}
+
 func (ctx *authContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
