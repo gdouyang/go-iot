@@ -35,17 +35,20 @@ func NewModbusScriptCodec(network codec.NetworkConf) (codec.Codec, error) {
 // }
 
 // 接收消息
-func (c *ModbusScriptCodec) OnMessage(ctx codec.MessageContext) error {
-	c.ScriptCodec.OnMessage(ctx)
-	return nil
-}
+// func (c *ModbusScriptCodec) OnMessage(ctx codec.MessageContext) error {
+// 	c.ScriptCodec.OnMessage(ctx)
+// 	return nil
+// }
 
 // 命令调用
 func (c *ModbusScriptCodec) OnInvoke(ctx codec.MessageContext) error {
 	sess := ctx.GetSession()
 	s := sess.(*modbusSession)
+	modbusInvokeContext := &modbusInvokeContext{
+		MessageContext: ctx,
+	}
 	s.connection(func() {
-		c.ScriptCodec.OnInvoke(ctx)
+		c.ScriptCodec.OnInvoke(modbusInvokeContext)
 	})
 	return nil
 }
