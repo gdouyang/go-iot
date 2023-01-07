@@ -53,7 +53,7 @@ func (c *ModbusClient) CloseConnection() error {
 	return err
 }
 
-func (c *ModbusClient) GetValue(typ string, startingAddress uint16, length uint16) ([]byte, error) {
+func (c *ModbusClient) GetValue(parimaryTable string, startingAddress uint16, length uint16) ([]byte, error) {
 	// Reading value from device
 	var response []byte
 	var err error
@@ -61,7 +61,7 @@ func (c *ModbusClient) GetValue(typ string, startingAddress uint16, length uint1
 		return nil, errors.New("modbus client is nil")
 	}
 
-	switch typ {
+	switch parimaryTable {
 	case DISCRETES_INPUT:
 		response, err = c.client.ReadDiscreteInputs(startingAddress, length)
 	case COILS:
@@ -84,7 +84,7 @@ func (c *ModbusClient) GetValue(typ string, startingAddress uint16, length uint1
 	return response, nil
 }
 
-func (c *ModbusClient) SetValue(typ string, startingAddress uint16, length uint16, hexStr string) error {
+func (c *ModbusClient) SetValue(parimaryTable string, startingAddress uint16, length uint16, hexStr string) error {
 	var err error
 	value, err := hex.DecodeString(hexStr)
 	if err != nil {
@@ -94,7 +94,7 @@ func (c *ModbusClient) SetValue(typ string, startingAddress uint16, length uint1
 	// Write value to device
 	var result []byte
 
-	switch typ {
+	switch parimaryTable {
 	case DISCRETES_INPUT:
 		err = fmt.Errorf("error: DISCRETES_INPUT is Read-Only..!! ")
 	case COILS:
