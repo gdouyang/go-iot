@@ -166,6 +166,10 @@ func (s *Session) Disconnect() error {
 		s.isClose = true
 		codec.DelSession(s.info.deviceId)
 		logs.Debug("session close %s", s.info.deviceId)
+		client := s.broker.getClient(s.info.ClientID)
+		if client != nil {
+			client.close()
+		}
 	}
 	return nil
 }
