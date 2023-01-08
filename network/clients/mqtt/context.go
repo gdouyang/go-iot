@@ -1,6 +1,7 @@
 package mqttclient
 
 import (
+	"encoding/hex"
 	"go-iot/codec"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -12,11 +13,15 @@ type mqttClientContext struct {
 }
 
 func (ctx *mqttClientContext) GetMessage() interface{} {
-	return ctx.Data
+	return ctx.Data.Payload()
 }
 
 func (ctx *mqttClientContext) MsgToString() string {
 	return string(ctx.Data.Payload())
+}
+
+func (ctx *mqttClientContext) MsgToHexStr() string {
+	return hex.EncodeToString(ctx.Data.Payload())
 }
 
 func (ctx *mqttClientContext) Topic() string {
