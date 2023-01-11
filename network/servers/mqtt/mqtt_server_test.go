@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-iot/codec"
 	"go-iot/codec/msg"
+	"go-iot/codec/tsl"
 	"go-iot/models"
 	_ "go-iot/models/device"
 	mqttserver "go-iot/network/servers/mqtt"
@@ -37,20 +38,42 @@ function OnInvoke(context) {
 
 var network codec.NetworkConf = codec.NetworkConf{
 	Name:      "test server",
-	ProductId: "test123",
+	ProductId: "test-product",
 	CodecId:   "script_codec",
 	Port:      1883,
 	Script:    script,
 }
 
-func TestServer(t *testing.T) {
+func init() {
 	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
 	models.InitDb()
+	var product *codec.Product = &codec.Product{
+		Id:          "test-product",
+		Config:      make(map[string]string),
+		StorePolicy: "mock",
+	}
+	tslData := &tsl.TslData{}
+	err := tslData.FromJson(`{"properties":[{"id":"temperature","valueType":{"type":"float"}}],"functions":[{"id":"func1","inputs":[{"id":"name", "valueType":{"type":"string"}}]}]}`)
+	if err != nil {
+		logs.Error(err)
+	}
+	product.TslData = tslData
+	codec.PutProduct(product)
+	device := &codec.Device{
+		Id:        "1234",
+		ProductId: product.GetId(),
+		Data:      make(map[string]string),
+		Config:    make(map[string]string),
+	}
+	codec.PutDevice(device)
+}
 
+func TestServer(t *testing.T) {
 	network := network
 	network.Configuration = `{"host": "localhost", "useTLS": false}`
 	b := mqttserver.NewServer()
 	b.Start(network)
+	codec.NewCodec(network)
 	go func() {
 		time.Sleep(1 * time.Second)
 		for i := 0; i < 5; i++ {
@@ -81,8 +104,8 @@ func newClient(network codec.NetworkConf, deviceId string) {
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker("tcp://" + spec.Host + ":" + fmt.Sprint(spec.Port))
 	opts.SetClientID(deviceId)
-	opts.SetUsername("admin")
-	opts.SetPassword("123456")
+	// opts.SetUsername("admin")
+	// opts.SetPassword("123456")
 	opts.SetCleanSession(false)
 	topic := "test"
 	qos := 0

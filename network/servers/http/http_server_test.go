@@ -2,6 +2,7 @@ package httpserver_test
 
 import (
 	"go-iot/codec"
+	"go-iot/codec/tsl"
 	"go-iot/models"
 	_ "go-iot/models/device"
 	httpserver "go-iot/network/servers/http"
@@ -31,19 +32,43 @@ function OnInvoke(context) {
 
 var network codec.NetworkConf = codec.NetworkConf{
 	Name:      "test server",
-	ProductId: "test123",
+	ProductId: "test-product",
 	CodecId:   "script_codec",
 	Port:      18080,
 	Script:    script,
 }
 
-func TestServer(t *testing.T) {
+func init() {
 	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
 	models.InitDb()
+	var product *codec.Product = &codec.Product{
+		Id:          "test-product",
+		Config:      make(map[string]string),
+		StorePolicy: "mock",
+	}
+	tslData := &tsl.TslData{}
+	err := tslData.FromJson(`{"properties":[{"id":"temperature","valueType":{"type":"float"}}],"functions":[{"id":"func1","inputs":[{"id":"name", "valueType":{"type":"string"}}]}]}`)
+	if err != nil {
+		logs.Error(err)
+	}
+	product.TslData = tslData
+	codec.PutProduct(product)
+	{
+		device := &codec.Device{
+			Id:        "1234",
+			ProductId: product.GetId(),
+			Data:      make(map[string]string),
+			Config:    make(map[string]string),
+		}
+		codec.PutDevice(device)
+	}
+}
 
+func TestServer(t *testing.T) {
 	network := network
 	network.Configuration = `{"host": "localhost", "useTLS": false, "paths":["/test"]}`
 	httpserver.NewServer().Start(network)
+	codec.NewCodec(network)
 	initClient()
 }
 
@@ -61,7 +86,7 @@ func initClient() {
 		log.Fatal(err)
 	}
 	log.Printf("client Received: %d %s \n", res.StatusCode, data)
-	time.Sleep(time.Second * 11)
+	// time.Sleep(time.Second * 11)
 }
 
 func TestHttp(t *testing.T) {

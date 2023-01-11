@@ -76,7 +76,11 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 			replyLog(product, message, err.Error())
 			return err
 		case err := <-message.Replay:
-			replyLog(product, message, err.Error())
+			if err != nil {
+				replyLog(product, message, err.Error())
+			} else {
+				replyLog(product, message, "")
+			}
 			return err
 		}
 	}

@@ -3,6 +3,7 @@ package websocketsocker_test
 import (
 	"fmt"
 	"go-iot/codec"
+	"go-iot/codec/tsl"
 	"go-iot/models"
 	_ "go-iot/models/device"
 	websocketsocker "go-iot/network/servers/websocket"
@@ -12,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/beego/beego/v2/core/logs"
 	"github.com/gorilla/websocket"
 )
 
@@ -35,20 +37,53 @@ function OnInvoke(context) {
 
 var network codec.NetworkConf = codec.NetworkConf{
 	Name:      "test server",
-	ProductId: "test123",
+	ProductId: "test-product",
 	CodecId:   "script_codec",
 	Port:      18080,
 	Script:    script,
 }
 
-func TestServer(t *testing.T) {
+func init() {
 	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
 	models.InitDb()
+	var product *codec.Product = &codec.Product{
+		Id:          "test-product",
+		Config:      make(map[string]string),
+		StorePolicy: "mock",
+	}
+	tslData := &tsl.TslData{}
+	err := tslData.FromJson(`{"properties":[{"id":"temperature","valueType":{"type":"float"}}],"functions":[{"id":"func1","inputs":[{"id":"name", "valueType":{"type":"string"}}]}]}`)
+	if err != nil {
+		logs.Error(err)
+	}
+	product.TslData = tslData
+	codec.PutProduct(product)
+	{
+		device := &codec.Device{
+			Id:        "1234",
+			ProductId: product.GetId(),
+			Data:      make(map[string]string),
+			Config:    make(map[string]string),
+		}
+		codec.PutDevice(device)
+	}
+	{
+		device := &codec.Device{
+			Id:        "4567",
+			ProductId: product.GetId(),
+			Data:      make(map[string]string),
+			Config:    make(map[string]string),
+		}
+		codec.PutDevice(device)
+	}
+}
 
+func TestServer(t *testing.T) {
 	network := network
 	network.Configuration = `{"host": "localhost", "useTLS": false, "paths":["/socket"]}`
 
 	websocketsocker.NewServer().Start(network)
+	codec.NewCodec(network)
 
 	c := &client{}
 	go c.initClient("1234")
