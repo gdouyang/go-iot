@@ -66,6 +66,7 @@ var product *codec.Product = &codec.Product{
 }
 
 func init() {
+	codec.DefaultManagerId = "mem"
 	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
 	models.InitDb()
 	codec.PutProduct(product)
@@ -77,14 +78,20 @@ func init() {
 	}
 	codec.PutDevice(device)
 }
+
+func newServer(network codec.NetworkConf) *tcpserver.TcpServer {
+	s := tcpserver.NewServer()
+	s.Start(network)
+	codec.NewCodec(network)
+	return s
+}
 func TestServerDelimited(t *testing.T) {
 	network := network
 	network.Configuration = `{"host": "localhost",
 	"port": 8888, "useTLS": false,
 	"delimeter": {"type":"Delimited", "delimited":"}"}}`
 	network.Script = script1
-	s := tcpserver.NewServer()
-	s.Start(network)
+	newServer(network)
 	newClient1(network, func() string {
 		str1 := time.Now().Format("2006-01-02 15:04:05")
 		str := fmt.Sprintf(`{"deviceId": "1234", "data": "%s"}`, str1)
@@ -97,8 +104,7 @@ func TestServerFixLenght(t *testing.T) {
 	network.Configuration = `{"host": "localhost",
 	"port": 8888, "useTLS": false,
 	"delimeter": {"type":"FixLength", "length":27}}`
-	s := tcpserver.NewServer()
-	s.Start(network)
+	newServer(network)
 	newClient(network)
 }
 
@@ -111,8 +117,7 @@ func TestServerSplitFunc(t *testing.T) {
 	  "splitFunc":"function splitFunc(parser) { parser.AddHandler(function(data) { parser.AppendResult(data); parser.Complete() }); parser.Delimited(\"\\n\") }"
 	}
 	}`
-	s := tcpserver.NewServer()
-	s.Start(network)
+	newServer(network)
 	newClient(network)
 }
 
@@ -125,8 +130,7 @@ func TestServerSplitFunc1(t *testing.T) {
 	  "splitFunc":"function splitFunc(parser) { parser.AddHandler(function(data) { parser.AddHandler(function(data){ parser.AppendResult(data); parser.Complete() });  parser.Delimited(\"\\n\") }); parser.Delimited(\" \") }"
 	}
 	}`
-	s := tcpserver.NewServer()
-	s.Start(network)
+	newServer(network)
 	newClient(network)
 }
 
@@ -139,8 +143,7 @@ func TestServerSplitFunc2(t *testing.T) {
 	  "splitFunc":"function splitFunc(parser) { parser.AddHandler(function(data) { parser.AddHandler(function(data){ parser.AppendResult(data); parser.Complete() });  parser.Fixed(21) }); parser.Fixed(6) }"
 	}
 	}`
-	s := tcpserver.NewServer()
-	s.Start(network)
+	newServer(network)
 	newClient(network)
 }
 

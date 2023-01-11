@@ -7,7 +7,7 @@ import (
 	"net"
 	"sync/atomic"
 
-	"github.com/robertkrimen/otto"
+	"github.com/dop251/goja"
 )
 
 type DelimType string
@@ -96,13 +96,14 @@ func (p *PipePayloadParser) init() {
 		handler := p.getNextHandler()
 		handler(b)
 	}
-	vm := otto.New()
-	_, err := vm.Run(p.fun)
+	vm := goja.New()
+	_, err := vm.RunString(p.fun)
 	if err != nil {
 		log.Panicln(err)
 	}
-	splitFunc, _ := vm.Get("splitFunc")
-	_, err = splitFunc.Call(splitFunc, p)
+	fn, _ := goja.AssertFunction(vm.Get("splitFunc"))
+
+	_, err = fn(goja.Undefined(), vm.ToValue(p))
 	if err != nil {
 		log.Panicln(err)
 	}

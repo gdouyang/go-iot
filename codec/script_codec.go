@@ -2,12 +2,10 @@ package codec
 
 import (
 	"errors"
-	"fmt"
 	"runtime/debug"
-	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
-	"github.com/robertkrimen/otto"
+	"github.com/dop251/goja"
 )
 
 func init() {
@@ -28,46 +26,56 @@ const (
 	Script_Codec   = "script_codec"
 )
 
+type vmPool struct {
+	chVM chan *goja.Runtime
+}
+
+func newPool(src string, size int) (*vmPool, error) {
+	program, _ := goja.Compile("", src, false)
+	p := vmPool{chVM: make(chan *goja.Runtime, size)}
+	for i := 0; i < size; i++ {
+		vm := goja.New()
+		_, err := vm.RunProgram(program)
+		if err != nil {
+			return nil, err
+		}
+		console := vm.NewObject()
+		console.Set("log", func(f interface{}, v ...interface{}) {
+			logs.Debug(f, v...)
+		})
+		vm.Set("console", console)
+		p.put(vm)
+	}
+	return &p, nil
+}
+
+func (p *vmPool) get() *goja.Runtime {
+	vm := <-p.chVM
+	return vm
+}
+
+func (p *vmPool) put(vm *goja.Runtime) {
+	p.chVM <- vm
+}
+
 // js脚本编解码
 type ScriptCodec struct {
-	script         string
-	productId      string
-	vm             *otto.Otto
-	onConnect      bool
-	onMessage      bool
-	onInvoke       bool
-	onDeviceCreate bool
-	onDeviceDelete bool
-	onDeviceUpdate bool
-	onStateChecker bool
+	script    string
+	productId string
+	pool      *vmPool
 }
 
 func NewScriptCodec(network NetworkConf) (Codec, error) {
-	vm := otto.New()
-	_, err := vm.Run(network.Script)
+	pool, err := newPool(network.Script, 20)
 	if err != nil {
 		return nil, err
 	}
 	sc := &ScriptCodec{
 		script:    network.Script,
 		productId: network.ProductId,
-		vm:        vm,
+		pool:      pool,
 	}
-	consoleRewirte(vm)
-	var val, _ = vm.Get(OnConnect)
-	sc.onConnect = val.IsDefined()
-	val, _ = vm.Get(OnMessage)
-	sc.onMessage = val.IsDefined()
-	val, _ = vm.Get(OnInvoke)
-	sc.onInvoke = val.IsDefined()
-	val, _ = vm.Get(OnDeviceCreate)
-	sc.onDeviceCreate = val.IsDefined()
-	val, _ = vm.Get(OnDeviceDelete)
-	sc.onDeviceDelete = val.IsDefined()
-	val, _ = vm.Get(OnDeviceUpdate)
-	sc.onDeviceUpdate = val.IsDefined()
-	val, _ = vm.Get(OnStateChecker)
-	sc.onStateChecker = val.IsDefined()
+	// consoleRewirte(vm)
 
 	RegCodec(network.ProductId, sc)
 	RegDeviceLifeCycle(network.ProductId, sc)
@@ -77,8 +85,8 @@ func NewScriptCodec(network NetworkConf) (Codec, error) {
 
 // 设备连接时
 func (c *ScriptCodec) OnConnect(ctx MessageContext) error {
-	if c.onConnect {
-		c.funcInvoke(OnConnect, ctx)
+	resp := c.funcInvoke(OnConnect, ctx)
+	if resp != nil {
 		return nil
 	}
 	return errors.New("notimpl")
@@ -86,17 +94,13 @@ func (c *ScriptCodec) OnConnect(ctx MessageContext) error {
 
 // 接收消息
 func (c *ScriptCodec) OnMessage(ctx MessageContext) error {
-	if c.onMessage {
-		c.funcInvoke(OnMessage, ctx)
-	}
+	c.funcInvoke(OnMessage, ctx)
 	return nil
 }
 
 // 命令调用
 func (c *ScriptCodec) OnInvoke(ctx MessageContext) error {
-	if c.onInvoke {
-		c.funcInvoke(OnInvoke, ctx)
-	}
+	c.funcInvoke(OnInvoke, ctx)
 	return nil
 }
 
@@ -107,73 +111,47 @@ func (c *ScriptCodec) OnClose(ctx MessageContext) error {
 
 // 设备新增
 func (c *ScriptCodec) OnCreate(ctx DeviceLifecycleContext) error {
-	if c.onDeviceCreate {
-		c.funcInvoke(OnDeviceCreate, ctx)
-	}
+	c.funcInvoke(OnDeviceCreate, ctx)
 	return nil
 }
 
 // 设备删除
 func (c *ScriptCodec) OnDelete(ctx DeviceLifecycleContext) error {
-	if c.onDeviceDelete {
-		c.funcInvoke(OnDeviceDelete, ctx)
-	}
+	c.funcInvoke(OnDeviceDelete, ctx)
 	return nil
 }
 
 // 设备修改
 func (c *ScriptCodec) OnUpdate(ctx DeviceLifecycleContext) error {
-	if c.onDeviceUpdate {
-		c.funcInvoke(OnDeviceUpdate, ctx)
-	}
+	c.funcInvoke(OnDeviceUpdate, ctx)
 	return nil
 }
 
 // 状态检查
 func (c *ScriptCodec) OnStateChecker(ctx DeviceLifecycleContext) (string, error) {
-	if c.onStateChecker {
-		resp := c.funcInvoke(OnStateChecker, ctx)
-		return resp.ToString()
+	resp := c.funcInvoke(OnStateChecker, ctx)
+	if resp != nil {
+		return resp.String(), nil
 	}
 	return "", nil
 }
 
-func (c *ScriptCodec) funcInvoke(name string, param interface{}) otto.Value {
-	vm := c.vm.Copy()
-	fn, _ := vm.Get(name)
-	if fn.IsDefined() {
+func (c *ScriptCodec) funcInvoke(name string, param interface{}) goja.Value {
+	vm := c.pool.get()
+	defer c.pool.put(vm)
+	fn, success := goja.AssertFunction(vm.Get(name))
+	if success {
 		defer func() {
 			if err := recover(); err != nil {
 				logs.Error("productId: [%s], error: %v", c.productId, err)
 				logs.Error(string(debug.Stack()))
 			}
 		}()
-		// logs.Warn(fmt.Sprintf("%p", &fn))
-		resp, err := fn.Call(otto.Value{}, param)
+		resp, err := fn(goja.Undefined(), vm.ToValue(param))
 		if err != nil {
 			logs.Error("productId: [%s], error: %v", c.productId, err)
 		}
 		return resp
 	}
-	return otto.Value{}
-}
-
-func formatForConsole(argumentList []otto.Value) string {
-	output := []string{}
-	for _, argument := range argumentList {
-		output = append(output, fmt.Sprintf("%v", argument))
-	}
-	return strings.Join(output, " ")
-}
-
-func consoleRewirte(vm *otto.Otto) {
-	console, _ := vm.Get("console")
-	console.Object().Set("log", func(call otto.FunctionCall) otto.Value {
-		logs.Debug(formatForConsole(call.ArgumentList))
-		return otto.Value{}
-	})
-	console.Object().Set("error", func(call otto.FunctionCall) otto.Value {
-		logs.Warn(formatForConsole(call.ArgumentList))
-		return otto.Value{}
-	})
+	return nil
 }

@@ -1,13 +1,14 @@
 package ruleengine
 
 import (
+	"errors"
 	"fmt"
 	"go-iot/codec/eventbus"
 	"go-iot/codec/tsl"
 	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
-	"github.com/robertkrimen/otto"
+	"github.com/dop251/goja"
 )
 
 type AlarmEvent struct {
@@ -40,7 +41,34 @@ type Trigger struct {
 	FilterType string            `json:"filterType"` // 触发消息类型 online,offline,properties,event
 	Filters    []ConditionFilter `json:"filters"`    // 条件
 	ShakeLimit ShakeLimit        `json:"shakeLimit"` // 防抖限制
-	expression *otto.Otto        `json:"-"`
+	pool       *vmPool           `json:"-"`
+}
+
+type vmPool struct {
+	chVM chan *goja.Runtime
+}
+
+func newPool(src string, size int) (*vmPool, error) {
+	program, _ := goja.Compile("", src, false)
+	p := vmPool{chVM: make(chan *goja.Runtime, size)}
+	for i := 0; i < size; i++ {
+		vm := goja.New()
+		_, err := vm.RunProgram(program)
+		if err != nil {
+			return nil, err
+		}
+		p.put(vm)
+	}
+	return &p, nil
+}
+
+func (p *vmPool) get() *goja.Runtime {
+	vm := <-p.chVM
+	return vm
+}
+
+func (p *vmPool) put(vm *goja.Runtime) {
+	p.chVM <- vm
 }
 
 func (t *Trigger) GetTopic(productId string) string {
@@ -83,30 +111,35 @@ func (c *Trigger) GetExpression() string {
 }
 
 func (c *Trigger) Evaluate(data map[string]interface{}) (bool, error) {
-	if c.expression == nil {
+	if c.pool == nil {
 		var mutex sync.Mutex
 		mutex.Lock()
 		defer mutex.Unlock()
-		vm := otto.New()
-		_, err := vm.Run("function test() { return " + c.GetExpression() + ";}")
-		// expression, err := govaluate.NewEvaluableExpression(c.GetExpression())
+		pool, err := newPool("function test() { return "+c.GetExpression()+";}", 5)
 		if err != nil {
 			return false, err
 		}
-		c.expression = vm
+		c.pool = pool
 	}
-	vm := c.expression.Copy()
+	vm := c.pool.get()
+	defer func() {
+		for key := range data {
+			vm.Set(key, nil)
+		}
+		c.pool.put(vm)
+	}()
 	for key, value := range data {
 		vm.Set(key, value)
 	}
-	result, err := vm.Call(`test`, nil)
+	fn, succ := goja.AssertFunction(vm.Get("test"))
+	if !succ {
+		return false, errors.New("test not a function")
+	}
+	result, err := fn(goja.Undefined())
 	if err != nil {
 		return false, err
 	}
-	val, err := result.ToBoolean()
-	if err != nil {
-		return false, err
-	}
+	val := result.ToBoolean()
 	return val, nil
 }
 

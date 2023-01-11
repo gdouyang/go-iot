@@ -1,24 +1,24 @@
 package codec_test
 
 import (
-	"fmt"
 	"go-iot/codec"
 	"testing"
 
 	"github.com/beego/beego/v2/core/logs"
-	"github.com/robertkrimen/otto"
+	"github.com/dop251/goja"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestOtto(t *testing.T) {
-	vm := otto.New()
-	vm.Run(`function test(va) {return 1}`)
-	val, _ := vm.Call(`test`, nil)
-	str, _ := val.ToString()
-	fmt.Println("value = " + str)
-	v0, _ := vm.Get("test1")
-	fmt.Printf("test1 is defined = %v \n", v0.IsDefined())
-	v1, _ := vm.Get("test")
-	fmt.Printf("test is defined = %v \n", v1.IsDefined())
+	vm := goja.New()
+	vm.RunString(`function test(va) {return 1}`)
+	fn, success := goja.AssertFunction(vm.Get("test"))
+	assert.True(t, success)
+	val, err1 := fn(goja.Undefined())
+	assert.Nil(t, err1)
+	assert.Equal(t, int64(1), val.ToInteger())
+	_, success = goja.AssertFunction(vm.Get("test1"))
+	assert.False(t, success)
 }
 
 func TestDecode(t *testing.T) {
