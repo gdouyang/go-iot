@@ -3,6 +3,7 @@ package ruleengine
 import (
 	"errors"
 	"fmt"
+	"go-iot/codec"
 	"go-iot/codec/eventbus"
 	"go-iot/codec/tsl"
 	"sync"
@@ -41,34 +42,7 @@ type Trigger struct {
 	FilterType string            `json:"filterType"` // 触发消息类型 online,offline,properties,event
 	Filters    []ConditionFilter `json:"filters"`    // 条件
 	ShakeLimit ShakeLimit        `json:"shakeLimit"` // 防抖限制
-	pool       *vmPool           `json:"-"`
-}
-
-type vmPool struct {
-	chVM chan *goja.Runtime
-}
-
-func newPool(src string, size int) (*vmPool, error) {
-	program, _ := goja.Compile("", src, false)
-	p := vmPool{chVM: make(chan *goja.Runtime, size)}
-	for i := 0; i < size; i++ {
-		vm := goja.New()
-		_, err := vm.RunProgram(program)
-		if err != nil {
-			return nil, err
-		}
-		p.put(vm)
-	}
-	return &p, nil
-}
-
-func (p *vmPool) get() *goja.Runtime {
-	vm := <-p.chVM
-	return vm
-}
-
-func (p *vmPool) put(vm *goja.Runtime) {
-	p.chVM <- vm
+	pool       *codec.VmPool     `json:"-"`
 }
 
 func (t *Trigger) GetTopic(productId string) string {
@@ -115,27 +89,21 @@ func (c *Trigger) Evaluate(data map[string]interface{}) (bool, error) {
 		var mutex sync.Mutex
 		mutex.Lock()
 		defer mutex.Unlock()
-		pool, err := newPool("function test() { return "+c.GetExpression()+";}", 5)
+		pool, err := codec.NewVmPool("function test() { return "+c.GetExpression()+";}", 5)
 		if err != nil {
 			return false, err
 		}
 		c.pool = pool
 	}
-	vm := c.pool.get()
+	vm := c.pool.Get()
 	defer func() {
-		for key := range data {
-			vm.Set(key, nil)
-		}
-		c.pool.put(vm)
+		c.pool.Put(vm)
 	}()
-	for key, value := range data {
-		vm.Set(key, value)
-	}
 	fn, succ := goja.AssertFunction(vm.Get("test"))
 	if !succ {
 		return false, errors.New("test not a function")
 	}
-	result, err := fn(goja.Undefined())
+	result, err := fn(vm.ToValue(data))
 	if err != nil {
 		return false, err
 	}
@@ -178,11 +146,11 @@ func (c *ConditionFilter) getExpression() string {
 		if oper == "==" || oper == "!=" {
 			oper = oper + "="
 		}
-		return fmt.Sprintf("%s %s \"%s\"", c.Key, oper, c.Value)
+		return fmt.Sprintf("this.%s %s \"%s\"", c.Key, oper, c.Value)
 	case "this":
 		return "true" // event self is happen
 	default:
-		return fmt.Sprintf("%s %s %s", c.Key, oper, c.Value)
+		return fmt.Sprintf("this.%s %s %s", c.Key, oper, c.Value)
 	}
 	return ""
 }

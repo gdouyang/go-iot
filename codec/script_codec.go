@@ -26,13 +26,15 @@ const (
 	Script_Codec   = "script_codec"
 )
 
-type vmPool struct {
+// javascript vm pool
+type VmPool struct {
 	chVM chan *goja.Runtime
 }
 
-func newPool(src string, size int) (*vmPool, error) {
+// new a vm pool
+func NewVmPool(src string, size int) (*VmPool, error) {
 	program, _ := goja.Compile("", src, false)
-	p := vmPool{chVM: make(chan *goja.Runtime, size)}
+	p := VmPool{chVM: make(chan *goja.Runtime, size)}
 	for i := 0; i < size; i++ {
 		vm := goja.New()
 		_, err := vm.RunProgram(program)
@@ -44,17 +46,17 @@ func newPool(src string, size int) (*vmPool, error) {
 			logs.Debug(f, v...)
 		})
 		vm.Set("console", console)
-		p.put(vm)
+		p.Put(vm)
 	}
 	return &p, nil
 }
 
-func (p *vmPool) get() *goja.Runtime {
+func (p *VmPool) Get() *goja.Runtime {
 	vm := <-p.chVM
 	return vm
 }
 
-func (p *vmPool) put(vm *goja.Runtime) {
+func (p *VmPool) Put(vm *goja.Runtime) {
 	p.chVM <- vm
 }
 
@@ -62,11 +64,11 @@ func (p *vmPool) put(vm *goja.Runtime) {
 type ScriptCodec struct {
 	script    string
 	productId string
-	pool      *vmPool
+	pool      *VmPool
 }
 
 func NewScriptCodec(network NetworkConf) (Codec, error) {
-	pool, err := newPool(network.Script, 20)
+	pool, err := NewVmPool(network.Script, 20)
 	if err != nil {
 		return nil, err
 	}
@@ -137,8 +139,8 @@ func (c *ScriptCodec) OnStateChecker(ctx DeviceLifecycleContext) (string, error)
 }
 
 func (c *ScriptCodec) funcInvoke(name string, param interface{}) goja.Value {
-	vm := c.pool.get()
-	defer c.pool.put(vm)
+	vm := c.pool.Get()
+	defer c.pool.Put(vm)
 	fn, success := goja.AssertFunction(vm.Get(name))
 	if success {
 		defer func() {
