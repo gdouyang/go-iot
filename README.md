@@ -2,9 +2,8 @@
 
 #### 介绍
 使用go实现的iot接入系统，以`物模型`为主体用来对接不同厂商的设备来实现统一接入的目的
-项目参考了
-`https://github.com/jetlinks/jetlinks-community`，
-`https://github.com/megaease/easegress`
+
+> 项目参考了https://github.com/jetlinks/jetlinks-community，https://github.com/megaease/easegress
 
 #### 功能目录
 - 产品管理
