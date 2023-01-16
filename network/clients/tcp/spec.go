@@ -2,6 +2,7 @@ package tcpclient
 
 import (
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,6 +34,20 @@ func (spec *TcpClientSpec) FromJson(str string) error {
 	return nil
 }
 
+func (spec *TcpClientSpec) FromNetwork(network codec.NetworkConf) error {
+	err := spec.FromJson(network.Configuration)
+	if err != nil {
+		return err
+	}
+	if spec.UseTLS {
+		err = spec.SetCertificate(network)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (spec *TcpClientSpec) TlsConfig() (*tls.Config, error) {
 	var certificates []tls.Certificate
 
@@ -57,5 +72,21 @@ func (spec *TcpClientSpec) SetByConfig(devoper *codec.Device) error {
 		return errors.New("port is not number")
 	}
 	spec.Port = int32(port)
+	return nil
+}
+
+func (spec *TcpClientSpec) SetCertificate(network codec.NetworkConf) error {
+	if len(network.CertBase64) == 0 || len(network.KeyBase64) == 0 {
+		return nil
+	}
+	cert, err := base64.StdEncoding.DecodeString(network.CertBase64)
+	if err != nil {
+		return fmt.Errorf("tcp server cert error: %v", err)
+	}
+	key, err := base64.StdEncoding.DecodeString(network.KeyBase64)
+	if err != nil {
+		return fmt.Errorf("tcp server key error: %v", err)
+	}
+	spec.Certificate = []servers.Certificate{{Key: string(key), Cert: string(cert)}}
 	return nil
 }

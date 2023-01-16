@@ -28,7 +28,7 @@ func (c *TcpClient) Type() codec.NetClientType {
 
 func (c *TcpClient) Connect(deviceId string, network codec.NetworkConf) error {
 	spec := &TcpClientSpec{}
-	err := spec.FromJson(network.Configuration)
+	err := spec.FromNetwork(network)
 	if err != nil {
 		return err
 	}

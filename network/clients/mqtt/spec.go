@@ -2,6 +2,7 @@ package mqttclient
 
 import (
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,6 +27,20 @@ func (spec *MQTTClientSpec) FromJson(str string) error {
 	err := json.Unmarshal([]byte(str), spec)
 	if err != nil {
 		return fmt.Errorf("mqtt client spec error: %v", err)
+	}
+	return nil
+}
+
+func (spec *MQTTClientSpec) FromNetwork(network codec.NetworkConf) error {
+	err := spec.FromJson(network.Configuration)
+	if err != nil {
+		return err
+	}
+	if spec.UseTLS {
+		err = spec.SetCertificate(network)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -57,5 +72,21 @@ func (spec *MQTTClientSpec) SetByConfig(devoper *codec.Device) error {
 	spec.ClientId = devoper.GetConfig("clientId")
 	spec.Username = devoper.GetConfig("username")
 	spec.Password = devoper.GetConfig("password")
+	return nil
+}
+
+func (spec *MQTTClientSpec) SetCertificate(network codec.NetworkConf) error {
+	if len(network.CertBase64) == 0 || len(network.KeyBase64) == 0 {
+		return nil
+	}
+	cert, err := base64.StdEncoding.DecodeString(network.CertBase64)
+	if err != nil {
+		return fmt.Errorf("tcp server cert error: %v", err)
+	}
+	key, err := base64.StdEncoding.DecodeString(network.KeyBase64)
+	if err != nil {
+		return fmt.Errorf("tcp server key error: %v", err)
+	}
+	spec.Certificate = []servers.Certificate{{Key: string(key), Cert: string(cert)}}
 	return nil
 }

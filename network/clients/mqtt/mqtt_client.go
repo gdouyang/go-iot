@@ -25,7 +25,7 @@ func (c *MqttClient) Type() codec.NetClientType {
 
 func (c *MqttClient) Connect(deviceId string, network codec.NetworkConf) error {
 	spec := MQTTClientSpec{}
-	err := spec.FromJson(network.Configuration)
+	err := spec.FromNetwork(network)
 	if err != nil {
 		return err
 	}
