@@ -37,6 +37,8 @@ type NetworkConf struct {
 	Script        string `json:"script"`
 	Type          string `json:"type"`
 	CodecId       string `json:"codecId"`
+	CertBase64    string `json:"certBase64"` // crt文件base64
+	KeyBase64     string `json:"keyBase64"`  // key文件base64
 }
 
 type NetServer interface {

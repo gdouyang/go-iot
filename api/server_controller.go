@@ -113,6 +113,8 @@ func convertCodecNetwork(nw models.Network) (codec.NetworkConf, error) {
 		Script:        pro.Script,
 		Type:          nw.Type,
 		CodecId:       pro.CodecId,
+		CertBase64:    nw.CertBase64,
+		KeyBase64:     nw.KeyBase64,
 	}
 	return config, nil
 }

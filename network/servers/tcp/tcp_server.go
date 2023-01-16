@@ -42,7 +42,7 @@ func (s *TcpServer) Type() codec.NetServerType {
 func (s *TcpServer) Start(network codec.NetworkConf) error {
 
 	spec := &TcpServerSpec{}
-	err := spec.FromJson(network.Configuration)
+	err := spec.FromNetwork(network)
 	if err != nil {
 		return err
 	}

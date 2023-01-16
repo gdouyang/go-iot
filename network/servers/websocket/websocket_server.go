@@ -42,7 +42,7 @@ func (s *WebSocketServer) Type() codec.NetServerType {
 
 func (s *WebSocketServer) Start(network codec.NetworkConf) error {
 	spec := &WebsocketServerSpec{}
-	err := spec.FromJson(network.Configuration)
+	err := spec.FromNetwork(network)
 	if err != nil {
 		return err
 	}

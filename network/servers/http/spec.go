@@ -2,8 +2,10 @@ package httpserver
 
 import (
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"go-iot/codec"
 	"go-iot/network/servers"
 )
 
@@ -39,6 +41,20 @@ func (spec *HttpServerSpec) FromJson(str string) error {
 	return nil
 }
 
+func (spec *HttpServerSpec) FromNetwork(network codec.NetworkConf) error {
+	err := spec.FromJson(network.Configuration)
+	if err != nil {
+		return err
+	}
+	if spec.UseTLS {
+		err = spec.SetCertificate(network)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (spec *HttpServerSpec) TlsConfig() (*tls.Config, error) {
 	var certificates []tls.Certificate
 
@@ -54,4 +70,20 @@ func (spec *HttpServerSpec) TlsConfig() (*tls.Config, error) {
 	}
 
 	return &tls.Config{Certificates: certificates}, nil
+}
+
+func (spec *HttpServerSpec) SetCertificate(network codec.NetworkConf) error {
+	if len(network.CertBase64) == 0 || len(network.KeyBase64) == 0 {
+		return nil
+	}
+	cert, err := base64.StdEncoding.DecodeString(network.CertBase64)
+	if err != nil {
+		return fmt.Errorf("tcp server cert error: %v", err)
+	}
+	key, err := base64.StdEncoding.DecodeString(network.KeyBase64)
+	if err != nil {
+		return fmt.Errorf("tcp server key error: %v", err)
+	}
+	spec.Certificate = []servers.Certificate{{Key: string(key), Cert: string(cert)}}
+	return nil
 }

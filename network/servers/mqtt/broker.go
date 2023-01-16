@@ -47,7 +47,10 @@ func (s *Broker) Type() codec.NetServerType {
 
 func (s *Broker) Start(network codec.NetworkConf) error {
 	spec := &MQTTServerSpec{}
-	spec.FromJson(network.Configuration)
+	err := spec.FromNetwork(network)
+	if err != nil {
+		return err
+	}
 	spec.Port = network.Port
 
 	s.productId = network.ProductId
@@ -56,7 +59,7 @@ func (s *Broker) Start(network codec.NetworkConf) error {
 	s.clients = make(map[string]*Client)
 	s.done = make(chan struct{})
 
-	err := s.setListener()
+	err = s.setListener()
 	if err != nil {
 		logs.Error("mqtt broker set listener failed: %v", err)
 		return err
