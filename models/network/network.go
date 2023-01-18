@@ -178,6 +178,12 @@ func UpdateNetworkTx(ob *models.Network, o orm.DML) error {
 	if len(ob.State) > 0 {
 		cols = append(cols, "State")
 	}
+	if len(ob.CertBase64) > 0 {
+		cols = append(cols, "CertBase64")
+	}
+	if len(ob.KeyBase64) > 0 {
+		cols = append(cols, "KeyBase64")
+	}
 	if len(cols) == 0 {
 		return nil
 	}

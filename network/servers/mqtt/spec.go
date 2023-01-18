@@ -42,6 +42,9 @@ type (
 )
 
 func (spec *MQTTServerSpec) FromJson(str string) error {
+	if len(str) == 0 {
+		return nil
+	}
 	err := json.Unmarshal([]byte(str), spec)
 	if err != nil {
 		return fmt.Errorf("mqtt broker spec error: %v", err)
@@ -67,7 +70,9 @@ func (spec *MQTTServerSpec) TlsConfig() (*tls.Config, error) {
 	var certificates []tls.Certificate
 
 	for _, c := range spec.Certificate {
-		cert, err := tls.X509KeyPair([]byte(c.Cert), []byte(c.Key))
+		certPEMBlock := []byte(c.Cert)
+		keyPEMBlock := []byte(c.Key)
+		cert, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
 		if err != nil {
 			return nil, fmt.Errorf("generate x509 key pair for %s failed: %s ", c.Name, err)
 		}
