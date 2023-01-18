@@ -150,7 +150,7 @@ func TestServerSplitFunc2(t *testing.T) {
 func newClient(network codec.NetworkConf) {
 	newClient1(network, func() string {
 		str1 := time.Now().Format("2006-01-02 15:04:05")
-		str := fmt.Sprintf("aasss %s \n", str1)
+		str := fmt.Sprintf("aasss %s_\n", str1)
 		return str
 	})
 }
