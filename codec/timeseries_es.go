@@ -17,10 +17,12 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
-var batchBufferSize int = 1000
-
 func init() {
-	timeSeriseMap[TIME_SERISE_ES] = &EsTimeSeries{dataCh: make(chan string, batchBufferSize)}
+	RegEsTimeSeries()
+}
+
+func RegEsTimeSeries() {
+	timeSeriseMap[TIME_SERISE_ES] = &EsTimeSeries{dataCh: make(chan string, DefaultEsConfig.BufferSize)}
 }
 
 const (
@@ -231,14 +233,16 @@ func (t *EsTimeSeries) SaveLogs(product *Product, d1 LogData) error {
 func (t *EsTimeSeries) commit(index string, text string) {
 	o := `{ "index" : { "_index" : "` + index + `" } }` + "\n" + text + "\n"
 	t.dataCh <- o
-	if len(t.dataCh) > (batchBufferSize / 2) {
+	if len(t.dataCh) > (DefaultEsConfig.BufferSize / 2) {
 		logs.Info("commit data to es, chan length:", len(t.dataCh))
 	}
 	if !t.batchTaskRun {
 		t.Lock()
 		defer t.Unlock()
-		t.batchTaskRun = true
-		go t.batchSave()
+		if !t.batchTaskRun {
+			t.batchTaskRun = true
+			go t.batchSave()
+		}
 	}
 }
 
@@ -249,7 +253,7 @@ func (t *EsTimeSeries) batchSave() {
 			t.save()
 		case d := <-t.dataCh:
 			t.batchData = append(t.batchData, d)
-			if len(t.batchData) >= 100 {
+			if len(t.batchData) >= DefaultEsConfig.BulkSize {
 				t.save()
 			}
 		}
@@ -267,7 +271,12 @@ func (t *EsTimeSeries) save() {
 		req := esapi.BulkRequest{
 			Body: bytes.NewReader(data),
 		}
+		start := time.Now().UnixMilli()
 		doRequest(req)
+		totalTime := time.Now().UnixMilli() - start
+		if totalTime > 1000 {
+			logs.Warn("save data to es use time: %v ms", totalTime)
+		}
 	}
 }
 

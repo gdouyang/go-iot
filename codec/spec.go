@@ -59,9 +59,11 @@ type (
 	}
 	// config for elasticsearch
 	EsConfig struct {
-		Url      string
-		Username string
-		Password string
+		Url        string
+		Username   string
+		Password   string
+		BufferSize int
+		BulkSize   int
 	}
 	// product meta config
 	ProductMetaConfig struct {
@@ -78,7 +80,7 @@ func (r RedisConfig) String() string {
 }
 
 func (r EsConfig) String() string {
-	return fmt.Sprintf("[url=%s, username=%v]", r.Url, r.Username)
+	return fmt.Sprintf("[url=%s, username=%v, BufferSize=%v, BulkSize=%v]", r.Url, r.Username, r.BufferSize, r.BulkSize)
 }
 
 var DefaultRedisConfig RedisConfig = RedisConfig{
@@ -86,7 +88,9 @@ var DefaultRedisConfig RedisConfig = RedisConfig{
 	PoolSize: 10,
 }
 var DefaultEsConfig EsConfig = EsConfig{
-	Url: "http://localhost:9200",
+	Url:        "http://localhost:9200",
+	BufferSize: 10000,
+	BulkSize:   5000,
 }
 
 // default product impl

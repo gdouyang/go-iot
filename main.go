@@ -74,6 +74,15 @@ func setDefaultConfig() {
 		getConfigString("es.password", func(s string) {
 			codec.DefaultEsConfig.Password = s
 		})
+		buffersize := getConfigInt("es.buffersize")
+		if buffersize > 0 {
+			codec.DefaultEsConfig.BufferSize = buffersize
+		}
+		bulkSize := getConfigInt("es.bulksize")
+		if buffersize > 0 {
+			codec.DefaultEsConfig.BulkSize = bulkSize
+		}
+		codec.RegEsTimeSeries()
 		logs.Info("es config: ", codec.DefaultEsConfig)
 	}
 	{
@@ -128,7 +137,8 @@ func getConfigString(key string, callback func(string)) {
 func getConfigInt(key string) int {
 	data, err := config.Int(key)
 	if err != nil {
-		panic(err)
+		logs.Warn("%s is not int, error=%s", key, err)
+		return 0
 	}
 	return data
 }
