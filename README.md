@@ -33,7 +33,7 @@
 ```
 docker run --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:8
 
-docker run -d --name elasticsearchv7 -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" elasticsearch:7.17.7
+docker run -d --name elasticsearchv7 -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "ES_JAVA_OPTS=-Xms1024m -Xmx1024m" elasticsearch:7.17.7
 
 docker run --name redis6 -d -it -p 6379:6379 redis:6
 ```
@@ -73,17 +73,20 @@ docker使用默认配置
 | fre | 功率 | double |
 
 ```
-max : 1846ms
-min : 74ms
-avg : 117ms
+create mqtt client: 9000 ok
+create mqtt client: 10000 ok
+
+max : 1571ms
+min : 525ms
+avg : 956ms
 
 > 5000ms : 0(0.00%)
 > 2000ms : 0(0.00%)
-> 1000ms : 105(1.05%)
-> 500ms : 0(0.00%)
-> 200ms : 4(0.04%)
-> 100ms : 3251(32.51%)
-> 10ms : 6640(66.40%)
+> 1000ms : 2935(29.35%)
+> 500ms : 7065(70.65%)
+> 200ms : 0(0.00%)
+> 100ms : 0(0.00%)
+> 10ms : 0(0.00%)
 ```
 CPU、内存使用情况
 ```shell
@@ -99,3 +102,17 @@ KiB Swap:  0.6/3145724 [|                                                       
 ```
 
 ES写入速度 5000/s
+
+go-iot运行状态
+```
+Count	Profile
+422	allocs
+0	block
+0	cmdline
+20020	goroutine
+422	heap
+0	mutex
+0	profile
+8	threadcreate
+0	trace
+```
