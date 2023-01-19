@@ -82,6 +82,10 @@ func setDefaultConfig() {
 		if buffersize > 0 {
 			codec.DefaultEsConfig.BulkSize = bulkSize
 		}
+		warntime := getConfigInt("es.warntime")
+		if warntime > 0 {
+			codec.DefaultEsConfig.WarnTime = warntime
+		}
 		codec.RegEsTimeSeries()
 		logs.Info("es config: ", codec.DefaultEsConfig)
 	}

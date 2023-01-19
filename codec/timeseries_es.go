@@ -274,7 +274,7 @@ func (t *EsTimeSeries) save() {
 		start := time.Now().UnixMilli()
 		doRequest(req)
 		totalTime := time.Now().UnixMilli() - start
-		if totalTime > 1000 {
+		if DefaultEsConfig.WarnTime > 0 && totalTime > int64(DefaultEsConfig.WarnTime) {
 			logs.Warn("save data to es use time: %v ms", totalTime)
 		}
 	}

@@ -62,8 +62,9 @@ type (
 		Url        string
 		Username   string
 		Password   string
-		BufferSize int
-		BulkSize   int
+		BufferSize int // default 10000
+		BulkSize   int // default 5000
+		WarnTime   int // warn日志时间当保存时间操作指定时间时输出日志，默认1000ms
 	}
 	// product meta config
 	ProductMetaConfig struct {
@@ -80,7 +81,7 @@ func (r RedisConfig) String() string {
 }
 
 func (r EsConfig) String() string {
-	return fmt.Sprintf("[url=%s, username=%v, BufferSize=%v, BulkSize=%v]", r.Url, r.Username, r.BufferSize, r.BulkSize)
+	return fmt.Sprintf("[url=%s, username=%v, BufferSize=%v, BulkSize=%v, WarnTime=%v]", r.Url, r.Username, r.BufferSize, r.BulkSize, r.WarnTime)
 }
 
 var DefaultRedisConfig RedisConfig = RedisConfig{
@@ -91,6 +92,7 @@ var DefaultEsConfig EsConfig = EsConfig{
 	Url:        "http://localhost:9200",
 	BufferSize: 10000,
 	BulkSize:   5000,
+	WarnTime:   1000,
 }
 
 // default product impl
