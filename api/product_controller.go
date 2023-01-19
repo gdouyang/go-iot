@@ -227,7 +227,7 @@ func (ctl *ProductController) Deploy() {
 		ctl.RespError(errors.New("tsl properties must be persent"))
 		return
 	}
-	p1, err := codec.NewProduct(ob.Id, make(map[string]string), codec.TIME_SERISE_ES, ob.Metadata)
+	p1, err := codec.NewProduct(ob.Id, make(map[string]string), ob.StorePolicy, ob.Metadata)
 	if err != nil {
 		ctl.RespError(err)
 		return
