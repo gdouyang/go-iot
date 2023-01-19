@@ -13,14 +13,24 @@ import (
 )
 
 func init() {
-	codec.RegDeviceManager(&redisDeviceManager{cache: make(map[string]*codec.Device)})
-	codec.RegProductManager(&redisProductManager{cache: make(map[string]*codec.Product)})
+	codec.RegDeviceManager(&redisDeviceManager{cache: sync.Map{}})
+	codec.RegProductManager(&redisProductManager{cache: sync.Map{}})
 }
 
-// redisDeviceManager
+// device manager for redis
 type redisDeviceManager struct {
-	sync.RWMutex
-	cache map[string]*codec.Device
+	cache sync.Map
+}
+
+func (m *redisDeviceManager) get(deviceId string) (*codec.Device, bool) {
+	device, ok := m.cache.Load(deviceId)
+	if ok {
+		if device != nil {
+			return device.(*codec.Device), true
+		}
+		return nil, true
+	}
+	return nil, false
 }
 
 func (p *redisDeviceManager) Id() string {
@@ -28,13 +38,11 @@ func (p *redisDeviceManager) Id() string {
 }
 
 func (m *redisDeviceManager) Get(deviceId string) *codec.Device {
-	device, ok := m.cache[deviceId]
+	device, ok := m.get(deviceId)
 	if ok {
 		return device
 	}
 	if device == nil {
-		m.Lock()
-		defer m.Unlock()
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 		rdb := codec.GetRedisClient()
@@ -43,7 +51,7 @@ func (m *redisDeviceManager) Get(deviceId string) *codec.Device {
 			logs.Error(err)
 		}
 		if len(data) == 0 {
-			m.cache[deviceId] = nil
+			m.cache.Store(deviceId, nil)
 			return nil
 		}
 		config := map[string]string{}
@@ -74,7 +82,7 @@ func (m *redisDeviceManager) Get(deviceId string) *codec.Device {
 			Config:    config,
 			Data:      dat,
 		}
-		m.cache[deviceId] = dev
+		m.cache.Store(deviceId, dev)
 		return dev
 	}
 	return nil
@@ -95,12 +103,23 @@ func (m *redisDeviceManager) Put(device *codec.Device) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	rdb.HSet(ctx, "goiot:device:"+p.Id, data).Err()
-	m.cache[device.GetId()] = device
+	m.cache.Store(device.GetId(), device)
 }
 
+// product manager for redis
 type redisProductManager struct {
-	sync.RWMutex
-	cache map[string]*codec.Product
+	cache sync.Map
+}
+
+func (m *redisProductManager) get(deviceId string) (*codec.Product, bool) {
+	product, ok := m.cache.Load(deviceId)
+	if ok {
+		if product != nil {
+			return product.(*codec.Product), true
+		}
+		return nil, true
+	}
+	return nil, false
 }
 
 func (p *redisProductManager) Id() string {
@@ -108,13 +127,11 @@ func (p *redisProductManager) Id() string {
 }
 
 func (m *redisProductManager) Get(productId string) *codec.Product {
-	product, ok := m.cache[productId]
+	product, ok := m.get(productId)
 	if ok {
 		return product
 	}
 	if product == nil {
-		m.Lock()
-		defer m.Unlock()
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 		rdb := codec.GetRedisClient()
@@ -123,7 +140,7 @@ func (m *redisProductManager) Get(productId string) *codec.Product {
 			logs.Error(err)
 		}
 		if len(data) == 0 {
-			m.cache[productId] = nil
+			m.cache.Store(productId, nil)
 			return nil
 		}
 		config := map[string]string{}
@@ -137,7 +154,7 @@ func (m *redisProductManager) Get(productId string) *codec.Product {
 		if err != nil {
 			logs.Error(err)
 		} else {
-			m.cache[productId] = produ
+			m.cache.Store(productId, produ)
 			return produ
 		}
 	}
@@ -166,5 +183,5 @@ func (m *redisProductManager) Put(product *codec.Product) {
 	if err != nil {
 		logs.Error(err)
 	}
-	m.cache[product.GetId()] = product
+	m.cache.Store(product.GetId(), product)
 }

@@ -27,7 +27,7 @@ var realtimeInstance *realtime = &realtime{
 	unsubscribe: make(chan subscriber, 10),
 	// Send events here to publish them.
 	publish:     make(chan eventbus.Message, 10),
-	subscribers: map[string]*list.List{},
+	subscribers: sync.Map{},
 }
 
 type RealtimeWebSocketController struct {
@@ -87,7 +87,7 @@ type realtime struct {
 	subscribe   chan subscriber
 	unsubscribe chan subscriber
 	publish     chan eventbus.Message
-	subscribers map[string]*list.List
+	subscribers sync.Map //map[string]*list.List
 }
 
 // 订阅者
@@ -99,6 +99,16 @@ type subscriber struct {
 	Conn      *websocket.Conn // Only for WebSocket users; otherwise nil.
 }
 
+func (e *realtime) getSubscriber(deviceId string) (*list.List, bool) {
+	val, ok := e.subscribers.Load(deviceId)
+	if ok {
+		if val != nil {
+			return val.(*list.List), ok
+		}
+		return nil, ok
+	}
+	return nil, false
+}
 func (e *realtime) send(msg eventbus.Message) {
 	e.publish <- msg
 }
@@ -107,38 +117,41 @@ func (e *realtime) writeLoop() {
 	for {
 		select {
 		case sub := <-e.subscribe:
-			l := sync.Mutex{}
-			l.Lock()
-			defer l.Unlock()
-			if _, ok := e.subscribers[sub.DeviceId]; !ok {
-				e.subscribers[sub.DeviceId] = list.New()
+			val, ok := e.getSubscriber(sub.DeviceId)
+			if !ok {
+				val = list.New()
+				e.subscribers.Store(sub.DeviceId, val)
 			}
-			e.subscribers[sub.DeviceId].PushBack(&sub)
+			val.PushBack(&sub)
 		case event := <-e.publish:
-			subs := e.subscribers[event.GetDeviceId()]
-			for sub := subs.Front(); sub != nil; sub = sub.Next() {
-				suber := sub.Value.(*subscriber)
-				ws := suber.Conn
-				if ws != nil {
-					d, _ := json.Marshal(event)
-					ws.WriteMessage(websocket.TextMessage, d)
+			subs, _ := e.getSubscriber(event.GetDeviceId())
+			if subs != nil {
+				for sub := subs.Front(); sub != nil; sub = sub.Next() {
+					suber := sub.Value.(*subscriber)
+					ws := suber.Conn
+					if ws != nil {
+						d, _ := json.Marshal(event)
+						ws.WriteMessage(websocket.TextMessage, d)
+					}
 				}
 			}
 		case unsub := <-e.unsubscribe:
-			subs := e.subscribers[unsub.DeviceId]
-			for sub := subs.Front(); sub != nil; sub = sub.Next() {
-				suber := sub.Value.(*subscriber)
-				if suber.Addr == unsub.Addr {
-					subs.Remove(sub)
-					ws := suber.Conn
-					if ws != nil {
-						ws.Close()
+			subs, _ := e.getSubscriber(unsub.DeviceId)
+			if subs != nil {
+				for sub := subs.Front(); sub != nil; sub = sub.Next() {
+					suber := sub.Value.(*subscriber)
+					if suber.Addr == unsub.Addr {
+						subs.Remove(sub)
+						ws := suber.Conn
+						if ws != nil {
+							ws.Close()
+						}
+						break
 					}
-					break
 				}
-			}
-			if subs.Len() == 0 {
-				eventbus.UnSubscribe(unsub.topic, e.send)
+				if subs.Len() == 0 {
+					eventbus.UnSubscribe(unsub.topic, e.send)
+				}
 			}
 		}
 	}
