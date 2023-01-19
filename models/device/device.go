@@ -148,6 +148,21 @@ func UpdateOnlineStatus(id string, state string) error {
 	return nil
 }
 
+func UpdateOnlineStatusList(ids []string, state string) error {
+	if len(ids) == 0 {
+		return errors.New("ids must be present")
+	}
+	if len(state) == 0 {
+		return errors.New("state must be present")
+	}
+	o := orm.NewOrm()
+	_, err := o.QueryTable(models.Device{}).Filter("id", ids).Update(orm.Params{"state": state})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func DeleteDevice(deviceId string) error {
 	if len(deviceId) == 0 {
 		return errors.New("id must be present")

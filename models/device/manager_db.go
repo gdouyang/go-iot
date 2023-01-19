@@ -5,37 +5,33 @@ import (
 	"go-iot/codec/eventbus"
 	"go-iot/models"
 	"sync"
+	"time"
 
 	"github.com/beego/beego/v2/core/logs"
 )
 
 func init() {
-	codec.RegDeviceManager(&DbDeviceManager{cache: make(map[string]*codec.Device)})
+	deviceManager := &DbDeviceManager{cache: make(map[string]*codec.Device), stateCh: make(chan models.Device, 1000)}
+	codec.RegDeviceManager(deviceManager)
 	codec.RegProductManager(&DbProductManager{cache: make(map[string]*codec.Product)})
 	eventbus.Subscribe(eventbus.GetOfflineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OfflineMessage); ok {
-			UpdateOnlineStatus(m.DeviceId, models.OFFLINE)
-			product := codec.GetProduct(m.ProductId)
-			if product != nil {
-				product.GetTimeSeries().SaveLogs(product, codec.LogData{DeviceId: m.DeviceId, Type: models.OFFLINE})
-			}
+			deviceManager.stateCh <- models.Device{Id: m.DeviceId, State: models.OFFLINE}
 		}
 	})
 	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OnlineMessage); ok {
-			UpdateOnlineStatus(m.DeviceId, models.ONLINE)
-			product := codec.GetProduct(m.ProductId)
-			if product != nil {
-				product.GetTimeSeries().SaveLogs(product, codec.LogData{DeviceId: m.DeviceId, Type: models.ONLINE})
-			}
+			deviceManager.stateCh <- models.Device{Id: m.DeviceId, State: models.ONLINE}
 		}
 	})
+	go deviceManager.saveState()
 }
 
 // DbDeviceManager
 type DbDeviceManager struct {
 	sync.RWMutex
-	cache map[string]*codec.Device
+	cache   map[string]*codec.Device
+	stateCh chan models.Device
 }
 
 func (p *DbDeviceManager) Id() string {
@@ -69,6 +65,53 @@ func (m *DbDeviceManager) Get(deviceId string) *codec.Device {
 
 func (m *DbDeviceManager) Put(device *codec.Device) {
 	m.cache[device.GetId()] = device
+}
+
+func (m *DbDeviceManager) saveState() {
+	var onlineList []models.Device
+	var offlineList []models.Device
+
+	var onlineFn = func(size int) {
+		if len(onlineList) >= size {
+			updateOnlineStatus(onlineList, models.ONLINE)
+			onlineList = onlineList[:0]
+		}
+	}
+	var offlineFn = func(size int) {
+		if len(offlineList) >= size {
+			updateOnlineStatus(offlineList, models.OFFLINE)
+			offlineList = offlineList[:0]
+		}
+	}
+	for {
+		select {
+		case <-time.After(time.Millisecond * 3000): // every 5 sec save data
+			onlineFn(0)
+			offlineFn(0)
+		case dev := <-m.stateCh:
+			if dev.State == models.ONLINE {
+				onlineList = append(onlineList, dev)
+				onlineFn(100)
+			} else if dev.State == models.OFFLINE {
+				offlineList = append(offlineList, dev)
+				offlineFn(100)
+			}
+		}
+	}
+}
+
+func updateOnlineStatus(list []models.Device, state string) {
+	if len(list) > 0 {
+		var ids []string
+		for _, m := range list {
+			ids = append(ids, m.Id)
+			product := codec.GetProduct(m.ProductId)
+			if product != nil {
+				product.GetTimeSeries().SaveLogs(product, codec.LogData{DeviceId: m.Id, Type: models.OFFLINE})
+			}
+		}
+		UpdateOnlineStatusList(ids, state)
+	}
 }
 
 // DbProductManager
