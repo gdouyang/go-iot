@@ -156,7 +156,7 @@ func UpdateOnlineStatusList(ids []string, state string) error {
 		return errors.New("state must be present")
 	}
 	o := orm.NewOrm()
-	_, err := o.QueryTable(models.Device{}).Filter("id", ids).Update(orm.Params{"state": state})
+	_, err := o.QueryTable(models.Device{}).Filter("id__in", ids).Update(orm.Params{"state": state})
 	if err != nil {
 		return err
 	}
