@@ -343,11 +343,29 @@ func (ctl *DeviceController) BatchDeploy() {
 	}
 	var deviceIds []string
 	ctl.BindJSON(&deviceIds)
-	if len(deviceIds) == 0 {
-		ctl.RespError(errors.New("ids must be persent"))
-	}
-	for _, deviceId := range deviceIds {
-		ctl.enable(deviceId, true)
+	if len(deviceIds) > 0 {
+		for _, deviceId := range deviceIds {
+			ctl.enable(deviceId, true)
+		}
+	} else {
+		lastPage := false
+		pageNum := 1
+		condition := models.Device{State: models.NoActive}
+		m, _ := json.Marshal(condition)
+		for !lastPage {
+			var page *models.PageQuery = &models.PageQuery{PageSize: 1000, PageNum: pageNum, Condition: m}
+			result, err := device.PageDevice(page, ctl.GetCurrentUser().Id)
+			if err != nil {
+				ctl.RespError(err)
+				break
+			}
+			list := result.List.([]models.Device)
+			for _, dev := range list {
+				ctl.enable(dev.Id, true)
+			}
+			pageNum = pageNum + 1
+			lastPage = result.LastPage
+		}
 	}
 	ctl.RespOk()
 }
