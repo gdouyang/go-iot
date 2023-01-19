@@ -37,6 +37,9 @@ func PageDevice(page *models.PageQuery, createId int64) (*models.PageResult, err
 	if len(dev.Name) > 0 {
 		qs = qs.Filter("name__contains", dev.Name)
 	}
+	if len(dev.State) > 0 {
+		qs = qs.Filter("State", dev.State)
+	}
 
 	if len(dev.ProductId) > 0 {
 		qs = qs.Filter("ProductId", dev.ProductId)
