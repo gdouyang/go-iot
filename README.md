@@ -51,9 +51,11 @@ docker run --name redis6 -d -it -p 6379:6379 redis:6
 | 标题 | 配置 |
 | --- | --- |
 | CPU | 4C |
-| RAM | 8G |
+| RAM | 12G, 8G |
 | 硬盘 | 50G |
 | 操作系统 | CentOS Linux release 7.8.2003 (Core) |
+
+ES内存设置为6G
 
 修改最大文件数在`/etc/security/limits.conf`中追加以下配置
 ```
@@ -100,10 +102,6 @@ KiB Swap:  0.6/3145724 [|                                                       
 13100 root      20   0 1023088 299000  12652 S 245.8  4.4   3:38.39 go-iot                                                                       
  3297 1000      20   0 7474404   3.8g  38236 S  41.2 58.3  14:30.41 java
 ```
-
-ES写入速度 5000/s
-> ES内存设置为4G
-
 go-iot运行状态
 ```
 Count	Profile
@@ -117,3 +115,6 @@ Count	Profile
 8	threadcreate
 0	trace
 ```
+- 测试结果
+
+ES写入速度 5000/s，压力主要在ES中，持续写入`2540000`条数据无丢失，但有延迟，当中断请求结束后2分钟go协程恢复正常
