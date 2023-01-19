@@ -43,7 +43,9 @@ func (ctl *ProfController) Get() {
 	if ctl.isForbidden(profResource, QueryAction) {
 		return
 	}
-	defer func() {}()
 	ctl.Ctx.Request.URL.Path = strings.Replace(ctl.Ctx.Request.URL.Path, "/api/prof/", "/debug/pprof/", 1)
 	pprof.Index(ctl.Ctx.ResponseWriter.ResponseWriter, ctl.Ctx.Request)
+	if web.BConfig.WebConfig.AutoRender {
+		ctl.RespOk()
+	}
 }

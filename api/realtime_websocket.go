@@ -61,6 +61,7 @@ func (ctl *RealtimeWebSocketController) Join() {
 		return
 	} else if err != nil {
 		logs.Error("Cannot setup WebSocket connection:", err)
+		ctl.RespError(fmt.Errorf("cannot setup WebSocket connection:%v", err))
 		return
 	}
 
@@ -78,6 +79,9 @@ func (ctl *RealtimeWebSocketController) Join() {
 	for {
 		_, _, err := ws.ReadMessage()
 		if err != nil {
+			if web.BConfig.WebConfig.AutoRender {
+				ctl.RespOk()
+			}
 			return
 		}
 	}
