@@ -66,6 +66,14 @@ func PutDevice(device *Device) {
 	}
 }
 
+// delete device for deviceManager
+func DeleteDevice(deviceId string) {
+	manager := deviceManagerMap[DefaultManagerId]
+	if manager != nil {
+		manager.Delete(deviceId)
+	}
+}
+
 // get product from productManager
 func GetProduct(productId string) *Product {
 	manager := productManagerMap[DefaultManagerId]
@@ -95,6 +103,7 @@ type DeviceManager interface {
 	Id() string
 	Get(deviceId string) *Device
 	Put(device *Device)
+	Delete(deviceId string)
 }
 
 // ProductManager
@@ -127,6 +136,10 @@ func (m *memDeviceManager) Put(device *Device) {
 		panic("device not be nil")
 	}
 	m.cache[device.GetId()] = device
+}
+
+func (m *memDeviceManager) Delete(deviceId string) {
+	delete(m.cache, deviceId)
 }
 
 // memProductManager

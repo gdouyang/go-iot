@@ -67,6 +67,9 @@ func (m *DbDeviceManager) Put(device *codec.Device) {
 	m.cache[device.GetId()] = device
 }
 
+func (m *DbDeviceManager) Delete(deviceId string) {
+
+}
 func (m *DbDeviceManager) saveState() {
 	var onlineList []models.Device
 	var offlineList []models.Device

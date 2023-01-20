@@ -106,6 +106,14 @@ func (m *redisDeviceManager) Put(device *codec.Device) {
 	m.cache.Store(device.GetId(), device)
 }
 
+func (m *redisDeviceManager) Delete(deviceId string) {
+	rdb := codec.GetRedisClient()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	rdb.HDel(ctx, "goiot:device:"+deviceId)
+	m.cache.Delete(deviceId)
+}
+
 // product manager for redis
 type redisProductManager struct {
 	cache sync.Map

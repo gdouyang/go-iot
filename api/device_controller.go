@@ -13,6 +13,7 @@ import (
 	mqttclient "go-iot/network/clients/mqtt"
 	tcpclient "go-iot/network/clients/tcp"
 
+	"github.com/beego/beego/v2/core/logs"
 	"github.com/beego/beego/v2/server/web"
 )
 
@@ -348,25 +349,38 @@ func (ctl *DeviceController) BatchDeploy() {
 			ctl.enable(deviceId, true)
 		}
 	} else {
-		lastPage := false
-		pageNum := 1
 		condition := models.Device{State: models.NoActive}
 		m, _ := json.Marshal(condition)
-		for !lastPage {
-			var page *models.PageQuery = &models.PageQuery{PageSize: 1000, PageNum: pageNum, Condition: m}
+		for {
+			var page *models.PageQuery = &models.PageQuery{PageSize: 300, PageNum: 1, Condition: m}
 			result, err := device.PageDevice(page, ctl.GetCurrentUser().Id)
 			if err != nil {
 				ctl.RespError(err)
-				break
+				return
 			}
 			list := result.List.([]models.Device)
-			for _, dev := range list {
-				ctl.enable(dev.Id, true)
+			if len(list) == 0 {
+				break
 			}
-			pageNum = pageNum + 1
-			lastPage = result.LastPage
+			var ids []string
+			for _, dev := range list {
+				ids = append(ids, dev.Id)
+				devopr := codec.GetDevice(dev.Id)
+				if devopr == nil {
+					devopr = codec.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
+				}
+				model := models.DeviceModel{}
+				model.FromEnitty(dev)
+				devopr.Config = model.Metaconfig
+				codec.PutDevice(devopr)
+			}
+			err = device.UpdateOnlineStatusList(ids, models.OFFLINE)
+			if err != nil {
+				logs.Error(err)
+			}
 		}
 	}
+	logs.Info("batch deploy done")
 	ctl.RespOk()
 }
 
@@ -382,7 +396,6 @@ func (ctl *DeviceController) BatchUndeploy() {
 	for _, deviceId := range deviceIds {
 		ctl.enable(deviceId, false)
 	}
-	// TODO
 	ctl.RespOk()
 }
 
@@ -404,6 +417,7 @@ func (ctl *DeviceController) enable(deviceId string, isEnable bool) {
 		codec.PutDevice(devopr)
 	} else {
 		device.UpdateOnlineStatus(deviceId, models.NoActive)
+		codec.DeleteDevice(deviceId)
 	}
 }
 
