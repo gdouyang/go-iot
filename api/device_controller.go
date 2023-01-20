@@ -334,7 +334,6 @@ func (ctl *DeviceController) Undeploy() {
 	}
 	deviceId := ctl.Param(":id")
 	ctl.enable(deviceId, false)
-	// TODO
 	ctl.RespOk()
 }
 
