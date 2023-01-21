@@ -177,14 +177,14 @@ func (ctl *DeviceImportController) ImportProcess() {
 	for {
 		result := getSseData(token)
 		if len(result) == 0 {
-			fmt.Fprintf(w, end) // 一定要带上data，否则无效
+			fmt.Fprint(w, end) // 一定要带上data，否则无效
 			break
 		}
 		fmt.Fprintf(w, "id: %v\n", id)
 		fmt.Fprintf(w, "retry: 10000\n")
 		fmt.Fprintf(w, "data: %s\n\n", result)
 		if strings.Contains(result, `"finish": true`) {
-			fmt.Fprintf(w, end) // 一定要带上data，否则无效
+			fmt.Fprint(w, end) // 一定要带上data，否则无效
 			break
 		}
 		setSseData(token, "")
