@@ -9,9 +9,11 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/beego/beego/v2/core/logs"
 	"github.com/beego/beego/v2/server/web"
 	"github.com/xuri/excelize/v2"
 )
@@ -146,6 +148,18 @@ func setSseData(token string, val string) {
 	sseCache[token] = val
 }
 
+func getSseData(token string) string {
+	mutex := sync.Mutex{}
+	mutex.Lock()
+	defer mutex.Unlock()
+	// `"finish": true`
+	result := sseCache[token]
+	if strings.Contains(result, `"finish": true`) {
+		delete(sseCache, token)
+	}
+	return result
+}
+
 func (ctl *DeviceImportController) ImportProcess() {
 	token := ctl.Param(":token")
 	w := ctl.Ctx.ResponseWriter.ResponseWriter
@@ -157,15 +171,25 @@ func (ctl *DeviceImportController) ImportProcess() {
 	if !ok {
 		log.Panic("server not support")
 	}
-	for i := 0; i < 6; i++ {
-		if len(sseCache[token]) > 0 {
-			fmt.Fprintf(w, "data: %s\n\n", sseCache[token])
-
+	id := 1
+	for {
+		result := getSseData(token)
+		if len(result) > 0 {
+			fmt.Fprintf(w, "id: %v\n", id)
+			fmt.Fprintf(w, "retry: 10000\n")
+			fmt.Fprintf(w, "data: %s\n\n", result)
+			if strings.Contains(result, `"finish": true`) {
+				fmt.Fprintf(w, "event: close\ndata: close\n\n") // 一定要带上data，否则无效
+				break
+			}
 			setSseData(token, "")
 
 			flusher.Flush()
 		}
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
+		id = id + 1
 	}
-	fmt.Fprintf(w, "event: close\ndata: close\n\n") // 一定要带上data，否则无效
+	logs.Info("ImportProcess done")
+	// fmt.Fprintf(w, "retry: 10000\n")
+	// fmt.Fprintf(w, "event: close\ndata: close\n\n") // 一定要带上data，否则无效
 }
