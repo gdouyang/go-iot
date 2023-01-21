@@ -173,6 +173,7 @@ func newClient1(network codec.NetworkConf, call func() string) {
 	for i := 0; i < 10; i++ {
 		str := call()
 		conn.Write([]byte(str))
+		fmt.Println("client> " + str)
 
 		time.Sleep(1 * time.Second)
 	}
