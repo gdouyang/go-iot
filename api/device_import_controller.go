@@ -66,8 +66,6 @@ func (ctl *DeviceImportController) Download() {
 	xlsx.Write(ctl.Ctx.ResponseWriter)
 }
 
-var sseCache map[string]string = make(map[string]string)
-
 // 查询单个设备
 func (ctl *DeviceImportController) Import() {
 	if ctl.isForbidden(deviceResource, ImportAction) {
@@ -124,7 +122,7 @@ func (ctl *DeviceImportController) Import() {
 		devices = append(devices, dev)
 	}
 	token := fmt.Sprintf("%v", time.Now().UnixMicro())
-	setSseData(token, `{"success":true, "result": {"finish": false, "num": 0}}`)
+	setSseData(token, "")
 	go func() {
 		total := 0
 		resp := `{"success":true, "result": {"finish": %v, "num": %d}}`
@@ -140,25 +138,6 @@ func (ctl *DeviceImportController) Import() {
 		setSseData(token, fmt.Sprintf(resp, true, total))
 	}()
 	ctl.RespOkData(token)
-}
-
-func setSseData(token string, val string) {
-	mutex := sync.Mutex{}
-	mutex.Lock()
-	defer mutex.Unlock()
-	sseCache[token] = val
-}
-
-func getSseData(token string) string {
-	mutex := sync.Mutex{}
-	mutex.Lock()
-	defer mutex.Unlock()
-	// `"finish": true`
-	result := sseCache[token]
-	if strings.Contains(result, `"finish": true`) {
-		delete(sseCache, token)
-	}
-	return result
 }
 
 func (ctl *DeviceImportController) ImportProcess() {
@@ -187,11 +166,33 @@ func (ctl *DeviceImportController) ImportProcess() {
 			fmt.Fprint(w, end) // 一定要带上data，否则无效
 			break
 		}
-		setSseData(token, "")
-
 		flusher.Flush()
 		time.Sleep(1 * time.Second)
 		id = id + 1
 	}
 	logs.Info("ImportProcess done")
+}
+
+var sseCache map[string]string = make(map[string]string)
+
+func setSseData(token string, val string) {
+	mutex := sync.Mutex{}
+	mutex.Lock()
+	defer mutex.Unlock()
+	if len(val) == 0 {
+		val = `{"success":true, "result": {"finish": false, "num": 0}}`
+	}
+	sseCache[token] = val
+}
+
+func getSseData(token string) string {
+	mutex := sync.Mutex{}
+	mutex.Lock()
+	defer mutex.Unlock()
+	// `"finish": true`
+	result := sseCache[token]
+	if strings.Contains(result, `"finish": true`) {
+		delete(sseCache, token)
+	}
+	return result
 }

@@ -12,6 +12,7 @@ import (
 	"go-iot/network/clients"
 	mqttclient "go-iot/network/clients/mqtt"
 	tcpclient "go-iot/network/clients/tcp"
+	"time"
 
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/beego/beego/v2/server/web"
@@ -343,44 +344,59 @@ func (ctl *DeviceController) BatchDeploy() {
 	}
 	var deviceIds []string
 	ctl.BindJSON(&deviceIds)
-	if len(deviceIds) > 0 {
-		for _, deviceId := range deviceIds {
-			ctl.enable(deviceId, true)
-		}
-	} else {
-		condition := models.Device{State: models.NoActive}
-		m, _ := json.Marshal(condition)
-		for {
-			var page *models.PageQuery = &models.PageQuery{PageSize: 300, PageNum: 1, Condition: m}
-			result, err := device.PageDevice(page, ctl.GetCurrentUser().Id)
-			if err != nil {
-				ctl.RespError(err)
-				return
-			}
-			list := result.List.([]models.Device)
-			if len(list) == 0 {
-				break
-			}
-			var ids []string
-			for _, dev := range list {
-				ids = append(ids, dev.Id)
-				devopr := codec.GetDevice(dev.Id)
-				if devopr == nil {
-					devopr = codec.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
+	token := fmt.Sprintf("%v", time.Now().UnixMicro())
+	setSseData(token, "")
+	go func() {
+		total := 0
+		resp := `{"success":true, "result": {"finish": %v, "num": %d}}`
+		if len(deviceIds) > 0 {
+			for _, deviceId := range deviceIds {
+				ctl.enable(deviceId, true)
+				total = total + 1
+				if total%5 == 0 {
+					setSseData(token, fmt.Sprintf(resp, false, total))
 				}
-				model := models.DeviceModel{}
-				model.FromEnitty(dev)
-				devopr.Config = model.Metaconfig
-				codec.PutDevice(devopr)
 			}
-			err = device.UpdateOnlineStatusList(ids, models.OFFLINE)
-			if err != nil {
-				logs.Error(err)
+			setSseData(token, fmt.Sprintf(resp, true, total))
+		} else {
+			condition := models.Device{State: models.NoActive}
+			m, _ := json.Marshal(condition)
+			for {
+				var page *models.PageQuery = &models.PageQuery{PageSize: 300, PageNum: 1, Condition: m}
+				result, err := device.PageDevice(page, ctl.GetCurrentUser().Id)
+				if err != nil {
+					logs.Error(err)
+					break
+				}
+				list := result.List.([]models.Device)
+				if len(list) == 0 {
+					break
+				}
+				var ids []string
+				for _, dev := range list {
+					ids = append(ids, dev.Id)
+					devopr := codec.GetDevice(dev.Id)
+					if devopr == nil {
+						devopr = codec.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
+					}
+					model := models.DeviceModel{}
+					model.FromEnitty(dev)
+					devopr.Config = model.Metaconfig
+					codec.PutDevice(devopr)
+				}
+				err = device.UpdateOnlineStatusList(ids, models.OFFLINE)
+				if err != nil {
+					logs.Error(err)
+				} else {
+					total = total + len(list)
+				}
+				setSseData(token, fmt.Sprintf(resp, false, total))
 			}
+			setSseData(token, fmt.Sprintf(resp, true, total))
+			logs.Info("batch deploy done")
 		}
-	}
-	logs.Info("batch deploy done")
-	ctl.RespOk()
+	}()
+	ctl.RespOkData(token)
 }
 
 func (ctl *DeviceController) BatchUndeploy() {
