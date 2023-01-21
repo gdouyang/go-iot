@@ -124,9 +124,10 @@ func (ctl *DeviceImportController) Import() {
 		devices = append(devices, dev)
 	}
 	token := fmt.Sprintf("%v", time.Now().UnixMicro())
+	setSseData(token, `{"success":true, "result": {"finish": false, "num": 0}}`)
 	go func() {
 		total := 0
-		resp := `{"success":true, "result": {"finish": %v, "num":%d}}`
+		resp := `{"success":true, "result": {"finish": %v, "num": %d}}`
 		for _, data := range devices {
 			err := device.AddDevice(&data)
 			if err == nil {
@@ -172,24 +173,25 @@ func (ctl *DeviceImportController) ImportProcess() {
 		log.Panic("server not support")
 	}
 	id := 1
+	end := "event: close\ndata: close\n\n"
 	for {
 		result := getSseData(token)
-		if len(result) > 0 {
-			fmt.Fprintf(w, "id: %v\n", id)
-			fmt.Fprintf(w, "retry: 10000\n")
-			fmt.Fprintf(w, "data: %s\n\n", result)
-			if strings.Contains(result, `"finish": true`) {
-				fmt.Fprintf(w, "event: close\ndata: close\n\n") // 一定要带上data，否则无效
-				break
-			}
-			setSseData(token, "")
-
-			flusher.Flush()
+		if len(result) == 0 {
+			fmt.Fprintf(w, end) // 一定要带上data，否则无效
+			break
 		}
+		fmt.Fprintf(w, "id: %v\n", id)
+		fmt.Fprintf(w, "retry: 10000\n")
+		fmt.Fprintf(w, "data: %s\n\n", result)
+		if strings.Contains(result, `"finish": true`) {
+			fmt.Fprintf(w, end) // 一定要带上data，否则无效
+			break
+		}
+		setSseData(token, "")
+
+		flusher.Flush()
 		time.Sleep(1 * time.Second)
 		id = id + 1
 	}
 	logs.Info("ImportProcess done")
-	// fmt.Fprintf(w, "retry: 10000\n")
-	// fmt.Fprintf(w, "event: close\ndata: close\n\n") // 一定要带上data，否则无效
 }
