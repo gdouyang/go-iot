@@ -7,6 +7,24 @@ import (
 	"strconv"
 )
 
+func init() {
+	codec.RegNetworkMetaConfigCreator(string(codec.MODBUS), func() codec.ProductMetaConfigs {
+		list := []codec.ProductMetaConfig{
+			{Property: "address", Type: "string", Buildin: true, Value: "127.0.0.1", Desc: "The host of remote [127.0.0.1]"},
+			{Property: "port", Type: "number", Buildin: true, Value: "502", Desc: "The port of remote"},
+			{Property: "unitID", Type: "number", Buildin: true, Desc: ""},
+			{Property: "timeout", Type: "number", Buildin: true, Value: "5", Desc: "Connect & Read timeout(seconds)"},
+			{Property: "idleTimeout", Type: "number", Buildin: true, Value: "5", Desc: "Idle timeout(seconds) to close the connection"},
+
+			// {Property: "baudRate", Type: "number", Buildin: true, Desc: ""},
+			// {Property: "dataBits", Type: "number", Buildin: true, Desc: ""},
+			// {Property: "stopBits", Type: "number", Buildin: true, Desc: ""},
+			// {Property: "parity", Type: "number", Buildin: true, Desc: ""},
+		}
+		return list
+	})
+}
+
 func parseIntValue(str string, key string) (int, error) {
 	if len(str) == 0 {
 		return 5, nil

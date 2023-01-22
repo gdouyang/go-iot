@@ -9,7 +9,6 @@ import (
 
 	"go-iot/codec"
 	"go-iot/models"
-	"go-iot/network/clients"
 
 	"go-iot/models/network"
 
@@ -94,21 +93,7 @@ func AddProduct(ob *models.Product, networkType string) error {
 	ob.CreateTime = time.Now()
 	err = o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
 		ob.CodecId = codec.Script_Codec
-		switch codec.NetClientType(networkType) {
-		case codec.TCP_CLIENT:
-			list := clients.TcpMetaconfig()
-			c, _ := json.Marshal(list)
-			ob.Metaconfig = string(c)
-		case codec.MQTT_CLIENT:
-			list := clients.MqttMetaconfig()
-			c, _ := json.Marshal(list)
-			ob.Metaconfig = string(c)
-		case codec.MODBUS:
-			list := clients.ModbusMetaconfig()
-			c, _ := json.Marshal(list)
-			ob.Metaconfig = string(c)
-			ob.CodecId = clients.MODBUS_CODEC
-		}
+		ob.Metaconfig = codec.GetNetworkMetaConfig(networkType).ToJson()
 		_, err := txOrm.Insert(ob)
 		if err != nil {
 			return err

@@ -1,5 +1,7 @@
 package codec
 
+import "sync"
+
 // 服务器类型
 type NetServerType string
 
@@ -54,4 +56,25 @@ type NetClient interface {
 	Connect(deviceId string, n NetworkConf) error
 	Reload() error
 	Close() error
+}
+
+type networkMetaConfig struct {
+	sync.Mutex
+	m map[string]func() ProductMetaConfigs
+}
+
+var defaultnetworkMetaConfig networkMetaConfig = networkMetaConfig{m: map[string]func() ProductMetaConfigs{}}
+
+func RegNetworkMetaConfigCreator(networkType string, fn func() ProductMetaConfigs) {
+	defaultnetworkMetaConfig.Lock()
+	defer defaultnetworkMetaConfig.Unlock()
+	defaultnetworkMetaConfig.m[networkType] = fn
+}
+func GetNetworkMetaConfig(networkType string) ProductMetaConfigs {
+	defaultnetworkMetaConfig.Lock()
+	defer defaultnetworkMetaConfig.Unlock()
+	if v, ok := defaultnetworkMetaConfig.m[networkType]; ok {
+		return v()
+	}
+	return ProductMetaConfigs{}
 }

@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go-iot/codec/tsl"
@@ -50,34 +51,44 @@ type (
 		// 获取产品操作
 		GetProduct() *Product
 	}
-	// config for redis
-	RedisConfig struct {
-		Addr     string
-		Password string
-		DB       int
-		PoolSize int
-	}
-	// config for elasticsearch
-	EsConfig struct {
-		Url        string
-		Username   string
-		Password   string
-		BufferSize int // default 10000
-		BulkSize   int // default 5000
-		WarnTime   int // warn日志时间当保存时间操作指定时间时输出日志，默认1000ms
-	}
-	// product meta config
-	ProductMetaConfig struct {
-		Property string `json:"property,omitempty"`
-		Type     string `json:"type,omitempty"`
-		Value    string `json:"value,omitempty"`
-		Buildin  bool   `json:"buildin,omitempty"`
-		Desc     string `json:"desc,omitempty"`
-	}
 )
+
+type ProductMetaConfigs []ProductMetaConfig
+
+func (p ProductMetaConfigs) ToJson() string {
+	b, _ := json.Marshal(p)
+	return string(b)
+}
+
+// product meta config
+type ProductMetaConfig struct {
+	Property string `json:"property,omitempty"`
+	Type     string `json:"type,omitempty"`
+	Value    string `json:"value,omitempty"`
+	Buildin  bool   `json:"buildin,omitempty"`
+	Desc     string `json:"desc,omitempty"`
+}
+
+// config for redis
+type RedisConfig struct {
+	Addr     string
+	Password string
+	DB       int
+	PoolSize int
+}
 
 func (r RedisConfig) String() string {
 	return fmt.Sprintf("[addr=%s, db=%v, poolSize=%v]", r.Addr, r.DB, r.PoolSize)
+}
+
+// config for elasticsearch
+type EsConfig struct {
+	Url        string
+	Username   string
+	Password   string
+	BufferSize int // default 10000
+	BulkSize   int // default 5000
+	WarnTime   int // warn日志时间当保存时间操作指定时间时输出日志，默认1000ms
 }
 
 func (r EsConfig) String() string {

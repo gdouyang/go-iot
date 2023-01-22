@@ -11,6 +11,19 @@ import (
 	"strconv"
 )
 
+func init() {
+	codec.RegNetworkMetaConfigCreator(string(codec.MQTT_CLIENT), func() codec.ProductMetaConfigs {
+		list := []codec.ProductMetaConfig{
+			{Property: "host", Type: "string", Buildin: true, Desc: "The host of mqtt broker [eg: 127.0.0.1]"},
+			{Property: "port", Type: "number", Buildin: true, Desc: "The port of mqtt broker"},
+			{Property: "clientId", Type: "string", Buildin: true, Desc: "The clientId of mqtt"},
+			{Property: "username", Type: "string", Buildin: true, Desc: "The username of mqtt"},
+			{Property: "password", Type: "password", Buildin: true, Desc: "The password of mqtt"},
+		}
+		return list
+	})
+}
+
 type MQTTClientSpec struct {
 	Host         string                `json:"host"`
 	Port         int32                 `json:"port"`

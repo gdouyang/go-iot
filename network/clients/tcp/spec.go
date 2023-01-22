@@ -12,6 +12,16 @@ import (
 	"strconv"
 )
 
+func init() {
+	codec.RegNetworkMetaConfigCreator(string(codec.TCP_CLIENT), func() codec.ProductMetaConfigs {
+		list := []codec.ProductMetaConfig{
+			{Property: "host", Type: "string", Buildin: true, Desc: "The host of remote [eg: 127.0.0.1]"},
+			{Property: "port", Type: "number", Buildin: true, Desc: "The port of remote"},
+		}
+		return list
+	})
+}
+
 type (
 
 	// Spec describes the TcpServer

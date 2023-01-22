@@ -42,38 +42,3 @@ func GetClient(deviceId string) codec.NetClient {
 	s := instances[deviceId]
 	return s
 }
-
-func MqttMetaconfig() []codec.ProductMetaConfig {
-	list := []codec.ProductMetaConfig{
-		{Property: "host", Type: "string", Buildin: true, Desc: "The host of remote [127.0.0.1]"},
-		{Property: "port", Type: "number", Buildin: true, Desc: "The port of remote"},
-		{Property: "clientId", Type: "string", Buildin: true, Desc: ""},
-		{Property: "username", Type: "string", Buildin: true, Desc: ""},
-		{Property: "password", Type: "password", Buildin: true, Desc: ""},
-	}
-	return list
-}
-
-func TcpMetaconfig() []codec.ProductMetaConfig {
-	list := []codec.ProductMetaConfig{
-		{Property: "host", Type: "string", Buildin: true, Desc: "The host of remote [127.0.0.1]"},
-		{Property: "port", Type: "number", Buildin: true, Desc: "The port of remote"},
-	}
-	return list
-}
-
-func ModbusMetaconfig() []codec.ProductMetaConfig {
-	list := []codec.ProductMetaConfig{
-		{Property: "address", Type: "string", Buildin: true, Value: "127.0.0.1", Desc: "The host of remote [127.0.0.1]"},
-		{Property: "port", Type: "number", Buildin: true, Value: "502", Desc: "The port of remote"},
-		{Property: "unitID", Type: "number", Buildin: true, Desc: ""},
-		{Property: "timeout", Type: "number", Buildin: true, Value: "5", Desc: "Connect & Read timeout(seconds)"},
-		{Property: "idleTimeout", Type: "number", Buildin: true, Value: "5", Desc: "Idle timeout(seconds) to close the connection"},
-
-		// {Property: "baudRate", Type: "number", Buildin: true, Desc: ""},
-		// {Property: "dataBits", Type: "number", Buildin: true, Desc: ""},
-		// {Property: "stopBits", Type: "number", Buildin: true, Desc: ""},
-		// {Property: "parity", Type: "number", Buildin: true, Desc: ""},
-	}
-	return list
-}

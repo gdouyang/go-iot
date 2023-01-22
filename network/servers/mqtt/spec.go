@@ -9,6 +9,16 @@ import (
 	"go-iot/network/servers"
 )
 
+func init() {
+	codec.RegNetworkMetaConfigCreator(string(codec.MQTT_BROKER), func() codec.ProductMetaConfigs {
+		list := []codec.ProductMetaConfig{
+			{Property: "username", Type: "string", Buildin: true, Desc: "The username of mqtt"},
+			{Property: "password", Type: "password", Buildin: true, Desc: "The password of mqtt"},
+		}
+		return list
+	})
+}
+
 // PacketType is mqtt packet type
 type PacketType string
 

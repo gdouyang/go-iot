@@ -72,7 +72,7 @@ func (ctx *authContext) authFail1(code int) {
 func (ctx *authContext) checkAuth() bool {
 	username := ctx.GetConfig("username")
 	password := ctx.GetConfig("password")
-	if len(username) > 0 && username == ctx.GetUserName() && len(password) > 0 && password == ctx.client.info.password {
+	if len(username) > 0 && username == ctx.GetUserName() && len(password) > 0 && password == ctx.GetPassword() {
 		ctx.AuthFail()
 		return false
 	}
