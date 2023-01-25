@@ -68,8 +68,7 @@ func (s *modbusSession) ReadHoldingRegisters(startingAddress uint16, length uint
 func (s *modbusSession) getValue(parimaryTable string, startingAddress uint16, length uint16) *context {
 	data, err := s.client.GetValue(parimaryTable, startingAddress, length)
 	if err != nil {
-		logs.Error(err)
-		return nil
+		panic(err)
 	}
 	return &context{
 		BaseContext: codec.BaseContext{
@@ -90,7 +89,10 @@ func (s *modbusSession) WriteHoldingRegisters(startingAddress uint16, length uin
 }
 
 func (s *modbusSession) setValue(parimaryTable string, startingAddress uint16, length uint16, hexStr string) {
-	s.client.SetValue(parimaryTable, startingAddress, length, hexStr)
+	err := s.client.SetValue(parimaryTable, startingAddress, length, hexStr)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // lockAddress mark address is unavailable because real device handle one request at a time
