@@ -58,6 +58,7 @@ type NetClient interface {
 	Close() error
 }
 
+// network meta config
 type networkMetaConfig struct {
 	sync.Mutex
 	m map[string]func() ProductMetaConfigs
@@ -70,6 +71,7 @@ func RegNetworkMetaConfigCreator(networkType string, fn func() ProductMetaConfig
 	defer defaultnetworkMetaConfig.Unlock()
 	defaultnetworkMetaConfig.m[networkType] = fn
 }
+
 func GetNetworkMetaConfig(networkType string) ProductMetaConfigs {
 	defaultnetworkMetaConfig.Lock()
 	defer defaultnetworkMetaConfig.Unlock()

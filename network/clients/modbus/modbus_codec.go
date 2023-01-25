@@ -41,14 +41,14 @@ func NewModbusScriptCodec(network codec.NetworkConf) (codec.Codec, error) {
 // }
 
 // 命令调用
-func (c *ModbusScriptCodec) OnInvoke(ctx codec.MessageContext) error {
+func (c *ModbusScriptCodec) OnInvoke(ctx codec.FuncInvokeContext) error {
 	sess := ctx.GetSession()
 	s := sess.(*modbusSession)
 	modbusInvokeContext := &modbusInvokeContext{
-		MessageContext: ctx,
+		FuncInvokeContext: ctx,
 	}
 	s.connection(func() {
-		c.ScriptCodec.OnInvoke(modbusInvokeContext)
+		c.ScriptCodec.FuncInvoke(codec.OnInvoke, modbusInvokeContext)
 	})
 	return nil
 }

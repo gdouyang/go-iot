@@ -87,7 +87,7 @@ func NewScriptCodec(network NetworkConf) (Codec, error) {
 
 // 设备连接时
 func (c *ScriptCodec) OnConnect(ctx MessageContext) error {
-	resp := c.funcInvoke(OnConnect, ctx)
+	resp := c.FuncInvoke(OnConnect, ctx)
 	if resp != nil {
 		return nil
 	}
@@ -96,13 +96,13 @@ func (c *ScriptCodec) OnConnect(ctx MessageContext) error {
 
 // 接收消息
 func (c *ScriptCodec) OnMessage(ctx MessageContext) error {
-	c.funcInvoke(OnMessage, ctx)
+	c.FuncInvoke(OnMessage, ctx)
 	return nil
 }
 
 // 命令调用
-func (c *ScriptCodec) OnInvoke(ctx MessageContext) error {
-	c.funcInvoke(OnInvoke, ctx)
+func (c *ScriptCodec) OnInvoke(ctx FuncInvokeContext) error {
+	c.FuncInvoke(OnInvoke, ctx)
 	return nil
 }
 
@@ -113,32 +113,32 @@ func (c *ScriptCodec) OnClose(ctx MessageContext) error {
 
 // 设备新增
 func (c *ScriptCodec) OnCreate(ctx DeviceLifecycleContext) error {
-	c.funcInvoke(OnDeviceCreate, ctx)
+	c.FuncInvoke(OnDeviceCreate, ctx)
 	return nil
 }
 
 // 设备删除
 func (c *ScriptCodec) OnDelete(ctx DeviceLifecycleContext) error {
-	c.funcInvoke(OnDeviceDelete, ctx)
+	c.FuncInvoke(OnDeviceDelete, ctx)
 	return nil
 }
 
 // 设备修改
 func (c *ScriptCodec) OnUpdate(ctx DeviceLifecycleContext) error {
-	c.funcInvoke(OnDeviceUpdate, ctx)
+	c.FuncInvoke(OnDeviceUpdate, ctx)
 	return nil
 }
 
 // 状态检查
 func (c *ScriptCodec) OnStateChecker(ctx DeviceLifecycleContext) (string, error) {
-	resp := c.funcInvoke(OnStateChecker, ctx)
+	resp := c.FuncInvoke(OnStateChecker, ctx)
 	if resp != nil {
 		return resp.String(), nil
 	}
 	return "", nil
 }
 
-func (c *ScriptCodec) funcInvoke(name string, param interface{}) goja.Value {
+func (c *ScriptCodec) FuncInvoke(name string, param interface{}) goja.Value {
 	vm := c.pool.Get()
 	defer c.pool.Put(vm)
 	fn, success := goja.AssertFunction(vm.Get(name))

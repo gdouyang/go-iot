@@ -55,7 +55,7 @@ function OnStateChecker(context) {
 		logs.Error(err)
 	}
 	c.OnConnect(&codec.BaseContext{DeviceId: "fff"})
-	c.OnInvoke(&codec.BaseContext{DeviceId: "fff"})
+	c.OnInvoke(codec.FuncInvokeContext{BaseContext: codec.BaseContext{DeviceId: "fff"}})
 	c.OnMessage(&codec.BaseContext{DeviceId: "fff"})
 	switch m := c.(type) {
 	case codec.DeviceLifecycle:

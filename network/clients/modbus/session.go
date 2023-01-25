@@ -68,6 +68,7 @@ func (s *modbusSession) ReadHoldingRegisters(startingAddress uint16, length uint
 func (s *modbusSession) getValue(parimaryTable string, startingAddress uint16, length uint16) *context {
 	data, err := s.client.GetValue(parimaryTable, startingAddress, length)
 	if err != nil {
+		logs.Error(err)
 		return nil
 	}
 	return &context{
@@ -186,10 +187,10 @@ func (s *modbusSession) readLoop() {
 
 func (s *modbusSession) interval(f tsl.TslFunction) {
 	if f.Expands != nil {
-		if val, ok := f.Expands["interval"]; ok {
+		if val, ok := f.Expands["interval"]; ok && len(val) > 0 {
 			num, err := strconv.Atoi(val)
 			if err != nil {
-				logs.Error("interval must gt 0, error:", err)
+				logs.Warn("interval must gt 0, error:", err)
 				return
 			}
 			if num < 1 {

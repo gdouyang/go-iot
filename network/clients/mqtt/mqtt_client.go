@@ -29,6 +29,14 @@ func (c *MqttClient) Connect(deviceId string, network codec.NetworkConf) error {
 	if err != nil {
 		return err
 	}
+	devoper := codec.GetDevice(deviceId)
+	if devoper == nil {
+		return errors.New("devoper is nil")
+	}
+	err = spec.SetByConfig(devoper)
+	if err != nil {
+		return err
+	}
 	if len(spec.Host) == 0 {
 		return errors.New("host must be present")
 	}

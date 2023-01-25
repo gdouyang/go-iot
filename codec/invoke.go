@@ -42,11 +42,13 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 		b, _ := json.Marshal(message)
 		product.GetTimeSeries().SaveLogs(product, LogData{DeviceId: message.DeviceId, Type: "call", Content: string(b)})
 	}
-	invokeContext := &FuncInvokeContext{
-		deviceId:  message.DeviceId,
-		productId: productId,
-		session:   session,
-		message:   message,
+	invokeContext := FuncInvokeContext{
+		BaseContext: BaseContext{
+			DeviceId:  message.DeviceId,
+			ProductId: productId,
+			Session:   session,
+		},
+		message: message,
 	}
 	if function.Async {
 		go func() {
@@ -102,39 +104,15 @@ func replyLog(product *Product, message msg.FuncInvoke, reply string) {
 
 // 功能调用
 type FuncInvokeContext struct {
-	message   msg.FuncInvoke
-	session   Session
-	deviceId  string
-	productId string
+	BaseContext
+	message msg.FuncInvoke
+}
+
+func (ctx *FuncInvokeContext) DeviceOnline(deviceId string) {
 }
 
 func (ctx *FuncInvokeContext) GetMessage() interface{} {
 	return ctx.message
-}
-func (ctx *FuncInvokeContext) GetSession() Session {
-	return ctx.session
-}
-
-// 获取设备操作
-func (ctx *FuncInvokeContext) GetDevice() *Device {
-	return GetDevice(ctx.deviceId)
-}
-
-// 获取产品操作
-func (ctx *FuncInvokeContext) GetProduct() *Product {
-	return GetProduct(ctx.productId)
-}
-
-func (ctx *FuncInvokeContext) ReplyOk() {
-	replyMap.reply(ctx.deviceId, nil)
-}
-
-func (ctx *FuncInvokeContext) ReplyFail(resp string) {
-	replyMap.reply(ctx.deviceId, errors.New(resp))
-}
-
-func (ctx *FuncInvokeContext) HttpRequest(config map[string]interface{}) map[string]interface{} {
-	return HttpRequest(config)
 }
 
 // cmd invoke reply

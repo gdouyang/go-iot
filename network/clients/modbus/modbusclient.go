@@ -79,7 +79,7 @@ func (c *ModbusClient) GetValue(parimaryTable string, startingAddress uint16, le
 		return nil, err
 	}
 
-	logs.Info(fmt.Sprintf("Modbus client GetValue's results %v", response))
+	logs.Debug(fmt.Sprintf("Modbus client GetValue's results %v", response))
 
 	return response, nil
 }

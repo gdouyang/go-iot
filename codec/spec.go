@@ -18,7 +18,7 @@ type (
 		// 接收消息
 		OnMessage(ctx MessageContext) error
 		// 命令调用
-		OnInvoke(ctx MessageContext) error
+		OnInvoke(ctx FuncInvokeContext) error
 		// 连接关闭
 		OnClose(ctx MessageContext) error
 	}

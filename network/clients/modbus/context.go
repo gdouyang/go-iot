@@ -52,7 +52,7 @@ func (ctx *context) MsgToBool() bool {
 }
 
 type modbusInvokeContext struct {
-	codec.MessageContext
+	codec.FuncInvokeContext
 }
 
 func (ctx *modbusInvokeContext) Int16ToData(val int16) string {

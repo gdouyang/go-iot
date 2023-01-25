@@ -10,8 +10,6 @@ import (
 	device "go-iot/models/device"
 	"go-iot/models/network"
 	"go-iot/network/clients"
-	mqttclient "go-iot/network/clients/mqtt"
-	tcpclient "go-iot/network/clients/tcp"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -245,41 +243,6 @@ func connectClientDevice(deviceId string) error {
 	devoper := codec.GetDevice(deviceId)
 	if devoper == nil {
 		return errors.New("devoper is nil")
-	}
-	if codec.TCP_CLIENT == codec.NetClientType(nw.Type) {
-		spec := &tcpclient.TcpClientSpec{}
-		err = spec.FromJson(nw.Configuration)
-		if err != nil {
-			return err
-		}
-		err = spec.SetByConfig(devoper)
-		if err != nil {
-			return err
-		}
-		b, _ := json.Marshal(spec)
-		nw.Configuration = string(b)
-	} else if codec.MQTT_CLIENT == codec.NetClientType(nw.Type) {
-		spec := &mqttclient.MQTTClientSpec{}
-		err = spec.FromJson(nw.Configuration)
-		if err != nil {
-			return err
-		}
-		err = spec.SetByConfig(devoper)
-		if err != nil {
-			return err
-		}
-		b, _ := json.Marshal(spec)
-		nw.Configuration = string(b)
-	} else if codec.MODBUS == codec.NetClientType(nw.Type) {
-		// spec := &modbus.ModbusSpec{}
-		// err = spec.SetTcpByConfig(devoper)
-		// if err != nil {
-		// 	return err
-		// }
-		// b, _ := json.Marshal(spec)
-		// nw.Configuration = string(b)
-	} else {
-		return fmt.Errorf("unsupport type %s", nw.Type)
 	}
 	conf, err := convertCodecNetwork(*nw)
 	if err != nil {
