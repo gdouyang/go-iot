@@ -33,7 +33,13 @@ type VmPool struct {
 
 // new a vm pool
 func NewVmPool(src string, size int) (*VmPool, error) {
-	program, _ := goja.Compile("", src, false)
+	if len(src) == 0 {
+		return nil, errors.New("script must be present")
+	}
+	program, err := goja.Compile("", src, false)
+	if err != nil {
+		return nil, err
+	}
 	p := VmPool{chVM: make(chan *goja.Runtime, size)}
 	for i := 0; i < size; i++ {
 		vm := goja.New()
