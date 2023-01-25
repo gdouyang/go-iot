@@ -33,7 +33,7 @@ func NewServer() *HttpServer {
 	}
 }
 
-func (s *HttpServer) Type() codec.NetServerType {
+func (s *HttpServer) Type() codec.NetType {
 	return codec.HTTP_SERVER
 }
 

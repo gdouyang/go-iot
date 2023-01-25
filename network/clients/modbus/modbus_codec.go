@@ -2,11 +2,12 @@ package modbus
 
 import (
 	"go-iot/codec"
-	"go-iot/network/clients"
 )
 
+const MODBUS_CODEC = "modbus-script-codec"
+
 func init() {
-	codec.RegCodecCreator(clients.MODBUS_CODEC, func(network codec.NetworkConf) (codec.Codec, error) {
+	codec.RegCodecCreator(MODBUS_CODEC, func(network codec.NetworkConf) (codec.Codec, error) {
 		codec, err := NewModbusScriptCodec(network)
 		return codec, err
 	})

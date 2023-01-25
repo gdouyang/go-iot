@@ -10,12 +10,12 @@ import (
 )
 
 func init() {
-	codec.RegNetworkMetaConfigCreator(string(codec.MQTT_BROKER), func() codec.ProductMetaConfigs {
+	codec.RegNetworkMetaConfigCreator(string(codec.MQTT_BROKER), func() codec.DefaultMetaConfig {
 		list := []codec.ProductMetaConfig{
 			{Property: "username", Type: "string", Buildin: true, Desc: "The username of mqtt"},
 			{Property: "password", Type: "password", Buildin: true, Desc: "The password of mqtt"},
 		}
-		return list
+		return codec.DefaultMetaConfig{MetaConfigs: list}
 	})
 }
 

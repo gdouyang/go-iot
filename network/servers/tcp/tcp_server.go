@@ -34,7 +34,7 @@ func NewServer() *TcpServer {
 	return &TcpServer{}
 }
 
-func (s *TcpServer) Type() codec.NetServerType {
+func (s *TcpServer) Type() codec.NetType {
 	return codec.TCP_SERVER
 }
 

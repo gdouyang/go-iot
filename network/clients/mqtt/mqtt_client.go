@@ -19,7 +19,7 @@ type MqttClient struct {
 	session   *clientSession
 }
 
-func (c *MqttClient) Type() codec.NetClientType {
+func (c *MqttClient) Type() codec.NetType {
 	return codec.MQTT_CLIENT
 }
 

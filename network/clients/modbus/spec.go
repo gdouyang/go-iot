@@ -8,7 +8,8 @@ import (
 )
 
 func init() {
-	codec.RegNetworkMetaConfigCreator(string(codec.MODBUS), func() codec.ProductMetaConfigs {
+	codec.RegNetworkMetaConfigCreator(string(codec.MODBUS), func() codec.DefaultMetaConfig {
+
 		list := []codec.ProductMetaConfig{
 			{Property: "address", Type: "string", Buildin: true, Value: "127.0.0.1", Desc: "The host of remote [127.0.0.1]"},
 			{Property: "port", Type: "number", Buildin: true, Value: "502", Desc: "The port of remote"},
@@ -21,7 +22,10 @@ func init() {
 			// {Property: "stopBits", Type: "number", Buildin: true, Desc: ""},
 			// {Property: "parity", Type: "number", Buildin: true, Desc: ""},
 		}
-		return list
+		return codec.DefaultMetaConfig{
+			MetaConfigs: list,
+			CodecId:     MODBUS_CODEC,
+		}
 	})
 }
 

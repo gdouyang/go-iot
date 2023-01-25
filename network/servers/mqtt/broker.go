@@ -41,7 +41,7 @@ func NewServer() *Broker {
 	return &Broker{}
 }
 
-func (s *Broker) Type() codec.NetServerType {
+func (s *Broker) Type() codec.NetType {
 	return codec.MQTT_BROKER
 }
 

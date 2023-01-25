@@ -18,7 +18,7 @@ func NewClient() *Client {
 	return &Client{}
 }
 
-func (c *Client) Type() codec.NetClientType {
+func (c *Client) Type() codec.NetType {
 	return codec.MODBUS
 }
 func (c *Client) Connect(deviceId string, network codec.NetworkConf) error {

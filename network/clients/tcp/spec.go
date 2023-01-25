@@ -13,12 +13,12 @@ import (
 )
 
 func init() {
-	codec.RegNetworkMetaConfigCreator(string(codec.TCP_CLIENT), func() codec.ProductMetaConfigs {
+	codec.RegNetworkMetaConfigCreator(string(codec.TCP_CLIENT), func() codec.DefaultMetaConfig {
 		list := []codec.ProductMetaConfig{
 			{Property: "host", Type: "string", Buildin: true, Desc: "The host of remote [eg: 127.0.0.1]"},
 			{Property: "port", Type: "number", Buildin: true, Desc: "The port of remote"},
 		}
-		return list
+		return codec.DefaultMetaConfig{MetaConfigs: list}
 	})
 }
 

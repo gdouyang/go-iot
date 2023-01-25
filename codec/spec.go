@@ -53,14 +53,17 @@ type (
 	}
 )
 
-type ProductMetaConfigs []ProductMetaConfig
+type DefaultMetaConfig struct {
+	MetaConfigs []ProductMetaConfig
+	CodecId     string
+}
 
-func (p ProductMetaConfigs) ToJson() string {
-	b, _ := json.Marshal(p)
+func (p DefaultMetaConfig) ToJson() string {
+	b, _ := json.Marshal(p.MetaConfigs)
 	return string(b)
 }
 
-// product meta config
+// the meta config of product
 type ProductMetaConfig struct {
 	Property string `json:"property,omitempty"`
 	Type     string `json:"type,omitempty"`
@@ -69,7 +72,7 @@ type ProductMetaConfig struct {
 	Desc     string `json:"desc,omitempty"`
 }
 
-// config for redis
+// the config of redis
 type RedisConfig struct {
 	Addr     string
 	Password string
@@ -81,7 +84,7 @@ func (r RedisConfig) String() string {
 	return fmt.Sprintf("[addr=%s, db=%v, poolSize=%v]", r.Addr, r.DB, r.PoolSize)
 }
 
-// config for elasticsearch
+// the config of elasticsearch
 type EsConfig struct {
 	Url        string
 	Username   string

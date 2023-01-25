@@ -8,7 +8,7 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-var m map[codec.NetServerType]func() codec.NetServer = make(map[codec.NetServerType]func() codec.NetServer)
+var m map[codec.NetType]func() codec.NetServer = make(map[codec.NetType]func() codec.NetServer)
 var instances map[string]codec.NetServer = make(map[string]codec.NetServer)
 
 func RegServer(f func() codec.NetServer) {
@@ -21,7 +21,7 @@ func StartServer(conf codec.NetworkConf) error {
 	if _, ok := instances[conf.ProductId]; ok {
 		return errors.New("network is runing")
 	}
-	t := codec.NetServerType(conf.Type)
+	t := codec.NetType(conf.Type)
 	if f, ok := m[t]; ok {
 		_, err := codec.NewCodec(conf)
 		if err != nil {

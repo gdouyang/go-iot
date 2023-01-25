@@ -7,11 +7,7 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-const (
-	MODBUS_CODEC = "modbus-script-codec"
-)
-
-var m map[codec.NetClientType]func() codec.NetClient = make(map[codec.NetClientType]func() codec.NetClient)
+var m map[codec.NetType]func() codec.NetClient = make(map[codec.NetType]func() codec.NetClient)
 var instances map[string]codec.NetClient = make(map[string]codec.NetClient)
 
 func RegClient(f func() codec.NetClient) {
@@ -21,7 +17,7 @@ func RegClient(f func() codec.NetClient) {
 }
 
 func Connect(deviceId string, conf codec.NetworkConf) error {
-	t := codec.NetClientType(conf.Type)
+	t := codec.NetType(conf.Type)
 	if f, ok := m[t]; ok {
 		_, err := codec.NewCodec(conf)
 		if err != nil {

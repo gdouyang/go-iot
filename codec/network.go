@@ -3,31 +3,28 @@ package codec
 import "sync"
 
 // 服务器类型
-type NetServerType string
-
-// 客户端类型
-type NetClientType string
+type NetType string
 
 const (
 	// MQTT服务端
-	MQTT_BROKER NetServerType = "MQTT_BROKER"
+	MQTT_BROKER NetType = "MQTT_BROKER"
 	// TCP服务端
-	TCP_SERVER NetServerType = "TCP_SERVER"
+	TCP_SERVER NetType = "TCP_SERVER"
 	// HTTP服务端
-	HTTP_SERVER NetServerType = "HTTP_SERVER"
+	HTTP_SERVER NetType = "HTTP_SERVER"
 	// WebSocket服务端
-	WEBSOCKET_SERVER NetServerType = "WEBSOCKET_SERVER"
+	WEBSOCKET_SERVER NetType = "WEBSOCKET_SERVER"
 
 	// MQTT客户端
-	MQTT_CLIENT NetClientType = "MQTT_CLIENT"
+	MQTT_CLIENT NetType = "MQTT_CLIENT"
 	// TCP客户端
-	TCP_CLIENT NetClientType = "TCP_CLIENT"
+	TCP_CLIENT NetType = "TCP_CLIENT"
 	// MODBUS
-	MODBUS NetClientType = "MODBUS"
+	MODBUS NetType = "MODBUS"
 )
 
 func IsNetClientType(str string) bool {
-	return TCP_CLIENT == NetClientType(str) || MQTT_CLIENT == NetClientType(str) || MODBUS == NetClientType(str)
+	return TCP_CLIENT == NetType(str) || MQTT_CLIENT == NetType(str) || MODBUS == NetType(str)
 }
 
 // 网络配置
@@ -44,7 +41,7 @@ type NetworkConf struct {
 }
 
 type NetServer interface {
-	Type() NetServerType
+	Type() NetType
 	Start(n NetworkConf) error
 	Reload() error
 	Stop() error
@@ -52,7 +49,7 @@ type NetServer interface {
 }
 
 type NetClient interface {
-	Type() NetClientType
+	Type() NetType
 	Connect(deviceId string, n NetworkConf) error
 	Reload() error
 	Close() error
@@ -61,22 +58,22 @@ type NetClient interface {
 // network meta config
 type networkMetaConfig struct {
 	sync.Mutex
-	m map[string]func() ProductMetaConfigs
+	m map[string]func() DefaultMetaConfig
 }
 
-var defaultnetworkMetaConfig networkMetaConfig = networkMetaConfig{m: map[string]func() ProductMetaConfigs{}}
+var defaultnetworkMetaConfig networkMetaConfig = networkMetaConfig{m: map[string]func() DefaultMetaConfig{}}
 
-func RegNetworkMetaConfigCreator(networkType string, fn func() ProductMetaConfigs) {
+func RegNetworkMetaConfigCreator(networkType string, fn func() DefaultMetaConfig) {
 	defaultnetworkMetaConfig.Lock()
 	defer defaultnetworkMetaConfig.Unlock()
 	defaultnetworkMetaConfig.m[networkType] = fn
 }
 
-func GetNetworkMetaConfig(networkType string) ProductMetaConfigs {
+func GetNetworkMetaConfig(networkType string) DefaultMetaConfig {
 	defaultnetworkMetaConfig.Lock()
 	defer defaultnetworkMetaConfig.Unlock()
 	if v, ok := defaultnetworkMetaConfig.m[networkType]; ok {
 		return v()
 	}
-	return ProductMetaConfigs{}
+	return DefaultMetaConfig{MetaConfigs: []ProductMetaConfig{}}
 }

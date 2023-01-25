@@ -36,7 +36,7 @@ func NewServer() *WebSocketServer {
 	}
 }
 
-func (s *WebSocketServer) Type() codec.NetServerType {
+func (s *WebSocketServer) Type() codec.NetType {
 	return codec.WEBSOCKET_SERVER
 }
 

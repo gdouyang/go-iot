@@ -22,7 +22,7 @@ type TcpClient struct {
 	session   codec.Session
 }
 
-func (c *TcpClient) Type() codec.NetClientType {
+func (c *TcpClient) Type() codec.NetType {
 	return codec.TCP_CLIENT
 }
 

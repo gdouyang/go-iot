@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	codec.RegNetworkMetaConfigCreator(string(codec.MQTT_CLIENT), func() codec.ProductMetaConfigs {
+	codec.RegNetworkMetaConfigCreator(string(codec.MQTT_CLIENT), func() codec.DefaultMetaConfig {
 		list := []codec.ProductMetaConfig{
 			{Property: "host", Type: "string", Buildin: true, Desc: "The host of mqtt broker [eg: 127.0.0.1]"},
 			{Property: "port", Type: "number", Buildin: true, Desc: "The port of mqtt broker"},
@@ -20,7 +20,7 @@ func init() {
 			{Property: "username", Type: "string", Buildin: true, Desc: "The username of mqtt"},
 			{Property: "password", Type: "password", Buildin: true, Desc: "The password of mqtt"},
 		}
-		return list
+		return codec.DefaultMetaConfig{MetaConfigs: list}
 	})
 }
 
