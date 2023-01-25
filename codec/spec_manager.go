@@ -70,7 +70,7 @@ func PutDevice(device *Device) {
 func DeleteDevice(deviceId string) {
 	manager := deviceManagerMap[DefaultManagerId]
 	if manager != nil {
-		manager.Delete(deviceId)
+		manager.Del(deviceId)
 	}
 }
 
@@ -91,6 +91,15 @@ func PutProduct(product *Product) {
 	}
 }
 
+// delete product from productManager
+func DeleteProduct(productId string) *Product {
+	manager := productManagerMap[DefaultManagerId]
+	if manager != nil {
+		manager.Del(productId)
+	}
+	return nil
+}
+
 func RegDeviceManager(m DeviceManager) {
 	deviceManagerMap[m.Id()] = m
 }
@@ -103,7 +112,7 @@ type DeviceManager interface {
 	Id() string
 	Get(deviceId string) *Device
 	Put(device *Device)
-	Delete(deviceId string)
+	Del(deviceId string)
 }
 
 // ProductManager
@@ -111,6 +120,7 @@ type ProductManager interface {
 	Id() string
 	Get(productId string) *Product
 	Put(product *Product)
+	Del(productId string)
 }
 
 // memDeviceManager
@@ -138,7 +148,7 @@ func (m *memDeviceManager) Put(device *Device) {
 	m.cache[device.GetId()] = device
 }
 
-func (m *memDeviceManager) Delete(deviceId string) {
+func (m *memDeviceManager) Del(deviceId string) {
 	delete(m.cache, deviceId)
 }
 
@@ -168,4 +178,8 @@ func (m *memProductManager) Put(product *Product) {
 		panic("product id must be present")
 	}
 	m.cache[product.GetId()] = product
+}
+
+func (m *memProductManager) Del(productId string) {
+	delete(m.cache, productId)
 }

@@ -55,6 +55,16 @@ func (t *EsTimeSeries) PublishModel(product *Product, model tsl.TslData) error {
 	return err
 }
 
+func (t *EsTimeSeries) Del(product *Product) error {
+	var IgnoreUnavailable bool = true
+	req := esapi.IndicesDeleteRequest{
+		Index:             []string{t.getIndex(product, properties_const), t.getIndex(product, event_const), t.getIndex(product, devicelogs_const)},
+		IgnoreUnavailable: &IgnoreUnavailable,
+	}
+	_, err := doRequest(req)
+	return err
+}
+
 func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[string]interface{}, error) {
 	if len(param.DeviceId) == 0 {
 		return nil, errors.New("deviceId must be persent")

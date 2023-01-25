@@ -32,6 +32,7 @@ type TimeSeriesSave interface {
 	SaveProperties(product *Product, data map[string]interface{}) error
 	SaveEvents(product *Product, eventId string, data map[string]interface{}) error
 	SaveLogs(product *Product, data LogData) error
+	Del(product *Product) error
 }
 
 type LogData struct {
@@ -75,5 +76,9 @@ func (t *MockTimeSeries) SaveEvents(product *Product, eventId string, data map[s
 }
 func (t *MockTimeSeries) SaveLogs(product *Product, data LogData) error {
 	logs.Info("SaveLogs data: ", data)
+	return nil
+}
+func (t *MockTimeSeries) Del(product *Product) error {
+	logs.Info("Del data: ", product.Id)
 	return nil
 }

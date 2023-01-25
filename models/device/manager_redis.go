@@ -113,7 +113,7 @@ func (m *redisDeviceManager) Put(device *codec.Device) {
 	m.cache.Store(device.GetId(), device)
 }
 
-func (m *redisDeviceManager) Delete(deviceId string) {
+func (m *redisDeviceManager) Del(deviceId string) {
 	rdb := codec.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
@@ -203,4 +203,12 @@ func (m *redisProductManager) Put(product *codec.Product) {
 		logs.Error(err)
 	}
 	m.cache.Store(product.GetId(), product)
+}
+
+func (m *redisProductManager) Del(productId string) {
+	rdb := codec.GetRedisClient()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	rdb.Del(ctx, m.getKey(productId))
+	m.cache.Delete(productId)
 }

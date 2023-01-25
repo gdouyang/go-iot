@@ -67,7 +67,7 @@ func (m *DbDeviceManager) Put(device *codec.Device) {
 	m.cache[device.GetId()] = device
 }
 
-func (m *DbDeviceManager) Delete(deviceId string) {
+func (m *DbDeviceManager) Del(deviceId string) {
 
 }
 func (m *DbDeviceManager) saveState() {
@@ -167,4 +167,8 @@ func (m *DbProductManager) Put(product *codec.Product) {
 		panic("product id must be present")
 	}
 	m.cache[product.GetId()] = product
+}
+
+func (m *DbProductManager) Del(deviceId string) {
+
 }

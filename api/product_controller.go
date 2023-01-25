@@ -172,18 +172,18 @@ func (ctl *ProductController) Delete() {
 		return
 	}
 
-	id := ctl.Param(":id")
-	_, err := ctl.getProductAndCheckCreate(id)
+	productId := ctl.Param(":id")
+	ob, err := ctl.getProductAndCheckCreate(productId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	server := servers.GetServer(id)
+	server := servers.GetServer(productId)
 	if server != nil {
 		ctl.RespError(errors.New("network is runing, please stop first"))
 		return
 	}
-	total, err := product.CountDeviceByProductId(id)
+	total, err := product.CountDeviceByProductId(productId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -192,8 +192,14 @@ func (ctl *ProductController) Delete() {
 		ctl.RespError(errors.New("product have device, can not delete"))
 		return
 	}
+	productoper, _ := codec.NewProduct(productId, map[string]string{}, ob.StorePolicy, "")
+	err = productoper.GetTimeSeries().Del(productoper)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 	// delete product
-	err = product.DeleteProduct(&models.Product{Id: id})
+	err = product.DeleteProduct(&models.Product{Id: productId})
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -251,14 +257,15 @@ func (ctl *ProductController) Undeploy() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
-	id := ctl.Param(":id")
-	ob, err := ctl.getProductAndCheckCreate(id)
+	productId := ctl.Param(":id")
+	ob, err := ctl.getProductAndCheckCreate(productId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
 	ob.State = false
 	product.UpdateProductState(&ob.Product)
+	codec.DeleteProduct(productId)
 	ctl.RespOk()
 }
 
