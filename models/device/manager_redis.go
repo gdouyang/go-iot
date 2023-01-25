@@ -22,6 +22,10 @@ type redisDeviceManager struct {
 	cache sync.Map
 }
 
+func (p *redisDeviceManager) getKey(deviceId string) string {
+	return "goiot:device:" + deviceId
+}
+
 func (m *redisDeviceManager) get(deviceId string) (*codec.Device, bool) {
 	device, ok := m.cache.Load(deviceId)
 	if ok {
@@ -46,7 +50,7 @@ func (m *redisDeviceManager) Get(deviceId string) *codec.Device {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 		rdb := codec.GetRedisClient()
-		data, err := rdb.HGetAll(ctx, "goiot:device:"+deviceId).Result()
+		data, err := rdb.HGetAll(ctx, m.getKey(deviceId)).Result()
 		if err != nil {
 			logs.Error(err)
 		}
@@ -102,7 +106,10 @@ func (m *redisDeviceManager) Put(device *codec.Device) {
 	rdb := codec.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	rdb.HSet(ctx, "goiot:device:"+p.Id, data).Err()
+	err := rdb.HSet(ctx, m.getKey(p.Id), data).Err()
+	if err != nil {
+		logs.Error(err)
+	}
 	m.cache.Store(device.GetId(), device)
 }
 
@@ -110,13 +117,17 @@ func (m *redisDeviceManager) Delete(deviceId string) {
 	rdb := codec.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	rdb.HDel(ctx, "goiot:device:"+deviceId)
+	rdb.Del(ctx, m.getKey(deviceId))
 	m.cache.Delete(deviceId)
 }
 
 // product manager for redis
 type redisProductManager struct {
 	cache sync.Map
+}
+
+func (p *redisProductManager) getKey(deviceId string) string {
+	return "goiot:product:" + deviceId
 }
 
 func (m *redisProductManager) get(deviceId string) (*codec.Product, bool) {
@@ -143,7 +154,7 @@ func (m *redisProductManager) Get(productId string) *codec.Product {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 		rdb := codec.GetRedisClient()
-		data, err := rdb.HGetAll(ctx, "goiot:product:"+productId).Result()
+		data, err := rdb.HGetAll(ctx, m.getKey(productId)).Result()
 		if err != nil {
 			logs.Error(err)
 		}
@@ -187,7 +198,7 @@ func (m *redisProductManager) Put(product *codec.Product) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	rdb := codec.GetRedisClient()
-	err := rdb.HSet(ctx, "goiot:product:"+p.Id, data).Err()
+	err := rdb.HSet(ctx, m.getKey(p.Id), data).Err()
 	if err != nil {
 		logs.Error(err)
 	}

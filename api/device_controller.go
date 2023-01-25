@@ -377,13 +377,13 @@ func (ctl *DeviceController) BatchUndeploy() {
 	ctl.RespOk()
 }
 
-func (ctl *DeviceController) enable(deviceId string, isEnable bool) {
+func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
 	dev, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	if isEnable {
+	if isDeploy {
 		if len(dev.State) == 0 || dev.State == models.NoActive {
 			device.UpdateOnlineStatus(deviceId, models.OFFLINE)
 		}

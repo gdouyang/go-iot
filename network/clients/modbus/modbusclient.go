@@ -115,7 +115,7 @@ func (c *ModbusClient) SetValue(parimaryTable string, startingAddress uint16, le
 	if err != nil {
 		return err
 	}
-	logs.Info(fmt.Sprintf("Modbus client SetValue successful, results: %v", result))
+	logs.Debug(fmt.Sprintf("Modbus client SetValue successful, results: %v", result))
 
 	return nil
 }
