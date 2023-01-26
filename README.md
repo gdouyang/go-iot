@@ -74,6 +74,7 @@ docker使用默认配置
 | current | 电流 | int |
 | fre | 功率 | double |
 
+- 10000设备连接
 ```
 create mqtt client: 9000 ok
 create mqtt client: 10000 ok
@@ -90,7 +91,26 @@ avg : 956ms
 > 100ms : 0(0.00%)
 > 10ms : 0(0.00%)
 ```
-CPU、内存使用情况
+- 100000设备连接
+```
+create mqtt client: 98000 ok
+create mqtt client: 99000 ok
+create mqtt client: 100000 ok
+
+max : 3644ms
+min : 488ms
+avg : 727ms
+
+> 5000ms : 0(0.00%)
+> 2000ms : 2010(2.01%)
+> 1000ms : 6335(6.33%)
+> 500ms : 90038(90.04%)
+> 200ms : 1617(1.62%)
+> 100ms : 0(0.00%)
+> 10ms : 0(0.00%)
+```
+
+- CPU、内存使用情况
 ```shell
 top - 15:29:57 up 10:34,  2 users,  load average: 4.69, 1.75, 0.83
 Tasks: 140 total,   1 running, 139 sleeping,   0 stopped,   0 zombie
@@ -102,7 +122,7 @@ KiB Swap:  0.6/3145724 [|                                                       
 13100 root      20   0 1023088 299000  12652 S 245.8  4.4   3:38.39 go-iot                                                                       
  3297 1000      20   0 7474404   3.8g  38236 S  41.2 58.3  14:30.41 java
 ```
-go-iot运行状态
+- go-iot运行状态
 ```
 Count	Profile
 422	allocs
