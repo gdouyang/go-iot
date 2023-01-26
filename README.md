@@ -62,7 +62,7 @@ ES内存设置为6G
 * soft nofile 655350
 * hard nofile 655350
 ```
-docker使用默认配置
+> 设备模拟器 https://gitee.com/jetlinks/device-simulator/tree/dev-1.0/
 
 - MQTT Broker测试10000设备连接，每隔1秒上报5个属性
 
