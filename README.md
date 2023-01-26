@@ -74,7 +74,7 @@ docker使用默认配置
 | current | 电流 | int |
 | fre | 功率 | double |
 
-- 10000设备连接
+- 10000设备连接，10000设备上报数据
 ```
 create mqtt client: 9000 ok
 create mqtt client: 10000 ok
@@ -90,8 +90,31 @@ avg : 956ms
 > 200ms : 0(0.00%)
 > 100ms : 0(0.00%)
 > 10ms : 0(0.00%)
+
+# CPU、内存使用情况
+top - 15:29:57 up 10:34,  2 users,  load average: 4.69, 1.75, 0.83
+Tasks: 140 total,   1 running, 139 sleeping,   0 stopped,   0 zombie
+%Cpu(s): 67.4 us,  3.1 sy,  0.0 ni, 19.5 id,  0.4 wa,  0.0 hi,  9.7 si,  0.0 st
+KiB Mem : 83.2/6831120  [|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||         ]
+KiB Swap:  0.6/3145724 [|                                                            ]
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND                                                                      
+13100 root      20   0 1023088 299000  12652 S 245.8  4.4   3:38.39 go-iot                                                                       
+ 3297 1000      20   0 7474404   3.8g  38236 S  41.2 58.3  14:30.41 java
+
+# go-iot运行状态
+Count	Profile
+422	allocs
+0	block
+0	cmdline
+20020	goroutine
+422	heap
+0	mutex
+0	profile
+8	threadcreate
+0	trace
 ```
-- 100000设备连接
+- 100000设备连接，1个设备上报数据
 ```
 create mqtt client: 98000 ok
 create mqtt client: 99000 ok
@@ -108,33 +131,29 @@ avg : 727ms
 > 200ms : 1617(1.62%)
 > 100ms : 0(0.00%)
 > 10ms : 0(0.00%)
-```
 
-- CPU、内存使用情况
-```shell
-top - 15:29:57 up 10:34,  2 users,  load average: 4.69, 1.75, 0.83
-Tasks: 140 total,   1 running, 139 sleeping,   0 stopped,   0 zombie
-%Cpu(s): 67.4 us,  3.1 sy,  0.0 ni, 19.5 id,  0.4 wa,  0.0 hi,  9.7 si,  0.0 st
-KiB Mem : 83.2/6831120  [|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||         ]
-KiB Swap:  0.6/3145724 [|                                                            ]
+# CPU、内存使用情况
+%Cpu(s):  4.8 us, 10.9 sy,  0.0 ni, 63.2 id,  0.0 wa,  0.0 hi, 21.1 si,  0.0 st
+KiB Mem : 79.3/12184576 [||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||                    ]
+KiB Swap:  0.0/3145724  [                                                                                                    ]
 
-  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND                                                                      
-13100 root      20   0 1023088 299000  12652 S 245.8  4.4   3:38.39 go-iot                                                                       
- 3297 1000      20   0 7474404   3.8g  38236 S  41.2 58.3  14:30.41 java
-```
-- go-iot运行状态
-```
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND                                                                                                                                                                
+ 3072 root      20   0 2213244   1.2g   9928 S  96.0 10.4   3:41.42 go-iot
+
+# go-iot运行状态
 Count	Profile
-422	allocs
+210	allocs
 0	block
 0	cmdline
-20020	goroutine
-422	heap
+200019	goroutine
+210	heap
 0	mutex
 0	profile
-8	threadcreate
+9	threadcreate
 0	trace
+
 ```
+
 - 测试结果
 
 ES写入速度 6000/s，压力主要在ES中，持续写入`2540000`条数据无丢失，但有延迟，当请求结束后2分钟go协程恢复正常
