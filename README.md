@@ -59,8 +59,8 @@ ES内存设置为6G
 
 修改最大文件数在`/etc/security/limits.conf`中追加以下配置
 ```
-* soft nofile 65535
-* hard nofile 65535
+* soft nofile 655350
+* hard nofile 655350
 ```
 docker使用默认配置
 
