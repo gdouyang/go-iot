@@ -5,7 +5,6 @@ import (
 	"go-iot/codec"
 	"io"
 	"net"
-	"os"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -137,9 +136,6 @@ func (c *Client) readLoop() {
 		logs.Debug("client %s readLoop read packet", c.info.cid)
 		packet, err := packets.ReadPacket(c.conn)
 		if err != nil {
-			if errors.Is(err, os.ErrDeadlineExceeded) {
-				continue
-			}
 			if err != io.EOF {
 				logs.Error("client %s read packet failed: %v", c.info.cid, err)
 			}
