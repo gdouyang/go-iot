@@ -42,7 +42,7 @@ func (ctl *AlarmController) PageAlarmLog() {
 		ctl.RespError(err)
 		return
 	}
-
+	ob.Condition.CreateId = ctl.GetCurrentUser().Id
 	res, err := alarm.PageAlarmLog(&ob)
 	if err != nil {
 		ctl.RespError(err)

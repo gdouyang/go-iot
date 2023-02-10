@@ -57,6 +57,7 @@ func PageAlarmLog(page *models.PageQuery[models.AlarmLog]) (*models.PageResult[m
 	if len(q.ProductId) > 0 {
 		qs = qs.Filter("ProductId", q.ProductId)
 	}
+	qs = qs.Filter("CreateId", q.CreateId)
 	count, err := qs.Count()
 	if err != nil {
 		return nil, err

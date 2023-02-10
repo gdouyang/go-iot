@@ -21,7 +21,7 @@ func PageRule(page *models.PageQuery[models.Rule], user models.User) (*models.Pa
 	if len(dev.Name) > 0 {
 		qs = qs.Filter("name__contains", dev.Name)
 	}
-	qs = qs.Filter("CreateId", user.CreateId)
+	qs = qs.Filter("CreateId", user.Id)
 
 	count, err := qs.Count()
 	if err != nil {
