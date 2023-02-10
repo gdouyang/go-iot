@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -18,13 +17,9 @@ func DeviceIdValid(deviceId string) bool {
 }
 
 // 分页查询设备
-func PageDevice(page *models.PageQuery, createId int64) (*models.PageResult, error) {
-	var pr *models.PageResult
-	var dev models.Device
-	err := json.Unmarshal(page.Condition, &dev)
-	if err != nil {
-		return nil, err
-	}
+func PageDevice(page *models.PageQuery[models.Device], createId int64) (*models.PageResult[models.Device], error) {
+	var pr *models.PageResult[models.Device]
+	var dev models.Device = page.Condition
 
 	//查询数据
 	o := orm.NewOrm()

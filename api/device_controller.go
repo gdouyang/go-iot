@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"go-iot/codec"
@@ -60,7 +59,7 @@ func (ctl *DeviceController) Page() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	var ob models.PageQuery
+	var ob models.PageQuery[models.Device]
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -323,15 +322,14 @@ func (ctl *DeviceController) BatchDeploy() {
 			setSseData(token, fmt.Sprintf(resp, true, total))
 		} else {
 			condition := models.Device{State: models.NoActive}
-			m, _ := json.Marshal(condition)
 			for {
-				var page *models.PageQuery = &models.PageQuery{PageSize: 300, PageNum: 1, Condition: m}
+				var page *models.PageQuery[models.Device] = &models.PageQuery[models.Device]{PageSize: 300, PageNum: 1, Condition: condition}
 				result, err := device.PageDevice(page, ctl.GetCurrentUser().Id)
 				if err != nil {
 					logs.Error(err)
 					break
 				}
-				list := result.List.([]models.Device)
+				list := result.List
 				if len(list) == 0 {
 					break
 				}

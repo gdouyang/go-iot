@@ -18,13 +18,9 @@ const (
 )
 
 // 分页查询设备
-func PageRole(page *models.PageQuery, createId int64) (*models.PageResult, error) {
-	var pr *models.PageResult
-	var n models.Role
-	err1 := json.Unmarshal(page.Condition, &n)
-	if err1 != nil {
-		return nil, err1
-	}
+func PageRole(page *models.PageQuery[models.Role], createId int64) (*models.PageResult[models.Role], error) {
+	var pr *models.PageResult[models.Role]
+	var n models.Role = page.Condition
 
 	//查询数据
 	o := orm.NewOrm()

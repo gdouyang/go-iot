@@ -54,7 +54,7 @@ func (ctl *ProductController) Page() {
 	if ctl.isForbidden(productResource, QueryAction) {
 		return
 	}
-	var ob models.PageQuery
+	var ob models.PageQuery[models.Product]
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)

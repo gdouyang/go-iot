@@ -44,8 +44,12 @@ func (ctl *RuleController) Page() {
 	if ctl.isForbidden(sceneResource, QueryAction) {
 		return
 	}
-	var ob models.PageQuery
-	ctl.BindJSON(&ob)
+	var ob models.PageQuery[models.Rule]
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 
 	res, err := rule.PageRule(&ob, *ctl.GetCurrentUser())
 	if err != nil {

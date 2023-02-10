@@ -2,7 +2,6 @@ package rule
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"go-iot/models"
 	"time"
@@ -11,13 +10,9 @@ import (
 )
 
 // 分页查询
-func PageRule(page *models.PageQuery, user models.User) (*models.PageResult, error) {
-	var pr *models.PageResult
-	var dev models.Rule
-	err := json.Unmarshal(page.Condition, &dev)
-	if err != nil {
-		return nil, err
-	}
+func PageRule(page *models.PageQuery[models.Rule], user models.User) (*models.PageResult[models.Rule], error) {
+	var pr *models.PageResult[models.Rule]
+	var dev models.Rule = page.Condition
 
 	//查询数据
 	o := orm.NewOrm()

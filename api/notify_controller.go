@@ -46,8 +46,12 @@ func (ctl *NotifyController) Page() {
 	if ctl.isForbidden(notifyResource, QueryAction) {
 		return
 	}
-	var ob models.PageQuery
-	ctl.BindJSON(&ob)
+	var ob models.PageQuery[models.Notify]
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 
 	res, err := notify.PageNotify(&ob, ctl.GetCurrentUser().Id)
 	if err != nil {

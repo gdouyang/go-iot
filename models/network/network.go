@@ -1,7 +1,6 @@
 package network
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"go-iot/codec"
@@ -34,13 +33,9 @@ func init() {
 }
 
 // 分页查询设备
-func ListNetwork(page *models.PageQuery) (*models.PageResult, error) {
-	var pr *models.PageResult
-	var n models.Network
-	err1 := json.Unmarshal(page.Condition, &n)
-	if err1 != nil {
-		return nil, err1
-	}
+func ListNetwork(page *models.PageQuery[models.Network]) (*models.PageResult[models.Network], error) {
+	var pr *models.PageResult[models.Network]
+	var n models.Network = page.Condition
 
 	//查询数据
 	o := orm.NewOrm()

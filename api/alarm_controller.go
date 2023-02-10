@@ -36,8 +36,12 @@ func (ctl *AlarmController) PageAlarmLog() {
 	if ctl.isForbidden(alarmResource, QueryAction) {
 		return
 	}
-	var ob models.PageQuery
-	ctl.BindJSON(&ob)
+	var ob models.PageQuery[models.AlarmLog]
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 
 	res, err := alarm.PageAlarmLog(&ob)
 	if err != nil {

@@ -2,7 +2,6 @@ package base
 
 import (
 	"crypto/md5"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"go-iot/models"
@@ -29,13 +28,9 @@ func init() {
 }
 
 // 分页查询设备
-func PageUser(page *models.PageQuery, createId int64) (*models.PageResult, error) {
-	var pr *models.PageResult
-	var n models.User
-	err1 := json.Unmarshal(page.Condition, &n)
-	if err1 != nil {
-		return nil, err1
-	}
+func PageUser(page *models.PageQuery[models.User], createId int64) (*models.PageResult[models.User], error) {
+	var pr *models.PageResult[models.User]
+	var n models.User = page.Condition
 
 	//查询数据
 	o := orm.NewOrm()

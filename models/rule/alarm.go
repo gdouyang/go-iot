@@ -44,13 +44,9 @@ func saveAlarmEvent(data eventbus.Message) {
 	}
 }
 
-func PageAlarmLog(page *models.PageQuery) (*models.PageResult, error) {
-	var pr *models.PageResult
-	var q models.AlarmLog
-	err := json.Unmarshal(page.Condition, &q)
-	if err != nil {
-		return nil, err
-	}
+func PageAlarmLog(page *models.PageQuery[models.AlarmLog]) (*models.PageResult[models.AlarmLog], error) {
+	var pr *models.PageResult[models.AlarmLog]
+	var q models.AlarmLog = page.Condition
 
 	//查询数据
 	o := orm.NewOrm()

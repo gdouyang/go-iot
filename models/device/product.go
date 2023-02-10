@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -17,13 +16,9 @@ import (
 )
 
 // 分页查询设备
-func PageProduct(page *models.PageQuery, createId int64) (*models.PageResult, error) {
-	var pr *models.PageResult
-	var dev models.Product
-	err1 := json.Unmarshal(page.Condition, &dev)
-	if err1 != nil {
-		return nil, err1
-	}
+func PageProduct(page *models.PageQuery[models.Product], createId int64) (*models.PageResult[models.Product], error) {
+	var pr *models.PageResult[models.Product]
+	var dev models.Product = page.Condition
 
 	//查询数据
 	o := orm.NewOrm()

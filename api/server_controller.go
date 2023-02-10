@@ -29,8 +29,12 @@ type ServerController struct {
 }
 
 func (ctl *ServerController) List() {
-	var ob models.PageQuery
-	ctl.BindJSON(&ob)
+	var ob models.PageQuery[models.Network]
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 
 	res, err := network.ListNetwork(&ob)
 	if err != nil {
@@ -42,8 +46,12 @@ func (ctl *ServerController) List() {
 
 func (ctl *ServerController) Add() {
 	var ob models.Network
-	ctl.BindJSON(&ob)
-	err := network.AddNetWork(&ob)
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	err = network.AddNetWork(&ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -53,8 +61,12 @@ func (ctl *ServerController) Add() {
 
 func (ctl *ServerController) Update() {
 	var ob models.Network
-	ctl.BindJSON(&ob)
-	err := network.AddNetWork(&ob)
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	err = network.AddNetWork(&ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -64,8 +76,12 @@ func (ctl *ServerController) Update() {
 
 func (ctl *ServerController) Delete() {
 	var ob models.Network
-	ctl.BindJSON(&ob)
-	err := network.DeleteNetwork(&ob)
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	err = network.DeleteNetwork(&ob)
 	if err != nil {
 		ctl.RespError(err)
 		return

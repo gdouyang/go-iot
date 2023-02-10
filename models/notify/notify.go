@@ -1,7 +1,6 @@
 package notify
 
 import (
-	"encoding/json"
 	"errors"
 	"go-iot/models"
 	"time"
@@ -10,13 +9,9 @@ import (
 )
 
 // 分页查询设备
-func PageNotify(page *models.PageQuery, createId int64) (*models.PageResult, error) {
-	var pr *models.PageResult
-	var n models.Notify
-	err1 := json.Unmarshal(page.Condition, &n)
-	if err1 != nil {
-		return nil, err1
-	}
+func PageNotify(page *models.PageQuery[models.Notify], createId int64) (*models.PageResult[models.Notify], error) {
+	var pr *models.PageResult[models.Notify]
+	var n models.Notify = page.Condition
 
 	//查询数据
 	o := orm.NewOrm()
