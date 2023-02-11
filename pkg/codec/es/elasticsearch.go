@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -134,4 +135,32 @@ func DoRequest[T any](s esDo) (T, error) {
 		}
 	}
 	return result, err
+}
+
+func AppendFilter(condition map[string]interface{}) []map[string]interface{} {
+	filter := []map[string]interface{}{}
+	for key, val := range condition {
+		s := fmt.Sprintf("%v", val)
+		if len(strings.TrimSpace(s)) > 0 && s != "<nil>" {
+			var term map[string]interface{} = map[string]interface{}{}
+			if strings.Contains(key, "$IN") {
+				prop := strings.ReplaceAll(key, "$IN", "")
+				term["terms"] = map[string]interface{}{prop: strings.Split(s, ",")}
+			} else if strings.Contains(key, "$BTW") {
+				prop := strings.ReplaceAll(key, "$BTW", "")
+				vals := strings.Split(s, ",")
+				if len(vals) < 1 {
+					continue
+				}
+				term["range"] = map[string]interface{}{prop: map[string]interface{}{
+					"gte": vals[0],
+					"lte": vals[1],
+				}}
+			} else {
+				term["term"] = map[string]interface{}{key: val}
+			}
+			filter = append(filter, term)
+		}
+	}
+	return filter
 }

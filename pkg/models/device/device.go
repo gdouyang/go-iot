@@ -18,10 +18,37 @@ func DeviceIdValid(deviceId string) bool {
 	return matched
 }
 
+var pageFromEs bool = true
+
 // 分页查询设备
 func PageDevice(page *models.PageQuery[models.Device], createId int64) (*models.PageResult[models.Device], error) {
 	var pr *models.PageResult[models.Device]
 	var dev models.Device = page.Condition
+
+	if pageFromEs {
+		param := map[string]interface{}{}
+		id := dev.Id
+		if len(id) > 0 {
+			param["id"] = id
+		}
+		if len(dev.Name) > 0 {
+			param["name$LIKE"] = dev.Name
+		}
+		if len(dev.State) > 0 {
+			param["state"] = dev.State
+		}
+		if len(dev.ProductId) > 0 {
+			param["productId"] = dev.ProductId
+		}
+		total, result, err := es.PageDevice[models.Device](page.PageOffset(), page.PageSize, param)
+		if err != nil {
+			return nil, err
+		}
+		p := models.PageUtil(total, page.PageNum, page.PageSize, result)
+		pr = &p
+
+		return pr, nil
+	}
 
 	//查询数据
 	o := orm.NewOrm()

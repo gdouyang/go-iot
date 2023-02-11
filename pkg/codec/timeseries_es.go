@@ -66,34 +66,10 @@ func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[st
 	if param.Type != properties_const && param.Type != event_const && param.Type != devicelogs_const {
 		return nil, fmt.Errorf("type is invalid, must be [%s, %s, %s]", properties_const, event_const, devicelogs_const)
 	}
-	filter := []map[string]interface{}{
-		{"term": map[string]interface{}{
-			tsl.PropertyDeviceId: param.DeviceId,
-		},
-		}}
-	for key, val := range param.Condition {
-		s := fmt.Sprintf("%v", val)
-		if len(strings.TrimSpace(s)) > 0 && s != "<nil>" {
-			var term map[string]interface{} = map[string]interface{}{}
-			if strings.Contains(key, "$IN") {
-				prop := strings.ReplaceAll(key, "$IN", "")
-				term["terms"] = map[string]interface{}{prop: strings.Split(s, ",")}
-			} else if strings.Contains(key, "$BTW") {
-				prop := strings.ReplaceAll(key, "$BTW", "")
-				vals := strings.Split(s, ",")
-				if len(vals) < 1 {
-					continue
-				}
-				term["range"] = map[string]interface{}{prop: map[string]interface{}{
-					"gte": vals[0],
-					"lte": vals[1],
-				}}
-			} else {
-				term["term"] = map[string]interface{}{key: val}
-			}
-			filter = append(filter, term)
-		}
-	}
+	filter := es.AppendFilter(param.Condition)
+	filter = append(filter, map[string]interface{}{
+		"term": map[string]interface{}{tsl.PropertyDeviceId: param.DeviceId},
+	})
 	if param.PageNum <= 0 {
 		param.PageNum = 1
 	}
@@ -124,17 +100,17 @@ func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[st
 		Index: []string{t.getIndex(product, param.Type)},
 		Body:  bytes.NewReader(data),
 	}
-	r, err := es.DoRequest[map[string]interface{}](req)
+	r, err := es.DoRequest[es.EsQueryResult[map[string]interface{}]](req)
 	var resp map[string]interface{} = map[string]interface{}{
 		"pageNum": param.PageNum,
 	}
-	if err == nil && r != nil {
-		total := int(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64))
+	if err == nil && len(r.Hits.Hits) > 0 {
+		total := r.Hits.Total.Value
 		resp["totalCount"] = total
 		// convert each hit to result.
 		var list []map[string]interface{} = []map[string]interface{}{}
-		for _, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
-			d := (hit.(map[string]interface{})["_source"].(map[string]interface{}))
+		for _, hit := range r.Hits.Hits {
+			d := hit.Source
 			list = append(list, d)
 		}
 		resp["list"] = list

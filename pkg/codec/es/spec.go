@@ -30,3 +30,22 @@ var DefaultEsConfig EsConfig = EsConfig{
 }
 
 const DefaultDateFormat string = "yyyy-MM||yyyy-MM-dd||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd HH:mm:ss.SSS||epoch_millis"
+
+type EsQueryResult[T any] struct {
+	Hits EsHit[T] `json:"hits"`
+}
+
+type EsHit[T any] struct {
+	Total HitTotal    `json:"total"`
+	Hits  []EsHits[T] `json:"hits"`
+}
+
+type HitTotal struct {
+	Value int `json:"value"`
+}
+
+type EsHits[T any] struct {
+	Index  string `json:"_index"`
+	ID     string `json:"_id"`
+	Source T      `json:"_source"`
+}
