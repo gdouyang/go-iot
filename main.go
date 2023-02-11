@@ -74,6 +74,12 @@ func setDefaultConfig() {
 		getConfigString("es.password", func(s string) {
 			codec.DefaultEsConfig.Password = s
 		})
+		getConfigString("es.numberOfShards", func(s string) {
+			codec.DefaultEsConfig.NumberOfShards = s
+		})
+		getConfigString("es.numberOfReplicas", func(s string) {
+			codec.DefaultEsConfig.NumberOfReplicas = s
+		})
 		buffersize := getConfigInt("es.buffersize")
 		if buffersize > 0 {
 			codec.DefaultEsConfig.BufferSize = buffersize

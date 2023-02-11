@@ -66,6 +66,7 @@ type Product struct {
 	StorePolicy string    `json:"storePolicy" orm:"column(store_policy_);size(32);description(数据存储策略 es, mock)"` // 数据存储策略
 	Script      string    `json:"script" orm:"column(script_);null;type(text);description(脚本)"`                  // codec脚本
 	CodecId     string    `json:"codecId" orm:"column(codec_id_);size(32);null;description(编解码id)"`              // 编解码id
+	Tag         string    `json:"tag,omitempty" orm:"column(tag_);null;type(text);description(标签)"`              // 标签
 	Desc        string    `json:"desc" orm:"column(desc_);description(产品说明)"`
 	CreateId    int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime  time.Time `json:"createTime" orm:"column(create_time_)"`
@@ -78,6 +79,7 @@ type Device struct {
 	ProductId  string    `json:"productId" orm:"column(product_id_);size(32);description(产品id)"`
 	State      string    `json:"state" orm:"column(state_);size(10);description(online,offline,unknow,noActive)"`   // online,offline,unknow,noActive
 	Metaconfig string    `json:"metaconfig,omitempty" orm:"column(meta_config_);null;type(text);description(配置属性)"` // 配置属性
+	Tag        string    `json:"tag,omitempty" orm:"column(tag_);null;type(text);description(标签)"`                  // 标签
 	Desc       string    `json:"desc" orm:"column(desc_);description(产品说明)"`
 	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
 	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
