@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	_ "go-iot/api"
-	"go-iot/codec"
-	"go-iot/models"
-	_ "go-iot/network/clients/registry"
-	_ "go-iot/network/servers/registry"
-	_ "go-iot/notify/registry"
+	_ "go-iot/pkg/api"
+	"go-iot/pkg/codec"
+	"go-iot/pkg/models"
+	_ "go-iot/pkg/network/clients/registry"
+	_ "go-iot/pkg/network/servers/registry"
+	_ "go-iot/pkg/notify/registry"
 	"net/http"
 	"runtime"
 	"strings"
