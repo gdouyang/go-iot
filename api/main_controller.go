@@ -2,9 +2,11 @@ package api
 
 import (
 	"crypto/md5"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"go-iot/models"
+	"strings"
 	"sync"
 	"time"
 
@@ -61,6 +63,9 @@ func (s *sessionManager) Del(key string) {
 func (s *sessionManager) Login(ctl *web.Controller, u *models.User) *HttpSession {
 	session := s.NewSession()
 	session.Put("user", u)
+	ctl.Ctx.Request.Header.Add("gsessionid", session.sessionid)
+	ctl.Ctx.Request.Cookies()
+	// ctl.Ctx.Request.AddCookie(&http.Cookie{Name: "gsessionid", Value: session.sessionid})
 	ctl.Ctx.Output.Cookie("gsessionid", session.sessionid)
 	return session
 }
@@ -140,6 +145,26 @@ type AuthController struct {
 func (c *AuthController) Prepare() {
 	s := c.GetSession()
 	if s == nil {
+		// Basic auth认证
+		authorization := c.Ctx.Request.Header.Get("Authorization")
+		if strings.HasPrefix(authorization, "Basic ") {
+			data := strings.Replace(authorization, "Basic ", "", 1)
+			by, err := base64.StdEncoding.DecodeString(data)
+			if err == nil {
+				split := strings.Split(string(by), ":")
+				if len(split) == 2 {
+					username := split[0]
+					password := split[1]
+					err := login(&c.Controller, username, password)
+					if err != nil {
+						c.Ctx.Output.Status = 401
+						c.RespError(err)
+						return
+					}
+					return
+				}
+			}
+		}
 		c.Ctx.Output.Status = 401
 		c.RespError(errors.New("Unauthorized"))
 		c.StopRun()
@@ -158,7 +183,10 @@ func (c *AuthController) isForbidden(r Resource, rc ResourceAction) bool {
 }
 
 func (c *AuthController) GetSession() *HttpSession {
-	gsessionid := c.Ctx.Input.Cookie("gsessionid")
+	gsessionid := c.Ctx.Request.Header.Get("gsessionid")
+	if len(gsessionid) == 0 {
+		gsessionid = c.Ctx.Input.Cookie("gsessionid")
+	}
 	s := defaultSessionManager.Get(gsessionid)
 	return s
 }

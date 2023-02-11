@@ -32,34 +32,38 @@ func (ctl *LoginController) LoginJson() {
 		return
 	}
 
-	u, err := user.GetUserByEntity(models.User{Username: ob.Username})
+	err = login(&ctl.Controller, ob.Username, ob.Password)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
+}
+
+func login(ctl *web.Controller, username, password string) error {
+	u, err := user.GetUserByEntity(models.User{Username: username})
+	if err != nil {
+		return err
+	}
 	if u == nil {
-		ctl.RespError(errors.New("username or password invalid"))
-		return
+		return errors.New("username or password invalid")
 	}
 	u1 := models.User{
-		Username: ob.Username,
-		Password: ob.Password,
+		Username: username,
+		Password: password,
 	}
 	user.Md5Pwd(&u1)
 	old, err := user.GetUser(u.Id)
 	if err != nil {
-		ctl.RespError(err)
-		return
+		return err
 	}
 	if u1.Password != old.Password {
-		ctl.RespError(errors.New("username or password invalid"))
-		return
+		return errors.New("username or password invalid")
 	}
 
 	permission, err := user.GetPermissionByUserId(u.Id)
 	if err != nil {
-		ctl.RespError(err)
-		return
+		return err
 	}
 	var actionMap = map[string]bool{}
 	for _, p := range permission.Permissions {
@@ -67,9 +71,9 @@ func (ctl *LoginController) LoginJson() {
 			actionMap[ac.Action] = true
 		}
 	}
-	session := defaultSessionManager.Login(&ctl.Controller, u)
+	session := defaultSessionManager.Login(ctl, u)
 	session.SetPermission(actionMap)
-	ctl.RespOk()
+	return nil
 }
 
 type LogoutController struct {
