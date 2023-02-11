@@ -74,15 +74,15 @@ type Product struct {
 
 // 设备
 type Device struct {
-	Id         string    `json:"id" orm:"pk;column(id_);size(32);description(设备ID)"`
-	Name       string    `json:"name" orm:"column(name_);size(64);description(设备名称)"`
-	ProductId  string    `json:"productId" orm:"column(product_id_);size(32);description(产品id)"`
-	State      string    `json:"state" orm:"column(state_);size(10);description(online,offline,unknow,noActive)"`   // online,offline,unknow,noActive
-	Metaconfig string    `json:"metaconfig,omitempty" orm:"column(meta_config_);null;type(text);description(配置属性)"` // 配置属性
-	Tag        string    `json:"tag,omitempty" orm:"column(tag_);null;type(text);description(标签)"`                  // 标签
-	Desc       string    `json:"desc" orm:"column(desc_);description(产品说明)"`
-	CreateId   int64     `json:"createId" orm:"column(create_id_);null"`
-	CreateTime time.Time `json:"createTime" orm:"column(create_time_)"`
+	Id         string    `json:"id,omitempty" orm:"pk;column(id_);size(32);description(设备ID)"`
+	Name       string    `json:"name,omitempty" orm:"column(name_);size(64);description(设备名称)"`
+	ProductId  string    `json:"productId,omitempty" orm:"column(product_id_);size(32);description(产品id)"`
+	State      string    `json:"state,omitempty" orm:"column(state_);size(10);description(online,offline,unknow,noActive)"` // online,offline,unknow,noActive
+	Metaconfig string    `json:"metaconfig,omitempty" orm:"column(meta_config_);null;type(text);description(配置属性)"`         // 配置属性
+	Tag        string    `json:"tag,omitempty" orm:"column(tag_);null;type(text);description(标签)"`                          // 标签
+	Desc       string    `json:"desc,omitempty" orm:"column(desc_);description(产品说明)"`
+	CreateId   int64     `json:"createId,omitempty" orm:"column(create_id_);null"`
+	CreateTime time.Time `json:"createTime,omitempty" orm:"column(create_time_)"`
 }
 
 // 网络配置

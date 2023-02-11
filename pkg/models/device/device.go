@@ -1,11 +1,13 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
 	"time"
 
+	"go-iot/pkg/codec/es"
 	"go-iot/pkg/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -97,6 +99,14 @@ func AddDevice(ob *models.Device) error {
 	if err != nil {
 		return err
 	}
+	b, err := json.Marshal(ob)
+	if err != nil {
+		return err
+	}
+	err = es.AddDevice(ob.Id, string(b))
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -120,6 +130,14 @@ func UpdateDevice(ob *models.Device) error {
 		return errors.New("no data to update")
 	}
 	_, err := o.Update(ob, columns...)
+	if err != nil {
+		return err
+	}
+	b, err := json.Marshal(ob)
+	if err != nil {
+		return err
+	}
+	err = es.AddDevice(ob.Id, string(b))
 	if err != nil {
 		return err
 	}

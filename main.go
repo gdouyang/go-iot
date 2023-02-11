@@ -4,6 +4,7 @@ import (
 	"fmt"
 	_ "go-iot/pkg/api"
 	"go-iot/pkg/codec"
+	"go-iot/pkg/codec/es"
 	"go-iot/pkg/models"
 	_ "go-iot/pkg/network/clients/registry"
 	_ "go-iot/pkg/network/servers/registry"
@@ -66,34 +67,34 @@ func setDefaultConfig() {
 	}
 	{
 		getConfigString("es.url", func(s string) {
-			codec.DefaultEsConfig.Url = s
+			es.DefaultEsConfig.Url = s
 		})
 		getConfigString("es.usename", func(s string) {
-			codec.DefaultEsConfig.Username = s
+			es.DefaultEsConfig.Username = s
 		})
 		getConfigString("es.password", func(s string) {
-			codec.DefaultEsConfig.Password = s
+			es.DefaultEsConfig.Password = s
 		})
 		getConfigString("es.numberOfShards", func(s string) {
-			codec.DefaultEsConfig.NumberOfShards = s
+			es.DefaultEsConfig.NumberOfShards = s
 		})
 		getConfigString("es.numberOfReplicas", func(s string) {
-			codec.DefaultEsConfig.NumberOfReplicas = s
+			es.DefaultEsConfig.NumberOfReplicas = s
 		})
 		buffersize := getConfigInt("es.buffersize")
 		if buffersize > 0 {
-			codec.DefaultEsConfig.BufferSize = buffersize
+			es.DefaultEsConfig.BufferSize = buffersize
 		}
 		bulkSize := getConfigInt("es.bulksize")
 		if buffersize > 0 {
-			codec.DefaultEsConfig.BulkSize = bulkSize
+			es.DefaultEsConfig.BulkSize = bulkSize
 		}
 		warntime := getConfigInt("es.warntime")
 		if warntime > 0 {
-			codec.DefaultEsConfig.WarnTime = warntime
+			es.DefaultEsConfig.WarnTime = warntime
 		}
+		logs.Info("es config: ", es.DefaultEsConfig)
 		codec.RegEsTimeSeries()
-		logs.Info("es config: ", codec.DefaultEsConfig)
 	}
 	{
 		getConfigString("redis.addr", func(s string) {
