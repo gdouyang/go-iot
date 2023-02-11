@@ -125,6 +125,7 @@ func (ctl *ProductController) Update() {
 		ctl.RespError(err)
 		return
 	}
+	ob.Id = ctl.Param(":id")
 	_, err = ctl.getProductAndCheckCreate(ob.Id)
 	if err != nil {
 		ctl.RespError(err)
@@ -218,9 +219,8 @@ func (ctl *ProductController) Deploy() {
 		ctl.RespError(err)
 		return
 	}
-
-	if len(strings.TrimSpace(ob.Id)) == 0 || len(strings.TrimSpace(ob.Metadata)) == 0 {
-		ctl.RespError(errors.New("id and metadata must be present"))
+	if len(strings.TrimSpace(ob.Metadata)) == 0 {
+		ctl.RespError(errors.New("product have no tsl, config it first"))
 		return
 	}
 	tsl := tsl.TslData{}
@@ -336,10 +336,18 @@ func (ctl *ProductController) GetNetwork() {
 		return
 	}
 	productId := ctl.Param(":productId")
-
+	_, err := ctl.getProductAndCheckCreate(productId)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
 	nw, err := network.GetByProductId(productId)
 	if err != nil {
 		ctl.RespError(err)
+		return
+	}
+	if nw == nil {
+		ctl.RespError(errors.New("product have no network config"))
 		return
 	}
 	server := servers.GetServer(productId)
