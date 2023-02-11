@@ -51,7 +51,7 @@ type AuthResource struct {
 }
 
 type SystemConfig struct {
-	Id     string `json:"id" orm:"pk;column(id_);"`
+	Id     string `json:"id" orm:"pk;column(id_);size(64);"`
 	Config string `json:"config" orm:"column(config_);type(text);description(配置)"`
 }
 
