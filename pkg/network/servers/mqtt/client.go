@@ -2,7 +2,7 @@ package mqttserver
 
 import (
 	"errors"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"io"
 	"net"
 	"reflect"
@@ -242,9 +242,9 @@ func processPublish(c *Client, packet packets.ControlPacket) {
 		// not support yet
 	}
 	// 调用wasm host处理
-	sc := codec.GetCodec(c.broker.productId)
+	sc := core.GetCodec(c.broker.productId)
 	sc.OnMessage(&mqttContext{
-		BaseContext: codec.BaseContext{
+		BaseContext: core.BaseContext{
 			DeviceId:  c.session.GetDeviceId(),
 			ProductId: c.broker.productId,
 			Session:   c.session,

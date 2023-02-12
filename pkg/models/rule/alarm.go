@@ -3,8 +3,8 @@ package rule
 import (
 	"encoding/json"
 	"errors"
-	"go-iot/pkg/codec"
-	"go-iot/pkg/codec/eventbus"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/eventbus"
 	"go-iot/pkg/models"
 	"go-iot/pkg/ruleengine"
 	"time"
@@ -27,7 +27,7 @@ func saveAlarmEvent(data eventbus.Message) {
 			logs.Error(err)
 			return
 		}
-		device := codec.GetDevice(t.DeviceId)
+		device := core.GetDevice(t.DeviceId)
 		if device == nil {
 			logs.Error("saveAlarmEvent error: device not found")
 			return

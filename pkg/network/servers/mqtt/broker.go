@@ -3,7 +3,7 @@ package mqttserver
 import (
 	"crypto/tls"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/network/servers"
 	"net"
 	"sync"
@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	servers.RegServer(func() codec.NetServer {
+	servers.RegServer(func() core.NetServer {
 		return NewServer()
 	})
 }
@@ -41,11 +41,11 @@ func NewServer() *Broker {
 	return &Broker{}
 }
 
-func (s *Broker) Type() codec.NetType {
-	return codec.MQTT_BROKER
+func (s *Broker) Type() core.NetType {
+	return core.MQTT_BROKER
 }
 
-func (s *Broker) Start(network codec.NetworkConf) error {
+func (s *Broker) Start(network core.NetworkConf) error {
 	spec := &MQTTServerSpec{}
 	err := spec.FromNetwork(network)
 	if err != nil {
@@ -178,7 +178,7 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 
 	// check auth
 	ctx := &authContext{
-		BaseContext: codec.BaseContext{
+		BaseContext: core.BaseContext{
 			ProductId: b.productId,
 			Session:   nil,
 		},
@@ -186,7 +186,7 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 		connack: connack,
 		conn:    conn,
 	}
-	err := codec.GetCodec(b.productId).OnConnect(ctx)
+	err := core.GetCodec(b.productId).OnConnect(ctx)
 
 	if ctx.authFail {
 		return nil, nil, false
@@ -247,7 +247,7 @@ func (b *Broker) handleConn(conn net.Conn) {
 func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 	// when clean session is false, previous session exist and previous session not clean session,
 	// then we use previous session, otherwise use new session
-	prevS := codec.GetSession(client.info.deviceId)
+	prevS := core.GetSession(client.info.deviceId)
 	var prevSess *Session = nil
 	if prevS != nil {
 		prevSess = prevS.(*Session)
@@ -261,7 +261,7 @@ func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 		sess := &Session{}
 		sess.init(b, connect)
 		// here connect is valid, make device online
-		baseContext := &codec.BaseContext{
+		baseContext := &core.BaseContext{
 			ProductId: b.productId,
 			Session:   sess,
 		}

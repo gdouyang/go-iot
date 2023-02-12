@@ -3,8 +3,8 @@ package api
 import (
 	"errors"
 	"fmt"
-	"go-iot/pkg/codec"
-	"go-iot/pkg/codec/msg"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/msg"
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
 	"go-iot/pkg/models/network"
@@ -121,13 +121,13 @@ func (ctl *DeviceController) GetDetail() {
 	alins.DeviceModel = *ob
 	if ob.State != models.NoActive {
 		alins.State = models.OFFLINE
-		sess := codec.GetSession(ob.Id)
+		sess := core.GetSession(ob.Id)
 		if sess != nil {
 			alins.State = models.ONLINE
 		} else {
-			liefcycle := codec.GetDeviceLifeCycle(ob.ProductId)
+			liefcycle := core.GetDeviceLifeCycle(ob.ProductId)
 			if liefcycle != nil {
-				state, err := liefcycle.OnStateChecker(&codec.BaseContext{
+				state, err := liefcycle.OnStateChecker(&core.BaseContext{
 					ProductId: ob.ProductId,
 					DeviceId:  ob.Id,
 				})
@@ -239,7 +239,7 @@ func connectClientDevice(deviceId string) error {
 		return fmt.Errorf("product [%s] not have network config", dev.ProductId)
 	}
 	// 进行连接
-	devoper := codec.GetDevice(deviceId)
+	devoper := core.GetDevice(deviceId)
 	if devoper == nil {
 		return errors.New("devoper is nil")
 	}
@@ -268,7 +268,7 @@ func (ctl *DeviceController) Disconnect() {
 		ctl.RespError(err)
 		return
 	}
-	session := codec.GetSession(deviceId)
+	session := core.GetSession(deviceId)
 	if session != nil {
 		err := session.Disconnect()
 		if err != nil {
@@ -336,14 +336,14 @@ func (ctl *DeviceController) BatchDeploy() {
 				var ids []string
 				for _, dev := range list {
 					ids = append(ids, dev.Id)
-					devopr := codec.GetDevice(dev.Id)
+					devopr := core.GetDevice(dev.Id)
 					if devopr == nil {
-						devopr = codec.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
+						devopr = core.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
 					}
 					model := models.DeviceModel{}
 					model.FromEnitty(dev)
 					devopr.Config = model.Metaconfig
-					codec.PutDevice(devopr)
+					core.PutDevice(devopr)
 				}
 				err = device.UpdateOnlineStatusList(ids, models.OFFLINE)
 				if err != nil {
@@ -385,15 +385,15 @@ func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
 		if len(dev.State) == 0 || dev.State == models.NoActive {
 			device.UpdateOnlineStatus(deviceId, models.OFFLINE)
 		}
-		devopr := codec.GetDevice(dev.Id)
+		devopr := core.GetDevice(dev.Id)
 		if devopr == nil {
-			devopr = codec.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
+			devopr = core.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
 		}
 		devopr.Config = dev.Metaconfig
-		codec.PutDevice(devopr)
+		core.PutDevice(devopr)
 	} else {
 		device.UpdateOnlineStatus(deviceId, models.NoActive)
-		codec.DeleteDevice(deviceId)
+		core.DeleteDevice(deviceId)
 	}
 }
 
@@ -416,7 +416,7 @@ func (ctl *DeviceController) CmdInvoke() {
 		ctl.RespError(err)
 		return
 	}
-	err = codec.DoCmdInvoke(device.ProductId, ob)
+	err = core.DoCmdInvoke(device.ProductId, ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -431,7 +431,7 @@ func (ctl *DeviceController) QueryProperty() {
 	}
 
 	deviceId := ctl.Param(":id")
-	var param codec.QueryParam
+	var param core.QueryParam
 	err := ctl.BindJSON(&param)
 	if err != nil {
 		ctl.RespError(err)
@@ -444,7 +444,7 @@ func (ctl *DeviceController) QueryProperty() {
 		ctl.RespError(err)
 		return
 	}
-	product := codec.GetProduct(device.ProductId)
+	product := core.GetProduct(device.ProductId)
 	if product == nil {
 		ctl.RespError(fmt.Errorf("not found product %s, make sure product is deployed", device.ProductId))
 		return

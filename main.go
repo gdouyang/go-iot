@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	_ "go-iot/pkg/api"
-	"go-iot/pkg/codec"
-	"go-iot/pkg/codec/es"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/es"
+	"go-iot/pkg/core/redis"
 	"go-iot/pkg/models"
 	_ "go-iot/pkg/network/clients/registry"
 	_ "go-iot/pkg/network/servers/registry"
@@ -61,51 +62,12 @@ func defaultRecoverPanic(ctx *context.Context, cfg *web.Config) {
 func setDefaultConfig() {
 	{
 		getConfigString("device.manager.id", func(s string) {
-			codec.DefaultManagerId = s
+			core.DefaultManagerId = s
 		})
-		logs.Info("default device manager: ", codec.DefaultManagerId)
+		logs.Info("default device manager: ", core.DefaultManagerId)
 	}
-	{
-		getConfigString("es.url", func(s string) {
-			es.DefaultEsConfig.Url = s
-		})
-		getConfigString("es.usename", func(s string) {
-			es.DefaultEsConfig.Username = s
-		})
-		getConfigString("es.password", func(s string) {
-			es.DefaultEsConfig.Password = s
-		})
-		getConfigString("es.numberOfShards", func(s string) {
-			es.DefaultEsConfig.NumberOfShards = s
-		})
-		getConfigString("es.numberOfReplicas", func(s string) {
-			es.DefaultEsConfig.NumberOfReplicas = s
-		})
-		buffersize := getConfigInt("es.buffersize")
-		if buffersize > 0 {
-			es.DefaultEsConfig.BufferSize = buffersize
-		}
-		bulkSize := getConfigInt("es.bulksize")
-		if buffersize > 0 {
-			es.DefaultEsConfig.BulkSize = bulkSize
-		}
-		warntime := getConfigInt("es.warntime")
-		if warntime > 0 {
-			es.DefaultEsConfig.WarnTime = warntime
-		}
-		logs.Info("es config: ", es.DefaultEsConfig)
-		codec.RegEsTimeSeries()
-	}
-	{
-		getConfigString("redis.addr", func(s string) {
-			codec.DefaultRedisConfig.Addr = s
-		})
-		getConfigString("redis.password", func(s string) {
-			codec.DefaultRedisConfig.Password = s
-		})
-		codec.DefaultRedisConfig.DB = getConfigInt("redis.db")
-		logs.Info("redis config: ", codec.DefaultRedisConfig)
-	}
+	es.Config(getConfigString)
+	redis.Config(getConfigString)
 }
 
 func configLog() {
@@ -144,12 +106,4 @@ func getConfigString(key string, callback func(string)) {
 	if len(val) > 0 {
 		callback(val)
 	}
-}
-func getConfigInt(key string) int {
-	data, err := config.Int(key)
-	if err != nil {
-		logs.Warn("%s is not int, error=%s", key, err)
-		return 0
-	}
-	return data
 }

@@ -1,55 +1,55 @@
 package modbus
 
 import (
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 )
 
-const MODBUS_CODEC = "modbus-script-codec"
+const MODBUS_CODEC = "modbus-script-core"
 
 func init() {
-	codec.RegCodecCreator(MODBUS_CODEC, func(network codec.NetworkConf) (codec.Codec, error) {
-		codec, err := NewModbusScriptCodec(network)
-		return codec, err
+	core.RegCodecCreator(MODBUS_CODEC, func(network core.NetworkConf) (core.Codec, error) {
+		core, err := NewModbusScriptCodec(network)
+		return core, err
 	})
 }
 
 type ModbusScriptCodec struct {
-	*codec.ScriptCodec
+	*core.ScriptCodec
 }
 
-func NewModbusScriptCodec(network codec.NetworkConf) (codec.Codec, error) {
-	c, err := codec.NewScriptCodec(network)
+func NewModbusScriptCodec(network core.NetworkConf) (core.Codec, error) {
+	c, err := core.NewScriptCodec(network)
 	if err != nil {
 		return nil, err
 	}
 	sc := &ModbusScriptCodec{
-		ScriptCodec: c.(*codec.ScriptCodec),
+		ScriptCodec: c.(*core.ScriptCodec),
 	}
-	codec.RegCodec(network.ProductId, sc)
-	codec.RegDeviceLifeCycle(network.ProductId, sc)
+	core.RegCodec(network.ProductId, sc)
+	core.RegDeviceLifeCycle(network.ProductId, sc)
 	return sc, nil
 }
 
-// func (c *ModbusScriptCodec) OnConnect(ctx codec.MessageContext) error {
+// func (c *ModbusScriptCodec) OnConnect(ctx core.MessageContext) error {
 // 	c.ScriptCodec.OnConnect(ctx)
 // 	return nil
 // }
 
 // 接收消息
-// func (c *ModbusScriptCodec) OnMessage(ctx codec.MessageContext) error {
+// func (c *ModbusScriptCodec) OnMessage(ctx core.MessageContext) error {
 // 	c.ScriptCodec.OnMessage(ctx)
 // 	return nil
 // }
 
 // 命令调用
-func (c *ModbusScriptCodec) OnInvoke(ctx codec.FuncInvokeContext) error {
+func (c *ModbusScriptCodec) OnInvoke(ctx core.FuncInvokeContext) error {
 	sess := ctx.GetSession()
 	s := sess.(*modbusSession)
 	modbusInvokeContext := &modbusInvokeContext{
 		FuncInvokeContext: ctx,
 	}
 	s.connection(func() {
-		c.ScriptCodec.FuncInvoke(codec.OnInvoke, modbusInvokeContext)
+		c.ScriptCodec.FuncInvoke(core.OnInvoke, modbusInvokeContext)
 	})
 	return nil
 }

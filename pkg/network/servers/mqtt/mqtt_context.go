@@ -2,7 +2,7 @@ package mqttserver
 
 import (
 	"encoding/hex"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"net"
 	"strings"
 
@@ -14,7 +14,7 @@ import (
 // auth context have no message and session
 // when auth pass then session will be set
 type authContext struct {
-	codec.BaseContext
+	core.BaseContext
 	client   *Client
 	connack  *packets.ConnackPacket
 	conn     net.Conn
@@ -25,7 +25,7 @@ func (ctx *authContext) GetMessage() interface{} {
 	return nil
 }
 
-func (ctx *authContext) GetSession() codec.Session {
+func (ctx *authContext) GetSession() core.Session {
 	return nil
 }
 
@@ -44,7 +44,7 @@ func (ctx *authContext) GetPassword() string {
 func (ctx *authContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
-		device := codec.GetDevice(deviceId)
+		device := core.GetDevice(deviceId)
 		if device == nil {
 			ctx.authFail1(packets.ErrRefusedIDRejected)
 			return
@@ -81,7 +81,7 @@ func (ctx *authContext) checkAuth() bool {
 
 // mqttContext
 type mqttContext struct {
-	codec.BaseContext
+	core.BaseContext
 	client    *Client
 	Data      []byte
 	topic     string

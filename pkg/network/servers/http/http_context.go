@@ -1,12 +1,12 @@
 package httpserver
 
 import (
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"net/http"
 )
 
 type httpContext struct {
-	codec.BaseContext
+	core.BaseContext
 	Data []byte
 	r    *http.Request
 }

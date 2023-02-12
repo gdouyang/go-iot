@@ -1,4 +1,4 @@
-package codec_test
+package core_test
 
 import (
 	"bytes"

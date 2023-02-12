@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"go-iot/pkg/core/boot"
 	"go-iot/pkg/models"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 func init() {
-	models.OnDbInit(func() {
+	boot.AddStartLinstener(func() {
 		admin, _ := GetUser(1)
 		if admin == nil {
 			AddUser(&models.User{

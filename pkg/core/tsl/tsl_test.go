@@ -2,7 +2,7 @@ package tsl_test
 
 import (
 	"fmt"
-	"go-iot/pkg/codec/tsl"
+	"go-iot/pkg/core/tsl"
 	"log"
 	"testing"
 )

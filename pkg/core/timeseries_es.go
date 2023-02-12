@@ -1,13 +1,13 @@
-package codec
+package core
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go-iot/pkg/codec/es"
-	"go-iot/pkg/codec/eventbus"
-	"go-iot/pkg/codec/tsl"
+	"go-iot/pkg/core/es"
+	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/core/tsl"
 	"strings"
 	"time"
 
@@ -16,17 +16,18 @@ import (
 )
 
 func init() {
-	RegEsTimeSeries()
+	RegEsTimeSeries(false)
 }
 
-func RegEsTimeSeries() {
+func RegEsTimeSeries(docheck bool) {
 	timeSeriseMap[TIME_SERISE_ES] = &EsTimeSeries{}
 }
 
 const (
-	properties_const = "properties"
-	event_const      = "event"
-	devicelogs_const = "devicelogs"
+	properties_const = "goiot-properties"
+	event_const      = "goiot-event"
+	devicelogs_const = "goiot-devicelogs"
+	timeformt        = "2006-01-02 15:04:05.000"
 )
 
 // es时序保存
@@ -141,7 +142,7 @@ func (t *EsTimeSeries) SaveProperties(product *Product, d1 map[string]interface{
 	if deviceId == nil {
 		return errors.New("not have deviceId, dont save timeseries data")
 	}
-	d1["createTime"] = time.Now().Format("2006-01-02 15:04:05.000")
+	d1["createTime"] = time.Now().Format(timeformt)
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
@@ -180,7 +181,7 @@ func (t *EsTimeSeries) SaveEvents(product *Product, eventId string, d1 map[strin
 	if deviceId == nil {
 		return errors.New("not have deviceId, dont save event timeseries data")
 	}
-	d1["createTime"] = time.Now().Format("2006-01-02 15:04:05.000")
+	d1["createTime"] = time.Now().Format(timeformt)
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
@@ -198,7 +199,7 @@ func (t *EsTimeSeries) SaveLogs(product *Product, d1 LogData) error {
 	if len(d1.DeviceId) == 0 {
 		return errors.New("deviceId must be present, dont save event timeseries data")
 	}
-	d1.CreateTime = time.Now().Format("2006-01-02 15:04:05.000")
+	d1.CreateTime = time.Now().Format(timeformt)
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
@@ -224,69 +225,24 @@ func (t *EsTimeSeries) propertiesTplMapping(product *Product, model *tsl.TslData
 	properties["deviceId"] = es.EsType{Type: "keyword"}
 	properties["createTime"] = es.EsType{Type: "date", Format: es.DefaultDateFormat}
 
-	var payload map[string]interface{} = map[string]interface{}{
-		"index_patterns": []string{fmt.Sprintf("%s-%s-*", properties_const, product.GetId())},
-		"order":          0,
-		// "template": map[string]interface{}{
-		"settings": map[string]interface{}{
-			"number_of_shards":   es.DefaultEsConfig.NumberOfShards,
-			"number_of_replicas": es.DefaultEsConfig.NumberOfReplicas,
-		},
-		"mappings": map[string]interface{}{
-			"dynamic":    false,
-			"properties": properties,
-		},
-		// },
-	}
-	// Build the request body.
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("propertiesTplMapping error: %s", err.Error())
-	}
-	logs.Info(string(data))
-	// Set up the request object.
-	req := esapi.IndicesPutTemplateRequest{
-		Name: fmt.Sprintf("properties_%s_template", product.GetId()),
-		Body: bytes.NewReader(data),
-	}
-	_, err = es.DoRequest[map[string]interface{}](req)
+	indexPattern := fmt.Sprintf("%s-%s-*", properties_const, product.GetId())
+	templateName := fmt.Sprintf("%s_%s_template", properties_const, product.GetId())
+	err := es.CreateEsTemplate(properties, indexPattern, templateName)
 	return err
 }
 
 func (t *EsTimeSeries) eventsTplMapping(product *Product, model *tsl.TslData) error {
-	var properties map[string]interface{} = map[string]interface{}{}
 	for _, e := range model.Events {
+		var properties map[string]interface{} = map[string]interface{}{}
 		for _, p := range e.Properties {
 			(properties)[p.Id] = t.createElasticProperty(p)
 		}
 		properties["deviceId"] = es.EsType{Type: "keyword"}
 		properties["createTime"] = es.EsType{Type: "date", Format: es.DefaultDateFormat}
 
-		var payload map[string]interface{} = map[string]interface{}{
-			"index_patterns": []string{fmt.Sprintf("%s-%s-%s-*", event_const, product.GetId(), e.Id)}, // event-{productId}-{eventId}-*
-			"order":          0,
-			// "template": map[string]interface{}{
-			"settings": map[string]interface{}{
-				"number_of_shards":   es.DefaultEsConfig.NumberOfShards,
-				"number_of_replicas": es.DefaultEsConfig.NumberOfReplicas,
-			},
-			"mappings": map[string]interface{}{
-				"dynamic":    false,
-				"properties": properties,
-			},
-			// },
-		}
-		data, err := json.Marshal(payload)
-		if err != nil {
-			return fmt.Errorf("eventsTplMapping error: %s", err.Error())
-		}
-		logs.Info(string(data))
-		// Set up the request object.
-		req := esapi.IndicesPutTemplateRequest{
-			Name: fmt.Sprintf("event_%s_%s_template", product.GetId(), e.Id),
-			Body: bytes.NewReader(data),
-		}
-		_, err = es.DoRequest[map[string]interface{}](req)
+		indexPattern := fmt.Sprintf("%s-%s-%s-*", event_const, product.GetId(), e.Id) // event-{productId}-{eventId}-*
+		templateName := fmt.Sprintf("%s_%s_%s_template", event_const, product.GetId(), e.Id)
+		err := es.CreateEsTemplate(properties, indexPattern, templateName)
 		if err != nil {
 			return err
 		}
@@ -297,39 +253,14 @@ func (t *EsTimeSeries) eventsTplMapping(product *Product, model *tsl.TslData) er
 func (t *EsTimeSeries) logsTplMapping(product *Product) error {
 	var properties map[string]interface{} = map[string]interface{}{}
 	properties["deviceId"] = es.EsType{Type: "keyword"}
-	properties["type"] = es.EsType{Type: "keyword", IgnoreAbove: "512"}
-	properties["content"] = es.EsType{Type: "keyword", IgnoreAbove: "512"}
+	properties["type"] = es.EsType{Type: "keyword", IgnoreAbove: "256"}
+	properties["content"] = es.EsType{Type: "keyword", IgnoreAbove: "256"}
 	properties["createTime"] = es.EsType{Type: "date", Format: es.DefaultDateFormat}
 
-	var payload map[string]interface{} = map[string]interface{}{
-		"index_patterns": []string{fmt.Sprintf("%s-%s-*", devicelogs_const, product.GetId())}, // devicelogs-{productId}-{eventId}-*
-		"order":          0,
-		// "template": map[string]interface{}{
-		"settings": map[string]interface{}{
-			"number_of_shards":   es.DefaultEsConfig.NumberOfShards,
-			"number_of_replicas": es.DefaultEsConfig.NumberOfReplicas,
-		},
-		"mappings": map[string]interface{}{
-			"dynamic":    false,
-			"properties": properties,
-		},
-		// },
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("eventsTplMapping error: %s", err.Error())
-	}
-	logs.Info(string(data))
-	// Set up the request object.
-	req := esapi.IndicesPutTemplateRequest{
-		Name: fmt.Sprintf("devicelogs_%s_template", product.GetId()),
-		Body: bytes.NewReader(data),
-	}
-	_, err = es.DoRequest[map[string]interface{}](req)
-	if err != nil {
-		return err
-	}
-	return nil
+	indexPattern := fmt.Sprintf("%s-%s-*", devicelogs_const, product.GetId()) // devicelogs-{productId}-{eventId}-*
+	templateName := fmt.Sprintf("%s_%s_template", devicelogs_const, product.GetId())
+	err := es.CreateEsTemplate(properties, indexPattern, templateName)
+	return err
 }
 
 func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) interface{} {
@@ -344,13 +275,13 @@ func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) interface{} {
 	case tsl.TypeDouble:
 		return es.EsType{Type: "double"}
 	case tsl.TypeBool:
-		return es.EsType{Type: "keyword", IgnoreAbove: "512"}
+		return es.EsType{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypeEnum:
-		return es.EsType{Type: "keyword", IgnoreAbove: "512"}
+		return es.EsType{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypeString:
-		return es.EsType{Type: "keyword", IgnoreAbove: "512"}
+		return es.EsType{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypePassword:
-		return es.EsType{Type: "keyword", IgnoreAbove: "512"}
+		return es.EsType{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypeDate:
 		return es.EsType{Type: "date", Format: es.DefaultDateFormat}
 	case tsl.TypeArray:
@@ -368,7 +299,7 @@ func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) interface{} {
 		}
 	default:
 		if len(p.Id) > 0 {
-			return es.EsType{Type: "keyword", IgnoreAbove: "512"}
+			return es.EsType{Type: "keyword", IgnoreAbove: "256"}
 		}
 	}
 	return nil

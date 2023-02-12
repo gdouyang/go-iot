@@ -2,13 +2,13 @@ package mqttclient
 
 import (
 	"encoding/hex"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 type mqttClientContext struct {
-	codec.BaseContext
+	core.BaseContext
 	Data MQTT.Message
 }
 

@@ -2,9 +2,9 @@ package modbus
 
 import (
 	"fmt"
-	"go-iot/pkg/codec"
-	"go-iot/pkg/codec/msg"
-	"go-iot/pkg/codec/tsl"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/msg"
+	"go-iot/pkg/core/tsl"
 	"strconv"
 	"sync"
 	"time"
@@ -36,7 +36,7 @@ func newSession() *modbusSession {
 
 func (s *modbusSession) Disconnect() error {
 	if !s.stopped {
-		codec.DelSession(s.deviceId)
+		core.DelSession(s.deviceId)
 		s.stopped = true
 		close(s.done)
 		close(s.lock)
@@ -71,7 +71,7 @@ func (s *modbusSession) getValue(parimaryTable string, startingAddress uint16, l
 		panic(err)
 	}
 	return &context{
-		BaseContext: codec.BaseContext{
+		BaseContext: core.BaseContext{
 			DeviceId:  s.deviceId,
 			ProductId: s.productId,
 			Session:   s,
@@ -179,7 +179,7 @@ func (s *modbusSession) connection(callback func()) error {
 }
 
 func (s *modbusSession) readLoop() {
-	product := codec.GetProduct(s.productId)
+	product := core.GetProduct(s.productId)
 	if product != nil {
 		for _, f := range product.GetTsl().Functions {
 			go s.interval(f)
@@ -202,7 +202,7 @@ func (s *modbusSession) interval(f tsl.TslFunction) {
 			for {
 				select {
 				case <-time.After(time.Second * time.Duration(num)):
-					codec.DoCmdInvoke(s.productId, msg.FuncInvoke{
+					core.DoCmdInvoke(s.productId, msg.FuncInvoke{
 						FunctionId: f.Id,
 						DeviceId:   s.deviceId,
 					})

@@ -2,7 +2,7 @@ package httpserver
 
 import (
 	"compress/gzip"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"io"
 	"net/http"
 
@@ -63,10 +63,10 @@ func (s *httpSession) ResponseHeader(key string, value string) {
 }
 
 func (s *httpSession) readData() error {
-	sc := codec.GetCodec(s.productId)
+	sc := core.GetCodec(s.productId)
 	message := s.getBody(s.r, 1024)
 	sc.OnMessage(&httpContext{
-		BaseContext: codec.BaseContext{
+		BaseContext: core.BaseContext{
 			DeviceId:  s.GetDeviceId(),
 			ProductId: s.productId,
 			Session:   s,

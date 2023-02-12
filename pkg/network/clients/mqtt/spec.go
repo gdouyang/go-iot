@@ -6,21 +6,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/network/servers"
 	"strconv"
 )
 
 func init() {
-	codec.RegNetworkMetaConfigCreator(string(codec.MQTT_CLIENT), func() codec.DefaultMetaConfig {
-		list := []codec.ProductMetaConfig{
+	core.RegNetworkMetaConfigCreator(string(core.MQTT_CLIENT), func() core.DefaultMetaConfig {
+		list := []core.ProductMetaConfig{
 			{Property: "host", Type: "string", Buildin: true, Desc: "The host of mqtt broker [eg: 127.0.0.1]"},
 			{Property: "port", Type: "number", Buildin: true, Desc: "The port of mqtt broker"},
 			{Property: "clientId", Type: "string", Buildin: true, Desc: "The clientId of mqtt"},
 			{Property: "username", Type: "string", Buildin: true, Desc: "The username of mqtt"},
 			{Property: "password", Type: "password", Buildin: true, Desc: "The password of mqtt"},
 		}
-		return codec.DefaultMetaConfig{MetaConfigs: list}
+		return core.DefaultMetaConfig{MetaConfigs: list}
 	})
 }
 
@@ -44,7 +44,7 @@ func (spec *MQTTClientSpec) FromJson(str string) error {
 	return nil
 }
 
-func (spec *MQTTClientSpec) FromNetwork(network codec.NetworkConf) error {
+func (spec *MQTTClientSpec) FromNetwork(network core.NetworkConf) error {
 	err := spec.FromJson(network.Configuration)
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func (spec *MQTTClientSpec) TlsConfig() (*tls.Config, error) {
 	return &tls.Config{Certificates: certificates}, nil
 }
 
-func (spec *MQTTClientSpec) SetByConfig(devoper *codec.Device) error {
+func (spec *MQTTClientSpec) SetByConfig(devoper *core.Device) error {
 	spec.Host = devoper.GetConfig("host")
 	port, err := strconv.Atoi(devoper.GetConfig("port"))
 	if err != nil {
@@ -88,7 +88,7 @@ func (spec *MQTTClientSpec) SetByConfig(devoper *codec.Device) error {
 	return nil
 }
 
-func (spec *MQTTClientSpec) SetCertificate(network codec.NetworkConf) error {
+func (spec *MQTTClientSpec) SetCertificate(network core.NetworkConf) error {
 	if len(network.CertBase64) == 0 || len(network.KeyBase64) == 0 {
 		return nil
 	}

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go-iot/pkg/codec/eventbus"
+	"go-iot/pkg/core/eventbus"
 	device "go-iot/pkg/models/device"
 	"net/http"
 	"sync"

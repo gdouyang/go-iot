@@ -2,11 +2,11 @@ package tcpserver
 
 import (
 	"encoding/hex"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 )
 
 type tcpContext struct {
-	codec.BaseContext
+	core.BaseContext
 	Data []byte
 }
 

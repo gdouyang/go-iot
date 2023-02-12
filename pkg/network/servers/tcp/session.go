@@ -2,7 +2,7 @@ package tcpserver
 
 import (
 	"encoding/hex"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"net"
 	"time"
 
@@ -58,7 +58,7 @@ func (s *tcpSession) Disconnect() error {
 	close(s.done)
 	s.isClose = true
 	err := s.conn.Close()
-	codec.DelSession(s.deviceId)
+	core.DelSession(s.deviceId)
 	return err
 }
 
@@ -93,9 +93,9 @@ func (s *tcpSession) readLoop() {
 			logs.Debug("tcp server read error: " + err.Error())
 			break
 		}
-		sc := codec.GetCodec(s.productId)
+		sc := core.GetCodec(s.productId)
 		sc.OnMessage(&tcpContext{
-			BaseContext: codec.BaseContext{
+			BaseContext: core.BaseContext{
 				DeviceId:  s.GetDeviceId(),
 				ProductId: s.productId,
 				Session:   s,

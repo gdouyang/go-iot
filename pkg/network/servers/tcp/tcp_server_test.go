@@ -3,7 +3,7 @@ package tcpserver_test
 import (
 	"bufio"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/models"
 	_ "go-iot/pkg/models/device"
 	tcpserver "go-iot/pkg/network/servers/tcp"
@@ -51,7 +51,7 @@ function OnInvoke(context) {
 }
 `
 
-var network codec.NetworkConf = codec.NetworkConf{
+var network core.NetworkConf = core.NetworkConf{
 	Name:      "test server",
 	ProductId: "test-product",
 	CodecId:   "script_codec",
@@ -59,30 +59,30 @@ var network codec.NetworkConf = codec.NetworkConf{
 	Script:    script,
 }
 
-var product *codec.Product = &codec.Product{
+var product *core.Product = &core.Product{
 	Id:          "test-product",
 	Config:      make(map[string]string),
 	StorePolicy: "mock",
 }
 
 func init() {
-	codec.DefaultManagerId = "mem"
+	core.DefaultManagerId = "mem"
 	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
 	models.InitDb()
-	codec.PutProduct(product)
-	device := &codec.Device{
+	core.PutProduct(product)
+	device := &core.Device{
 		Id:        "1234",
 		ProductId: product.GetId(),
 		Data:      make(map[string]string),
 		Config:    make(map[string]string),
 	}
-	codec.PutDevice(device)
+	core.PutDevice(device)
 }
 
-func newServer(network codec.NetworkConf) *tcpserver.TcpServer {
+func newServer(network core.NetworkConf) *tcpserver.TcpServer {
 	s := tcpserver.NewServer()
 	s.Start(network)
-	codec.NewCodec(network)
+	core.NewCodec(network)
 	return s
 }
 func TestServerDelimited(t *testing.T) {
@@ -147,7 +147,7 @@ func TestServerSplitFunc2(t *testing.T) {
 	newClient(network)
 }
 
-func newClient(network codec.NetworkConf) {
+func newClient(network core.NetworkConf) {
 	newClient1(network, func() string {
 		str1 := time.Now().Format("2006-01-02 15:04:05")
 		str := fmt.Sprintf("aasss %s_\n", str1)
@@ -155,7 +155,7 @@ func newClient(network codec.NetworkConf) {
 	})
 }
 
-func newClient1(network codec.NetworkConf, call func() string) {
+func newClient1(network core.NetworkConf, call func() string) {
 	spec := tcpserver.TcpServerSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port

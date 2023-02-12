@@ -6,19 +6,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/network/servers"
 	tcpserver "go-iot/pkg/network/servers/tcp"
 	"strconv"
 )
 
 func init() {
-	codec.RegNetworkMetaConfigCreator(string(codec.TCP_CLIENT), func() codec.DefaultMetaConfig {
-		list := []codec.ProductMetaConfig{
+	core.RegNetworkMetaConfigCreator(string(core.TCP_CLIENT), func() core.DefaultMetaConfig {
+		list := []core.ProductMetaConfig{
 			{Property: "host", Type: "string", Buildin: true, Desc: "The host of remote [eg: 127.0.0.1]"},
 			{Property: "port", Type: "number", Buildin: true, Desc: "The port of remote"},
 		}
-		return codec.DefaultMetaConfig{MetaConfigs: list}
+		return core.DefaultMetaConfig{MetaConfigs: list}
 	})
 }
 
@@ -44,7 +44,7 @@ func (spec *TcpClientSpec) FromJson(str string) error {
 	return nil
 }
 
-func (spec *TcpClientSpec) FromNetwork(network codec.NetworkConf) error {
+func (spec *TcpClientSpec) FromNetwork(network core.NetworkConf) error {
 	err := spec.FromJson(network.Configuration)
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func (spec *TcpClientSpec) TlsConfig() (*tls.Config, error) {
 	return &tls.Config{Certificates: certificates}, nil
 }
 
-func (spec *TcpClientSpec) SetByConfig(devoper *codec.Device) error {
+func (spec *TcpClientSpec) SetByConfig(devoper *core.Device) error {
 	spec.Host = devoper.GetConfig("host")
 	port, err := strconv.Atoi(devoper.GetConfig("port"))
 	if err != nil {
@@ -85,7 +85,7 @@ func (spec *TcpClientSpec) SetByConfig(devoper *codec.Device) error {
 	return nil
 }
 
-func (spec *TcpClientSpec) SetCertificate(network codec.NetworkConf) error {
+func (spec *TcpClientSpec) SetCertificate(network core.NetworkConf) error {
 	if len(network.CertBase64) == 0 || len(network.KeyBase64) == 0 {
 		return nil
 	}

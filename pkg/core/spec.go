@@ -1,10 +1,9 @@
-package codec
+package core
 
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"go-iot/pkg/codec/tsl"
+	"go-iot/pkg/core/tsl"
 	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -70,23 +69,6 @@ type ProductMetaConfig struct {
 	Value    string `json:"value,omitempty"`
 	Buildin  bool   `json:"buildin,omitempty"`
 	Desc     string `json:"desc,omitempty"`
-}
-
-// the config of redis
-type RedisConfig struct {
-	Addr     string
-	Password string
-	DB       int
-	PoolSize int
-}
-
-func (r RedisConfig) String() string {
-	return fmt.Sprintf("[addr=%s, db=%v, poolSize=%v]", r.Addr, r.DB, r.PoolSize)
-}
-
-var DefaultRedisConfig RedisConfig = RedisConfig{
-	Addr:     "127.0.0:6379",
-	PoolSize: 10,
 }
 
 // default product impl

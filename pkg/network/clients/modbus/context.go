@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 
 	"github.com/beego/beego/v2/core/logs"
 )
 
 type context struct {
-	codec.BaseContext
+	core.BaseContext
 	Data []byte
 }
 
@@ -52,7 +52,7 @@ func (ctx *context) MsgToBool() bool {
 }
 
 type modbusInvokeContext struct {
-	codec.FuncInvokeContext
+	core.FuncInvokeContext
 }
 
 func (ctx *modbusInvokeContext) Int16ToData(val int16) string {

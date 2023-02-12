@@ -3,7 +3,7 @@ package mqttclient
 import (
 	"encoding/hex"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -35,10 +35,10 @@ type clientSession struct {
 	choke     chan MQTT.Message
 	done      chan struct{}
 	isClose   bool
-	codec     codec.Codec
+	core      core.Codec
 }
 
-func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClientSpec) (*clientSession, error) {
+func newClientSession(deviceId string, network core.NetworkConf, spec *MQTTClientSpec) (*clientSession, error) {
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker("tcp://" + spec.Host + ":" + fmt.Sprint(spec.Port))
 	opts.SetClientID(spec.ClientId)
@@ -80,11 +80,11 @@ func newClientSession(deviceId string, network codec.NetworkConf, spec *MQTTClie
 		return nil, token.Error()
 	}
 	session.client = client
-	session.codec = codec.GetCodec(network.ProductId)
+	session.core = core.GetCodec(network.ProductId)
 	session.deviceOnline(deviceId)
 
-	session.codec.OnConnect(&mqttClientContext{
-		BaseContext: codec.BaseContext{
+	session.core.OnConnect(&mqttClientContext{
+		BaseContext: core.BaseContext{
 			DeviceId:  session.GetDeviceId(),
 			ProductId: network.ProductId,
 			Session:   session,
@@ -119,7 +119,7 @@ func (s *clientSession) Disconnect() error {
 	}
 	s.isClose = true
 	s.client.Disconnect(250)
-	codec.DelSession(s.deviceId)
+	core.DelSession(s.deviceId)
 	return nil
 }
 
@@ -134,7 +134,7 @@ func (s *clientSession) GetDeviceId() string {
 func (s *clientSession) deviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
-		codec.PutSession(deviceId, s)
+		core.PutSession(deviceId, s)
 	}
 }
 
@@ -143,8 +143,8 @@ func (s *clientSession) readLoop() {
 	for {
 		select {
 		case msg := <-s.choke:
-			s.codec.OnMessage(&mqttClientContext{
-				BaseContext: codec.BaseContext{
+			s.core.OnMessage(&mqttClientContext{
+				BaseContext: core.BaseContext{
 					DeviceId:  s.GetDeviceId(),
 					ProductId: s.productId,
 					Session:   s,

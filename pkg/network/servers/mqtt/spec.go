@@ -5,17 +5,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/network/servers"
 )
 
 func init() {
-	codec.RegNetworkMetaConfigCreator(string(codec.MQTT_BROKER), func() codec.DefaultMetaConfig {
-		list := []codec.ProductMetaConfig{
+	core.RegNetworkMetaConfigCreator(string(core.MQTT_BROKER), func() core.DefaultMetaConfig {
+		list := []core.ProductMetaConfig{
 			{Property: "username", Type: "string", Buildin: true, Desc: "The username of mqtt"},
 			{Property: "password", Type: "password", Buildin: true, Desc: "The password of mqtt"},
 		}
-		return codec.DefaultMetaConfig{MetaConfigs: list}
+		return core.DefaultMetaConfig{MetaConfigs: list}
 	})
 }
 
@@ -62,7 +62,7 @@ func (spec *MQTTServerSpec) FromJson(str string) error {
 	return nil
 }
 
-func (spec *MQTTServerSpec) FromNetwork(network codec.NetworkConf) error {
+func (spec *MQTTServerSpec) FromNetwork(network core.NetworkConf) error {
 	err := spec.FromJson(network.Configuration)
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func (spec *MQTTServerSpec) TlsConfig() (*tls.Config, error) {
 	return &tls.Config{Certificates: certificates}, nil
 }
 
-func (spec *MQTTServerSpec) SetCertificate(network codec.NetworkConf) error {
+func (spec *MQTTServerSpec) SetCertificate(network core.NetworkConf) error {
 	if len(network.CertBase64) == 0 || len(network.KeyBase64) == 0 {
 		return nil
 	}

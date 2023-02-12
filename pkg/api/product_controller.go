@@ -2,8 +2,8 @@ package api
 
 import (
 	"errors"
-	"go-iot/pkg/codec"
-	"go-iot/pkg/codec/tsl"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/tsl"
 	"go-iot/pkg/models"
 	product "go-iot/pkg/models/device"
 	"go-iot/pkg/models/network"
@@ -103,7 +103,7 @@ func (ctl *ProductController) Add() {
 	}
 	var ob = aligns.Product
 	if len(ob.StorePolicy) == 0 {
-		ob.StorePolicy = codec.TIME_SERISE_ES
+		ob.StorePolicy = core.TIME_SERISE_ES
 	}
 	ob.CreateId = ctl.GetCurrentUser().Id
 	err = product.AddProduct(&ob, aligns.NetworkType)
@@ -193,7 +193,7 @@ func (ctl *ProductController) Delete() {
 		ctl.RespError(errors.New("product have device, can not delete"))
 		return
 	}
-	productoper, _ := codec.NewProduct(productId, map[string]string{}, ob.StorePolicy, "")
+	productoper, _ := core.NewProduct(productId, map[string]string{}, ob.StorePolicy, "")
 	err = productoper.GetTimeSeries().Del(productoper)
 	if err != nil {
 		ctl.RespError(err)
@@ -237,12 +237,12 @@ func (ctl *ProductController) Deploy() {
 	for _, v := range ob.Metaconfig {
 		config[v.Property] = v.Value
 	}
-	p1, err := codec.NewProduct(ob.Id, config, ob.StorePolicy, ob.Metadata)
+	p1, err := core.NewProduct(ob.Id, config, ob.StorePolicy, ob.Metadata)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	codec.PutProduct(p1)
+	core.PutProduct(p1)
 	err = p1.GetTimeSeries().PublishModel(p1, tsl)
 	if err != nil {
 		ctl.RespError(err)
@@ -265,7 +265,7 @@ func (ctl *ProductController) Undeploy() {
 	}
 	ob.State = false
 	product.UpdateProductState(&ob.Product)
-	codec.DeleteProduct(productId)
+	core.DeleteProduct(productId)
 	ctl.RespOk()
 }
 
@@ -430,7 +430,7 @@ func (ctl *ProductController) RunNetwork() {
 		ctl.RespError(errors.New("script must be present"))
 		return
 	}
-	if codec.IsNetClientType(nw.Type) {
+	if core.IsNetClientType(nw.Type) {
 		ctl.RespError(errors.New("client type net cant run"))
 		return
 	}

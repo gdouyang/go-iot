@@ -3,14 +3,14 @@ package modbus
 import (
 	"encoding/json"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"strconv"
 )
 
 func init() {
-	codec.RegNetworkMetaConfigCreator(string(codec.MODBUS), func() codec.DefaultMetaConfig {
+	core.RegNetworkMetaConfigCreator(string(core.MODBUS), func() core.DefaultMetaConfig {
 
-		list := []codec.ProductMetaConfig{
+		list := []core.ProductMetaConfig{
 			{Property: "address", Type: "string", Buildin: true, Value: "127.0.0.1", Desc: "The host of remote [127.0.0.1]"},
 			{Property: "port", Type: "number", Buildin: true, Value: "502", Desc: "The port of remote"},
 			{Property: "unitID", Type: "number", Buildin: true, Desc: ""},
@@ -22,7 +22,7 @@ func init() {
 			// {Property: "stopBits", Type: "number", Buildin: true, Desc: ""},
 			// {Property: "parity", Type: "number", Buildin: true, Desc: ""},
 		}
-		return codec.DefaultMetaConfig{
+		return core.DefaultMetaConfig{
 			MetaConfigs: list,
 			CodecId:     MODBUS_CODEC,
 		}
@@ -90,7 +90,7 @@ func createTcpConnectionInfo(tcpProtocol string) (*TcpInfo, error) {
 	return info, nil
 }
 
-func createTcpConnectionInfoByConfig(devoper *codec.Device) (*TcpInfo, error) {
+func createTcpConnectionInfoByConfig(devoper *core.Device) (*TcpInfo, error) {
 	errorMessage := "unable to create TCP connection info, protocol config '%s' not exist"
 	address := devoper.GetConfig("address")
 	if len(address) == 0 {

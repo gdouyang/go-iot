@@ -3,7 +3,8 @@ package network
 import (
 	"errors"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/boot"
 	"go-iot/pkg/models"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 func init() {
-	models.OnDbInit(func() {
+	boot.AddStartLinstener(func() {
 		o := orm.NewOrm()
 		qs := o.QueryTable(&models.Network{})
 		count, err := qs.Count()
@@ -112,7 +113,7 @@ func AddNetWork(ob *models.Network) error {
 }
 
 func AddNetWorkTx(ob *models.Network, o orm.DML) error {
-	if !codec.IsNetClientType(ob.Type) {
+	if !core.IsNetClientType(ob.Type) {
 		if ob.Port <= 1024 || ob.Port > 65535 {
 			return errors.New("invalid port number")
 		}

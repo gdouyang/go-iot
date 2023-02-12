@@ -2,7 +2,7 @@ package ruleengine
 
 import (
 	"fmt"
-	"go-iot/pkg/codec/eventbus"
+	"go-iot/pkg/core/eventbus"
 	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -130,7 +130,7 @@ func (s *RuleExecutor) evaluate(data eventbus.Message) {
 		}
 	}
 	if pass {
-		// product := codec.GetProductManager().Get(s.ProductId)
+		// product := core.GetProductManager().Get(s.ProductId)
 		// if nil != product {
 		// 	tsl.ValueConvert1(product.GetTslProperty(), &data1)
 		// }

@@ -3,13 +3,13 @@ package tcpclient
 import (
 	"errors"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/network/clients"
 	"net"
 )
 
 func init() {
-	clients.RegClient(func() codec.NetClient {
+	clients.RegClient(func() core.NetClient {
 		return &TcpClient{}
 	})
 }
@@ -19,20 +19,20 @@ type TcpClient struct {
 	deviceId  string
 	productId string
 	spec      *TcpClientSpec
-	session   codec.Session
+	session   core.Session
 }
 
-func (c *TcpClient) Type() codec.NetType {
-	return codec.TCP_CLIENT
+func (c *TcpClient) Type() core.NetType {
+	return core.TCP_CLIENT
 }
 
-func (c *TcpClient) Connect(deviceId string, network codec.NetworkConf) error {
+func (c *TcpClient) Connect(deviceId string, network core.NetworkConf) error {
 	spec := &TcpClientSpec{}
 	err := spec.FromNetwork(network)
 	if err != nil {
 		return err
 	}
-	devoper := codec.GetDevice(deviceId)
+	devoper := core.GetDevice(deviceId)
 	if devoper == nil {
 		return errors.New("devoper is nil")
 	}
@@ -66,10 +66,10 @@ func (c *TcpClient) readLoop() {
 	defer session.Disconnect()
 	c.session = session
 
-	sc := codec.GetCodec(c.productId)
+	sc := core.GetCodec(c.productId)
 
 	context := &tcpContext{
-		BaseContext: codec.BaseContext{
+		BaseContext: core.BaseContext{
 			DeviceId:  c.deviceId,
 			ProductId: c.productId,
 			Session:   session},

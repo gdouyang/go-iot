@@ -3,7 +3,7 @@ package mqttserver
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -164,7 +164,7 @@ func (s *Session) Disconnect() error {
 		}
 		close(s.done)
 		s.isClose = true
-		codec.DelSession(s.info.deviceId)
+		core.DelSession(s.info.deviceId)
 		logs.Debug("session close %s", s.info.deviceId)
 		client := s.broker.getClient(s.info.ClientID)
 		if client != nil {

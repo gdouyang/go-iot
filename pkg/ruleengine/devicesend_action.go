@@ -2,8 +2,8 @@ package ruleengine
 
 import (
 	"encoding/json"
-	"go-iot/pkg/codec"
-	"go-iot/pkg/codec/msg"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/msg"
 )
 
 type DeviceCmdAction struct {
@@ -25,5 +25,5 @@ func (a *DeviceCmdAction) FromJson(str string) error {
 }
 
 func (s *DeviceCmdAction) Do() {
-	codec.DoCmdInvoke("", s.message)
+	core.DoCmdInvoke("", s.message)
 }

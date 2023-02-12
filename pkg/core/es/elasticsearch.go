@@ -137,6 +137,68 @@ func DoRequest[T any](s esDo) (T, error) {
 	return result, err
 }
 
+func CreateEsTemplate(properties map[string]interface{}, indexPattern string, templateName string) error {
+	var payload map[string]interface{} = map[string]interface{}{
+		"index_patterns": []string{indexPattern},
+		"order":          0,
+		// "template": map[string]interface{}{
+		"settings": map[string]interface{}{
+			"number_of_shards":   DefaultEsConfig.NumberOfShards,
+			"number_of_replicas": DefaultEsConfig.NumberOfReplicas,
+		},
+		"mappings": map[string]interface{}{
+			"dynamic":    false,
+			"properties": properties,
+		},
+		// },
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("%s error: %s", templateName, err.Error())
+	}
+	logs.Info(string(data))
+	// Set up the request object.
+	req := esapi.IndicesPutTemplateRequest{
+		Name: templateName,
+		Body: bytes.NewReader(data),
+	}
+	_, err = DoRequest[map[string]interface{}](req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func CreateEsIndex(properties map[string]interface{}, indexName string) error {
+	var payload map[string]interface{} = map[string]interface{}{
+		// "template": map[string]interface{}{
+		"settings": map[string]interface{}{
+			"number_of_shards":   DefaultEsConfig.NumberOfShards,
+			"number_of_replicas": DefaultEsConfig.NumberOfReplicas,
+		},
+		"mappings": map[string]interface{}{
+			"dynamic":    false,
+			"properties": properties,
+		},
+		// },
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("%s error: %s", indexName, err.Error())
+	}
+	logs.Info(string(data))
+	// Set up the request object.
+	req := esapi.IndicesCreateRequest{
+		Index: indexName,
+		Body:  bytes.NewReader(data),
+	}
+	_, err = DoRequest[map[string]interface{}](req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func AppendFilter(condition map[string]interface{}) []map[string]interface{} {
 	filter := []map[string]interface{}{}
 	for key, val := range condition {

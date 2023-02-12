@@ -2,7 +2,7 @@ package websocketsocker
 
 import (
 	"encoding/hex"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"net/http"
 	"net/url"
 
@@ -10,7 +10,7 @@ import (
 )
 
 type websocketContext struct {
-	codec.BaseContext
+	core.BaseContext
 	Data       []byte
 	msgType    int
 	header     http.Header

@@ -3,7 +3,7 @@ package websocketsocker
 import (
 	"encoding/hex"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"net/http"
 	"net/url"
 	"time"
@@ -53,7 +53,7 @@ func (s *websocketSession) Disconnect() error {
 	close(s.done)
 	s.isClose = true
 	err := s.conn.Close()
-	codec.DelSession(s.deviceId)
+	core.DelSession(s.deviceId)
 	return err
 }
 
@@ -81,9 +81,9 @@ func (s *websocketSession) SendBinary(msg string) error {
 func (s *websocketSession) readLoop() {
 	defer s.Disconnect()
 	// The event loop
-	sc := codec.GetCodec(s.productId)
+	sc := core.GetCodec(s.productId)
 	sc.OnConnect(&websocketContext{
-		BaseContext: codec.BaseContext{
+		BaseContext: core.BaseContext{
 			ProductId: s.productId,
 			Session:   s,
 		},
@@ -103,9 +103,9 @@ func (s *websocketSession) readLoop() {
 			break
 		}
 		// logs.Info("Received: %s", message)
-		sc := codec.GetCodec(s.productId)
+		sc := core.GetCodec(s.productId)
 		sc.OnMessage(&websocketContext{
-			BaseContext: codec.BaseContext{
+			BaseContext: core.BaseContext{
 				DeviceId:  s.GetDeviceId(),
 				ProductId: s.productId,
 				Session:   s,

@@ -1,12 +1,12 @@
 package modbus
 
 import (
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/network/clients"
 )
 
 func init() {
-	clients.RegClient(func() codec.NetClient {
+	clients.RegClient(func() core.NetClient {
 		return NewClient()
 	})
 }
@@ -18,11 +18,11 @@ func NewClient() *Client {
 	return &Client{}
 }
 
-func (c *Client) Type() codec.NetType {
-	return codec.MODBUS
+func (c *Client) Type() core.NetType {
+	return core.MODBUS
 }
-func (c *Client) Connect(deviceId string, network codec.NetworkConf) error {
-	devoper := codec.GetDevice(deviceId)
+func (c *Client) Connect(deviceId string, network core.NetworkConf) error {
+	devoper := core.GetDevice(deviceId)
 	tcpInfo, err := createTcpConnectionInfoByConfig(devoper)
 	if err != nil {
 		return err
@@ -35,7 +35,7 @@ func (c *Client) Connect(deviceId string, network codec.NetworkConf) error {
 	if err != nil {
 		return err
 	}
-	codec.PutSession(deviceId, session)
+	core.PutSession(deviceId, session)
 	session.readLoop()
 	return nil
 }

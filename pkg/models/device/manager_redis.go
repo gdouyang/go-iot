@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go-iot/pkg/codec"
-	"go-iot/pkg/codec/util"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/redis"
+	"go-iot/pkg/core/util"
 	"sync"
 	"time"
 
@@ -13,8 +14,8 @@ import (
 )
 
 func init() {
-	codec.RegDeviceManager(&redisDeviceManager{cache: sync.Map{}})
-	codec.RegProductManager(&redisProductManager{cache: sync.Map{}})
+	core.RegDeviceManager(&redisDeviceManager{cache: sync.Map{}})
+	core.RegProductManager(&redisProductManager{cache: sync.Map{}})
 }
 
 // device manager for redis
@@ -26,11 +27,11 @@ func (p *redisDeviceManager) getKey(deviceId string) string {
 	return "goiot:device:" + deviceId
 }
 
-func (m *redisDeviceManager) get(deviceId string) (*codec.Device, bool) {
+func (m *redisDeviceManager) get(deviceId string) (*core.Device, bool) {
 	device, ok := m.cache.Load(deviceId)
 	if ok {
 		if device != nil {
-			return device.(*codec.Device), true
+			return device.(*core.Device), true
 		}
 		return nil, true
 	}
@@ -41,7 +42,7 @@ func (p *redisDeviceManager) Id() string {
 	return "redis"
 }
 
-func (m *redisDeviceManager) Get(deviceId string) *codec.Device {
+func (m *redisDeviceManager) Get(deviceId string) *core.Device {
 	device, ok := m.get(deviceId)
 	if ok {
 		return device
@@ -49,7 +50,7 @@ func (m *redisDeviceManager) Get(deviceId string) *codec.Device {
 	if device == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
-		rdb := codec.GetRedisClient()
+		rdb := redis.GetRedisClient()
 		data, err := rdb.HGetAll(ctx, m.getKey(deviceId)).Result()
 		if err != nil {
 			logs.Error(err)
@@ -79,7 +80,7 @@ func (m *redisDeviceManager) Get(deviceId string) *codec.Device {
 				logs.Error("device createId parse error:", err)
 			}
 		}
-		dev := &codec.Device{
+		dev := &core.Device{
 			Id:        data["id"],
 			ProductId: data["productId"],
 			CreateId:  createId,
@@ -92,7 +93,7 @@ func (m *redisDeviceManager) Get(deviceId string) *codec.Device {
 	return nil
 }
 
-func (m *redisDeviceManager) Put(device *codec.Device) {
+func (m *redisDeviceManager) Put(device *core.Device) {
 	p := device
 	byt, _ := json.Marshal(p.Config)
 	dat, _ := json.Marshal(p.Data)
@@ -103,7 +104,7 @@ func (m *redisDeviceManager) Put(device *codec.Device) {
 		"config":    string(byt),
 		"data":      string(dat),
 	}
-	rdb := codec.GetRedisClient()
+	rdb := redis.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	err := rdb.HSet(ctx, m.getKey(p.Id), data).Err()
@@ -114,7 +115,7 @@ func (m *redisDeviceManager) Put(device *codec.Device) {
 }
 
 func (m *redisDeviceManager) Del(deviceId string) {
-	rdb := codec.GetRedisClient()
+	rdb := redis.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	rdb.Del(ctx, m.getKey(deviceId))
@@ -130,11 +131,11 @@ func (p *redisProductManager) getKey(deviceId string) string {
 	return "goiot:product:" + deviceId
 }
 
-func (m *redisProductManager) get(deviceId string) (*codec.Product, bool) {
+func (m *redisProductManager) get(deviceId string) (*core.Product, bool) {
 	product, ok := m.cache.Load(deviceId)
 	if ok {
 		if product != nil {
-			return product.(*codec.Product), true
+			return product.(*core.Product), true
 		}
 		return nil, true
 	}
@@ -145,7 +146,7 @@ func (p *redisProductManager) Id() string {
 	return "redis"
 }
 
-func (m *redisProductManager) Get(productId string) *codec.Product {
+func (m *redisProductManager) Get(productId string) *core.Product {
 	product, ok := m.get(productId)
 	if ok {
 		return product
@@ -153,7 +154,7 @@ func (m *redisProductManager) Get(productId string) *codec.Product {
 	if product == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
-		rdb := codec.GetRedisClient()
+		rdb := redis.GetRedisClient()
 		data, err := rdb.HGetAll(ctx, m.getKey(productId)).Result()
 		if err != nil {
 			logs.Error(err)
@@ -169,7 +170,7 @@ func (m *redisProductManager) Get(productId string) *codec.Product {
 				logs.Error("device config parse error:", err)
 			}
 		}
-		produ, err := codec.NewProduct(data["id"], config, data["storePolicy"], data["tslData"])
+		produ, err := core.NewProduct(data["id"], config, data["storePolicy"], data["tslData"])
 		if err != nil {
 			logs.Error(err)
 		} else {
@@ -180,7 +181,7 @@ func (m *redisProductManager) Get(productId string) *codec.Product {
 	return nil
 }
 
-func (m *redisProductManager) Put(product *codec.Product) {
+func (m *redisProductManager) Put(product *core.Product) {
 	if product == nil {
 		panic("product not be nil")
 	}
@@ -197,7 +198,7 @@ func (m *redisProductManager) Put(product *codec.Product) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	rdb := codec.GetRedisClient()
+	rdb := redis.GetRedisClient()
 	err := rdb.HSet(ctx, m.getKey(p.Id), data).Err()
 	if err != nil {
 		logs.Error(err)
@@ -206,7 +207,7 @@ func (m *redisProductManager) Put(product *codec.Product) {
 }
 
 func (m *redisProductManager) Del(productId string) {
-	rdb := codec.GetRedisClient()
+	rdb := redis.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	rdb.Del(ctx, m.getKey(productId))

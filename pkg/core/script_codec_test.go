@@ -1,7 +1,7 @@
-package codec_test
+package core_test
 
 import (
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"testing"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -22,7 +22,7 @@ func TestOtto(t *testing.T) {
 }
 
 func TestDecode(t *testing.T) {
-	var network codec.NetworkConf = codec.NetworkConf{
+	var network core.NetworkConf = core.NetworkConf{
 		ProductId: "test",
 		CodecId:   "script_codec",
 		Script: `
@@ -50,16 +50,16 @@ function OnStateChecker(context) {
 }
 `,
 	}
-	c, err := codec.NewCodec(network)
+	c, err := core.NewCodec(network)
 	if err != nil {
 		logs.Error(err)
 	}
-	c.OnConnect(&codec.BaseContext{DeviceId: "fff"})
-	c.OnInvoke(codec.FuncInvokeContext{BaseContext: codec.BaseContext{DeviceId: "fff"}})
-	c.OnMessage(&codec.BaseContext{DeviceId: "fff"})
+	c.OnConnect(&core.BaseContext{DeviceId: "fff"})
+	c.OnInvoke(core.FuncInvokeContext{BaseContext: core.BaseContext{DeviceId: "fff"}})
+	c.OnMessage(&core.BaseContext{DeviceId: "fff"})
 	switch m := c.(type) {
-	case codec.DeviceLifecycle:
-		m.OnCreate(&codec.BaseContext{DeviceId: "2222"})
+	case core.DeviceLifecycle:
+		m.OnCreate(&core.BaseContext{DeviceId: "2222"})
 	default:
 	}
 }

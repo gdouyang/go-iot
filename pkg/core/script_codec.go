@@ -1,4 +1,4 @@
-package codec
+package core
 
 import (
 	"errors"
@@ -10,8 +10,8 @@ import (
 
 func init() {
 	RegCodecCreator(Script_Codec, func(network NetworkConf) (Codec, error) {
-		codec, err := NewScriptCodec(network)
-		return codec, err
+		core, err := NewScriptCodec(network)
+		return core, err
 	})
 }
 

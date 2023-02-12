@@ -2,7 +2,7 @@ package tcpclient
 
 import (
 	"encoding/hex"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	tcpserver "go-iot/pkg/network/servers/tcp"
 	"net"
 	"strings"
@@ -62,7 +62,7 @@ func (s *tcpSession) Disconnect() error {
 	close(s.done)
 	s.isClose = true
 	err := s.conn.Close()
-	codec.DelSession(s.deviceId)
+	core.DelSession(s.deviceId)
 	return err
 }
 
@@ -77,7 +77,7 @@ func (s *tcpSession) GetDeviceId() string {
 func (s *tcpSession) deviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
-		codec.PutSession(deviceId, s)
+		core.PutSession(deviceId, s)
 	}
 }
 
@@ -104,9 +104,9 @@ func (s *tcpSession) readLoop() {
 			logs.Debug("tcpclient read error: " + err.Error())
 			break
 		}
-		sc := codec.GetCodec(s.productId)
+		sc := core.GetCodec(s.productId)
 		sc.OnMessage(&tcpContext{
-			BaseContext: codec.BaseContext{
+			BaseContext: core.BaseContext{
 				DeviceId:  s.GetDeviceId(),
 				ProductId: s.productId,
 				Session:   s,

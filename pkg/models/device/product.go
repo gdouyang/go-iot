@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/models"
 
 	"go-iot/pkg/models/network"
@@ -87,8 +87,8 @@ func AddProduct(ob *models.Product, networkType string) error {
 	o := orm.NewOrm()
 	ob.CreateTime = time.Now()
 	err = o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		ob.CodecId = codec.Script_Codec
-		mc := codec.GetNetworkMetaConfig(networkType)
+		ob.CodecId = core.Script_Codec
+		mc := core.GetNetworkMetaConfig(networkType)
 		if len(mc.CodecId) > 0 {
 			ob.CodecId = mc.CodecId
 		}
@@ -97,7 +97,7 @@ func AddProduct(ob *models.Product, networkType string) error {
 		if err != nil {
 			return err
 		}
-		if codec.IsNetClientType(networkType) {
+		if core.IsNetClientType(networkType) {
 			err := network.AddNetWorkTx(&models.Network{
 				ProductId: ob.Id,
 				Type:      networkType,
@@ -190,7 +190,7 @@ func DeleteProduct(ob *models.Product) error {
 			return err
 		}
 		if nw != nil {
-			if codec.IsNetClientType(nw.Type) {
+			if core.IsNetClientType(nw.Type) {
 				err := network.DeleteNetworkTx(nw, txOrm)
 				return err
 			} else {

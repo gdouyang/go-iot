@@ -3,8 +3,8 @@ package websocketsocker
 import (
 	"crypto/tls"
 	"fmt"
-	"go-iot/pkg/codec"
-	"go-iot/pkg/codec/eventbus"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/eventbus"
 	"go-iot/pkg/network/servers"
 	"net"
 	"net/http"
@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	servers.RegServer(func() codec.NetServer {
+	servers.RegServer(func() core.NetServer {
 		return NewServer()
 	})
 }
@@ -36,11 +36,11 @@ func NewServer() *WebSocketServer {
 	}
 }
 
-func (s *WebSocketServer) Type() codec.NetType {
-	return codec.WEBSOCKET_SERVER
+func (s *WebSocketServer) Type() core.NetType {
+	return core.WEBSOCKET_SERVER
 }
 
-func (s *WebSocketServer) Start(network codec.NetworkConf) error {
+func (s *WebSocketServer) Start(network core.NetworkConf) error {
 	spec := &WebsocketServerSpec{}
 	err := spec.FromNetwork(network)
 	if err != nil {

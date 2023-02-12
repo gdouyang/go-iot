@@ -1,6 +1,11 @@
 package es
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/beego/beego/v2/core/logs"
+)
 
 // the config of elasticsearch
 type EsConfig struct {
@@ -27,6 +32,41 @@ var DefaultEsConfig EsConfig = EsConfig{
 	WarnTime:         1000,
 	NumberOfShards:   "1",
 	NumberOfReplicas: "0",
+}
+
+func Config(fn func(key string, call func(string))) {
+	fn("es.url", func(s string) {
+		DefaultEsConfig.Url = s
+	})
+	fn("es.usename", func(s string) {
+		DefaultEsConfig.Username = s
+	})
+	fn("es.password", func(s string) {
+		DefaultEsConfig.Password = s
+	})
+	fn("es.numberOfShards", func(s string) {
+		DefaultEsConfig.NumberOfShards = s
+	})
+	fn("es.numberOfReplicas", func(s string) {
+		DefaultEsConfig.NumberOfReplicas = s
+	})
+	fn("es.buffersize", func(s string) {
+		num, err := strconv.Atoi(s)
+		if err == nil {
+			DefaultEsConfig.BufferSize = num
+		} else {
+			logs.Error("es.buffersize error:", err)
+		}
+	})
+	fn("es.warntime", func(s string) {
+		num, err := strconv.Atoi(s)
+		if err == nil {
+			DefaultEsConfig.WarnTime = num
+		} else {
+			logs.Error("es.warntime error:", err)
+		}
+	})
+	logs.Info("es config: ", DefaultEsConfig)
 }
 
 const DefaultDateFormat string = "yyyy-MM||yyyy-MM-dd||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd HH:mm:ss.SSS||epoch_millis"

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"go-iot/pkg/core/boot"
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
 	"go-iot/pkg/models/network"
@@ -14,7 +15,7 @@ import (
 )
 
 func init() {
-	models.OnDbInit(func() {
+	boot.AddStartLinstener(func() {
 		go startRuningNetServer()
 		go startRuningRule()
 		go startRuningNotify()

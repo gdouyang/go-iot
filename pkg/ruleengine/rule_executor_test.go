@@ -2,9 +2,9 @@ package ruleengine_test
 
 import (
 	"encoding/json"
-	"go-iot/pkg/codec"
-	"go-iot/pkg/codec/eventbus"
-	"go-iot/pkg/codec/tsl"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/core/tsl"
 	"go-iot/pkg/ruleengine"
 	"testing"
 	"time"
@@ -41,13 +41,13 @@ func TestRule(t *testing.T) {
 	b, err := json.Marshal(tslData)
 	assert.Nil(t, err)
 
-	codec.DefaultManagerId = "mem"
-	prod, err := codec.NewProduct("test123", map[string]string{}, codec.TIME_SERISE_MOCK, string(b))
+	core.DefaultManagerId = "mem"
+	prod, err := core.NewProduct("test123", map[string]string{}, core.TIME_SERISE_MOCK, string(b))
 	assert.Nil(t, err)
 	assert.NotNil(t, prod)
 	if prod != nil {
-		codec.PutProduct(prod)
-		codec.PutDevice(&codec.Device{Id: "1234"})
+		core.PutProduct(prod)
+		core.PutDevice(&core.Device{Id: "1234"})
 		eventbus.Publish(eventbus.GetMesssageTopic("test123", "1234"), &ruleengine.AlarmEvent{
 			DeviceId:  "1234",
 			ProductId: "test123",

@@ -1,7 +1,7 @@
-package codec
+package core
 
 import (
-	"go-iot/pkg/codec/tsl"
+	"go-iot/pkg/core/tsl"
 
 	"github.com/beego/beego/v2/core/logs"
 )

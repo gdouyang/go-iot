@@ -1,8 +1,8 @@
 package models
 
 import (
-	"go-iot/pkg/codec"
-	"go-iot/pkg/codec/eventbus"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/eventbus"
 	"go-iot/pkg/models"
 	"sync"
 	"time"
@@ -11,9 +11,9 @@ import (
 )
 
 func init() {
-	deviceManager := &DbDeviceManager{cache: make(map[string]*codec.Device), stateCh: make(chan models.Device, 1000)}
-	codec.RegDeviceManager(deviceManager)
-	codec.RegProductManager(&DbProductManager{cache: make(map[string]*codec.Product)})
+	deviceManager := &DbDeviceManager{cache: make(map[string]*core.Device), stateCh: make(chan models.Device, 1000)}
+	core.RegDeviceManager(deviceManager)
+	core.RegProductManager(&DbProductManager{cache: make(map[string]*core.Product)})
 	eventbus.Subscribe(eventbus.GetOfflineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OfflineMessage); ok {
 			deviceManager.stateCh <- models.Device{Id: m.DeviceId, State: models.OFFLINE}
@@ -30,7 +30,7 @@ func init() {
 // DbDeviceManager
 type DbDeviceManager struct {
 	sync.RWMutex
-	cache   map[string]*codec.Device
+	cache   map[string]*core.Device
 	stateCh chan models.Device
 }
 
@@ -38,7 +38,7 @@ func (p *DbDeviceManager) Id() string {
 	return "db"
 }
 
-func (m *DbDeviceManager) Get(deviceId string) *codec.Device {
+func (m *DbDeviceManager) Get(deviceId string) *core.Device {
 	device, ok := m.cache[deviceId]
 	if ok {
 		return device
@@ -52,7 +52,7 @@ func (m *DbDeviceManager) Get(deviceId string) *codec.Device {
 			return nil
 		}
 
-		device = &codec.Device{
+		device = &core.Device{
 			Id:        data.Id,
 			ProductId: data.ProductId,
 			Config:    data.Metaconfig,
@@ -63,7 +63,7 @@ func (m *DbDeviceManager) Get(deviceId string) *codec.Device {
 	return device
 }
 
-func (m *DbDeviceManager) Put(device *codec.Device) {
+func (m *DbDeviceManager) Put(device *core.Device) {
 	m.cache[device.GetId()] = device
 }
 
@@ -108,9 +108,9 @@ func updateOnlineStatus(list []models.Device, state string) {
 		var ids []string
 		for _, m := range list {
 			ids = append(ids, m.Id)
-			product := codec.GetProduct(m.ProductId)
+			product := core.GetProduct(m.ProductId)
 			if product != nil {
-				product.GetTimeSeries().SaveLogs(product, codec.LogData{DeviceId: m.Id, Type: models.OFFLINE})
+				product.GetTimeSeries().SaveLogs(product, core.LogData{DeviceId: m.Id, Type: models.OFFLINE})
 			}
 		}
 		UpdateOnlineStatusList(ids, state)
@@ -120,14 +120,14 @@ func updateOnlineStatus(list []models.Device, state string) {
 // DbProductManager
 type DbProductManager struct {
 	sync.RWMutex
-	cache map[string]*codec.Product
+	cache map[string]*core.Product
 }
 
 func (p *DbProductManager) Id() string {
 	return "db"
 }
 
-func (m *DbProductManager) Get(productId string) *codec.Product {
+func (m *DbProductManager) Get(productId string) *core.Product {
 	product, ok := m.cache[productId]
 	if ok {
 		return product
@@ -146,9 +146,9 @@ func (m *DbProductManager) Get(productId string) *codec.Product {
 		}
 		storePolicy := data.StorePolicy
 		if len(storePolicy) == 0 {
-			storePolicy = codec.TIME_SERISE_ES
+			storePolicy = core.TIME_SERISE_ES
 		}
-		produ, err := codec.NewProduct(data.Id, config, data.StorePolicy, data.Metadata)
+		produ, err := core.NewProduct(data.Id, config, data.StorePolicy, data.Metadata)
 		if err != nil {
 			logs.Error("newProduct error: ", err)
 		} else {
@@ -159,7 +159,7 @@ func (m *DbProductManager) Get(productId string) *codec.Product {
 	return nil
 }
 
-func (m *DbProductManager) Put(product *codec.Product) {
+func (m *DbProductManager) Put(product *core.Product) {
 	if product == nil {
 		panic("product not be nil")
 	}

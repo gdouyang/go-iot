@@ -1,4 +1,4 @@
-package codec
+package core
 
 import (
 	"fmt"
@@ -7,17 +7,17 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-// productId
+// codec reg
 var codecMap sync.Map
 var deviceLifeCycleMap sync.Map
 
 func GetCodec(productId string) Codec {
 	val, ok := codecMap.Load(productId)
 	if val == nil || !ok {
-		logs.Error(fmt.Sprintf("%s not found codec", productId))
+		logs.Error(fmt.Sprintf("%s not found core", productId))
 	} else {
-		codec := val.(Codec)
-		return codec
+		core := val.(Codec)
+		return core
 	}
 	return nil
 }
@@ -36,7 +36,7 @@ var codecFactory = map[string]func(network NetworkConf) (Codec, error){}
 func RegCodecCreator(codecId string, creator func(network NetworkConf) (Codec, error)) {
 	_, ok := codecFactory[codecId]
 	if ok {
-		logs.Error("codec " + codecId + " is exist")
+		logs.Error("core " + codecId + " is exist")
 		return
 	}
 	codecFactory[codecId] = creator

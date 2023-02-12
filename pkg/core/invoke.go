@@ -1,11 +1,11 @@
-package codec
+package core
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go-iot/pkg/codec/msg"
+	"go-iot/pkg/core/msg"
 	"io"
 	"net/http"
 	"net/url"
@@ -22,9 +22,9 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 	if session == nil {
 		return fmt.Errorf("device %s is offline", message.DeviceId)
 	}
-	codec := GetCodec(productId)
-	if codec == nil {
-		return fmt.Errorf("codec %s of product not found", productId)
+	core := GetCodec(productId)
+	if core == nil {
+		return fmt.Errorf("core %s of product not found", productId)
 	}
 	product := GetProduct(productId)
 	if product == nil {
@@ -52,7 +52,7 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 	}
 	if function.Async {
 		go func() {
-			codec.OnInvoke(invokeContext)
+			core.OnInvoke(invokeContext)
 		}()
 		return nil
 	} else {
@@ -67,7 +67,7 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 
 		message.Replay = make(chan error)
 		go func(ctx context.Context) {
-			err := codec.OnInvoke(invokeContext)
+			err := core.OnInvoke(invokeContext)
 			if nil != err {
 				replyMap.reply(message.DeviceId, err)
 			}

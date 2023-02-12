@@ -1,7 +1,7 @@
-package codec
+package core
 
 import (
-	"go-iot/pkg/codec/eventbus"
+	"go-iot/pkg/core/eventbus"
 	"sync"
 )
 

@@ -3,27 +3,27 @@ package servers
 import (
 	"errors"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 
 	"github.com/beego/beego/v2/core/logs"
 )
 
-var m map[codec.NetType]func() codec.NetServer = make(map[codec.NetType]func() codec.NetServer)
-var instances map[string]codec.NetServer = make(map[string]codec.NetServer)
+var m map[core.NetType]func() core.NetServer = make(map[core.NetType]func() core.NetServer)
+var instances map[string]core.NetServer = make(map[string]core.NetServer)
 
-func RegServer(f func() codec.NetServer) {
+func RegServer(f func() core.NetServer) {
 	s := f()
 	m[s.Type()] = f
 	logs.Info("Server Register [%s]", s.Type())
 }
 
-func StartServer(conf codec.NetworkConf) error {
+func StartServer(conf core.NetworkConf) error {
 	if _, ok := instances[conf.ProductId]; ok {
 		return errors.New("network is runing")
 	}
-	t := codec.NetType(conf.Type)
+	t := core.NetType(conf.Type)
 	if f, ok := m[t]; ok {
-		_, err := codec.NewCodec(conf)
+		_, err := core.NewCodec(conf)
 		if err != nil {
 			return err
 		}
@@ -39,7 +39,7 @@ func StartServer(conf codec.NetworkConf) error {
 	}
 }
 
-func GetServer(productId string) codec.NetServer {
+func GetServer(productId string) core.NetServer {
 	s := instances[productId]
 	return s
 }

@@ -3,9 +3,9 @@ package ruleengine
 import (
 	"errors"
 	"fmt"
-	"go-iot/pkg/codec"
-	"go-iot/pkg/codec/eventbus"
-	"go-iot/pkg/codec/tsl"
+	"go-iot/pkg/core"
+	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/core/tsl"
 	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -42,7 +42,7 @@ type Trigger struct {
 	FilterType string            `json:"filterType"` // 触发消息类型 online,offline,properties,event
 	Filters    []ConditionFilter `json:"filters"`    // 条件
 	ShakeLimit ShakeLimit        `json:"shakeLimit"` // 防抖限制
-	pool       *codec.VmPool     `json:"-"`
+	pool       *core.VmPool      `json:"-"`
 }
 
 func (t *Trigger) GetTopic(productId string) string {
@@ -89,7 +89,7 @@ func (c *Trigger) Evaluate(data map[string]interface{}) (bool, error) {
 		var mutex sync.Mutex
 		mutex.Lock()
 		defer mutex.Unlock()
-		pool, err := codec.NewVmPool("function test() { return "+c.GetExpression()+";}", 5)
+		pool, err := core.NewVmPool("function test() { return "+c.GetExpression()+";}", 5)
 		if err != nil {
 			return false, err
 		}

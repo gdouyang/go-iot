@@ -1,7 +1,7 @@
 package api
 
 import (
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/models"
 	product "go-iot/pkg/models/device"
 	"go-iot/pkg/models/network"
@@ -116,12 +116,12 @@ func (ctl *ServerController) Start() {
 	ctl.RespOk()
 }
 
-func convertCodecNetwork(nw models.Network) (codec.NetworkConf, error) {
+func convertCodecNetwork(nw models.Network) (core.NetworkConf, error) {
 	pro, err := product.GetProductMust(nw.ProductId)
 	if err != nil {
-		return codec.NetworkConf{}, err
+		return core.NetworkConf{}, err
 	}
-	config := codec.NetworkConf{
+	config := core.NetworkConf{
 		Name:          nw.Name,
 		Port:          nw.Port,
 		ProductId:     nw.ProductId,

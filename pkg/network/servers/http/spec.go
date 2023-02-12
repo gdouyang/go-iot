@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/network/servers"
 )
 
@@ -41,7 +41,7 @@ func (spec *HttpServerSpec) FromJson(str string) error {
 	return nil
 }
 
-func (spec *HttpServerSpec) FromNetwork(network codec.NetworkConf) error {
+func (spec *HttpServerSpec) FromNetwork(network core.NetworkConf) error {
 	err := spec.FromJson(network.Configuration)
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func (spec *HttpServerSpec) TlsConfig() (*tls.Config, error) {
 	return &tls.Config{Certificates: certificates}, nil
 }
 
-func (spec *HttpServerSpec) SetCertificate(network codec.NetworkConf) error {
+func (spec *HttpServerSpec) SetCertificate(network core.NetworkConf) error {
 	if len(network.CertBase64) == 0 || len(network.KeyBase64) == 0 {
 		return nil
 	}

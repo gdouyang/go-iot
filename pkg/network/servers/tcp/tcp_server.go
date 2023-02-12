@@ -3,7 +3,7 @@ package tcpserver
 import (
 	"crypto/tls"
 	"fmt"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/network/servers"
 	"net"
 
@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	servers.RegServer(func() codec.NetServer {
+	servers.RegServer(func() core.NetServer {
 		return &TcpServer{}
 	})
 }
@@ -34,12 +34,12 @@ func NewServer() *TcpServer {
 	return &TcpServer{}
 }
 
-func (s *TcpServer) Type() codec.NetType {
-	return codec.TCP_SERVER
+func (s *TcpServer) Type() core.NetType {
+	return core.TCP_SERVER
 }
 
 // 开启serverSocket
-func (s *TcpServer) Start(network codec.NetworkConf) error {
+func (s *TcpServer) Start(network core.NetworkConf) error {
 
 	spec := &TcpServerSpec{}
 	err := spec.FromNetwork(network)
@@ -107,10 +107,10 @@ func (s *TcpServer) handleConn(c net.Conn) {
 	session := newTcpSession(s.spec, s.productId, c)
 	defer session.Disconnect()
 
-	sc := codec.GetCodec(s.productId)
+	sc := core.GetCodec(s.productId)
 
 	sc.OnConnect(&tcpContext{
-		BaseContext: codec.BaseContext{
+		BaseContext: core.BaseContext{
 			ProductId: s.productId,
 			Session:   session,
 		},

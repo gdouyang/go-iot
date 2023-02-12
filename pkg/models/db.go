@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"go-iot/pkg/core/boot"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/core/logs"
@@ -30,15 +31,8 @@ func InitDb() {
 
 	// create table
 	orm.RunSyncdb("default", false, true)
-	for _, call := range dbInitCallback {
-		call()
-	}
-}
 
-var dbInitCallback []func()
-
-func OnDbInit(call func()) {
-	dbInitCallback = append(dbInitCallback, call)
+	boot.CallStartLinstener()
 }
 
 func GetQb() (orm.QueryBuilder, error) {

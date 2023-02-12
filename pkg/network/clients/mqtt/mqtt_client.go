@@ -2,12 +2,12 @@ package mqttclient
 
 import (
 	"errors"
-	"go-iot/pkg/codec"
+	"go-iot/pkg/core"
 	"go-iot/pkg/network/clients"
 )
 
 func init() {
-	clients.RegClient(func() codec.NetClient {
+	clients.RegClient(func() core.NetClient {
 		return &MqttClient{}
 	})
 }
@@ -19,17 +19,17 @@ type MqttClient struct {
 	session   *clientSession
 }
 
-func (c *MqttClient) Type() codec.NetType {
-	return codec.MQTT_CLIENT
+func (c *MqttClient) Type() core.NetType {
+	return core.MQTT_CLIENT
 }
 
-func (c *MqttClient) Connect(deviceId string, network codec.NetworkConf) error {
+func (c *MqttClient) Connect(deviceId string, network core.NetworkConf) error {
 	spec := MQTTClientSpec{}
 	err := spec.FromNetwork(network)
 	if err != nil {
 		return err
 	}
-	devoper := codec.GetDevice(deviceId)
+	devoper := core.GetDevice(deviceId)
 	if devoper == nil {
 		return errors.New("devoper is nil")
 	}

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"go-iot/pkg/core/boot"
 	"go-iot/pkg/models"
 	"go-iot/pkg/models/base"
 
@@ -17,7 +18,7 @@ var (
 )
 
 func init() {
-	models.OnDbInit(func() {
+	boot.AddStartLinstener(func() {
 		for _, r := range resources {
 			var m models.MenuResource
 			m.Code = r.Id

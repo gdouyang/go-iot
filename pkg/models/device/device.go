@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"time"
 
-	"go-iot/pkg/codec/es"
+	"go-iot/pkg/core/es"
 	"go-iot/pkg/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -144,14 +144,18 @@ func UpdateDevice(ob *models.Device) error {
 	//更新数据
 	o := orm.NewOrm()
 	var columns []string
+	var data map[string]interface{} = make(map[string]interface{})
 	if len(ob.Name) > 0 {
 		columns = append(columns, "Name")
+		data["name"] = ob.Name
 	}
 	if len(ob.Desc) > 0 {
 		columns = append(columns, "Desc")
+		data["desc"] = ob.Desc
 	}
 	if len(ob.Metaconfig) > 0 {
 		columns = append(columns, "Metaconfig")
+		data["metaconfig"] = ob.Metaconfig
 	}
 	if len(columns) == 0 {
 		return errors.New("no data to update")
@@ -160,11 +164,7 @@ func UpdateDevice(ob *models.Device) error {
 	if err != nil {
 		return err
 	}
-	b, err := json.Marshal(ob)
-	if err != nil {
-		return err
-	}
-	err = es.AddDevice(ob.Id, string(b))
+	err = es.UpdateDevice(ob.Id, data)
 	if err != nil {
 		return err
 	}
@@ -176,12 +176,7 @@ func UpdateOnlineStatus(id string, state string) error {
 	if len(id) == 0 {
 		return errors.New("id must be present")
 	}
-	if len(state) == 0 {
-		return errors.New("state must be present")
-	}
-	o := orm.NewOrm()
-	var ob = models.Device{Id: id, State: state}
-	_, err := o.Update(&ob, "State")
+	err := UpdateOnlineStatusList([]string{id}, state)
 	if err != nil {
 		return err
 	}
@@ -200,6 +195,10 @@ func UpdateOnlineStatusList(ids []string, state string) error {
 	if err != nil {
 		return err
 	}
+	err = es.UpdateOnlineStatusList(ids, state)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -209,6 +208,10 @@ func DeleteDevice(deviceId string) error {
 	}
 	o := orm.NewOrm()
 	_, err := o.Delete(&models.Device{Id: deviceId})
+	if err != nil {
+		return err
+	}
+	err = es.DeleteDevice(deviceId)
 	if err != nil {
 		return err
 	}
