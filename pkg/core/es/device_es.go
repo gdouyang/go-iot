@@ -127,8 +127,8 @@ func initMapping() error {
 	properties["id"] = EsType{Type: "keyword"}
 	properties["productId"] = EsType{Type: "keyword"}
 	properties["state"] = EsType{Type: "keyword"}
-	properties["metaconfig"] = EsType{Type: "object"}
-	properties["tag"] = EsType{Type: "object"}
+	properties["metaconfig"] = map[string]interface{}{"properties": map[string]EsType{"a": {Type: "keyword"}}}
+	properties["tag"] = map[string]interface{}{"properties": map[string]EsType{"a": {Type: "keyword"}}}
 	properties["createId"] = EsType{Type: "long"}
 	properties["createTime"] = EsType{Type: "date", Format: DefaultDateFormat}
 	properties["name"] = EsType{Type: "text"}

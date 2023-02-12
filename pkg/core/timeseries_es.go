@@ -67,8 +67,8 @@ func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[st
 	if len(param.DeviceId) == 0 {
 		return nil, errors.New("deviceId must be persent")
 	}
-	if param.Type != properties_const && param.Type != event_const && param.Type != devicelogs_const {
-		return nil, fmt.Errorf("type is invalid, must be [%s, %s, %s]", properties_const, event_const, devicelogs_const)
+	if param.Type != "properties" && param.Type != "event" && param.Type != "devicelogs" {
+		return nil, errors.New("type is invalid, must be [properties, event, devicelogs]")
 	}
 	filter := es.AppendFilter(param.Condition)
 	filter = append(filter, map[string]interface{}{
