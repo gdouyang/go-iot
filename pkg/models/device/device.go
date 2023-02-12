@@ -18,38 +18,10 @@ func DeviceIdValid(deviceId string) bool {
 	return matched
 }
 
-var pageFromEs bool = true
-
 // 分页查询设备
 func PageDevice(page *models.PageQuery[models.Device], createId int64) (*models.PageResult[models.Device], error) {
 	var pr *models.PageResult[models.Device]
 	var dev models.Device = page.Condition
-
-	if pageFromEs {
-		param := map[string]interface{}{}
-		id := dev.Id
-		if len(id) > 0 {
-			param["id"] = id
-		}
-		if len(dev.Name) > 0 {
-			param["name$LIKE"] = dev.Name
-		}
-		if len(dev.State) > 0 {
-			param["state"] = dev.State
-		}
-		if len(dev.ProductId) > 0 {
-			param["productId"] = dev.ProductId
-		}
-		total, result, err := es.PageDevice[models.Device](page.PageOffset(), page.PageSize, param)
-		if err != nil {
-			return nil, err
-		}
-		p := models.PageUtil(total, page.PageNum, page.PageSize, result)
-		pr = &p
-
-		return pr, nil
-	}
-
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.Device{})
@@ -86,6 +58,37 @@ func PageDevice(page *models.PageQuery[models.Device], createId int64) (*models.
 
 	return pr, nil
 }
+func PageDeviceEs(page *models.PageQuery[models.DeviceModel], createId int64) (*models.PageResult[models.DeviceModel], error) {
+	var dev models.DeviceModel = page.Condition
+	param := map[string]interface{}{}
+	id := dev.Id
+	if len(id) > 0 {
+		param["id"] = id
+	}
+	if len(dev.Name) > 0 {
+		param["name$LIKE"] = dev.Name
+	}
+	if len(dev.State) > 0 {
+		param["state"] = dev.State
+	}
+	if len(dev.ProductId) > 0 {
+		param["productId"] = dev.ProductId
+	}
+	if len(dev.Tag) > 0 {
+		for key, value := range dev.Tag {
+			param["tag."+key] = value
+		}
+	}
+	total, result, err := es.PageDevice[models.DeviceModel](page.PageOffset(), page.PageSize, param)
+	if err != nil {
+		return nil, err
+	}
+	var pr *models.PageResult[models.DeviceModel]
+	p := models.PageUtil(total, page.PageNum, page.PageSize, result)
+	pr = &p
+
+	return pr, nil
+}
 
 func ListClientDeviceByProductId(productId string) ([]string, error) {
 	o := orm.NewOrm()
@@ -104,7 +107,7 @@ func ListClientDeviceByProductId(productId string) ([]string, error) {
 	return ids, nil
 }
 
-func AddDevice(ob *models.Device) error {
+func AddDevice(ob *models.DeviceModel) error {
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
 		return errors.New("id, name must be present")
 	}
@@ -119,10 +122,11 @@ func AddDevice(ob *models.Device) error {
 		return errors.New("device is exist")
 	}
 	ob.State = models.NoActive
+	en := ob.ToEnitty()
+	en.CreateTime = time.Now()
 	//插入数据
 	o := orm.NewOrm()
-	ob.CreateTime = time.Now()
-	_, err = o.Insert(ob)
+	_, err = o.Insert(&en)
 	if err != nil {
 		return err
 	}
@@ -130,7 +134,10 @@ func AddDevice(ob *models.Device) error {
 	if err != nil {
 		return err
 	}
-	err = es.AddDevice(ob.Id, string(b))
+	data := map[string]interface{}{}
+	json.Unmarshal(b, &data)
+	data["createTime"] = time.Now().Format("2006-01-02 15:04:05")
+	err = es.AddDevice(ob.Id, data)
 	if err != nil {
 		return err
 	}

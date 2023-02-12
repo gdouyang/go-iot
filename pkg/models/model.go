@@ -13,6 +13,7 @@ type DeviceModel struct {
 	Device
 	Metaconfig map[string]string `json:"metaconfig,omitempty"`
 	Tag        map[string]string `json:"tag,omitempty"`
+	CreateTime string            `json:"createTime,omitempty"`
 }
 
 func (d *DeviceModel) FromEnitty(en Device) {

@@ -105,7 +105,7 @@ func getEsClient() (*elasticsearch.Client, error) {
 	return es, err
 }
 
-func DoRequest[T any](s esDo) (T, error) {
+func DoRequest[T any](s esDo) (T, *EsErrorResult) {
 	var result T
 	es, err := getEsClient()
 	if err != nil {
@@ -115,7 +115,7 @@ func DoRequest[T any](s esDo) (T, error) {
 	res, err := s.Do(context.Background(), es)
 	if err != nil {
 		logs.Error("Error getting response: %s", err)
-		return result, err
+		return result, NewEsError(err)
 	}
 	defer res.Body.Close()
 
@@ -124,8 +124,14 @@ func DoRequest[T any](s esDo) (T, error) {
 	}
 
 	if res.IsError() {
-		logs.Error("[%s] Error:[%s]", res.Status(), res.String())
-		return result, errors.New(res.String())
+		// Deserialize the response into a map.
+		var eserr *EsErrorResult = &EsErrorResult{OriginErr: errors.New(res.String())}
+		if err := json.NewDecoder(res.Body).Decode(eserr); err != nil {
+			logs.Error("Error parsing the response body: %s", err)
+			logs.Error("[%s] Error:[%s]", res.Status(), res.String())
+		} else {
+			return result, eserr
+		}
 	} else {
 		// Deserialize the response into a map.
 		if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
@@ -134,7 +140,10 @@ func DoRequest[T any](s esDo) (T, error) {
 			return result, nil
 		}
 	}
-	return result, err
+	if err != nil {
+		return result, NewEsError(err)
+	}
+	return result, nil
 }
 
 func CreateEsTemplate(properties map[string]interface{}, indexPattern string, templateName string) error {
@@ -162,14 +171,14 @@ func CreateEsTemplate(properties map[string]interface{}, indexPattern string, te
 		Name: templateName,
 		Body: bytes.NewReader(data),
 	}
-	_, err = DoRequest[map[string]interface{}](req)
-	if err != nil {
-		return err
+	_, eserr := DoRequest[map[string]interface{}](req)
+	if eserr != nil {
+		return eserr.OriginErr
 	}
 	return nil
 }
 
-func CreateEsIndex(properties map[string]interface{}, indexName string) error {
+func CreateEsIndex(properties map[string]interface{}, indexName string) *EsErrorResult {
 	var payload map[string]interface{} = map[string]interface{}{
 		// "template": map[string]interface{}{
 		"settings": map[string]interface{}{
@@ -177,14 +186,17 @@ func CreateEsIndex(properties map[string]interface{}, indexName string) error {
 			"number_of_replicas": DefaultEsConfig.NumberOfReplicas,
 		},
 		"mappings": map[string]interface{}{
-			"dynamic":    false,
+			// "dynamic":    false,
 			"properties": properties,
+			"dynamic_templates": []map[string]interface{}{
+				{"strings": map[string]interface{}{"match_mapping_type": "string", "match": "*", "mapping": map[string]interface{}{"type": "keyword"}}},
+			},
 		},
 		// },
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("%s error: %s", indexName, err.Error())
+		return NewEsError(fmt.Errorf("%s error: %s", indexName, err.Error()))
 	}
 	logs.Info(string(data))
 	// Set up the request object.
@@ -192,9 +204,9 @@ func CreateEsIndex(properties map[string]interface{}, indexName string) error {
 		Index: indexName,
 		Body:  bytes.NewReader(data),
 	}
-	_, err = DoRequest[map[string]interface{}](req)
-	if err != nil {
-		return err
+	_, eserr := DoRequest[map[string]interface{}](req)
+	if eserr != nil {
+		return eserr
 	}
 	return nil
 }
@@ -208,6 +220,9 @@ func AppendFilter(condition map[string]interface{}) []map[string]interface{} {
 			if strings.Contains(key, "$IN") {
 				prop := strings.ReplaceAll(key, "$IN", "")
 				term["terms"] = map[string]interface{}{prop: strings.Split(s, ",")}
+			} else if strings.Contains(key, "$LIKE") {
+				prop := strings.ReplaceAll(key, "$LIKE", "")
+				term["prefix"] = map[string]interface{}{prop: s}
 			} else if strings.Contains(key, "$BTW") {
 				prop := strings.ReplaceAll(key, "$BTW", "")
 				vals := strings.Split(s, ",")

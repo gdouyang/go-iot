@@ -57,7 +57,10 @@ func (t *EsTimeSeries) Del(product *Product) error {
 		IgnoreUnavailable: &IgnoreUnavailable,
 	}
 	_, err := es.DoRequest[map[string]interface{}](req)
-	return err
+	if err != nil {
+		return err.OriginErr
+	}
+	return nil
 }
 
 func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[string]interface{}, error) {
@@ -101,7 +104,10 @@ func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[st
 		Index: []string{t.getIndex(product, param.Type)},
 		Body:  bytes.NewReader(data),
 	}
-	r, err := es.DoRequest[es.EsQueryResult[map[string]interface{}]](req)
+	r, eserr := es.DoRequest[es.EsQueryResult[map[string]interface{}]](req)
+	if eserr != nil {
+		return nil, eserr.OriginErr
+	}
 	var resp map[string]interface{} = map[string]interface{}{
 		"pageNum": param.PageNum,
 	}

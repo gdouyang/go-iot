@@ -31,6 +31,7 @@ var deviceResource = Resource{
 func init() {
 	ns := web.NewNamespace("/api/device",
 		web.NSRouter("/page", &DeviceController{}, "post:Page"),
+		web.NSRouter("/page-es", &DeviceController{}, "post:PageEs"),
 		web.NSRouter("/", &DeviceController{}, "post:Add"),
 		web.NSRouter("/", &DeviceController{}, "put:Update"),
 		web.NSRouter("/:id", &DeviceController{}, "delete:Delete"),
@@ -67,6 +68,26 @@ func (ctl *DeviceController) Page() {
 	}
 
 	res, err := device.PageDevice(&ob, ctl.GetCurrentUser().Id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	ctl.RespOkData(res)
+}
+
+// 查询设备列表
+func (ctl *DeviceController) PageEs() {
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
+	var ob models.PageQuery[models.DeviceModel]
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+
+	res, err := device.PageDeviceEs(&ob, ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -148,7 +169,7 @@ func (ctl *DeviceController) Add() {
 	if ctl.isForbidden(deviceResource, CretaeAction) {
 		return
 	}
-	var ob models.Device
+	var ob models.DeviceModel
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"go-iot/pkg/models"
@@ -102,12 +101,12 @@ func (ctl *DeviceImportController) Import() {
 	for _, v := range product.Metaconfig {
 		productMetaconfig[v.Property] = true
 	}
-	var devices []models.Device
+	var devices []models.DeviceModel
 	for rowIdx, row := range rows {
 		if rowIdx == 0 {
 			continue
 		}
-		dev := models.Device{Id: row[0], Name: row[1]}
+		dev := models.DeviceModel{Device: models.Device{Id: row[0], Name: row[1]}}
 		dev.ProductId = productId
 		dev.CreateId = ctl.GetCurrentUser().Id
 		var devMetaconfig map[string]string = map[string]string{}
@@ -117,8 +116,7 @@ func (ctl *DeviceImportController) Import() {
 				devMetaconfig[head] = row[i]
 			}
 		}
-		str, _ := json.Marshal(devMetaconfig)
-		dev.Metaconfig = string(str)
+		dev.Metaconfig = devMetaconfig
 		devices = append(devices, dev)
 	}
 	token := fmt.Sprintf("%v", time.Now().UnixMicro())

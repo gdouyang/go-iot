@@ -89,3 +89,19 @@ type EsHits[T any] struct {
 	ID     string `json:"_id"`
 	Source T      `json:"_source"`
 }
+
+type EsErrorResult struct {
+	Status    int     `json:"status"`
+	Error     EsError `json:"error"`
+	OriginErr error   `json:"-"`
+}
+
+func NewEsError(originerr error) *EsErrorResult {
+	return &EsErrorResult{OriginErr: originerr}
+}
+
+type EsError struct {
+	Type   string `json:"type"`
+	Reason string `json:"reason"`
+	Index  string `json:"index"`
+}

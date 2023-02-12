@@ -48,8 +48,8 @@ func PageDevice[T any](from int, size int, condition map[string]interface{}) (in
 		Index: []string{deviceIndex},
 		Body:  bytes.NewReader(data),
 	}
-	r, err := DoRequest[EsQueryResult[T]](req)
-	if err == nil && len(r.Hits.Hits) > 0 {
+	r, eserr := DoRequest[EsQueryResult[T]](req)
+	if eserr == nil && len(r.Hits.Hits) > 0 {
 		total = int64(r.Hits.Total.Value)
 		// convert each hit to result.
 		for _, hit := range r.Hits.Hits {
@@ -60,14 +60,21 @@ func PageDevice[T any](from int, size int, condition map[string]interface{}) (in
 	return total, result, err
 }
 
-func AddDevice(deviceId string, data string) error {
+func AddDevice(deviceId string, data map[string]interface{}) error {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
 	req := esapi.CreateRequest{
 		Index:      deviceIndex,
 		DocumentID: deviceId,
-		Body:       bytes.NewReader([]byte(data)),
+		Body:       bytes.NewReader(b),
 	}
-	_, err := DoRequest[map[string]interface{}](req)
-	return err
+	_, eserr := DoRequest[map[string]interface{}](req)
+	if eserr != nil {
+		return eserr.OriginErr
+	}
+	return nil
 }
 
 func UpdateDevice(deviceId string, data map[string]interface{}) error {
@@ -80,8 +87,11 @@ func UpdateDevice(deviceId string, data map[string]interface{}) error {
 		DocumentID: deviceId,
 		Body:       bytes.NewReader([]byte(fmt.Sprintf(`{"doc": %s}`, string(b)))),
 	}
-	_, err = DoRequest[map[string]interface{}](req)
-	return err
+	_, eserr := DoRequest[map[string]interface{}](req)
+	if eserr != nil {
+		return eserr.OriginErr
+	}
+	return nil
 }
 
 func DeleteDevice(deviceId string) error {
@@ -90,20 +100,26 @@ func DeleteDevice(deviceId string) error {
 		DocumentID: deviceId,
 	}
 	_, err := DoRequest[map[string]interface{}](req)
-	return err
+	if err != nil {
+		return err.OriginErr
+	}
+	return nil
 }
 
 func UpdateOnlineStatusList(ids []string, state string) error {
 	var data []byte
 	for _, id := range ids {
-		o := `{ "update" : { "_index" : "` + deviceIndex + `", "_id": "` + id + `" } }` + "\n" + fmt.Sprintf(`{"doc": {"state": %s}}`, state) + "\n"
+		o := `{ "update" : { "_index" : "` + deviceIndex + `", "_id": "` + id + `" } }` + "\n" + fmt.Sprintf(`{"doc": {"state": "%s"}}`, state) + "\n"
 		data = append(data, []byte(o)...)
 	}
 	req := esapi.BulkRequest{
 		Body: bytes.NewReader([]byte(data)),
 	}
 	_, err := DoRequest[map[string]interface{}](req)
-	return err
+	if err != nil {
+		return err.OriginErr
+	}
+	return nil
 }
 
 func initMapping() error {
@@ -111,12 +127,18 @@ func initMapping() error {
 	properties["id"] = EsType{Type: "keyword"}
 	properties["productId"] = EsType{Type: "keyword"}
 	properties["state"] = EsType{Type: "keyword"}
-	properties["metaconfig"] = EsType{Type: "keyword"}
-	properties["tag"] = EsType{Type: "keyword"}
+	properties["metaconfig"] = EsType{Type: "object"}
+	properties["tag"] = EsType{Type: "object"}
 	properties["createId"] = EsType{Type: "long"}
 	properties["createTime"] = EsType{Type: "date", Format: DefaultDateFormat}
 	properties["name"] = EsType{Type: "text"}
 	properties["desc"] = EsType{Type: "text"}
 	err := CreateEsIndex(properties, deviceIndex)
-	return err
+	if err != nil {
+		if err.Error.Type == "resource_already_exists_exception" {
+			return nil
+		}
+		return err.OriginErr
+	}
+	return nil
 }
