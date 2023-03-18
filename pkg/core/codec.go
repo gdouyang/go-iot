@@ -58,3 +58,27 @@ func GetDeviceLifeCycle(productId string) DeviceLifecycle {
 	}
 	return nil
 }
+
+// get the device state
+// if device have session then is online
+// else invoke OnStateChecker method
+func GetDeviceState(deviceId, productId string) string {
+	sess := GetSession(deviceId)
+	if sess != nil {
+		return ONLINE
+	} else {
+		liefcycle := GetDeviceLifeCycle(productId)
+		if liefcycle != nil {
+			state, err := liefcycle.OnStateChecker(&BaseContext{
+				ProductId: productId,
+				DeviceId:  deviceId,
+			})
+			if err == nil {
+				if state == ONLINE {
+					return ONLINE
+				}
+			}
+		}
+	}
+	return OFFLINE
+}

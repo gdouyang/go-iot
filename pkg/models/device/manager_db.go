@@ -16,12 +16,12 @@ func init() {
 	core.RegProductManager(&DbProductManager{cache: make(map[string]*core.Product)})
 	eventbus.Subscribe(eventbus.GetOfflineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OfflineMessage); ok {
-			deviceManager.stateCh <- models.Device{Id: m.DeviceId, State: models.OFFLINE}
+			deviceManager.stateCh <- models.Device{Id: m.DeviceId, State: core.OFFLINE}
 		}
 	})
 	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OnlineMessage); ok {
-			deviceManager.stateCh <- models.Device{Id: m.DeviceId, State: models.ONLINE}
+			deviceManager.stateCh <- models.Device{Id: m.DeviceId, State: core.ONLINE}
 		}
 	})
 	go deviceManager.saveState()
@@ -76,13 +76,13 @@ func (m *DbDeviceManager) saveState() {
 
 	var onlineFn = func(size int) {
 		if len(onlineList) >= size {
-			updateOnlineStatus(onlineList, models.ONLINE)
+			updateOnlineStatus(onlineList, core.ONLINE)
 			onlineList = onlineList[:0]
 		}
 	}
 	var offlineFn = func(size int) {
 		if len(offlineList) >= size {
-			updateOnlineStatus(offlineList, models.OFFLINE)
+			updateOnlineStatus(offlineList, core.OFFLINE)
 			offlineList = offlineList[:0]
 		}
 	}
@@ -92,10 +92,10 @@ func (m *DbDeviceManager) saveState() {
 			onlineFn(0)
 			offlineFn(0)
 		case dev := <-m.stateCh:
-			if dev.State == models.ONLINE {
+			if dev.State == core.ONLINE {
 				onlineList = append(onlineList, dev)
 				onlineFn(100)
-			} else if dev.State == models.OFFLINE {
+			} else if dev.State == core.OFFLINE {
 				offlineList = append(offlineList, dev)
 				offlineFn(100)
 			}
@@ -110,7 +110,7 @@ func updateOnlineStatus(list []models.Device, state string) {
 			ids = append(ids, m.Id)
 			product := core.GetProduct(m.ProductId)
 			if product != nil {
-				product.GetTimeSeries().SaveLogs(product, core.LogData{DeviceId: m.Id, Type: models.OFFLINE})
+				product.GetTimeSeries().SaveLogs(product, core.LogData{DeviceId: m.Id, Type: core.OFFLINE})
 			}
 		}
 		UpdateOnlineStatusList(ids, state)

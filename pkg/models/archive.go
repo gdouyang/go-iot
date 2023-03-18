@@ -1,10 +1,6 @@
 package models
 
 const (
-	ONLINE   = "online"   // 在线
-	OFFLINE  = "offline"  // 离线
-	NoActive = "noActive" // 未启用
-
 	Runing  = "runing"  // 网络状态runing
 	Stop    = "stop"    // 网络状态stop
 	Stopped = "stopped" // stopped
@@ -35,8 +31,8 @@ func PageUtil[T any](count int64, pageNum int, pageSize int, list []T) PageResul
 
 // 分页查询
 type PageQuery[T any] struct {
-	PageSize  int `json:"pageSize"`
 	PageNum   int `json:"pageNum"`
+	PageSize  int `json:"pageSize"`
 	Condition T   `json:"condition"`
 }
 

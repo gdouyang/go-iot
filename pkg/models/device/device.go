@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"time"
 
+	"go-iot/pkg/core"
 	"go-iot/pkg/core/es"
 	"go-iot/pkg/models"
 
@@ -105,7 +106,7 @@ func PageDeviceEs(page *models.PageQuery[models.DeviceModel], createId int64) (*
 func ListClientDeviceByProductId(productId string) ([]string, error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.Device{})
-	qs = qs.Filter("ProductId", productId).Filter("State", models.OFFLINE)
+	qs = qs.Filter("ProductId", productId).Filter("State", core.OFFLINE)
 
 	var result []models.Device
 	_, err := qs.All(&result, "id")
@@ -136,7 +137,7 @@ func AddDevice(ob *models.DeviceModel) error {
 	if rs != nil {
 		return errors.New("device is exist")
 	}
-	ob.State = models.NoActive
+	ob.State = core.NoActive
 	en := ob.ToEnitty()
 	if len(en.DeviceType) == 0 {
 		en.DeviceType = "device"

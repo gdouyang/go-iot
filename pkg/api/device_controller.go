@@ -109,6 +109,7 @@ func (ctl *DeviceController) GetOne() {
 	ctl.RespOkData(ob)
 }
 
+// get device detail info
 func (ctl *DeviceController) GetDetail() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
@@ -140,25 +141,8 @@ func (ctl *DeviceController) GetDetail() {
 		alins.NetworkType = nw.Type
 	}
 	alins.DeviceModel = *ob
-	if ob.State != models.NoActive {
-		alins.State = models.OFFLINE
-		sess := core.GetSession(ob.Id)
-		if sess != nil {
-			alins.State = models.ONLINE
-		} else {
-			liefcycle := core.GetDeviceLifeCycle(ob.ProductId)
-			if liefcycle != nil {
-				state, err := liefcycle.OnStateChecker(&core.BaseContext{
-					ProductId: ob.ProductId,
-					DeviceId:  ob.Id,
-				})
-				if err == nil {
-					if state == models.ONLINE {
-						alins.State = models.ONLINE
-					}
-				}
-			}
-		}
+	if ob.State != core.NoActive {
+		alins.State = core.GetDeviceState(ob.Id, ob.ProductId)
 		device.UpdateOnlineStatus(ob.Id, alins.State)
 	}
 	ctl.RespOkData(alins)
@@ -272,7 +256,7 @@ func connectClientDevice(deviceId string) error {
 	if err != nil {
 		return err
 	}
-	err = device.UpdateOnlineStatus(deviceId, models.ONLINE)
+	err = device.UpdateOnlineStatus(deviceId, core.ONLINE)
 	if err != nil {
 		return err
 	}
@@ -303,6 +287,7 @@ func (ctl *DeviceController) Disconnect() {
 	ctl.RespOk()
 }
 
+// deploy device
 func (ctl *DeviceController) Deploy() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
@@ -312,6 +297,7 @@ func (ctl *DeviceController) Deploy() {
 	ctl.RespOk()
 }
 
+// undeploy device
 func (ctl *DeviceController) Undeploy() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
@@ -321,6 +307,7 @@ func (ctl *DeviceController) Undeploy() {
 	ctl.RespOk()
 }
 
+// batch deploy device
 func (ctl *DeviceController) BatchDeploy() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
@@ -342,7 +329,7 @@ func (ctl *DeviceController) BatchDeploy() {
 			}
 			setSseData(token, fmt.Sprintf(resp, true, total))
 		} else {
-			condition := models.Device{State: models.NoActive}
+			condition := models.Device{State: core.NoActive}
 			for {
 				var page *models.PageQuery[models.Device] = &models.PageQuery[models.Device]{PageSize: 300, PageNum: 1, Condition: condition}
 				result, err := device.PageDevice(page, ctl.GetCurrentUser().Id)
@@ -366,7 +353,7 @@ func (ctl *DeviceController) BatchDeploy() {
 					devopr.Config = model.Metaconfig
 					core.PutDevice(devopr)
 				}
-				err = device.UpdateOnlineStatusList(ids, models.OFFLINE)
+				err = device.UpdateOnlineStatusList(ids, core.OFFLINE)
 				if err != nil {
 					logs.Error(err)
 				} else {
@@ -381,6 +368,7 @@ func (ctl *DeviceController) BatchDeploy() {
 	ctl.RespOkData(token)
 }
 
+// batch undeploy device
 func (ctl *DeviceController) BatchUndeploy() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
@@ -396,6 +384,7 @@ func (ctl *DeviceController) BatchUndeploy() {
 	ctl.RespOk()
 }
 
+// enable device
 func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
 	dev, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
@@ -403,8 +392,8 @@ func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
 		return
 	}
 	if isDeploy {
-		if len(dev.State) == 0 || dev.State == models.NoActive {
-			device.UpdateOnlineStatus(deviceId, models.OFFLINE)
+		if len(dev.State) == 0 || dev.State == core.NoActive {
+			device.UpdateOnlineStatus(deviceId, core.OFFLINE)
 		}
 		devopr := core.GetDevice(dev.Id)
 		if devopr == nil {
@@ -413,7 +402,7 @@ func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
 		devopr.Config = dev.Metaconfig
 		core.PutDevice(devopr)
 	} else {
-		device.UpdateOnlineStatus(deviceId, models.NoActive)
+		device.UpdateOnlineStatus(deviceId, core.NoActive)
 		core.DeleteDevice(deviceId)
 	}
 }

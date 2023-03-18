@@ -9,6 +9,12 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
+const (
+	ONLINE   = "online"   // 在线
+	OFFLINE  = "offline"  // 离线
+	NoActive = "noActive" // 未启用
+)
+
 type (
 	// 编解码接口
 	Codec interface {
