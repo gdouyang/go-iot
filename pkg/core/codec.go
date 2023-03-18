@@ -69,6 +69,10 @@ func GetDeviceState(deviceId, productId string) string {
 	} else {
 		liefcycle := GetDeviceLifeCycle(productId)
 		if liefcycle != nil {
+			deviceOper := GetDevice(deviceId)
+			if deviceOper.DeviceType == GATEWAY {
+				deviceId = deviceOper.ParentId
+			}
 			state, err := liefcycle.OnStateChecker(&BaseContext{
 				ProductId: productId,
 				DeviceId:  deviceId,

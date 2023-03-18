@@ -127,7 +127,7 @@ func AddDevice(ob *models.DeviceModel) error {
 	if !DeviceIdValid(ob.Id) {
 		return errors.New("deviceId is invalid")
 	}
-	if ob.DeviceType == "subdevice" && len(ob.ParentId) == 0 {
+	if ob.DeviceType == core.SUBDEVICE && len(ob.ParentId) == 0 {
 		return errors.New("subdevice must have gateway")
 	}
 	rs, err := GetDevice(ob.Id)
@@ -140,7 +140,7 @@ func AddDevice(ob *models.DeviceModel) error {
 	ob.State = core.NoActive
 	en := ob.ToEnitty()
 	if len(en.DeviceType) == 0 {
-		en.DeviceType = "device"
+		en.DeviceType = core.DEVICE
 	}
 	en.CreateTime = time.Now()
 	//插入数据
