@@ -126,6 +126,7 @@ func initMapping() error {
 	var properties map[string]interface{} = map[string]interface{}{}
 	properties["id"] = EsType{Type: "keyword"}
 	properties["productId"] = EsType{Type: "keyword"}
+	properties["parentId"] = EsType{Type: "keyword"}
 	properties["state"] = EsType{Type: "keyword"}
 	properties["metaconfig"] = map[string]interface{}{"properties": map[string]EsType{"a": {Type: "keyword"}}}
 	properties["tag"] = map[string]interface{}{"properties": map[string]EsType{"a": {Type: "keyword"}}}

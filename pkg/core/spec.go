@@ -115,11 +115,13 @@ func (p *Product) GetTsl() *tsl.TslData {
 
 // default device impl
 type Device struct {
-	Id        string
-	ProductId string
-	CreateId  int64
-	Data      map[string]string
-	Config    map[string]string
+	Id         string
+	ProductId  string
+	ParentId   string
+	DeviceType string
+	CreateId   int64
+	Data       map[string]string
+	Config     map[string]string
 }
 
 func NewDevice(devieId string, productId string, createId int64) *Device {

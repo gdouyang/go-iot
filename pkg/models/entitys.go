@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"go-iot/pkg/core"
+	"time"
+)
 
 type User struct {
 	Id         int64     `json:"id" orm:"pk;column(id_);auto"` // user id
@@ -77,12 +80,21 @@ type Device struct {
 	Id         string    `json:"id,omitempty" orm:"pk;column(id_);size(32);description(设备ID)"`
 	Name       string    `json:"name,omitempty" orm:"column(name_);size(64);description(设备名称)"`
 	ProductId  string    `json:"productId,omitempty" orm:"column(product_id_);size(32);description(产品id)"`
-	State      string    `json:"state,omitempty" orm:"column(state_);size(10);description(online,offline,unknow,noActive)"` // online,offline,unknow,noActive
-	Metaconfig string    `json:"metaconfig,omitempty" orm:"column(meta_config_);null;type(text);description(配置属性)"`         // 配置属性
-	Tag        string    `json:"tag,omitempty" orm:"column(tag_);null;type(text);description(标签)"`                          // 标签
+	ParentId   string    `json:"parentId,omitempty" orm:"column(parent_id_);size(32);null;description(网关id)"`
+	State      string    `json:"state,omitempty" orm:"column(state_);size(10);description(online,offline,unknow,noActive)"`
+	DeviceType string    `json:"deviceType,omitempty" orm:"column(device_type_);size(32);null;description(设备类型device,gateway,subdevice)"`
+	Metaconfig string    `json:"metaconfig,omitempty" orm:"column(meta_config_);null;type(text);description(配置属性)"`
+	Tag        string    `json:"tag,omitempty" orm:"column(tag_);null;type(text);description(标签)"`
 	Desc       string    `json:"desc,omitempty" orm:"column(desc_);description(产品说明)"`
 	CreateId   int64     `json:"createId,omitempty" orm:"column(create_id_);null"`
 	CreateTime time.Time `json:"createTime,omitempty" orm:"column(create_time_)"`
+}
+
+func (dev Device) ToDeviceOper() *core.Device {
+	devopr := core.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
+	devopr.ParentId = dev.ParentId
+	devopr.DeviceType = dev.DeviceType
+	return devopr
 }
 
 // 网络配置

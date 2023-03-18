@@ -40,6 +40,12 @@ func PageDevice(page *models.PageQuery[models.Device], createId int64) (*models.
 	if len(dev.ProductId) > 0 {
 		qs = qs.Filter("ProductId", dev.ProductId)
 	}
+	if len(dev.ParentId) > 0 {
+		qs = qs.Filter("parentId", dev.ParentId)
+	}
+	if len(dev.DeviceType) > 0 {
+		qs = qs.Filter("deviceType", dev.DeviceType)
+	}
 	qs = qs.Filter("CreateId", createId)
 
 	count, err := qs.Count()
@@ -73,6 +79,12 @@ func PageDeviceEs(page *models.PageQuery[models.DeviceModel], createId int64) (*
 	}
 	if len(dev.ProductId) > 0 {
 		param["productId"] = dev.ProductId
+	}
+	if len(dev.ParentId) > 0 {
+		param["parentId"] = dev.ParentId
+	}
+	if len(dev.DeviceType) > 0 {
+		param["deviceType"] = dev.DeviceType
 	}
 	if len(dev.Tag) > 0 {
 		for key, value := range dev.Tag {
@@ -114,6 +126,9 @@ func AddDevice(ob *models.DeviceModel) error {
 	if !DeviceIdValid(ob.Id) {
 		return errors.New("deviceId is invalid")
 	}
+	if ob.DeviceType == "subdevice" && len(ob.ParentId) == 0 {
+		return errors.New("subdevice must have gateway")
+	}
 	rs, err := GetDevice(ob.Id)
 	if err != nil {
 		return err
@@ -123,6 +138,9 @@ func AddDevice(ob *models.DeviceModel) error {
 	}
 	ob.State = models.NoActive
 	en := ob.ToEnitty()
+	if len(en.DeviceType) == 0 {
+		en.DeviceType = "device"
+	}
 	en.CreateTime = time.Now()
 	//插入数据
 	o := orm.NewOrm()

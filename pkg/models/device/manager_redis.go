@@ -100,6 +100,8 @@ func (m *redisDeviceManager) Put(device *core.Device) {
 	data := map[string]string{
 		"id":        p.Id,
 		"productId": p.ProductId,
+		"devType":   p.DeviceType,
+		"parentId":  p.ParentId,
 		"createId":  fmt.Sprintf("%v", p.CreateId),
 		"config":    string(byt),
 		"data":      string(dat),

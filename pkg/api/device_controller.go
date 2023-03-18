@@ -359,7 +359,7 @@ func (ctl *DeviceController) BatchDeploy() {
 					ids = append(ids, dev.Id)
 					devopr := core.GetDevice(dev.Id)
 					if devopr == nil {
-						devopr = core.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
+						devopr = dev.ToDeviceOper()
 					}
 					model := models.DeviceModel{}
 					model.FromEnitty(dev)
@@ -408,7 +408,7 @@ func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
 		}
 		devopr := core.GetDevice(dev.Id)
 		if devopr == nil {
-			devopr = core.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
+			devopr = dev.ToDeviceOper()
 		}
 		devopr.Config = dev.Metaconfig
 		core.PutDevice(devopr)
