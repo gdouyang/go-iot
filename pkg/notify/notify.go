@@ -19,6 +19,7 @@ type Notify interface {
 }
 
 type NotifyConfig struct {
+	Name     string
 	Config   string
 	Template string
 }

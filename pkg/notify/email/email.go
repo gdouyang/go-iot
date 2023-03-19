@@ -26,6 +26,7 @@ type EmailNotify struct {
 	Pass        string             `json:"password"`
 	To          string             `json:"to"`
 	From        string             `json:"from,omitempty"`
+	name        string             `json:"-"`
 	subject     string             `json:"-"`
 	msgTemplate string             `json:"-"`
 	template    *template.Template `json:"-"`
@@ -36,7 +37,7 @@ func (c *EmailNotify) Kind() string {
 }
 
 func (c *EmailNotify) Name() string {
-	return "邮件"
+	return c.name
 }
 
 func (c *EmailNotify) Title() string {
@@ -57,6 +58,7 @@ func (c *EmailNotify) FromJson(config notify.NotifyConfig) error {
 	if err != nil {
 		return err
 	}
+	c.name = config.Name
 	tpl := map[string]string{}
 	err = json.Unmarshal([]byte(config.Template), &tpl)
 	c.subject = tpl["subject"]

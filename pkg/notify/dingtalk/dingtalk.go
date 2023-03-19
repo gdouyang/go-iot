@@ -28,6 +28,7 @@ func init() {
 type DingtalkNotify struct {
 	WebhookURL  string             `yaml:"webhook" json:"webhook"`
 	SignSecret  string             `yaml:"secret,omitempty" json:"secret,omitempty"`
+	name        string             `json:"-"`
 	title       string             `json:"-"`
 	msgTemplate string             `json:"-"`
 	template    *template.Template `json:"-"`
@@ -38,7 +39,7 @@ func (c *DingtalkNotify) Kind() string {
 }
 
 func (c *DingtalkNotify) Name() string {
-	return "钉钉"
+	return c.name
 }
 
 func (c *DingtalkNotify) Title() string {
@@ -59,6 +60,7 @@ func (c *DingtalkNotify) FromJson(config notify.NotifyConfig) error {
 	if err != nil {
 		return err
 	}
+	c.name = config.Name
 	tpl := map[string]string{}
 	err = json.Unmarshal([]byte(config.Template), &tpl)
 	c.title = tpl["title"]

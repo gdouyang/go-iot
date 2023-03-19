@@ -210,7 +210,7 @@ func (ctl *NotifyController) enable(flag bool) {
 	}
 	var state string = models.Started
 	if flag {
-		config := notify1.NotifyConfig{Config: m.Config, Template: m.Template}
+		config := notify1.NotifyConfig{Name: m.Name, Config: m.Config, Template: m.Template}
 		err = notify1.EnableNotify(m.Type, m.Id, config)
 		if err != nil {
 			ctl.RespError(err)
