@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -145,22 +146,24 @@ func AddDevice(ob *models.DeviceModel) error {
 	en.CreateTime = time.Now()
 	//插入数据
 	o := orm.NewOrm()
-	_, err = o.Insert(&en)
-	if err != nil {
-		return err
-	}
-	b, err := json.Marshal(ob)
-	if err != nil {
-		return err
-	}
-	data := map[string]interface{}{}
-	json.Unmarshal(b, &data)
-	data["createTime"] = time.Now().Format("2006-01-02 15:04:05")
-	err = es.AddDevice(ob.Id, data)
-	if err != nil {
-		return err
-	}
-	return nil
+	return o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+		_, err = txOrm.Insert(&en)
+		if err != nil {
+			return err
+		}
+		b, err := json.Marshal(ob)
+		if err != nil {
+			return err
+		}
+		data := map[string]interface{}{}
+		json.Unmarshal(b, &data)
+		data["createTime"] = time.Now().Format("2006-01-02 15:04:05")
+		err = es.AddDevice(ob.Id, data)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func UpdateDevice(ob *models.Device) error {
@@ -186,15 +189,17 @@ func UpdateDevice(ob *models.Device) error {
 	if len(columns) == 0 {
 		return errors.New("no data to update")
 	}
-	_, err := o.Update(ob, columns...)
-	if err != nil {
-		return err
-	}
-	err = es.UpdateDevice(ob.Id, data)
-	if err != nil {
-		return err
-	}
-	return nil
+	return o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+		_, err := txOrm.Update(ob, columns...)
+		if err != nil {
+			return err
+		}
+		err = es.UpdateDevice(ob.Id, data)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // 更新在线状态
@@ -233,15 +238,17 @@ func DeleteDevice(deviceId string) error {
 		return errors.New("id must be present")
 	}
 	o := orm.NewOrm()
-	_, err := o.Delete(&models.Device{Id: deviceId})
-	if err != nil {
-		return err
-	}
-	err = es.DeleteDevice(deviceId)
-	if err != nil {
-		return err
-	}
-	return nil
+	return o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
+		_, err := txOrm.Delete(&models.Device{Id: deviceId})
+		if err != nil {
+			return err
+		}
+		err = es.DeleteDevice(deviceId)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func GetDevice(deviceId string) (*models.DeviceModel, error) {
