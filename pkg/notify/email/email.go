@@ -37,11 +37,7 @@ func (c *EmailNotify) Kind() string {
 }
 
 func (c *EmailNotify) Name() string {
-	return c.name
-}
-
-func (c *EmailNotify) Title() string {
-	return c.subject
+	return "邮箱"
 }
 
 func (c *EmailNotify) ParseTemplate(data map[string]interface{}) string {
@@ -85,7 +81,7 @@ func (c *EmailNotify) Meta() []map[string]string {
 }
 
 // SendMail sends the email
-func (c *EmailNotify) Notify(subject string, message string) error {
+func (c *EmailNotify) Notify(message string) error {
 
 	host, p, err := net.SplitHostPort(c.Server)
 	if err != nil {
@@ -111,7 +107,7 @@ func (c *EmailNotify) Notify(subject string, message string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", email)
 	m.SetHeader("To", recipients...)
-	m.SetHeader("Subject", subject)
+	m.SetHeader("Subject", c.subject)
 	m.SetBody("text/html; charset=UTF-8", message)
 
 	d := gomail.NewDialer(host, port, c.User, c.Pass)

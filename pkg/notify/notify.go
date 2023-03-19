@@ -11,10 +11,9 @@ var instance map[int64]Notify = map[int64]Notify{}
 type Notify interface {
 	Kind() string
 	Name() string
-	Notify(title, message string) error
+	Notify(message string) error
 	FromJson(str NotifyConfig) error
-	Meta() []map[string]string // 配置说明
-	Title() string
+	Meta() []map[string]string                        // 配置说明
 	ParseTemplate(data map[string]interface{}) string // 消息模板
 }
 

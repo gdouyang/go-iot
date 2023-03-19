@@ -29,11 +29,7 @@ func (c *WebHookNotify) Kind() string {
 }
 
 func (c *WebHookNotify) Name() string {
-	return c.name
-}
-
-func (c *WebHookNotify) Title() string {
-	return ""
+	return "WebHook"
 }
 
 func (c *WebHookNotify) ParseTemplate(data map[string]interface{}) string {
@@ -62,7 +58,7 @@ func (c *WebHookNotify) Meta() []map[string]string {
 }
 
 // post to an 'Webhook' url in Remote Server.
-func (c *WebHookNotify) Notify(subject string, message string) error {
+func (c *WebHookNotify) Notify(message string) error {
 	msgContent := message
 	req, err := http.NewRequest(http.MethodPost, c.WebhookURL, bytes.NewBuffer([]byte(msgContent)))
 	if err != nil {

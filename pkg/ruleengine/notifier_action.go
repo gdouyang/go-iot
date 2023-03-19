@@ -33,7 +33,7 @@ func (s *NotifierAction) Do() {
 	if n == nil {
 		logs.Warn("notify not found id=%s, type=%s", s.NotifierId, s.NotifyType)
 	} else {
-		err := n.Notify(n.Title(), n.ParseTemplate(s.Data))
+		err := n.Notify(n.ParseTemplate(s.Data))
 		if err != nil {
 			logs.Warn(err)
 		}

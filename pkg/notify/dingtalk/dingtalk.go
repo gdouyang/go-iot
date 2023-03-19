@@ -39,11 +39,7 @@ func (c *DingtalkNotify) Kind() string {
 }
 
 func (c *DingtalkNotify) Name() string {
-	return c.name
-}
-
-func (c *DingtalkNotify) Title() string {
-	return c.title
+	return "钉钉"
 }
 
 func (c *DingtalkNotify) ParseTemplate(data map[string]interface{}) string {
@@ -85,7 +81,7 @@ func (c *DingtalkNotify) Meta() []map[string]string {
 
 // SendDingtalkNotification will post to an 'Robot Webhook' url in Dingtalk Apps. It accepts
 // some text and the Dingtalk robot will send it in group.
-func (c *DingtalkNotify) Notify(subject string, message string) error {
+func (c *DingtalkNotify) Notify(message string) error {
 	title := "**" + c.title + "**"
 	// It will be better to escape the msg.
 	msgContent := fmt.Sprintf(`
