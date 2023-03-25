@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"go-iot/pkg/core/cluster"
 
 	"github.com/beego/beego/v2/server/web"
@@ -19,6 +20,11 @@ type ClusterController struct {
 }
 
 func (ctl *ClusterController) Keepalive() {
+	if ctl.isNotClusterRequest() {
+		ctl.Ctx.Output.Status = 404
+		ctl.RespError(errors.New("Not Found"))
+		return
+	}
 	var ob cluster.ClusterNode
 	ctl.BindJSON(&ob)
 	cluster.Keepalive(ob)
