@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/models"
 	rule "go-iot/pkg/models/rule"
 	"go-iot/pkg/ruleengine"
@@ -183,12 +184,14 @@ func (ctl *RuleController) enable(flag bool) {
 		state = models.Stopped
 		ruleengine.Stop(m.Id)
 	}
-
-	err = rule.UpdateRuleStatus(state, m.Id)
-	if err != nil {
-		ctl.RespError(err)
-		return
+	if ctl.isNotClusterRequest() {
+		err = rule.UpdateRuleStatus(state, m.Id)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
 	}
+	cluster.Invoke(ctl.Ctx.Request)
 	ctl.RespOk()
 }
 

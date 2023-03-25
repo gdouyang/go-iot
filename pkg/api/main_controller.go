@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/models"
 	"strings"
 	"sync"
@@ -136,6 +137,12 @@ func (c *RespController) RespError(err error) error {
 func (c *RespController) Resp(resp models.JsonResp) error {
 	c.Ctx.Output.Status = resp.Code
 	return c.Ctx.Output.JSON(resp, false, false)
+}
+
+// 不是集群内部请求
+func (c *RespController) isNotClusterRequest() bool {
+	header := c.Ctx.Request.Header.Get(cluster.X_Cluster_Request)
+	return header != "true"
 }
 
 type AuthController struct {

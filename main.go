@@ -4,6 +4,7 @@ import (
 	"fmt"
 	_ "go-iot/pkg/api"
 	"go-iot/pkg/core"
+	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/es"
 	"go-iot/pkg/core/redis"
 	"go-iot/pkg/models"
@@ -60,6 +61,7 @@ func defaultRecoverPanic(ctx *context.Context, cfg *web.Config) {
 }
 
 func setDefaultConfig() {
+	cluster.Config(getConfigString)
 	{
 		getConfigString("device.manager.id", func(s string) {
 			core.DefaultManagerId = s

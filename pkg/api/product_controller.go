@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"go-iot/pkg/core"
+	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/tsl"
 	"go-iot/pkg/models"
 	product "go-iot/pkg/models/device"
@@ -264,8 +265,12 @@ func (ctl *ProductController) Undeploy() {
 		return
 	}
 	ob.State = false
-	product.UpdateProductState(&ob.Product)
+	if ctl.isNotClusterRequest() {
+		product.UpdateProductState(&ob.Product)
+	}
 	core.DeleteProduct(productId)
+	// 调用集群接口
+	cluster.Invoke(ctl.Ctx.Request)
 	ctl.RespOk()
 }
 
@@ -457,7 +462,11 @@ func (ctl *ProductController) RunNetwork() {
 		ctl.RespError(errors.New("state must be start or stop"))
 		return
 	}
-	network.UpdateNetwork(nw)
+	if ctl.isNotClusterRequest() {
+		network.UpdateNetwork(nw)
+	}
+	// 调用集群接口
+	cluster.Invoke(ctl.Ctx.Request)
 	ctl.RespOk()
 }
 
