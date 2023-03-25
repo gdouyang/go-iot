@@ -22,7 +22,7 @@ type ClusterController struct {
 func (ctl *ClusterController) Keepalive() {
 	if ctl.isNotClusterRequest() {
 		ctl.Ctx.Output.Status = 404
-		ctl.RespError(errors.New("Not Found"))
+		ctl.RespError(errors.New("NotFound"))
 		return
 	}
 	var ob cluster.ClusterNode
