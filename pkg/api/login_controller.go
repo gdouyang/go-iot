@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"go-iot/pkg/api/session"
 	"go-iot/pkg/models"
 	user "go-iot/pkg/models/base"
 
@@ -32,7 +33,7 @@ func (ctl *LoginController) LoginJson() {
 		return
 	}
 
-	err = login(&ctl.Controller, ob.Username, ob.Password)
+	err = ctl.login(&ctl.Controller, ob.Username, ob.Password)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -40,7 +41,7 @@ func (ctl *LoginController) LoginJson() {
 	ctl.RespOk()
 }
 
-func login(ctl *web.Controller, username, password string) error {
+func (c *LoginController) login(ctl *web.Controller, username, password string) error {
 	u, err := user.GetUserByEntity(models.User{Username: username})
 	if err != nil {
 		return err
@@ -71,7 +72,12 @@ func login(ctl *web.Controller, username, password string) error {
 			actionMap[ac.Action] = true
 		}
 	}
-	session := defaultSessionManager.Login(ctl, u)
+	session := session.NewSession()
+	session.Put("user", u)
+	ctl.Ctx.Request.Header.Add("gsessionid", session.Sessionid)
+	ctl.Ctx.Request.Cookies()
+	// ctl.Ctx.Request.AddCookie(&http.Cookie{Name: "gsessionid", Value: session.sessionid})
+	ctl.Ctx.Output.Cookie("gsessionid", session.Sessionid)
 	session.SetPermission(actionMap)
 	return nil
 }
@@ -81,5 +87,5 @@ type LogoutController struct {
 }
 
 func (ctl *LogoutController) Logout() {
-	defaultSessionManager.Logout(&ctl.AuthController)
+	ctl.AuthController.Logout(&ctl.AuthController)
 }
