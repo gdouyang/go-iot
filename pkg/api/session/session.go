@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	KEY_PREFIX = "goiot-usersession:"
+	KEY_PREFIX = "goiot:usersession:"
 )
 
 func getSessionId(key string) string {
