@@ -43,6 +43,7 @@ func Config(fn func(key string, call func(string))) {
 		}
 	})
 	if enabled {
+		logs.Info("cluster is enabled")
 		go func() {
 			for {
 				time.Sleep(time.Second * time.Duration(5))
