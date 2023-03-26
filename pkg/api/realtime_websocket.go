@@ -15,19 +15,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// websocket实时信息，把监听的数据通过websocket返回
 func init() {
 	web.Router("/api/realtime/:deviceId/:type", &RealtimeWebSocketController{}, "get:Join")
 
 	go realtimeInstance.writeLoop()
-}
-
-var realtimeInstance *realtime = &realtime{
-	subscribe: make(chan subscriber, 10),
-	// Channel for exit users.
-	unsubscribe: make(chan subscriber, 10),
-	// Send events here to publish them.
-	publish:     make(chan eventbus.Message, 10),
-	subscribers: sync.Map{},
 }
 
 type RealtimeWebSocketController struct {
@@ -85,6 +77,16 @@ func (ctl *RealtimeWebSocketController) Join() {
 			return
 		}
 	}
+}
+
+// 实例
+var realtimeInstance *realtime = &realtime{
+	subscribe: make(chan subscriber, 10),
+	// Channel for exit users.
+	unsubscribe: make(chan subscriber, 10),
+	// Send events here to publish them.
+	publish:     make(chan eventbus.Message, 10),
+	subscribers: sync.Map{},
 }
 
 type realtime struct {
