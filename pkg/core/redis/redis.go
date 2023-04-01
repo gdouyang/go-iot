@@ -74,3 +74,14 @@ func InitRedis() {
 func GetRedisClient() *redis.Client {
 	return rdb
 }
+
+func Sub(channels ...string) <-chan *redis.Message {
+	client := GetRedisClient()
+	sub := client.Subscribe(client.Context(), channels...)
+	return sub.Channel()
+}
+
+func Pub(channel string, message interface{}) {
+	client := GetRedisClient()
+	client.Publish(client.Context(), channel, message).Result()
+}

@@ -2,8 +2,6 @@ package eventbus
 
 import (
 	"fmt"
-	"reflect"
-	"sync"
 )
 
 const (
@@ -46,54 +44,23 @@ func GetAlarmTopic(productId string, deviceId string) string {
 
 var bus = newEventBus()
 
-func newEventBus() *eventBus {
-	return &eventBus{
+func newEventBus() *SingleNodeEventBus {
+	return &SingleNodeEventBus{
 		m:       map[string][]func(data Message){},
 		matcher: *NewAntPathMatcher(),
 	}
 }
 
-type eventBus struct {
-	sync.Mutex
-	m       map[string][]func(data Message)
-	matcher AntPathMatcher
-}
-
-func (b *eventBus) match(pattern string, path string) bool {
-	return bus.matcher.Match(pattern, path)
-}
-
 func Subscribe(pattern string, run func(msg Message)) {
-	bus.Lock()
-	defer bus.Unlock()
-	bus.m[pattern] = append(bus.m[pattern], run)
+	bus.sub(pattern, run)
 }
 
 func UnSubscribe(pattern string, run func(data Message)) {
-	bus.Lock()
-	defer bus.Unlock()
-	listener := bus.m[pattern]
-	var l1 []func(data Message)
-	for _, callback := range listener {
-		sf1 := reflect.ValueOf(callback)
-		sf2 := reflect.ValueOf(run)
-		if sf1.Pointer() != sf2.Pointer() {
-			l1 = append(l1, callback)
-		}
-	}
-	bus.m[pattern] = l1
+	bus.unsub(pattern, run)
 }
 
 func Publish(topic string, data Message) {
-	bus.Lock()
-	defer bus.Unlock()
-	for pattern, listener := range bus.m {
-		if bus.match(pattern, topic) {
-			for _, callback := range listener {
-				go callback(data)
-			}
-		}
-	}
+	bus.publish(topic, data)
 }
 
 // publish event of tsl properties

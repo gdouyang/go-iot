@@ -25,6 +25,11 @@ func GetClusterId() string {
 	return currentNode.Name
 }
 
+// true cluster is enable
+func Enabled() bool {
+	return enabled
+}
+
 // 配置集群
 func Config(fn func(key string, call func(string))) {
 	fn("cluster.enabled", func(s string) {

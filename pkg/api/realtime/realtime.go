@@ -3,7 +3,10 @@ package realtime
 import (
 	"container/list"
 	"encoding/json"
+	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/core/redis"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -11,6 +14,7 @@ import (
 
 func StartLoop() {
 	go realtimeInstance.writeLoop()
+	go realtimeInstance.listenerCluster()
 }
 
 // 订阅消息
@@ -43,13 +47,6 @@ var realtimeInstance *realtime = &realtime{
 	subscribers: sync.Map{},
 }
 
-type realtime struct {
-	subscribe   chan Subscriber
-	unsubscribe chan Subscriber
-	publish     chan eventbus.Message
-	subscribers sync.Map //map[string]*list.List
-}
-
 // 订阅者
 type Subscriber struct {
 	ProductId string
@@ -57,6 +54,25 @@ type Subscriber struct {
 	Topic     string
 	Addr      string
 	Conn      *websocket.Conn // Only for WebSocket users; otherwise nil.
+}
+
+type clusterMessage struct {
+	text string
+}
+
+func (m *clusterMessage) Type() eventbus.MessageType {
+	return eventbus.MessageType("cluster")
+}
+
+func (m *clusterMessage) GetDeviceId() string {
+	return ""
+}
+
+type realtime struct {
+	subscribe   chan Subscriber
+	unsubscribe chan Subscriber
+	publish     chan eventbus.Message
+	subscribers sync.Map //map[string]*list.List
 }
 
 func (e *realtime) getSubscriber(deviceId string) (*list.List, bool) {
@@ -68,6 +84,36 @@ func (e *realtime) getSubscriber(deviceId string) (*list.List, bool) {
 		return nil, ok
 	}
 	return nil, false
+}
+
+const clustEventKey = "go:cluster:realtime"
+
+const clusterInfoStart = "<$go-cluster$>"
+const clusterInfoEnd = "<$/go-cluster$>"
+
+func (e *realtime) listenerCluster() {
+	if cluster.Enabled() {
+		for msg := range redis.Sub(clustEventKey) {
+			payload := msg.Payload
+			if strings.HasSuffix(payload, clusterInfoEnd) {
+				info := strings.Split(payload, clusterInfoStart)
+				// 不是同一个节点的数据才接收
+				if info[1] != getClusterInfo() {
+					send(&clusterMessage{text: info[0]})
+				}
+			}
+		}
+	}
+}
+
+func getClusterInfo() string {
+	return clusterInfoStart + cluster.GetClusterId() + clusterInfoEnd
+}
+
+func (e *realtime) sendToCluster(data string) {
+	if cluster.Enabled() {
+		redis.Pub(clustEventKey, data+getClusterInfo())
+	}
 }
 
 func (e *realtime) writeLoop() {
@@ -89,6 +135,7 @@ func (e *realtime) writeLoop() {
 					if ws != nil {
 						d, _ := json.Marshal(event)
 						ws.WriteMessage(websocket.TextMessage, d)
+						e.sendToCluster(string(d))
 					}
 				}
 			}
