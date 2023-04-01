@@ -125,13 +125,14 @@ func (p *Product) GetTsl() *tsl.TslData {
 
 // default device impl
 type Device struct {
-	Id         string
-	ProductId  string
-	ParentId   string
-	DeviceType string
-	CreateId   int64
-	Data       map[string]string
-	Config     map[string]string
+	Id         string            `json:"id"`
+	ProductId  string            `json:"productId"`
+	ParentId   string            `json:"parentId"`
+	DeviceType string            `json:"deviceType"`
+	ClusterId  string            `json:"clusterId"` // 所在集群id
+	CreateId   int64             `json:"createId"`
+	Data       map[string]string `json:"data"`
+	Config     map[string]string `json:"config"`
 }
 
 func NewDevice(devieId string, productId string, createId int64) *Device {

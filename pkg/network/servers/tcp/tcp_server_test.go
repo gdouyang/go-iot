@@ -4,8 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/models"
-	_ "go-iot/pkg/models/device"
+	"go-iot/pkg/core/store"
 	tcpserver "go-iot/pkg/network/servers/tcp"
 	"net"
 	"testing"
@@ -59,16 +58,13 @@ var network core.NetworkConf = core.NetworkConf{
 	Script:    script,
 }
 
-var product *core.Product = &core.Product{
-	Id:          "test-product",
-	Config:      make(map[string]string),
-	StorePolicy: "mock",
-}
-
 func init() {
-	core.DefaultManagerId = "mem"
-	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
-	models.InitDb()
+	core.RegDeviceStore(store.NewMockDeviceStore())
+	var product *core.Product = &core.Product{
+		Id:          "test-product",
+		Config:      make(map[string]string),
+		StorePolicy: "mock",
+	}
 	core.PutProduct(product)
 	device := &core.Device{
 		Id:        "1234",

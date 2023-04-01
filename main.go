@@ -7,6 +7,7 @@ import (
 	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/es"
 	"go-iot/pkg/core/redis"
+	"go-iot/pkg/core/store"
 	"go-iot/pkg/models"
 	_ "go-iot/pkg/network/clients/registry"
 	_ "go-iot/pkg/network/servers/registry"
@@ -61,13 +62,8 @@ func defaultRecoverPanic(ctx *context.Context, cfg *web.Config) {
 }
 
 func setDefaultConfig() {
+	core.RegDeviceStore(store.NewRedisStore())
 	cluster.Config(getConfigString)
-	{
-		getConfigString("device.manager.id", func(s string) {
-			core.DefaultManagerId = s
-		})
-		logs.Info("default device manager: ", core.DefaultManagerId)
-	}
 	es.Config(getConfigString)
 	redis.Config(getConfigString)
 }

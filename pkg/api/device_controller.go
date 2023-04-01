@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
+	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/msg"
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
@@ -391,9 +392,10 @@ func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
 		ctl.RespError(err)
 		return
 	}
+	var state string
 	if isDeploy {
 		if len(dev.State) == 0 || dev.State == core.NoActive {
-			device.UpdateOnlineStatus(deviceId, core.OFFLINE)
+			state = core.OFFLINE
 		}
 		devopr := core.GetDevice(dev.Id)
 		if devopr == nil {
@@ -402,8 +404,12 @@ func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
 		devopr.Config = dev.Metaconfig
 		core.PutDevice(devopr)
 	} else {
-		device.UpdateOnlineStatus(deviceId, core.NoActive)
+		state = core.NoActive
 		core.DeleteDevice(deviceId)
+	}
+	if ctl.isNotClusterRequest() {
+		device.UpdateOnlineStatus(deviceId, state)
+		cluster.Invoke(ctl.Ctx.Request)
 	}
 }
 
@@ -426,7 +432,12 @@ func (ctl *DeviceController) CmdInvoke() {
 		ctl.RespError(err)
 		return
 	}
-	err = core.DoCmdInvoke(device.ProductId, ob)
+	devOper := core.GetDevice(deviceId)
+	if devOper != nil && devOper.ClusterId != cluster.GetClusterId() {
+		err = cluster.Invoke(ctl.Ctx.Request)
+	} else {
+		err = core.DoCmdInvoke(device.ProductId, ob)
+	}
 	if err != nil {
 		ctl.RespError(err)
 		return

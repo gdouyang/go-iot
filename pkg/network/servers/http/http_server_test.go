@@ -2,9 +2,8 @@ package httpserver_test
 
 import (
 	"go-iot/pkg/core"
+	"go-iot/pkg/core/store"
 	"go-iot/pkg/core/tsl"
-	"go-iot/pkg/models"
-	_ "go-iot/pkg/models/device"
 	httpserver "go-iot/pkg/network/servers/http"
 	"io"
 	"log"
@@ -39,8 +38,7 @@ var network core.NetworkConf = core.NetworkConf{
 }
 
 func init() {
-	models.DefaultDbConfig.Url = "root:root@tcp(localhost:3306)/go-iot?charset=utf8&loc=Local&tls=false"
-	models.InitDb()
+	core.RegDeviceStore(store.NewMockDeviceStore())
 	var product *core.Product = &core.Product{
 		Id:          "test-product",
 		Config:      make(map[string]string),

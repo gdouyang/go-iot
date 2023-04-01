@@ -1,10 +1,12 @@
-package models
+package store
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"go-iot/pkg/core"
+	"go-iot/pkg/core/cluster"
+	"go-iot/pkg/core/eventbus"
 	"go-iot/pkg/core/redis"
 	"go-iot/pkg/core/util"
 	"sync"
@@ -13,22 +15,35 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-func init() {
-	core.RegDeviceManager(&redisDeviceManager{cache: sync.Map{}})
-	core.RegProductManager(&redisProductManager{cache: sync.Map{}})
+func NewRedisStore() core.DeviceStore {
+	var redisStore = &redisDeviceStore{cache: sync.Map{}}
+	redisStore.init()
+	return redisStore
 }
 
-// device manager for redis
-type redisDeviceManager struct {
+// device store for redis
+type redisDeviceStore struct {
 	cache sync.Map
 }
 
-func (p *redisDeviceManager) getKey(deviceId string) string {
+func (store *redisDeviceStore) Id() string {
+	return "redis"
+}
+
+func (store *redisDeviceStore) init() {
+	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
+		if m, ok := msg.(*eventbus.OnlineMessage); ok {
+			store.updateClusterId(m.DeviceId)
+		}
+	})
+}
+
+func (store *redisDeviceStore) getDeviceKey(deviceId string) string {
 	return "goiot:device:" + deviceId
 }
 
-func (m *redisDeviceManager) get(deviceId string) (*core.Device, bool) {
-	device, ok := m.cache.Load(deviceId)
+func (store *redisDeviceStore) getDevice(deviceId string) (*core.Device, bool) {
+	device, ok := store.cache.Load(store.getDeviceKey(deviceId))
 	if ok {
 		if device != nil {
 			return device.(*core.Device), true
@@ -38,12 +53,8 @@ func (m *redisDeviceManager) get(deviceId string) (*core.Device, bool) {
 	return nil, false
 }
 
-func (p *redisDeviceManager) Id() string {
-	return "redis"
-}
-
-func (m *redisDeviceManager) Get(deviceId string) *core.Device {
-	device, ok := m.get(deviceId)
+func (m *redisDeviceStore) GetDevice(deviceId string) *core.Device {
+	device, ok := m.getDevice(deviceId)
 	if ok {
 		return device
 	}
@@ -51,7 +62,7 @@ func (m *redisDeviceManager) Get(deviceId string) *core.Device {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 		rdb := redis.GetRedisClient()
-		data, err := rdb.HGetAll(ctx, m.getKey(deviceId)).Result()
+		data, err := rdb.HGetAll(ctx, m.getDeviceKey(deviceId)).Result()
 		if err != nil {
 			logs.Error(err)
 		}
@@ -93,7 +104,7 @@ func (m *redisDeviceManager) Get(deviceId string) *core.Device {
 	return nil
 }
 
-func (m *redisDeviceManager) Put(device *core.Device) {
+func (m *redisDeviceStore) PutDevice(device *core.Device) {
 	p := device
 	byt, _ := json.Marshal(p.Config)
 	dat, _ := json.Marshal(p.Data)
@@ -103,38 +114,49 @@ func (m *redisDeviceManager) Put(device *core.Device) {
 		"devType":   p.DeviceType,
 		"parentId":  p.ParentId,
 		"createId":  fmt.Sprintf("%v", p.CreateId),
+		"clusterId": p.ClusterId,
 		"config":    string(byt),
 		"data":      string(dat),
 	}
 	rdb := redis.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	err := rdb.HSet(ctx, m.getKey(p.Id), data).Err()
+	err := rdb.HSet(ctx, m.getDeviceKey(p.Id), data).Err()
 	if err != nil {
 		logs.Error(err)
 	}
 	m.cache.Store(device.GetId(), device)
 }
 
-func (m *redisDeviceManager) Del(deviceId string) {
+func (m *redisDeviceStore) DelDevice(deviceId string) {
 	rdb := redis.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	rdb.Del(ctx, m.getKey(deviceId))
+	rdb.Del(ctx, m.getDeviceKey(deviceId))
 	m.cache.Delete(deviceId)
 }
 
-// product manager for redis
-type redisProductManager struct {
-	cache sync.Map
+func (m *redisDeviceStore) updateClusterId(deviceId string) {
+	rdb := redis.GetRedisClient()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	err := rdb.HSet(ctx, m.getDeviceKey(deviceId), "clusterId", cluster.GetClusterId()).Err()
+	if err != nil {
+		logs.Error(err)
+	}
+	device, ok := m.getDevice(deviceId)
+	if ok {
+		device.ClusterId = cluster.GetClusterId()
+	}
 }
 
-func (p *redisProductManager) getKey(deviceId string) string {
-	return "goiot:product:" + deviceId
+// product
+func (p *redisDeviceStore) getProductKey(productId string) string {
+	return "goiot:product:" + productId
 }
 
-func (m *redisProductManager) get(deviceId string) (*core.Product, bool) {
-	product, ok := m.cache.Load(deviceId)
+func (m *redisDeviceStore) getProduct(productId string) (*core.Product, bool) {
+	product, ok := m.cache.Load(m.getProductKey(productId))
 	if ok {
 		if product != nil {
 			return product.(*core.Product), true
@@ -144,12 +166,8 @@ func (m *redisProductManager) get(deviceId string) (*core.Product, bool) {
 	return nil, false
 }
 
-func (p *redisProductManager) Id() string {
-	return "redis"
-}
-
-func (m *redisProductManager) Get(productId string) *core.Product {
-	product, ok := m.get(productId)
+func (m *redisDeviceStore) GetProduct(productId string) *core.Product {
+	product, ok := m.getProduct(productId)
 	if ok {
 		return product
 	}
@@ -157,7 +175,7 @@ func (m *redisProductManager) Get(productId string) *core.Product {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 		rdb := redis.GetRedisClient()
-		data, err := rdb.HGetAll(ctx, m.getKey(productId)).Result()
+		data, err := rdb.HGetAll(ctx, m.getProductKey(productId)).Result()
 		if err != nil {
 			logs.Error(err)
 		}
@@ -183,7 +201,7 @@ func (m *redisProductManager) Get(productId string) *core.Product {
 	return nil
 }
 
-func (m *redisProductManager) Put(product *core.Product) {
+func (m *redisDeviceStore) PutProduct(product *core.Product) {
 	if product == nil {
 		panic("product not be nil")
 	}
@@ -201,17 +219,17 @@ func (m *redisProductManager) Put(product *core.Product) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	rdb := redis.GetRedisClient()
-	err := rdb.HSet(ctx, m.getKey(p.Id), data).Err()
+	err := rdb.HSet(ctx, m.getProductKey(p.Id), data).Err()
 	if err != nil {
 		logs.Error(err)
 	}
 	m.cache.Store(product.GetId(), product)
 }
 
-func (m *redisProductManager) Del(productId string) {
+func (m *redisDeviceStore) DelProduct(productId string) {
 	rdb := redis.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	rdb.Del(ctx, m.getKey(productId))
+	rdb.Del(ctx, m.getProductKey(productId))
 	m.cache.Delete(productId)
 }

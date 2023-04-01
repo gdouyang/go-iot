@@ -190,8 +190,8 @@ func (ctl *RuleController) enable(flag bool) {
 			ctl.RespError(err)
 			return
 		}
+		cluster.Invoke(ctl.Ctx.Request)
 	}
-	cluster.Invoke(ctl.Ctx.Request)
 	ctl.RespOk()
 }
 

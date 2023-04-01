@@ -3,7 +3,6 @@ package redis
 import (
 	"context"
 	"fmt"
-	"go-iot/pkg/core/boot"
 	"strconv"
 	"sync"
 	"time"
@@ -11,12 +10,6 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/go-redis/redis/v8"
 )
-
-func init() {
-	boot.AddStartLinstener(func() {
-		GetRedisClient()
-	})
-}
 
 // the config of redis
 type RedisConfig struct {
@@ -35,6 +28,7 @@ var DefaultRedisConfig RedisConfig = RedisConfig{
 	PoolSize: 10,
 }
 
+// config redis
 func Config(fn func(key string, call func(string))) {
 	fn("redis.addr", func(s string) {
 		DefaultRedisConfig.Addr = s
@@ -51,11 +45,13 @@ func Config(fn func(key string, call func(string))) {
 		}
 	})
 	logs.Info("redis config: ", DefaultRedisConfig)
+	InitRedis()
 }
 
 var rdb *redis.Client
 
-func GetRedisClient() *redis.Client {
+// init redis client, panic can't connect to the server
+func InitRedis() {
 	if rdb == nil {
 		var mutex sync.Mutex
 		mutex.Lock()
@@ -73,5 +69,8 @@ func GetRedisClient() *redis.Client {
 			panic(fmt.Sprintf("redis connect error: %v", DefaultRedisConfig))
 		}
 	}
+}
+
+func GetRedisClient() *redis.Client {
 	return rdb
 }

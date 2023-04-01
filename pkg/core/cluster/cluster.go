@@ -17,9 +17,13 @@ const (
 	X_Cluster_Request = "x-cluster-request"
 )
 
-var cluster *ClusterNode = &ClusterNode{}
+var currentNode *ClusterNode = &ClusterNode{}
 var nodes []*ClusterNode = []*ClusterNode{}
 var enabled bool
+
+func GetClusterId() string {
+	return currentNode.Name
+}
 
 // 配置集群
 func Config(fn func(key string, call func(string))) {
@@ -29,10 +33,10 @@ func Config(fn func(key string, call func(string))) {
 		}
 	})
 	fn("cluster.name", func(s string) {
-		cluster.Name = s
+		currentNode.Name = s
 	})
 	fn("cluster.url", func(s string) {
-		cluster.Url = s
+		currentNode.Url = s
 	})
 	fn("cluster.hosts", func(s string) {
 		hosts := strings.Split(s, ",")
@@ -121,7 +125,7 @@ func (n *ClusterNode) keepalive() bool {
 	}
 	req.Header.Add(X_Cluster_Request, "true")
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
-	b, _ := json.Marshal(cluster)
+	b, _ := json.Marshal(currentNode)
 	req.Body = io.NopCloser(strings.NewReader(string(b)))
 	resp, err := client.Do(req)
 	if err != nil {

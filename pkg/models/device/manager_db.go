@@ -6,14 +6,10 @@ import (
 	"go-iot/pkg/models"
 	"sync"
 	"time"
-
-	"github.com/beego/beego/v2/core/logs"
 )
 
 func init() {
 	deviceManager := &DbDeviceManager{cache: make(map[string]*core.Device), stateCh: make(chan models.Device, 1000)}
-	core.RegDeviceManager(deviceManager)
-	core.RegProductManager(&DbProductManager{cache: make(map[string]*core.Product)})
 	eventbus.Subscribe(eventbus.GetOfflineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OfflineMessage); ok {
 			deviceManager.stateCh <- models.Device{Id: m.DeviceId, State: core.OFFLINE}
@@ -34,42 +30,6 @@ type DbDeviceManager struct {
 	stateCh chan models.Device
 }
 
-func (p *DbDeviceManager) Id() string {
-	return "db"
-}
-
-func (m *DbDeviceManager) Get(deviceId string) *core.Device {
-	device, ok := m.cache[deviceId]
-	if ok {
-		return device
-	}
-	if device == nil {
-		m.Lock()
-		defer m.Unlock()
-		data, _ := GetDevice(deviceId)
-		if data == nil {
-			m.cache[deviceId] = nil
-			return nil
-		}
-
-		device = &core.Device{
-			Id:        data.Id,
-			ProductId: data.ProductId,
-			Config:    data.Metaconfig,
-			Data:      map[string]string{},
-		}
-		m.Put(device)
-	}
-	return device
-}
-
-func (m *DbDeviceManager) Put(device *core.Device) {
-	m.cache[device.GetId()] = device
-}
-
-func (m *DbDeviceManager) Del(deviceId string) {
-
-}
 func (m *DbDeviceManager) saveState() {
 	var onlineList []models.Device
 	var offlineList []models.Device
@@ -88,7 +48,7 @@ func (m *DbDeviceManager) saveState() {
 	}
 	for {
 		select {
-		case <-time.After(time.Millisecond * 3000): // every 5 sec save data
+		case <-time.After(time.Millisecond * 3000): // every 3 sec save data
 			onlineFn(0)
 			offlineFn(0)
 		case dev := <-m.stateCh:
@@ -115,60 +75,4 @@ func updateOnlineStatus(list []models.Device, state string) {
 		}
 		UpdateOnlineStatusList(ids, state)
 	}
-}
-
-// DbProductManager
-type DbProductManager struct {
-	sync.RWMutex
-	cache map[string]*core.Product
-}
-
-func (p *DbProductManager) Id() string {
-	return "db"
-}
-
-func (m *DbProductManager) Get(productId string) *core.Product {
-	product, ok := m.cache[productId]
-	if ok {
-		return product
-	}
-	if product == nil {
-		m.Lock()
-		defer m.Unlock()
-		data, _ := GetProduct(productId)
-		if data == nil {
-			m.cache[productId] = nil
-			return nil
-		}
-		config := map[string]string{}
-		for _, item := range data.Metaconfig {
-			config[item.Property] = item.Value
-		}
-		storePolicy := data.StorePolicy
-		if len(storePolicy) == 0 {
-			storePolicy = core.TIME_SERISE_ES
-		}
-		produ, err := core.NewProduct(data.Id, config, data.StorePolicy, data.Metadata)
-		if err != nil {
-			logs.Error("newProduct error: ", err)
-		} else {
-			m.cache[productId] = produ
-			return produ
-		}
-	}
-	return nil
-}
-
-func (m *DbProductManager) Put(product *core.Product) {
-	if product == nil {
-		panic("product not be nil")
-	}
-	if len(product.GetId()) == 0 {
-		panic("product id must be present")
-	}
-	m.cache[product.GetId()] = product
-}
-
-func (m *DbProductManager) Del(deviceId string) {
-
 }

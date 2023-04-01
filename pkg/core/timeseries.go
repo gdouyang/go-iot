@@ -59,26 +59,26 @@ type MockTimeSeries struct {
 }
 
 func (t *MockTimeSeries) PublishModel(product *Product, model tsl.TslData) error {
-	logs.Info("PublishModel: ", model)
+	logs.Info("Mock PublishModel: ", model)
 	return nil
 }
 func (t *MockTimeSeries) QueryProperty(product *Product, param QueryParam) (map[string]interface{}, error) {
-	logs.Info("QueryProperty: ")
+	logs.Info("Mock QueryProperty: ")
 	return nil, nil
 }
 func (t *MockTimeSeries) SaveProperties(product *Product, data map[string]interface{}) error {
-	logs.Info("SaveProperties data: ", data)
+	logs.Info("Mock SaveProperties data: ", data)
 	return nil
 }
 func (t *MockTimeSeries) SaveEvents(product *Product, eventId string, data map[string]interface{}) error {
-	logs.Info("SaveEvents data: ", data)
+	logs.Info("Mock SaveEvents data: ", data)
 	return nil
 }
 func (t *MockTimeSeries) SaveLogs(product *Product, data LogData) error {
-	logs.Info("SaveLogs data: ", data)
+	logs.Info("Mock SaveLogs data: ", data)
 	return nil
 }
 func (t *MockTimeSeries) Del(product *Product) error {
-	logs.Info("Del data: ", product.Id)
+	logs.Info("Mock Del data: ", product.Id)
 	return nil
 }

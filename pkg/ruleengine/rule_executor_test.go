@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/core/store"
 	"go-iot/pkg/core/tsl"
 	"go-iot/pkg/ruleengine"
 	"testing"
@@ -41,7 +42,7 @@ func TestRule(t *testing.T) {
 	b, err := json.Marshal(tslData)
 	assert.Nil(t, err)
 
-	core.DefaultManagerId = "mem"
+	core.RegDeviceStore(store.NewMockDeviceStore())
 	prod, err := core.NewProduct("test123", map[string]string{}, core.TIME_SERISE_MOCK, string(b))
 	assert.Nil(t, err)
 	assert.NotNil(t, prod)
