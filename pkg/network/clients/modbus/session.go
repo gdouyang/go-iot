@@ -202,7 +202,7 @@ func (s *modbusSession) interval(f tsl.TslFunction) {
 			for {
 				select {
 				case <-time.After(time.Second * time.Duration(num)):
-					core.DoCmdInvoke(s.productId, msg.FuncInvoke{
+					core.DoCmdInvoke(msg.FuncInvoke{
 						FunctionId: f.Id,
 						DeviceId:   s.deviceId,
 					})

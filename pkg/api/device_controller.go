@@ -427,16 +427,16 @@ func (ctl *DeviceController) CmdInvoke() {
 		return
 	}
 	ob.DeviceId = deviceId
-	device, err := ctl.getDeviceAndCheckCreateId(ob.DeviceId)
+	_, err = ctl.getDeviceAndCheckCreateId(ob.DeviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	devOper := core.GetDevice(deviceId)
-	if devOper != nil && devOper.ClusterId != cluster.GetClusterId() {
+	device := core.GetDevice(deviceId)
+	if device != nil && device.ClusterId != cluster.GetClusterId() {
 		err = cluster.Invoke(ctl.Ctx.Request)
 	} else {
-		err = core.DoCmdInvoke(device.ProductId, ob)
+		err = core.DoCmdInvoke(ob)
 	}
 	if err != nil {
 		ctl.RespError(err)

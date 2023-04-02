@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/msg"
+	"go-iot/pkg/core/redis"
 	"io"
 	"net/http"
 	"net/url"
@@ -16,14 +18,43 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
+func init() {
+	go listenerCluster()
+}
+
+func listenerCluster() {
+	if cluster.Enabled() {
+		for redisMsg := range redis.Sub("go:cluster:cmdinvoke") {
+			payload := redisMsg.Payload
+			var message msg.FuncInvoke
+			json.Unmarshal([]byte(payload), &message)
+			go DoCmdInvoke(message)
+		}
+	}
+}
+
+func DoCmdInvokeCluster(message msg.FuncInvoke) {
+	if cluster.Enabled() {
+		device := GetDevice(message.DeviceId)
+		if device.ClusterId != cluster.GetClusterId() {
+			data, _ := json.Marshal(message)
+			redis.Pub("go:cluster:cmdinvoke", data)
+		}
+	} else {
+		DoCmdInvoke(message)
+	}
+}
+
 // 进行功能调用
-func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
+func DoCmdInvoke(message msg.FuncInvoke) error {
 	session := GetSession(message.DeviceId)
 	if session == nil {
 		return fmt.Errorf("device %s is offline", message.DeviceId)
 	}
-	core := GetCodec(productId)
-	if core == nil {
+	device := GetDevice(message.DeviceId)
+	productId := device.ProductId
+	codec := GetCodec(productId)
+	if codec == nil {
 		return fmt.Errorf("core %s of product not found", productId)
 	}
 	product := GetProduct(productId)
@@ -52,7 +83,7 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 	}
 	if function.Async {
 		go func() {
-			core.OnInvoke(invokeContext)
+			codec.OnInvoke(invokeContext)
 		}()
 		return nil
 	} else {
@@ -67,7 +98,7 @@ func DoCmdInvoke(productId string, message msg.FuncInvoke) error {
 
 		message.Replay = make(chan error)
 		go func(ctx context.Context) {
-			err := core.OnInvoke(invokeContext)
+			err := codec.OnInvoke(invokeContext)
 			if nil != err {
 				replyMap.reply(message.DeviceId, err)
 			}

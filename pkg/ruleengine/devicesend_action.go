@@ -25,5 +25,5 @@ func (a *DeviceCmdAction) FromJson(str string) error {
 }
 
 func (s *DeviceCmdAction) Do() {
-	core.DoCmdInvoke("", s.message)
+	core.DoCmdInvokeCluster(s.message)
 }

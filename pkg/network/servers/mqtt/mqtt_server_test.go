@@ -76,7 +76,7 @@ func TestServer(t *testing.T) {
 		time.Sleep(1 * time.Second)
 		for i := 0; i < 5; i++ {
 			go func() {
-				err := core.DoCmdInvoke(network.ProductId, msg.FuncInvoke{
+				err := core.DoCmdInvoke(msg.FuncInvoke{
 					DeviceId:   "1234",
 					FunctionId: "func1",
 					Data:       map[string]interface{}{"name": "f"},

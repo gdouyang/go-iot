@@ -124,6 +124,16 @@ func (p *Product) GetTsl() *tsl.TslData {
 }
 
 // default device impl
+func NewDevice(devieId string, productId string, createId int64) *Device {
+	return &Device{
+		Id:        devieId,
+		ProductId: productId,
+		CreateId:  createId,
+		Data:      make(map[string]string),
+		Config:    make(map[string]string),
+	}
+}
+
 type Device struct {
 	Id         string            `json:"id"`
 	ProductId  string            `json:"productId"`
@@ -133,16 +143,6 @@ type Device struct {
 	CreateId   int64             `json:"createId"`
 	Data       map[string]string `json:"data"`
 	Config     map[string]string `json:"config"`
-}
-
-func NewDevice(devieId string, productId string, createId int64) *Device {
-	return &Device{
-		Id:        devieId,
-		ProductId: productId,
-		CreateId:  createId,
-		Data:      make(map[string]string),
-		Config:    make(map[string]string),
-	}
 }
 
 func (d *Device) GetId() string {
