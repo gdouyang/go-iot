@@ -86,17 +86,17 @@ func (e *realtime) getSubscriber(deviceId string) (*list.List, bool) {
 	return nil, false
 }
 
-const clustEventKey = "go:cluster:realtime"
+const _CLUST_EVENT_KEY = "go:cluster:realtime"
 
-const clusterInfoStart = "<$go-cluster$>"
-const clusterInfoEnd = "<$/go-cluster$>"
+const _CLUSTER_INFO_START = "<$go-cluster$>"
+const _CLUSTER_INFO_END = "<$/go-cluster$>"
 
 func (e *realtime) listenerCluster() {
 	if cluster.Enabled() {
-		for msg := range redis.Sub(clustEventKey) {
+		for msg := range redis.Sub(_CLUST_EVENT_KEY) {
 			payload := msg.Payload
-			if strings.HasSuffix(payload, clusterInfoEnd) {
-				info := strings.Split(payload, clusterInfoStart)
+			if strings.HasSuffix(payload, _CLUSTER_INFO_END) {
+				info := strings.Split(payload, _CLUSTER_INFO_START)
 				// 不是同一个节点的数据才接收
 				if info[1] != getClusterInfo() {
 					send(&clusterMessage{text: info[0]})
@@ -107,12 +107,12 @@ func (e *realtime) listenerCluster() {
 }
 
 func getClusterInfo() string {
-	return clusterInfoStart + cluster.GetClusterId() + clusterInfoEnd
+	return _CLUSTER_INFO_START + cluster.GetClusterId() + _CLUSTER_INFO_END
 }
 
 func (e *realtime) sendToCluster(data string) {
 	if cluster.Enabled() {
-		redis.Pub(clustEventKey, data+getClusterInfo())
+		redis.Pub(_CLUST_EVENT_KEY, data+getClusterInfo())
 	}
 }
 
