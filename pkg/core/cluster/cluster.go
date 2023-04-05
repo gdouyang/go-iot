@@ -77,9 +77,11 @@ func Config(fn func(key string, call func(string))) {
 	fn("cluster.hosts", func(s string) {
 		hosts := strings.Split(s, ",")
 		for _, url := range hosts {
-			var node ClusterNode
-			node.Url = url
-			nodes = append(nodes, &node)
+			if url != currentNode.Url {
+				var node ClusterNode
+				node.Url = url
+				nodes = append(nodes, &node)
+			}
 		}
 	})
 	if enabled {
