@@ -24,9 +24,10 @@ func RegEsTimeSeries(docheck bool) {
 }
 
 const (
-	properties_const = "goiot-properties"
-	event_const      = "goiot-event"
-	devicelogs_const = "goiot-devicelogs"
+	prefix           = "goiot-"
+	properties_const = prefix + "properties"
+	event_const      = prefix + "event"
+	devicelogs_const = prefix + "devicelogs"
 	timeformt        = "2006-01-02 15:04:05.000"
 )
 
@@ -67,7 +68,10 @@ func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[st
 	if len(param.DeviceId) == 0 {
 		return nil, errors.New("deviceId must be persent")
 	}
-	if param.Type != "properties" && param.Type != "event" && param.Type != "devicelogs" {
+	if !strings.HasPrefix(param.Type, prefix) {
+		param.Type = prefix + param.Type
+	}
+	if param.Type != properties_const && param.Type != event_const && param.Type != devicelogs_const {
 		return nil, errors.New("type is invalid, must be [properties, event, devicelogs]")
 	}
 	filter := es.AppendFilter(param.Condition)
