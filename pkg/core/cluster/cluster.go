@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"go-iot/pkg/core/common"
 	"hash/crc32"
 	"io"
 	"net/http"
@@ -101,9 +102,9 @@ func Config(fn func(key string, call func(string))) {
 	}
 }
 
-func SingleInvoke(cluserId string, req *http.Request) (*JsonResp, error) {
+func SingleInvoke(cluserId string, req *http.Request) (*common.JsonResp, error) {
 	if !enabled {
-		var r = JsonRespError(errors.New("cluster not enable"))
+		var r = common.JsonRespError(errors.New("cluster not enable"))
 		return &r, nil
 	}
 	for _, n := range nodes {
@@ -115,7 +116,7 @@ func SingleInvoke(cluserId string, req *http.Request) (*JsonResp, error) {
 			return resp, err
 		}
 	}
-	var r = JsonRespError(errors.New("clusterId not found"))
+	var r = common.JsonRespError(errors.New("clusterId not found"))
 	return &r, nil
 }
 
@@ -153,7 +154,7 @@ type ClusterNode struct {
 	Alive bool   `json:"-"`
 }
 
-func (n *ClusterNode) invoke(req *http.Request) (*JsonResp, error) {
+func (n *ClusterNode) invoke(req *http.Request) (*common.JsonResp, error) {
 	if !n.Alive {
 		return nil, nil
 	}
@@ -184,7 +185,7 @@ func (n *ClusterNode) invoke(req *http.Request) (*JsonResp, error) {
 	if err != nil {
 		return nil, err
 	}
-	var r JsonResp
+	var r common.JsonResp
 	json.Unmarshal(b, &r)
 	return &r, nil
 }

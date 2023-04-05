@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"go-iot/pkg/core/boot"
 	"go-iot/pkg/core/cluster"
-	"go-iot/pkg/core/msg"
+	"go-iot/pkg/core/common"
 	"go-iot/pkg/core/redis"
 	"io"
 	"net/http"
@@ -29,7 +29,7 @@ func listenerCluster() {
 	if cluster.Enabled() {
 		for redisMsg := range redis.Sub("go:cluster:cmdinvoke") {
 			payload := redisMsg.Payload
-			var message msg.FuncInvoke
+			var message common.FuncInvoke
 			json.Unmarshal([]byte(payload), &message)
 			if message.ClusterId == cluster.GetClusterId() {
 				go DoCmdInvoke(message)
@@ -38,7 +38,7 @@ func listenerCluster() {
 	}
 }
 
-func DoCmdInvokeCluster(message msg.FuncInvoke) {
+func DoCmdInvokeCluster(message common.FuncInvoke) {
 	if cluster.Enabled() {
 		device := GetDevice(message.DeviceId)
 		if device.ClusterId != cluster.GetClusterId() {
@@ -52,7 +52,7 @@ func DoCmdInvokeCluster(message msg.FuncInvoke) {
 }
 
 // 进行功能调用
-func DoCmdInvoke(message msg.FuncInvoke) error {
+func DoCmdInvoke(message common.FuncInvoke) error {
 	session := GetSession(message.DeviceId)
 	if session == nil {
 		return fmt.Errorf("device %s is offline", message.DeviceId)
@@ -125,10 +125,10 @@ func DoCmdInvoke(message msg.FuncInvoke) error {
 	}
 }
 
-func replyLog(product *Product, message msg.FuncInvoke, reply string) {
+func replyLog(product *Product, message common.FuncInvoke, reply string) {
 	if product != nil {
 		aligs := struct {
-			msg.FuncInvoke
+			common.FuncInvoke
 			Reply string `json:"reply"`
 		}{
 			FuncInvoke: message,
@@ -142,7 +142,7 @@ func replyLog(product *Product, message msg.FuncInvoke, reply string) {
 // 功能调用
 type FuncInvokeContext struct {
 	BaseContext
-	message msg.FuncInvoke
+	message common.FuncInvoke
 }
 
 func (ctx *FuncInvokeContext) DeviceOnline(deviceId string) {
@@ -162,10 +162,10 @@ type funcInvokeReply struct {
 type reply struct {
 	time   int64
 	expire int64
-	cmd    *msg.FuncInvoke
+	cmd    *common.FuncInvoke
 }
 
-func (r *funcInvokeReply) addReply(i *msg.FuncInvoke, exprie time.Duration) error {
+func (r *funcInvokeReply) addReply(i *common.FuncInvoke, exprie time.Duration) error {
 	val, ok := r.m.Load(i.DeviceId)
 	now := time.Now().UnixMilli()
 	if ok {

@@ -3,11 +3,11 @@ package ruleengine
 import (
 	"encoding/json"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/msg"
+	"go-iot/pkg/core/common"
 )
 
 type DeviceCmdAction struct {
-	message msg.FuncInvoke
+	message common.FuncInvoke
 }
 
 func NewDeviceCmdAction(config string) (*DeviceCmdAction, error) {

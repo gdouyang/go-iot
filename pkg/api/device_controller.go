@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/cluster"
-	"go-iot/pkg/core/msg"
+	"go-iot/pkg/core/common"
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
 	"go-iot/pkg/models/network"
@@ -451,7 +451,7 @@ func (ctl *DeviceController) CmdInvoke() {
 	}
 	deviceId := ctl.Param(":id")
 
-	var ob msg.FuncInvoke
+	var ob common.FuncInvoke
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)
