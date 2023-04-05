@@ -36,19 +36,19 @@ func (c *RespController) Param(key string) string {
 }
 
 func (c *RespController) RespOk() error {
-	return c.Ctx.Output.JSON(models.JsonRespOk(), false, false)
+	return c.Ctx.Output.JSON(cluster.JsonRespOk(), false, false)
 }
 
 func (c *RespController) RespOkData(data interface{}) error {
-	return c.Ctx.Output.JSON(models.JsonRespOkData(data), false, false)
+	return c.Ctx.Output.JSON(cluster.JsonRespOkData(data), false, false)
 }
 
-func (c *RespController) RespOkClusterData(data string) error {
+func (c *RespController) RespOkClusterData(data interface{}) error {
 	return c.Ctx.Output.JSON(data, false, false)
 }
 
 func (c *RespController) RespError(err error) error {
-	resp := models.JsonRespError(err)
+	resp := cluster.JsonRespError(err)
 	if c.Ctx.Output.Status == 0 {
 		c.Ctx.Output.Status = 400
 		resp.Code = 400
@@ -56,7 +56,7 @@ func (c *RespController) RespError(err error) error {
 	return c.Ctx.Output.JSON(resp, false, false)
 }
 
-func (c *RespController) Resp(resp models.JsonResp) error {
+func (c *RespController) Resp(resp cluster.JsonResp) error {
 	c.Ctx.Output.Status = resp.Code
 	return c.Ctx.Output.JSON(resp, false, false)
 }

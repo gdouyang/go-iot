@@ -90,7 +90,6 @@ func (ctl *ServerController) Delete() {
 }
 
 func (ctl *ServerController) Start() {
-	var resp models.JsonResp
 	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
@@ -98,7 +97,6 @@ func (ctl *ServerController) Start() {
 		return
 	}
 	nw, err := network.GetNetwork(int64(_id))
-	resp.Success = true
 	if err != nil {
 		ctl.RespError(err)
 		return

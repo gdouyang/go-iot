@@ -67,7 +67,7 @@ func (m *redisDeviceStore) GetDevice(deviceId string) *core.Device {
 			logs.Error(err)
 		}
 		if len(data) == 0 {
-			m.cache.Store(deviceId, nil)
+			m.cache.Store(m.getDeviceKey(deviceId), nil)
 			return nil
 		}
 		config := map[string]string{}
@@ -92,13 +92,16 @@ func (m *redisDeviceStore) GetDevice(deviceId string) *core.Device {
 			}
 		}
 		dev := &core.Device{
-			Id:        data["id"],
-			ProductId: data["productId"],
-			CreateId:  createId,
-			Config:    config,
-			Data:      dat,
+			Id:         data["id"],
+			ProductId:  data["productId"],
+			CreateId:   createId,
+			Config:     config,
+			Data:       dat,
+			ClusterId:  data["clusterId"],
+			DeviceType: data["devType"],
+			ParentId:   data["parentId"],
 		}
-		m.cache.Store(deviceId, dev)
+		m.cache.Store(m.getDeviceKey(deviceId), dev)
 		return dev
 	}
 	return nil
@@ -125,14 +128,15 @@ func (m *redisDeviceStore) PutDevice(device *core.Device) {
 	if err != nil {
 		logs.Error(err)
 	}
-	m.cache.Store(device.GetId(), device)
+	m.cache.Store(m.getDeviceKey(p.Id), device)
 }
 
 func (m *redisDeviceStore) DelDevice(deviceId string) {
 	rdb := redis.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	rdb.Del(ctx, m.getDeviceKey(deviceId))
+	deviceId = m.getDeviceKey(deviceId)
+	rdb.Del(ctx, deviceId)
 	m.cache.Delete(deviceId)
 }
 
@@ -180,7 +184,7 @@ func (m *redisDeviceStore) GetProduct(productId string) *core.Product {
 			logs.Error(err)
 		}
 		if len(data) == 0 {
-			m.cache.Store(productId, nil)
+			m.cache.Store(m.getProductKey(productId), nil)
 			return nil
 		}
 		config := map[string]string{}
@@ -194,7 +198,7 @@ func (m *redisDeviceStore) GetProduct(productId string) *core.Product {
 		if err != nil {
 			logs.Error(err)
 		} else {
-			m.cache.Store(productId, produ)
+			m.cache.Store(m.getProductKey(productId), produ)
 			return produ
 		}
 	}
@@ -223,13 +227,14 @@ func (m *redisDeviceStore) PutProduct(product *core.Product) {
 	if err != nil {
 		logs.Error(err)
 	}
-	m.cache.Store(product.GetId(), product)
+	m.cache.Store(m.getProductKey(p.Id), product)
 }
 
 func (m *redisDeviceStore) DelProduct(productId string) {
 	rdb := redis.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	rdb.Del(ctx, m.getProductKey(productId))
+	productId = m.getProductKey(productId)
+	rdb.Del(ctx, productId)
 	m.cache.Delete(productId)
 }

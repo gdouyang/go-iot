@@ -17,6 +17,7 @@ import (
 
 const (
 	X_Cluster_Request = "x-cluster-request"
+	X_Cluster_Timeout = "x-cluster-timeout"
 )
 
 var currentNode *ClusterNode = &ClusterNode{}
@@ -92,7 +93,7 @@ func Config(fn func(key string, call func(string))) {
 				for _, n := range nodes {
 					n.Alive = n.keepalive()
 					if !n.Alive {
-						logs.Warn("cluster is offline, name:%s, index: %v, url: %s", n.Name, n.Index, n.Url)
+						logs.Warn("cluster is offline url: %s", n.Url)
 					}
 				}
 			}
@@ -100,9 +101,10 @@ func Config(fn func(key string, call func(string))) {
 	}
 }
 
-func SingleInvoke(cluserId string, req *http.Request) (string, error) {
+func SingleInvoke(cluserId string, req *http.Request) (*JsonResp, error) {
 	if !enabled {
-		return "cluster not enable", nil
+		var r = JsonRespError(errors.New("cluster not enable"))
+		return &r, nil
 	}
 	for _, n := range nodes {
 		if !n.Alive {
@@ -110,13 +112,11 @@ func SingleInvoke(cluserId string, req *http.Request) (string, error) {
 		}
 		if n.Name == cluserId {
 			resp, err := n.invoke(req)
-			if err != nil {
-				return resp, err
-			}
-			break
+			return resp, err
 		}
 	}
-	return "clusterId not found", nil
+	var r = JsonRespError(errors.New("clusterId not found"))
+	return &r, nil
 }
 
 // 广播调用其它节点
@@ -138,8 +138,10 @@ func BroadcastInvoke(req *http.Request) error {
 
 func Keepalive(c ClusterNode) {
 	for _, n := range nodes {
-		if n.Name == c.Name {
+		if n.Url == c.Url {
 			n.Alive = true
+			n.Name = c.Name
+			n.Index = c.Index
 		}
 	}
 }
@@ -151,26 +153,40 @@ type ClusterNode struct {
 	Alive bool   `json:"-"`
 }
 
-func (n *ClusterNode) invoke(req *http.Request) (string, error) {
+func (n *ClusterNode) invoke(req *http.Request) (*JsonResp, error) {
 	if !n.Alive {
-		return "", nil
+		return nil, nil
 	}
 	req2 := req.Clone(context.Background())
 	req2.Header.Add(X_Cluster_Request, token)
+	u, err := url.ParseRequestURI(n.Url + req2.RequestURI)
+	if err != nil {
+		return nil, err
+	}
+	req2.URL = u
+	req2.RequestURI = ""
 
-	client := http.Client{Timeout: time.Second * 3}
+	s_timeout := req.Header.Get("x-cluster-timeout")
+	timeout, err := strconv.Atoi(s_timeout)
+	if err == nil {
+		logs.Warn("x-cluster-timeout parse error:", err)
+	}
+	if timeout < 1 {
+		timeout = 10
+	}
+
+	client := http.Client{Timeout: (time.Second * time.Duration(timeout))}
 	resp, err := client.Do(req2)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if resp.StatusCode != 200 {
-		return "", errors.New(string(b))
-	}
-	return string(b), nil
+	var r JsonResp
+	json.Unmarshal(b, &r)
+	return &r, nil
 }
 
 func (n *ClusterNode) keepalive() bool {
@@ -181,7 +197,7 @@ func (n *ClusterNode) keepalive() bool {
 		return false
 	}
 	var req *http.Request = &http.Request{
-		Method: "post",
+		Method: "POST",
 		URL:    uri,
 		Header: map[string][]string{},
 	}

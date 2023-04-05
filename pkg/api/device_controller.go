@@ -454,7 +454,14 @@ func (ctl *DeviceController) CmdInvoke() {
 	}
 	device := core.GetDevice(deviceId)
 	if device != nil && device.ClusterId != cluster.GetClusterId() {
-		err = cluster.BroadcastInvoke(ctl.Ctx.Request)
+		ctl.Ctx.Request.Header.Add(cluster.X_Cluster_Timeout, "13")
+		resp, err := cluster.SingleInvoke(device.ClusterId, ctl.Ctx.Request)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+		ctl.RespOkClusterData(resp)
+		return
 	} else {
 		err = core.DoCmdInvoke(ob)
 	}

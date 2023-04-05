@@ -57,7 +57,7 @@ func defaultRecoverPanic(ctx *context.Context, cfg *web.Config) {
 		if ctx.Output.Status == 0 {
 			ctx.Output.Status = 500
 		}
-		ctx.Output.JSON(models.JsonRespError(fmt.Errorf("%v", err)), false, false)
+		ctx.Output.JSON(cluster.JsonRespError(fmt.Errorf("%v", err)), false, false)
 	}
 }
 

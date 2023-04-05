@@ -199,7 +199,7 @@ func HttpRequest(config map[string]interface{}) map[string]interface{} {
 	method := fmt.Sprintf("%v", config["method"])
 	client := http.Client{Timeout: time.Second * 3}
 	var req *http.Request = &http.Request{
-		Method: method,
+		Method: strings.ToUpper(method),
 		URL:    u,
 		Header: map[string][]string{},
 	}
