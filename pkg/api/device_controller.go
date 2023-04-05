@@ -143,8 +143,20 @@ func (ctl *DeviceController) GetDetail() {
 	}
 	alins.DeviceModel = *ob
 	if ob.State != core.NoActive {
-		alins.State = core.GetDeviceState(ob.Id, ob.ProductId)
-		device.UpdateOnlineStatus(ob.Id, alins.State)
+		dev := core.GetDevice(ob.Id)
+		// 设备在其它节点时转发给其它节点执行
+		if cluster.Enabled() && dev != nil && len(dev.ClusterId) > 0 && dev.ClusterId != cluster.GetClusterId() {
+			resp, err := cluster.SingleInvoke(dev.ClusterId, ctl.Ctx.Request)
+			if err != nil {
+				ctl.RespError(err)
+				return
+			}
+			ctl.RespOkClusterData(resp)
+			return
+		} else {
+			alins.State = core.GetDeviceState(ob.Id, ob.ProductId)
+			device.UpdateOnlineStatus(ob.Id, alins.State)
+		}
 	}
 	ctl.RespOkData(alins)
 }
@@ -224,7 +236,15 @@ func (ctl *DeviceController) Connect() {
 		ctl.RespError(err)
 		return
 	}
-	err = connectClientDevice(deviceId)
+	if cluster.Enabled() {
+		if cluster.Shard(deviceId) {
+			err = connectClientDevice(deviceId)
+		} else {
+			err = cluster.BroadcastInvoke(ctl.Ctx.Request)
+		}
+	} else {
+		err = connectClientDevice(deviceId)
+	}
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -409,7 +429,7 @@ func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
 	}
 	if ctl.isNotClusterRequest() {
 		device.UpdateOnlineStatus(deviceId, state)
-		cluster.Invoke(ctl.Ctx.Request)
+		cluster.BroadcastInvoke(ctl.Ctx.Request)
 	}
 }
 
@@ -434,7 +454,7 @@ func (ctl *DeviceController) CmdInvoke() {
 	}
 	device := core.GetDevice(deviceId)
 	if device != nil && device.ClusterId != cluster.GetClusterId() {
-		err = cluster.Invoke(ctl.Ctx.Request)
+		err = cluster.BroadcastInvoke(ctl.Ctx.Request)
 	} else {
 		err = core.DoCmdInvoke(ob)
 	}

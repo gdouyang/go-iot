@@ -267,7 +267,7 @@ func (ctl *ProductController) Undeploy() {
 	ob.State = false
 	if ctl.isNotClusterRequest() {
 		product.UpdateProductState(&ob.Product)
-		cluster.Invoke(ctl.Ctx.Request)
+		cluster.BroadcastInvoke(ctl.Ctx.Request)
 	}
 	core.DeleteProduct(productId)
 	// 调用集群接口
@@ -465,7 +465,7 @@ func (ctl *ProductController) RunNetwork() {
 	if ctl.isNotClusterRequest() {
 		network.UpdateNetwork(nw)
 		// 调用集群接口
-		cluster.Invoke(ctl.Ctx.Request)
+		cluster.BroadcastInvoke(ctl.Ctx.Request)
 	}
 	ctl.RespOk()
 }

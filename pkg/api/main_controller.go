@@ -43,6 +43,10 @@ func (c *RespController) RespOkData(data interface{}) error {
 	return c.Ctx.Output.JSON(models.JsonRespOkData(data), false, false)
 }
 
+func (c *RespController) RespOkClusterData(data string) error {
+	return c.Ctx.Output.JSON(data, false, false)
+}
+
 func (c *RespController) RespError(err error) error {
 	resp := models.JsonRespError(err)
 	if c.Ctx.Output.Status == 0 {
@@ -60,7 +64,7 @@ func (c *RespController) Resp(resp models.JsonResp) error {
 // 不是集群内部请求
 func (c *RespController) isNotClusterRequest() bool {
 	header := c.Ctx.Request.Header.Get(cluster.X_Cluster_Request)
-	return header != "true"
+	return header != cluster.Token()
 }
 
 type AuthController struct {

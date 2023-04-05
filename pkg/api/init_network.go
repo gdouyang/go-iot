@@ -2,6 +2,7 @@ package api
 
 import (
 	"go-iot/pkg/core/boot"
+	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
 	"go-iot/pkg/models/network"
@@ -102,7 +103,13 @@ func startRuningNetClient() {
 				continue
 			}
 			for _, devId := range devices {
-				err := connectClientDevice(devId)
+				if cluster.Enabled() {
+					if cluster.Shard(devId) {
+						err = connectClientDevice(devId)
+					}
+				} else {
+					err = connectClientDevice(devId)
+				}
 				if err != nil {
 					logs.Error(err)
 				}
