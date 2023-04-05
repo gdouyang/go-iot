@@ -294,6 +294,17 @@ func (ctl *DeviceController) Disconnect() {
 		ctl.RespError(err)
 		return
 	}
+	dev := core.GetDevice(deviceId)
+	// 设备在其它节点时转发给其它节点执行
+	if cluster.Enabled() && dev != nil && len(dev.ClusterId) > 0 && dev.ClusterId != cluster.GetClusterId() {
+		resp, err := cluster.SingleInvoke(dev.ClusterId, ctl.Ctx.Request)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+		ctl.RespOkClusterData(resp)
+		return
+	}
 	session := core.GetSession(deviceId)
 	if session != nil {
 		err := session.Disconnect()

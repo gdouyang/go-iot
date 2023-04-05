@@ -15,8 +15,6 @@ import (
 // websocket实时信息，把监听的数据通过websocket返回
 func init() {
 	web.Router("/api/realtime/:deviceId/:type", &RealtimeWebSocketController{}, "get:Join")
-
-	go realtime.StartLoop()
 }
 
 type RealtimeWebSocketController struct {
