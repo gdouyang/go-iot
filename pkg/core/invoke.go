@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-iot/pkg/core/boot"
 	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/msg"
 	"go-iot/pkg/core/redis"
@@ -19,7 +20,9 @@ import (
 )
 
 func init() {
-	go listenerCluster()
+	boot.AddStartLinstener(func() {
+		go listenerCluster()
+	})
 }
 
 func listenerCluster() {
@@ -28,7 +31,9 @@ func listenerCluster() {
 			payload := redisMsg.Payload
 			var message msg.FuncInvoke
 			json.Unmarshal([]byte(payload), &message)
-			go DoCmdInvoke(message)
+			if message.ClusterId == cluster.GetClusterId() {
+				go DoCmdInvoke(message)
+			}
 		}
 	}
 }
@@ -37,6 +42,7 @@ func DoCmdInvokeCluster(message msg.FuncInvoke) {
 	if cluster.Enabled() {
 		device := GetDevice(message.DeviceId)
 		if device.ClusterId != cluster.GetClusterId() {
+			message.ClusterId = device.ClusterId
 			data, _ := json.Marshal(message)
 			redis.Pub("go:cluster:cmdinvoke", data)
 		}

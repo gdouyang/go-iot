@@ -56,6 +56,7 @@ func (p *DeviceOffline) Type() MessageType {
 type FuncInvoke struct {
 	FunctionId string                 `json:"functionId"`
 	DeviceId   string                 `json:"deviceId"`
+	ClusterId  string                 `json:"clusterId"`
 	Data       map[string]interface{} `json:"data"`
 	Replay     chan error             `json:"-"`
 }
