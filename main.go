@@ -5,6 +5,7 @@ import (
 	_ "go-iot/pkg/api"
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/cluster"
+	"go-iot/pkg/core/common"
 	"go-iot/pkg/core/es"
 	"go-iot/pkg/core/redis"
 	"go-iot/pkg/core/store"
@@ -57,7 +58,7 @@ func defaultRecoverPanic(ctx *context.Context, cfg *web.Config) {
 		if ctx.Output.Status == 0 {
 			ctx.Output.Status = 500
 		}
-		ctx.Output.JSON(cluster.JsonRespError(fmt.Errorf("%v", err)), false, false)
+		ctx.Output.JSON(common.JsonRespError(fmt.Errorf("%v", err)), false, false)
 	}
 }
 
