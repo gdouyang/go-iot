@@ -93,7 +93,7 @@ func Config(fn func(key string, call func(string))) {
 				time.Sleep(time.Second * time.Duration(5))
 				for _, n := range nodes {
 					alive := n.keepalive()
-					if alive {
+					if !alive {
 						logs.Warn("cluster is offline url: %s, name: %s, index: %v", n.Url, n.Name, n.Index)
 					}
 					if !n.Alive && alive {
