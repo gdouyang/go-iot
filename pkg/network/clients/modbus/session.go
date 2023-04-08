@@ -3,7 +3,7 @@ package modbus
 import (
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/msg"
+	"go-iot/pkg/core/common"
 	"go-iot/pkg/core/tsl"
 	"strconv"
 	"sync"
@@ -202,7 +202,7 @@ func (s *modbusSession) interval(f tsl.TslFunction) {
 			for {
 				select {
 				case <-time.After(time.Second * time.Duration(num)):
-					core.DoCmdInvoke(msg.FuncInvoke{
+					core.DoCmdInvoke(common.FuncInvoke{
 						FunctionId: f.Id,
 						DeviceId:   s.deviceId,
 					})

@@ -3,7 +3,7 @@ package mqttserver_test
 import (
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/msg"
+	"go-iot/pkg/core/common"
 	"go-iot/pkg/core/store"
 	"go-iot/pkg/core/tsl"
 	mqttserver "go-iot/pkg/network/servers/mqtt"
@@ -76,7 +76,7 @@ func TestServer(t *testing.T) {
 		time.Sleep(1 * time.Second)
 		for i := 0; i < 5; i++ {
 			go func() {
-				err := core.DoCmdInvoke(msg.FuncInvoke{
+				err := core.DoCmdInvoke(common.FuncInvoke{
 					DeviceId:   "1234",
 					FunctionId: "func1",
 					Data:       map[string]interface{}{"name": "f"},
