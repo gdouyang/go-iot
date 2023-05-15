@@ -24,7 +24,7 @@ ES内存设置为6G
 ```
 > 设备模拟器 https://gitee.com/jetlinks/device-simulator/tree/dev-1.0/
 
-- MQTT Broker测试10000设备连接，每隔1秒上报5个属性
+- MQTT Broker测试一万设备连接，每隔1秒上报5个属性
 
 ```json
 {
@@ -98,7 +98,7 @@ ES内存设置为6G
 }
 ```
 
-##### 10000设备连接，10000设备上报数据
+##### 一万设备连接，一万设备上报数据（每秒）
 ```
 create mqtt client: 9000 ok
 create mqtt client: 10000 ok
@@ -142,7 +142,7 @@ Count	Profile
 
 > ES写入速度 6000/s，压力主要在ES中，持续写入`2540000`条数据无丢失，但有延迟，当请求结束后2分钟go协程恢复正常
 
-##### 100000设备连接，1个设备上报数据
+##### 十万设备连接，一万设备上报数据（每秒）
 ```
 create mqtt client: 98000 ok
 create mqtt client: 99000 ok
