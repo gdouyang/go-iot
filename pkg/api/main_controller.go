@@ -123,6 +123,7 @@ func (c *AuthController) GetSession() *session.HttpSession {
 func (c *AuthController) Logout(ctl *AuthController) {
 	sess := ctl.GetSession()
 	session.Del(sess.Sessionid)
+	c.RespOk()
 }
 
 func (c *AuthController) GetCurrentUser() *models.User {
