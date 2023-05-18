@@ -192,11 +192,13 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 		return nil, nil, false
 	}
 	if err != nil {
-		if err.Error() == "notimpl" && !ctx.checkAuth() {
+		if err.Error() != "notimpl" {
+			logs.Error(err)
 			return nil, nil, false
 		}
-		logs.Error(err)
-		return nil, nil, false
+		if !ctx.checkAuth() {
+			return nil, nil, false
+		}
 	}
 
 	return client, connack, true
