@@ -75,7 +75,7 @@ func (c *LoginController) login(ctl *web.Controller, username, password string) 
 	session := session.NewSession()
 	session.Put("user", u)
 	ctl.Ctx.Request.Header.Add("gsessionid", session.Sessionid)
-	ctl.Ctx.Output.Cookie("gsessionid", session.Sessionid)
+	ctl.Ctx.Output.Cookie("gsessionid", session.Sessionid, int64(3600*24))
 	session.SetPermission(actionMap)
 	return nil
 }
