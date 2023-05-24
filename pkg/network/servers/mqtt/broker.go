@@ -181,6 +181,7 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 		BaseContext: core.BaseContext{
 			ProductId: b.productId,
 			Session:   nil,
+			DeviceId:  client.ClientID(),
 		},
 		client:  client,
 		connack: connack,
@@ -192,13 +193,14 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 		return nil, nil, false
 	}
 	if err != nil {
-		if err.Error() != "notimpl" {
+		if err != core.ErrNotImpl {
 			logs.Error(err)
 			return nil, nil, false
 		}
 		if !ctx.checkAuth() {
 			return nil, nil, false
 		}
+		ctx.DeviceOnline(ctx.DeviceId)
 	}
 
 	return client, connack, true

@@ -55,7 +55,7 @@ func startRuningNotify() {
 	logs.Info("start runing notify")
 	var ob models.Notify
 	ob.State = models.Started
-	list, err := notify.ListAll(&ob)
+	list, err := notify.ListAll(&ob, nil)
 	if err != nil {
 		logs.Error(err)
 		return

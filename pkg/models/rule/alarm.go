@@ -7,9 +7,9 @@ import (
 	"go-iot/pkg/core/eventbus"
 	"go-iot/pkg/models"
 	"go-iot/pkg/ruleengine"
-	"time"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
+
 	"github.com/beego/beego/v2/core/logs"
 )
 
@@ -77,7 +77,7 @@ func PageAlarmLog(page *models.PageQuery[models.AlarmLog]) (*models.PageResult[m
 
 func AddAlarmLog(q models.AlarmLog) error {
 	o := orm.NewOrm()
-	q.CreateTime = time.Now()
+	q.CreateTime = models.NewDateTime()
 	_, err := o.Insert(&q)
 	if err != nil {
 		return err

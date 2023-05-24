@@ -3,9 +3,8 @@ package notify
 import (
 	"errors"
 	"go-iot/pkg/models"
-	"time"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
 )
 
 // 分页查询设备
@@ -41,7 +40,7 @@ func PageNotify(page *models.PageQuery[models.Notify], createId int64) (*models.
 	return pr, nil
 }
 
-func ListAll(ob *models.Notify) ([]models.Notify, error) {
+func ListAll(ob *models.Notify, createId *int64) ([]models.Notify, error) {
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.Notify{})
@@ -56,7 +55,9 @@ func ListAll(ob *models.Notify) ([]models.Notify, error) {
 	if len(ob.State) > 0 {
 		qs = qs.Filter("State", ob.State)
 	}
-	qs = qs.Filter("createId", ob.CreateId)
+	if createId != nil {
+		qs = qs.Filter("createId", *createId)
+	}
 
 	var result []models.Notify
 	_, err := qs.All(&result)
@@ -71,7 +72,7 @@ func AddNotify(ob *models.Notify) error {
 	//插入数据
 	o := orm.NewOrm()
 	ob.State = models.Stopped
-	ob.CreateTime = time.Now()
+	ob.CreateTime = models.NewDateTime()
 	_, err := o.Insert(ob)
 	if err != nil {
 		return err

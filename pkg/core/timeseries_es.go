@@ -24,10 +24,9 @@ func RegEsTimeSeries(docheck bool) {
 }
 
 const (
-	prefix           = "goiot-"
-	properties_const = prefix + "properties"
-	event_const      = prefix + "event"
-	devicelogs_const = prefix + "devicelogs"
+	properties_const = es.Prefix + "properties"
+	event_const      = es.Prefix + "event"
+	devicelogs_const = es.Prefix + "devicelogs"
 	timeformt        = "2006-01-02 15:04:05.000"
 )
 
@@ -68,8 +67,8 @@ func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[st
 	if len(param.DeviceId) == 0 {
 		return nil, errors.New("deviceId must be persent")
 	}
-	if !strings.HasPrefix(param.Type, prefix) {
-		param.Type = prefix + param.Type
+	if !strings.HasPrefix(param.Type, es.Prefix) {
+		param.Type = es.Prefix + param.Type
 	}
 	if param.Type != properties_const && param.Type != event_const && param.Type != devicelogs_const {
 		return nil, errors.New("type is invalid, must be [properties, event, devicelogs]")
@@ -209,7 +208,9 @@ func (t *EsTimeSeries) SaveLogs(product *Product, d1 LogData) error {
 	if len(d1.DeviceId) == 0 {
 		return errors.New("deviceId must be present, dont save event timeseries data")
 	}
-	d1.CreateTime = time.Now().Format(timeformt)
+	if len(d1.CreateTime) == 0 {
+		d1.CreateTime = time.Now().Format(timeformt)
+	}
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
@@ -236,8 +237,8 @@ func (t *EsTimeSeries) propertiesTplMapping(product *Product, model *tsl.TslData
 	properties["createTime"] = es.EsType{Type: "date", Format: es.DefaultDateFormat}
 
 	indexPattern := fmt.Sprintf("%s-%s-*", properties_const, product.GetId())
-	templateName := fmt.Sprintf("%s_%s_template", properties_const, product.GetId())
-	err := es.CreateEsTemplate(properties, indexPattern, templateName)
+	templateName := fmt.Sprintf("%s-%s-template", properties_const, product.GetId())
+	err := es.CreateEsTemplate(properties, indexPattern, templateName, "")
 	return err
 }
 
@@ -251,8 +252,8 @@ func (t *EsTimeSeries) eventsTplMapping(product *Product, model *tsl.TslData) er
 		properties["createTime"] = es.EsType{Type: "date", Format: es.DefaultDateFormat}
 
 		indexPattern := fmt.Sprintf("%s-%s-%s-*", event_const, product.GetId(), e.Id) // event-{productId}-{eventId}-*
-		templateName := fmt.Sprintf("%s_%s_%s_template", event_const, product.GetId(), e.Id)
-		err := es.CreateEsTemplate(properties, indexPattern, templateName)
+		templateName := fmt.Sprintf("%s-%s-%s-template", event_const, product.GetId(), e.Id)
+		err := es.CreateEsTemplate(properties, indexPattern, templateName, "")
 		if err != nil {
 			return err
 		}
@@ -268,8 +269,8 @@ func (t *EsTimeSeries) logsTplMapping(product *Product) error {
 	properties["createTime"] = es.EsType{Type: "date", Format: es.DefaultDateFormat}
 
 	indexPattern := fmt.Sprintf("%s-%s-*", devicelogs_const, product.GetId()) // devicelogs-{productId}-{eventId}-*
-	templateName := fmt.Sprintf("%s_%s_template", devicelogs_const, product.GetId())
-	err := es.CreateEsTemplate(properties, indexPattern, templateName)
+	templateName := fmt.Sprintf("%s-%s-template", devicelogs_const, product.GetId())
+	err := es.CreateEsTemplate(properties, indexPattern, templateName, "")
 	return err
 }
 

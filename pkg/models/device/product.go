@@ -1,17 +1,16 @@
 package models
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"go-iot/pkg/core"
 	"go-iot/pkg/models"
 
 	"go-iot/pkg/models/network"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
+
 	"github.com/beego/beego/v2/core/logs"
 )
 
@@ -33,14 +32,13 @@ func PageProduct(page *models.PageQuery[models.Product], createId int64) (*model
 	}
 	qs = qs.Filter("createId", createId)
 
-	count, err := qs.Count()
+	var result []models.Product
+	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "Desc", "CreateId", "CreateTime"}
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result, cols...)
 	if err != nil {
 		return nil, err
 	}
-
-	var result []models.Product
-	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "Desc", "CreateId", "CreateTime"}
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result, cols...)
+	count, err := qs.Count()
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +64,7 @@ func ListAllProduct(createId int64) ([]models.Product, error) {
 	return result, nil
 }
 
-func AddProduct(ob *models.Product, networkType string) error {
+func AddProduct(ob *models.Product) error {
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
 		return errors.New("id and name must be present")
 	}
@@ -85,37 +83,14 @@ func AddProduct(ob *models.Product, networkType string) error {
 	}
 	//插入数据
 	o := orm.NewOrm()
-	ob.CreateTime = time.Now()
-	err = o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		ob.CodecId = core.Script_Codec
-		mc := core.GetNetworkMetaConfig(networkType)
-		if len(mc.CodecId) > 0 {
-			ob.CodecId = mc.CodecId
-		}
-		ob.Metaconfig = mc.ToJson()
-		_, err := txOrm.Insert(ob)
-		if err != nil {
-			return err
-		}
-		if core.IsNetClientType(networkType) {
-			err := network.AddNetWorkTx(&models.Network{
-				ProductId: ob.Id,
-				Type:      networkType,
-				State:     models.Stop,
-			}, txOrm)
-			return err
-		} else {
-			nw, err := network.GetUnuseNetwork()
-			if err != nil {
-				return err
-			}
-			nw.ProductId = ob.Id
-			nw.Type = networkType
-			err = network.UpdateNetworkTx(nw, txOrm)
-			return err
-		}
-	})
-
+	ob.CreateTime = models.NewDateTime()
+	ob.CodecId = core.Script_Codec
+	mc := core.GetNetworkMetaConfig(ob.NetworkType)
+	if len(mc.CodecId) > 0 {
+		ob.CodecId = mc.CodecId
+	}
+	ob.Metaconfig = mc.ToJson()
+	_, err = o.Insert(ob)
 	return err
 }
 
@@ -177,33 +152,30 @@ func DeleteProduct(ob *models.Product) error {
 		return errors.New("id must be present")
 	}
 	o := orm.NewOrm()
-	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		num, err := txOrm.Delete(ob)
-		if err != nil {
-			return err
-		}
-		if num == 0 {
-			return errors.New("product not exist")
-		}
-		nw, err := network.GetByProductId(ob.Id)
-		if err != nil {
-			return err
-		}
-		if nw != nil {
-			if core.IsNetClientType(nw.Type) {
-				err := network.DeleteNetworkTx(nw, txOrm)
-				return err
-			} else {
-				nw.ProductId = ""
-				nw.Type = ""
-				nw.Configuration = ""
-				nw.State = "stop"
-				err = network.UpdateNetworkTx(nw, txOrm)
-				return err
-			}
-		}
+	num, err := o.Delete(ob)
+	if err != nil {
 		return err
-	})
+	}
+	if num == 0 {
+		return errors.New("product not exist")
+	}
+	nw, err := network.GetByProductId(ob.Id)
+	if err != nil {
+		return err
+	}
+	if nw != nil {
+		if core.IsNetClientType(nw.Type) {
+			err := network.DeleteNetwork(nw)
+			return err
+		} else {
+			nw.ProductId = ""
+			nw.Type = ""
+			nw.Configuration = ""
+			nw.State = "stop"
+			err = network.UpdateNetwork(nw)
+			return err
+		}
+	}
 	return err
 }
 

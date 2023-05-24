@@ -82,17 +82,12 @@ func (ctl *ProductController) List() {
 	}
 }
 
-type productDTO struct {
-	models.ProductModel
-	NetworkType string `json:"networkType"`
-}
-
 // 添加型号
 func (ctl *ProductController) Add() {
 	if ctl.isForbidden(productResource, CretaeAction) {
 		return
 	}
-	var aligns productDTO
+	var aligns models.ProductModel
 	err := ctl.BindJSON(&aligns)
 	if err != nil {
 		ctl.RespError(err)
@@ -107,7 +102,7 @@ func (ctl *ProductController) Add() {
 		ob.StorePolicy = core.TIME_SERISE_ES
 	}
 	ob.CreateId = ctl.GetCurrentUser().Id
-	err = product.AddProduct(&ob, aligns.NetworkType)
+	err = product.AddProduct(&ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -160,12 +155,10 @@ func (ctl *ProductController) Get() {
 		ctl.RespError(err)
 		return
 	}
-	var aligns productDTO
-	aligns.ProductModel = *p
 	if nw != nil {
-		aligns.NetworkType = nw.Type
+		p.NetworkType = nw.Type
 	}
-	ctl.RespOkData(aligns)
+	ctl.RespOkData(p)
 }
 
 // 删除型号
@@ -341,7 +334,7 @@ func (ctl *ProductController) GetNetwork() {
 		return
 	}
 	productId := ctl.Param(":productId")
-	_, err := ctl.getProductAndCheckCreate(productId)
+	product, err := ctl.getProductAndCheckCreate(productId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -352,8 +345,23 @@ func (ctl *ProductController) GetNetwork() {
 		return
 	}
 	if nw == nil {
-		ctl.RespError(errors.New("product have no network config"))
-		return
+		// client
+		if core.IsNetClientType(product.NetworkType) {
+			network.AddNetWork(&models.Network{
+				ProductId: product.Id,
+				Type:      product.NetworkType,
+				State:     models.Stop,
+			})
+			nw, err = network.GetByProductId(productId)
+			if err != nil {
+				ctl.RespError(err)
+				return
+			}
+		} else {
+			nw = &models.Network{State: models.Stop, Type: product.NetworkType}
+			ctl.RespOkData(nw)
+			return
+		}
 	}
 	server := servers.GetServer(productId)
 	if server == nil {
@@ -424,8 +432,18 @@ func (ctl *ProductController) RunNetwork() {
 		return
 	}
 	if nw == nil {
-		ctl.RespError(errors.New("product not have network, config network first"))
-		return
+		nw, err = network.GetUnuseNetwork()
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+		nw.ProductId = productId
+		nw.Type = produc.NetworkType
+		err = network.UpdateNetwork(nw)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
 	}
 	if len(nw.Type) == 0 {
 		ctl.RespError(errors.New("type of network must be present"))

@@ -101,12 +101,12 @@ func (ctl *DeviceImportController) Import() {
 	for _, v := range product.Metaconfig {
 		productMetaconfig[v.Property] = true
 	}
-	var devices []models.DeviceModel
+	var devices []models.Device
 	for rowIdx, row := range rows {
 		if rowIdx == 0 {
 			continue
 		}
-		dev := models.DeviceModel{Device: models.Device{Id: row[0], Name: row[1]}}
+		dev := models.Device{Id: row[0], Name: row[1]}
 		dev.ProductId = productId
 		dev.CreateId = ctl.GetCurrentUser().Id
 		var devMetaconfig map[string]string = map[string]string{}

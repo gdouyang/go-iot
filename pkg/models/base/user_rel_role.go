@@ -1,9 +1,8 @@
 package base
 
 import (
+	"go-iot/pkg/core/es/orm"
 	"go-iot/pkg/models"
-
-	"github.com/beego/beego/v2/client/orm"
 )
 
 func GetUserRelRoleByUserId(userId int64) ([]models.UserRelRole, error) {

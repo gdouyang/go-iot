@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -134,8 +135,11 @@ func DoRequest[T any](s esDo) (T, *EsErrorResult) {
 		}
 	} else {
 		// Deserialize the response into a map.
-		if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
-			logs.Error("Error parsing the response body: %s", err)
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(res.Body)
+		s := buf.String()
+		if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
+			logs.Error("Error parsing the response body: %s, err: %s", s, err)
 		} else {
 			return result, nil
 		}
@@ -146,15 +150,22 @@ func DoRequest[T any](s esDo) (T, *EsErrorResult) {
 	return result, nil
 }
 
-func CreateEsTemplate(properties map[string]interface{}, indexPattern string, templateName string) error {
+func CreateEsTemplate(properties map[string]interface{}, indexPattern string, templateName string, refresh_interval string) error {
+	if len(refresh_interval) == 0 {
+		refresh_interval = "10s"
+	}
+	settings := map[string]interface{}{
+		"number_of_shards":   DefaultEsConfig.NumberOfShards,
+		"number_of_replicas": DefaultEsConfig.NumberOfReplicas,
+	}
+	if len(refresh_interval) > 0 {
+		settings["refresh_interval"] = refresh_interval
+	}
 	var payload map[string]interface{} = map[string]interface{}{
 		"index_patterns": []string{indexPattern},
 		"order":          0,
 		// "template": map[string]interface{}{
-		"settings": map[string]interface{}{
-			"number_of_shards":   DefaultEsConfig.NumberOfShards,
-			"number_of_replicas": DefaultEsConfig.NumberOfReplicas,
-		},
+		"settings": settings,
 		"mappings": map[string]interface{}{
 			"dynamic":    false,
 			"properties": properties,
@@ -219,7 +230,12 @@ func AppendFilter(condition map[string]interface{}) []map[string]interface{} {
 			var term map[string]interface{} = map[string]interface{}{}
 			if strings.Contains(key, "$IN") {
 				prop := strings.ReplaceAll(key, "$IN", "")
-				term["terms"] = map[string]interface{}{prop: strings.Split(s, ",")}
+				kind := reflect.TypeOf(val).Kind()
+				if kind == reflect.Array || kind == reflect.Slice {
+					term["terms"] = map[string]interface{}{prop: val}
+				} else {
+					term["terms"] = map[string]interface{}{prop: strings.Split(s, ",")}
+				}
 			} else if strings.Contains(key, "$LIKE") {
 				prop := strings.ReplaceAll(key, "$LIKE", "")
 				term["prefix"] = map[string]interface{}{prop: s}
@@ -240,4 +256,151 @@ func AppendFilter(condition map[string]interface{}) []map[string]interface{} {
 		}
 	}
 	return filter
+}
+
+func CreateDoc(index string, docId string, ob any) error {
+	b, err := json.Marshal(ob)
+	if err != nil {
+		return err
+	}
+	req := esapi.CreateRequest{
+		Index: index,
+		Body:  bytes.NewReader(b),
+	}
+	if len(docId) > 0 {
+		req.DocumentID = docId
+	}
+	_, eserr := DoRequest[map[string]interface{}](req)
+	if eserr != nil {
+		return eserr.OriginErr
+	}
+	return nil
+}
+
+func UpdateDoc(index string, docId string, data any) error {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	req := esapi.UpdateRequest{
+		Index:      index,
+		DocumentID: docId,
+		Body:       bytes.NewReader([]byte(fmt.Sprintf(`{"doc": %s}`, string(b)))),
+	}
+	_, eserr := DoRequest[map[string]interface{}](req)
+	if eserr != nil {
+		return eserr.OriginErr
+	}
+	return nil
+}
+
+func BulkDoc(data []byte) error {
+	req := esapi.BulkRequest{
+		Body: bytes.NewReader([]byte(data)),
+	}
+	_, err := DoRequest[map[string]interface{}](req)
+	if err != nil {
+		return err.OriginErr
+	}
+	return nil
+}
+
+func UpdateDocByQuery(index string, filter []map[string]interface{}, script map[string]interface{}) error {
+	body := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"filter": filter,
+			},
+		},
+		"script": script,
+	}
+	data, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	req := esapi.UpdateByQueryRequest{
+		Index: []string{index},
+		Body:  bytes.NewReader(data),
+	}
+	_, eserr := DoRequest[map[string]interface{}](req)
+	if eserr != nil {
+		return eserr.OriginErr
+	}
+	return nil
+}
+
+func DeleteDoc(index string, docId string) error {
+	req := esapi.DeleteRequest{
+		Index:      index,
+		DocumentID: docId,
+	}
+	_, err := DoRequest[map[string]interface{}](req)
+	if err != nil {
+		return err.OriginErr
+	}
+	return nil
+}
+
+func DeleteByQuery(index string, filter []map[string]interface{}) error {
+	body := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"filter": filter,
+			},
+		},
+	}
+	data, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	req := esapi.DeleteByQueryRequest{
+		Index: []string{index},
+		Body:  bytes.NewReader(data),
+	}
+	_, eserr := DoRequest[map[string]interface{}](req)
+	if eserr != nil {
+		return eserr.OriginErr
+	}
+	return nil
+}
+
+func FilterSearch[T any](index string, q Query) (int64, []T, error) {
+	var total int64
+	body := map[string]interface{}{
+		"from": q.From,
+		"size": q.Size,
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"filter": q.Filter,
+			},
+		},
+	}
+	if len(q.Includes) > 0 {
+		body["_source"] = q.Includes
+	}
+	if len(q.Sort) > 0 {
+		body["sort"] = q.Sort
+	}
+	var result []T
+	data, err := json.Marshal(body)
+	if err != nil {
+		return total, result, err
+	}
+	req := esapi.SearchRequest{
+		Index: []string{index},
+		Body:  bytes.NewReader(data),
+	}
+	r, eserr := DoRequest[EsQueryResult[T]](req)
+	if eserr != nil {
+		return total, result, eserr.OriginErr
+	}
+	if eserr == nil && len(r.Hits.Hits) > 0 {
+		total = int64(r.Hits.Total.Value)
+		// convert each hit to result.
+		for _, hit := range r.Hits.Hits {
+			d := hit.Source
+			result = append(result, d)
+		}
+	}
+	return total, result, nil
 }

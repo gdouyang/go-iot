@@ -24,8 +24,13 @@ func PageUtil[T any](count int64, pageNum int, pageSize int, list []T) PageResul
 		tp = int(count)/pageSize + 1
 	}
 	return PageResult[T]{
-		PageNum: pageNum, PageSize: pageSize, TotalPage: tp, TotalCount: count,
-		FirstPage: pageNum == 1, LastPage: pageNum == tp, List: list,
+		PageNum:    pageNum,
+		PageSize:   pageSize,
+		TotalPage:  tp,
+		TotalCount: count,
+		FirstPage:  pageNum == 1,
+		LastPage:   pageNum == tp,
+		List:       list,
 	}
 }
 

@@ -32,7 +32,6 @@ var deviceResource = Resource{
 func init() {
 	ns := web.NewNamespace("/api/device",
 		web.NSRouter("/page", &DeviceController{}, "post:Page"),
-		web.NSRouter("/page-es", &DeviceController{}, "post:PageEs"),
 		web.NSRouter("/", &DeviceController{}, "post:Add"),
 		web.NSRouter("/", &DeviceController{}, "put:Update"),
 		web.NSRouter("/:id", &DeviceController{}, "delete:Delete"),
@@ -76,26 +75,6 @@ func (ctl *DeviceController) Page() {
 	ctl.RespOkData(res)
 }
 
-// 查询设备列表
-func (ctl *DeviceController) PageEs() {
-	if ctl.isForbidden(deviceResource, QueryAction) {
-		return
-	}
-	var ob models.PageQuery[models.DeviceModel]
-	err := ctl.BindJSON(&ob)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-
-	res, err := device.PageDeviceEs(&ob, ctl.GetCurrentUser().Id)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	ctl.RespOkData(res)
-}
-
 // 查询单个设备
 func (ctl *DeviceController) GetOne() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
@@ -131,7 +110,7 @@ func (ctl *DeviceController) GetDetail() {
 		return
 	}
 	var alins = struct {
-		models.DeviceModel
+		models.Device
 		Metadata    string `json:"metadata"`
 		ProductName string `json:"productName"`
 		NetworkType string `json:"networkType"`
@@ -141,7 +120,7 @@ func (ctl *DeviceController) GetDetail() {
 	if nw != nil {
 		alins.NetworkType = nw.Type
 	}
-	alins.DeviceModel = *ob
+	alins.Device = *ob
 	if ob.State != core.NoActive {
 		dev := core.GetDevice(ob.Id)
 		// 设备在其它节点时转发给其它节点执行
@@ -166,7 +145,7 @@ func (ctl *DeviceController) Add() {
 	if ctl.isForbidden(deviceResource, CretaeAction) {
 		return
 	}
-	var ob models.DeviceModel
+	var ob models.Device
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -186,7 +165,7 @@ func (ctl *DeviceController) Update() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	var ob models.DeviceModel
+	var ob models.Device
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -197,8 +176,7 @@ func (ctl *DeviceController) Update() {
 		ctl.RespError(err)
 		return
 	}
-	en := ob.ToEnitty()
-	err = device.UpdateDevice(&en)
+	err = device.UpdateDevice(&ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -380,9 +358,6 @@ func (ctl *DeviceController) BatchDeploy() {
 					if devopr == nil {
 						devopr = dev.ToDeviceOper()
 					}
-					model := models.DeviceModel{}
-					model.FromEnitty(dev)
-					devopr.Config = model.Metaconfig
 					core.PutDevice(devopr)
 				}
 				err = device.UpdateOnlineStatusList(ids, core.OFFLINE)
@@ -516,7 +491,7 @@ func (ctl *DeviceController) QueryProperty() {
 	ctl.RespOkData(res)
 }
 
-func (ctl *DeviceController) getDeviceAndCheckCreateId(deviceId string) (*models.DeviceModel, error) {
+func (ctl *DeviceController) getDeviceAndCheckCreateId(deviceId string) (*models.Device, error) {
 	ob, err := device.GetDeviceMust(deviceId)
 	if err != nil {
 		return nil, err

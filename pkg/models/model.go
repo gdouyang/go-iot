@@ -8,56 +8,10 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
-// device
-type DeviceModel struct {
-	Device
-	Metaconfig map[string]string `json:"metaconfig,omitempty"`
-	Tag        map[string]string `json:"tag,omitempty"`
-	CreateTime string            `json:"createTime,omitempty"`
-}
-
-func (d *DeviceModel) FromEnitty(en Device) {
-	d.Device = en
-	if len(en.Metaconfig) > 0 {
-		m := map[string]string{}
-		err := json.Unmarshal([]byte(en.Metaconfig), &m)
-		if err != nil {
-			logs.Error(err)
-		}
-		d.Metaconfig = m
-	}
-	if len(en.Tag) > 0 {
-		m := map[string]string{}
-		err := json.Unmarshal([]byte(en.Metaconfig), &m)
-		if err != nil {
-			logs.Error(err)
-		}
-		d.Tag = m
-	}
-}
-
-func (d *DeviceModel) ToEnitty() Device {
-	en := d.Device
-	v, err := json.Marshal(d.Metaconfig)
-	if err != nil {
-		logs.Error(err)
-	} else {
-		en.Metaconfig = string(v)
-	}
-	t, err := json.Marshal(d.Tag)
-	if err != nil {
-		logs.Error(err)
-	} else {
-		en.Tag = string(t)
-	}
-	return en
-}
-
 // product
 type ProductModel struct {
 	Product
 	Metaconfig []core.ProductMetaConfig `json:"metaconfig,omitempty"`
-	Tag        map[string]string        `json:"tag,omitempty"`
 }
 
 func (d *ProductModel) FromEnitty(en Product) {
@@ -87,12 +41,6 @@ func (d *ProductModel) ToEnitty() Product {
 		logs.Error(err)
 	} else {
 		en.Metaconfig = string(v)
-	}
-	t, err := json.Marshal(d.Tag)
-	if err != nil {
-		logs.Error(err)
-	} else {
-		en.Tag = string(t)
 	}
 	return en
 }
