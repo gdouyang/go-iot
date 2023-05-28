@@ -19,7 +19,7 @@ func init() {
 		count, err := qs.Count()
 		if err == nil && count == 0 {
 			for i := 0; i < 10; i++ {
-				AddNetWork(&models.Network{Id: int64(i + 1), Port: int32(9000 + i), State: models.Stop})
+				AddNetWork(&models.Network{Id: int64(i + 1), Port: int32(9000 + i), State: models.Stop, ProductId: ""})
 			}
 			logs.Info("init networks")
 		}
@@ -235,4 +235,49 @@ func GetUnuseNetwork() (*models.Network, error) {
 		return &result[0], nil
 	}
 	return nil, errors.New("no port is available to start the network service")
+}
+
+func BindNetworkProduct(productId, networkType string) (*models.Network, error) {
+	if core.IsNetClientType(networkType) {
+		nw, err := GetByProductId(productId)
+		if nw == nil && err == nil {
+			AddNetWork(&models.Network{
+				ProductId: productId,
+				Type:      networkType,
+				State:     models.Stop,
+			})
+		}
+		nw, err = GetByProductId(productId)
+		return nw, err
+	} else {
+		nw, err := GetUnuseNetwork()
+		if err != nil {
+			nw.ProductId = productId
+			nw.Type = networkType
+			err = UpdateNetwork(nw)
+		}
+		return nw, err
+	}
+}
+
+func UnbindNetworkProduct(productId string) error {
+	nw, err := GetByProductId(productId)
+	if err != nil {
+		return err
+	}
+	if nw != nil {
+		if core.IsNetClientType(nw.Type) {
+			err := DeleteNetwork(nw)
+			return err
+		} else {
+			nw.ProductId = ""
+			nw.Type = ""
+			nw.Configuration = ""
+			nw.State = "stop"
+			o := orm.NewOrm()
+			_, err := o.Update(nw, "productId", "type", "Configuration", "State")
+			return err
+		}
+	}
+	return nil
 }

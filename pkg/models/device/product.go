@@ -64,7 +64,7 @@ func ListAllProduct(createId int64) ([]models.Product, error) {
 	return result, nil
 }
 
-func AddProduct(ob *models.Product) error {
+func AddProduct(ob *models.ProductModel) error {
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
 		return errors.New("id and name must be present")
 	}
@@ -85,16 +85,27 @@ func AddProduct(ob *models.Product) error {
 	o := orm.NewOrm()
 	ob.CreateTime = models.NewDateTime()
 	ob.CodecId = core.Script_Codec
+	if len(ob.StorePolicy) == 0 {
+		ob.StorePolicy = core.TIME_SERISE_ES
+	}
 	mc := core.GetNetworkMetaConfig(ob.NetworkType)
 	if len(mc.CodecId) > 0 {
 		ob.CodecId = mc.CodecId
 	}
-	ob.Metaconfig = mc.ToJson()
-	_, err = o.Insert(ob)
+	entity := ob.ToEnitty()
+	entity.Metaconfig = mc.ToJson()
+	_, err = o.Insert(entity)
+	if err != nil {
+		return err
+	}
+	_, err = network.BindNetworkProduct(entity.Id, entity.NetworkType)
+	if err != nil {
+		logs.Error("bind network error: ", err)
+	}
 	return err
 }
 
-func UpdateProduct(ob *models.Product) error {
+func UpdateProduct(ob *models.ProductModel) error {
 	if len(ob.Id) == 0 {
 		return errors.New("id must be present")
 	}
@@ -159,22 +170,9 @@ func DeleteProduct(ob *models.Product) error {
 	if num == 0 {
 		return errors.New("product not exist")
 	}
-	nw, err := network.GetByProductId(ob.Id)
+	err = network.UnbindNetworkProduct(ob.Id)
 	if err != nil {
 		return err
-	}
-	if nw != nil {
-		if core.IsNetClientType(nw.Type) {
-			err := network.DeleteNetwork(nw)
-			return err
-		} else {
-			nw.ProductId = ""
-			nw.Type = ""
-			nw.Configuration = ""
-			nw.State = "stop"
-			err = network.UpdateNetwork(nw)
-			return err
-		}
 	}
 	return err
 }

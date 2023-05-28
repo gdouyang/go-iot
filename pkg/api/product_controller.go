@@ -97,12 +97,8 @@ func (ctl *ProductController) Add() {
 		ctl.RespError(errors.New("networkType must be present"))
 		return
 	}
-	var ob = aligns.Product
-	if len(ob.StorePolicy) == 0 {
-		ob.StorePolicy = core.TIME_SERISE_ES
-	}
-	ob.CreateId = ctl.GetCurrentUser().Id
-	err = product.AddProduct(&ob)
+	aligns.CreateId = ctl.GetCurrentUser().Id
+	err = product.AddProduct(&aligns)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -128,10 +124,9 @@ func (ctl *ProductController) Update() {
 		return
 	}
 
-	pro := ob.ToEnitty()
-	pro.Metadata = ""
-	pro.Script = ""
-	err = product.UpdateProduct(&pro)
+	ob.Metadata = ""
+	ob.Script = ""
+	err = product.UpdateProduct(&ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -283,7 +278,7 @@ func (ctl *ProductController) UpdateTsl() {
 		ctl.RespError(err)
 		return
 	}
-	var update models.Product
+	var update models.ProductModel
 	update.Id = ob.Id
 	update.Metadata = ob.Metadata
 	tslData := tsl.NewTslData()
@@ -316,11 +311,9 @@ func (ctl *ProductController) UpdateScript() {
 		ctl.RespError(err)
 		return
 	}
-	var update models.Product = models.Product{
-		Id:     productId,
-		Script: ob.Script,
-	}
-
+	update := models.ProductModel{}
+	update.Id = productId
+	update.Script = ob.Script
 	if err = product.UpdateProduct(&update); err != nil {
 		ctl.RespError(err)
 		return
@@ -346,22 +339,13 @@ func (ctl *ProductController) GetNetwork() {
 	}
 	if nw == nil {
 		// client
-		if core.IsNetClientType(product.NetworkType) {
-			network.AddNetWork(&models.Network{
-				ProductId: product.Id,
-				Type:      product.NetworkType,
-				State:     models.Stop,
-			})
-			nw, err = network.GetByProductId(productId)
-			if err != nil {
-				ctl.RespError(err)
-				return
-			}
-		} else {
-			nw = &models.Network{State: models.Stop, Type: product.NetworkType}
-			ctl.RespOkData(nw)
+		nw, err = network.BindNetworkProduct(productId, product.NetworkType)
+		if err != nil {
+			ctl.RespError(err)
 			return
 		}
+		ctl.RespOkData(nw)
+		return
 	}
 	server := servers.GetServer(productId)
 	if server == nil {
