@@ -1,11 +1,9 @@
 package base
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"go-iot/pkg/models"
-	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 )
@@ -70,90 +68,88 @@ func AddRole(ob *RoleDTO) error {
 	}
 	//插入数据
 	o := orm.NewOrm()
-	err = o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		ob.CreateTime = time.Now()
-		_, err = txOrm.Insert(&ob.Role)
+	ob.CreateTime = models.NewDateTime()
+	_, err = o.Insert(&ob.Role)
+	if err != nil {
+		return err
+	}
+	var auths []models.AuthResource
+	for _, m := range ob.RuleRefMenus {
+		ar := models.AuthResource{}
+		ac, err := json.Marshal(m.Action)
 		if err != nil {
 			return err
 		}
-		var auths []models.AuthResource
-		for _, m := range ob.RuleRefMenus {
-			ar := models.AuthResource{}
-			ac, err := json.Marshal(m.Action)
-			if err != nil {
-				return err
-			}
-			ar.Code = m.Code
-			ar.ObjId = ob.Id
-			ar.ResType = string(ResTypeRole)
-			ar.Action = string(ac)
-			auths = append(auths, ar)
+		ar.Code = m.Code
+		ar.ObjId = ob.Id
+		ar.ResType = string(ResTypeRole)
+		ar.Action = string(ac)
+		auths = append(auths, ar)
+	}
+	for _, ar := range auths {
+		ar.ObjId = ob.Role.Id
+		err = AddAuthResource(&ar)
+		if err != nil {
+			DeleteRole(&ob.Role)
+			return err
 		}
-		for _, ar := range auths {
-			ar.ObjId = ob.Role.Id
-			err = AddAuthResource(&ar, txOrm)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	return err
+	}
+	return nil
 }
 
 func UpdateRole(ob *RoleDTO) error {
 	//更新数据
 	o := orm.NewOrm()
-	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		_, err := txOrm.Update(&ob.Role, "Desc")
+	_, err := o.Update(&ob.Role, "Desc")
+	if err != nil {
+		return err
+	}
+	var auths []models.AuthResource
+	for _, m := range ob.RuleRefMenus {
+		ar := models.AuthResource{}
+		ac, err := json.Marshal(m.Action)
 		if err != nil {
 			return err
 		}
-		var auths []models.AuthResource
-		for _, m := range ob.RuleRefMenus {
-			ar := models.AuthResource{}
-			ac, err := json.Marshal(m.Action)
-			if err != nil {
-				return err
-			}
-			ar.Code = m.Code
-			ar.ObjId = ob.Id
-			ar.ResType = string(ResTypeRole)
-			ar.Action = string(ac)
-			auths = append(auths, ar)
-		}
-		_, err = txOrm.Delete(&models.AuthResource{
-			ResType: string(ResTypeRole),
-			ObjId:   ob.Id,
-		}, "ResType", "ObjId")
+		ar.Code = m.Code
+		ar.ObjId = ob.Id
+		ar.ResType = string(ResTypeRole)
+		ar.Action = string(ac)
+		auths = append(auths, ar)
+	}
+	err = deleteRoleAuth(&ob.Role)
+	if err != nil {
+		return err
+	}
+	for _, ar := range auths {
+		ar.ObjId = ob.Role.Id
+		err = AddAuthResource(&ar)
 		if err != nil {
 			return err
 		}
-		for _, ar := range auths {
-			ar.ObjId = ob.Role.Id
-			err = AddAuthResource(&ar, txOrm)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	return err
+	}
+	return nil
 }
 
 func DeleteRole(ob *models.Role) error {
-	o := orm.NewOrm()
-	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		_, err := txOrm.Delete(ob)
-		if err != nil {
-			return err
-		}
-		_, err = txOrm.Delete(&models.AuthResource{
-			ResType: string(ResTypeRole),
-			ObjId:   ob.Id,
-		}, "ResType", "ObjId")
+	err := deleteRoleAuth(ob)
+	if err != nil {
 		return err
-	})
+	}
+	o := orm.NewOrm()
+	_, err = o.Delete(ob)
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func deleteRoleAuth(ob *models.Role) error {
+	o := orm.NewOrm()
+	_, err := o.Delete(&models.AuthResource{
+		ResType: string(ResTypeRole),
+		ObjId:   ob.Id,
+	}, "ResType", "ObjId")
 	return err
 }
 
@@ -192,9 +188,10 @@ func GetRoleByEntity(p models.Role) (*models.Role, error) {
 	}
 }
 
-func AddAuthResource(ob *models.AuthResource, o orm.DML) error {
+func AddAuthResource(ob *models.AuthResource) error {
 	//插入数据
-	ob.CreateTime = time.Now()
+	o := orm.NewOrm()
+	ob.CreateTime = models.NewDateTime()
 	_, err := o.Insert(ob)
 	if err != nil {
 		return err

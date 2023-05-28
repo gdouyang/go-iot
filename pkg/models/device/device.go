@@ -179,7 +179,7 @@ func GetDevice(deviceId string) (*models.DeviceModel, error) {
 	}
 	o := orm.NewOrm()
 	p := models.Device{Id: deviceId}
-	err := o.Read(&p)
+	err := o.Read(&p, "id")
 	if err == orm.ErrNoRows {
 		return nil, nil
 	} else if err == orm.ErrMissPK {

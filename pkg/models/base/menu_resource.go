@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-iot/pkg/models"
-	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 )
@@ -157,7 +156,7 @@ func GetMenuResourceByCode(code string) (*models.MenuResource, error) {
 func AddMenuResource(ob *models.MenuResource) error {
 	//插入数据
 	o := orm.NewOrm()
-	ob.CreateTime = time.Now()
+	ob.CreateTime = models.NewDateTime()
 	_, err := o.Insert(ob)
 	if err != nil {
 		return err

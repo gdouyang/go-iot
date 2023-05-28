@@ -5,6 +5,32 @@ import (
 	"time"
 )
 
+const Time_Layout = "\"2006-01-02 15:04:05\""
+
+type DateTime time.Time
+
+// func NewDateTime() DateTime {
+// 	return DateTime(time.Now())
+// }
+
+func NewDateTime() time.Time {
+	return time.Now()
+}
+
+func (t DateTime) UnixMilli() int64 {
+	return time.Time(t).UnixMilli()
+}
+
+func (t DateTime) MarshalJSON() ([]byte, error) {
+	var stamp = time.Time(t).Format(Time_Layout)
+	return []byte(stamp), nil
+}
+func (t *DateTime) UnmarshalJSON(data []byte) error {
+	newt, err := time.Parse(Time_Layout, string(data))
+	*t = DateTime(newt)
+	return err
+}
+
 type User struct {
 	Id         int64     `json:"id" orm:"pk;column(id_);auto"` // user id
 	Nickname   string    `json:"nickname" orm:"column(nickname_);description(昵称)"`
@@ -63,6 +89,7 @@ type Product struct {
 	Id          string    `json:"id" orm:"pk;column(id_);size(32);description(产品ID)"`
 	Name        string    `json:"name" orm:"column(name_);description(名称)"`
 	TypeId      string    `json:"typeId" orm:"column(type_id_);null;description(类型)"`
+	NetworkType string    `json:"networkType" orm:"column(network_type_);size(32);description(网络类型MQTT_BROKER)"`     // 网络类型MQTT_BROKER
 	Metadata    string    `json:"metadata,omitempty" orm:"column(meta_data_);null;type(text);description(物模型)"`      // 物模型
 	Metaconfig  string    `json:"metaconfig,omitempty" orm:"column(meta_config_);null;type(text);description(配置属性)"` // 配置属性
 	State       bool      `json:"state" orm:"column(state_);description(1启用，0禁用)"`

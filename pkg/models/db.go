@@ -1,11 +1,9 @@
 package models
 
 import (
-	"database/sql"
 	"go-iot/pkg/core/boot"
 
 	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/core/logs"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -33,17 +31,4 @@ func InitDb() {
 	orm.RunSyncdb("default", false, true)
 
 	boot.CallStartLinstener()
-}
-
-func GetQb() (orm.QueryBuilder, error) {
-	return orm.NewQueryBuilder("mysql")
-}
-
-func GetDb() (*sql.DB, error) {
-	db, _ := sql.Open("mysql", DefaultDbConfig.Url)
-	err := db.Ping() //连接数据库
-	if err != nil {
-		logs.Error("数据库连接失败")
-	}
-	return db, err
 }

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"go-iot/pkg/core/boot"
 	"go-iot/pkg/models"
-	"time"
 
 	"github.com/beego/beego/v2/client/orm"
+
 	"github.com/beego/beego/v2/core/logs"
 )
 
@@ -82,7 +82,7 @@ func AddUser(ob *models.User) error {
 	Md5Pwd(ob)
 	//插入数据
 	o := orm.NewOrm()
-	ob.CreateTime = time.Now()
+	ob.CreateTime = models.NewDateTime()
 	_, err = o.Insert(ob)
 	if err != nil {
 		return err
@@ -179,6 +179,6 @@ func GetUserByEntity(p models.User) (*models.User, error) {
 	} else if err == orm.ErrMissPK {
 		return nil, err
 	} else {
-		return &p, nil
+		return &p, err
 	}
 }

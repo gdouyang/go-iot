@@ -1,10 +1,8 @@
 package rule
 
 import (
-	"context"
 	"errors"
 	"go-iot/pkg/models"
-	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 )
@@ -82,27 +80,23 @@ func AddRule(ob *models.RuleModel) error {
 	en := ob.ToEnitty()
 	//插入数据
 	o := orm.NewOrm()
-	err = o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		en.CreateTime = time.Now()
-		_, err := txOrm.Insert(&en)
-		if err != nil {
-			return err
-		}
-		list := []*models.RuleRelDevice{}
-		for _, deviceId := range ob.DeviceIds {
-			list = append(list, &models.RuleRelDevice{
-				RuleId:   en.Id,
-				DeviceId: deviceId,
-			})
-		}
-		if len(list) > 0 {
-			_, err = txOrm.InsertMulti(10, &list)
-			return err
-		}
-		return nil
-	})
-	return err
-
+	en.CreateTime = models.NewDateTime()
+	_, err = o.Insert(&en)
+	if err != nil {
+		return err
+	}
+	list := []*models.RuleRelDevice{}
+	for _, deviceId := range ob.DeviceIds {
+		list = append(list, &models.RuleRelDevice{
+			RuleId:   en.Id,
+			DeviceId: deviceId,
+		})
+	}
+	if len(list) > 0 {
+		_, err = o.InsertMulti(10, &list)
+		return err
+	}
+	return nil
 }
 
 func UpdateRule(ob *models.RuleModel) error {
@@ -137,33 +131,29 @@ func UpdateRule(ob *models.RuleModel) error {
 		return errors.New("size of deviceIds must less 51")
 	}
 	o := orm.NewOrm()
-	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		_, err := txOrm.Update(&en, columns...)
-		if err != nil {
-			return err
-		}
-		srd := models.RuleRelDevice{
-			RuleId: en.Id,
-		}
-		_, err = txOrm.Delete(&srd, "RuleId")
-		if err != nil {
-			return err
-		}
-		list := []*models.RuleRelDevice{}
-		for _, deviceId := range ob.DeviceIds {
-			list = append(list, &models.RuleRelDevice{
-				RuleId:   en.Id,
-				DeviceId: deviceId,
-			})
-		}
-		if len(list) > 0 {
-			_, err = txOrm.InsertMulti(10, &list)
-			return err
-		}
-		return nil
-	})
-
-	return err
+	_, err := o.Update(&en, columns...)
+	if err != nil {
+		return err
+	}
+	srd := models.RuleRelDevice{
+		RuleId: en.Id,
+	}
+	_, err = o.Delete(&srd, "RuleId")
+	if err != nil {
+		return err
+	}
+	list := []*models.RuleRelDevice{}
+	for _, deviceId := range ob.DeviceIds {
+		list = append(list, &models.RuleRelDevice{
+			RuleId:   en.Id,
+			DeviceId: deviceId,
+		})
+	}
+	if len(list) > 0 {
+		_, err = o.InsertMulti(10, &list)
+		return err
+	}
+	return nil
 }
 
 // 更新在线状态
@@ -205,7 +195,7 @@ func GetRule(sceneId int64) (*models.RuleModel, error) {
 		m.FromEnitty(p)
 		//
 		o := orm.NewOrm()
-		qs := o.QueryTable(models.RuleRelDevice{}).Filter("RuleId", p.Id)
+		qs := o.QueryTable(new(models.RuleRelDevice)).Filter("RuleId", p.Id)
 		var cols = []string{"Id", "RuleId", "DeviceId"}
 		var result []models.RuleRelDevice
 		_, err = qs.All(&result, cols...)

@@ -6,9 +6,9 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/boot"
 	"go-iot/pkg/models"
-	"time"
 
 	"github.com/beego/beego/v2/client/orm"
+
 	"github.com/beego/beego/v2/core/logs"
 )
 
@@ -18,16 +18,9 @@ func init() {
 		qs := o.QueryTable(&models.Network{})
 		count, err := qs.Count()
 		if err == nil && count == 0 {
-			AddNetWork(&models.Network{Id: 1, Port: 9000, State: models.Stop})
-			AddNetWork(&models.Network{Id: 2, Port: 9001, State: models.Stop})
-			AddNetWork(&models.Network{Id: 3, Port: 9002, State: models.Stop})
-			AddNetWork(&models.Network{Id: 4, Port: 9003, State: models.Stop})
-			AddNetWork(&models.Network{Id: 5, Port: 9004, State: models.Stop})
-			AddNetWork(&models.Network{Id: 6, Port: 9005, State: models.Stop})
-			AddNetWork(&models.Network{Id: 7, Port: 9006, State: models.Stop})
-			AddNetWork(&models.Network{Id: 8, Port: 9007, State: models.Stop})
-			AddNetWork(&models.Network{Id: 9, Port: 9008, State: models.Stop})
-			AddNetWork(&models.Network{Id: 10, Port: 9009, State: models.Stop})
+			for i := 0; i < 10; i++ {
+				AddNetWork(&models.Network{Id: int64(i + 1), Port: int32(9000 + i), State: models.Stop})
+			}
 			logs.Info("init networks")
 		}
 	})
@@ -107,17 +100,11 @@ func ListStartNetClient() ([]models.Network, error) {
 }
 
 func AddNetWork(ob *models.Network) error {
-	//插入数据
-	o := orm.NewOrm()
-	return AddNetWorkTx(ob, o)
-}
-
-func AddNetWorkTx(ob *models.Network, o orm.DML) error {
 	if !core.IsNetClientType(ob.Type) {
 		if ob.Port <= 1024 || ob.Port > 65535 {
 			return errors.New("invalid port number")
 		}
-		rs, err := GetNetworkByEntity(models.Network{Port: ob.Port})
+		rs, err := GetNetworkByPort(models.Network{Port: ob.Port})
 		if err != nil {
 			return err
 		}
@@ -135,7 +122,8 @@ func AddNetWorkTx(ob *models.Network, o orm.DML) error {
 		}
 	}
 	//插入数据
-	ob.CreateTime = time.Now()
+	ob.CreateTime = models.NewDateTime()
+	o := orm.NewOrm()
 	_, err := o.Insert(ob)
 	if err != nil {
 		return err
@@ -144,13 +132,6 @@ func AddNetWorkTx(ob *models.Network, o orm.DML) error {
 }
 
 func UpdateNetwork(ob *models.Network) error {
-	//更新数据
-	o := orm.NewOrm()
-	err := UpdateNetworkTx(ob, o)
-	return err
-}
-
-func UpdateNetworkTx(ob *models.Network, o orm.DML) error {
 	//更新数据
 	var cols []string
 	if ob.Port > 0 {
@@ -183,6 +164,7 @@ func UpdateNetworkTx(ob *models.Network, o orm.DML) error {
 	if len(cols) == 0 {
 		return nil
 	}
+	o := orm.NewOrm()
 	_, err := o.Update(ob, cols...)
 	return err
 }
@@ -196,21 +178,12 @@ func DeleteNetwork(ob *models.Network) error {
 	return nil
 }
 
-// delete with transaction
-func DeleteNetworkTx(ob *models.Network, o orm.DML) error {
-	_, err := o.Delete(ob)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func GetNetwork(id int64) (models.Network, error) {
 
 	o := orm.NewOrm()
 
 	p := models.Network{Id: id}
-	err := o.Read(&p)
+	err := o.Read(&p, "id")
 	if err == orm.ErrNoRows {
 		return models.Network{}, nil
 	} else if err == orm.ErrMissPK {
@@ -235,32 +208,31 @@ func GetByProductId(productId string) (*models.Network, error) {
 	}
 }
 
-func GetNetworkByEntity(p models.Network) (*models.Network, error) {
+func GetNetworkByPort(p models.Network) (*models.Network, error) {
 
 	o := orm.NewOrm()
 
-	err := o.Read(&p)
+	err := o.Read(&p, "port")
 	if err == orm.ErrNoRows {
 		return nil, nil
 	} else if err == orm.ErrMissPK {
 		return nil, err
 	} else {
-		return &p, nil
+		return &p, err
 	}
 }
 
 func GetUnuseNetwork() (*models.Network, error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.Network{})
-	cond := orm.NewCondition()
-	cond = cond.And("productId__isnull", true).Or("productId", "")
-	var result models.Network
-	err := qs.SetCond(cond).One(&result)
+	qs = qs.Filter("productId", "")
+	result := []models.Network{}
+	_, err := qs.All(&result)
 	if err != nil && err != orm.ErrNoRows {
 		return nil, err
 	}
-	if len(result.ProductId) == 0 && result.Id > 0 {
-		return &result, nil
+	if len(result) > 0 {
+		return &result[0], nil
 	}
 	return nil, errors.New("no port is available to start the network service")
 }

@@ -3,7 +3,6 @@ package notify
 import (
 	"errors"
 	"go-iot/pkg/models"
-	"time"
 
 	"github.com/beego/beego/v2/client/orm"
 )
@@ -73,7 +72,7 @@ func AddNotify(ob *models.Notify) error {
 	//插入数据
 	o := orm.NewOrm()
 	ob.State = models.Stopped
-	ob.CreateTime = time.Now()
+	ob.CreateTime = models.NewDateTime()
 	_, err := o.Insert(ob)
 	if err != nil {
 		return err
