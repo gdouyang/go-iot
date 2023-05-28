@@ -19,6 +19,8 @@ const (
 	SUBDEVICE = "subdevice" // 子设备
 )
 
+var ErrNotImpl = errors.New("function not impl")
+
 type (
 	// 编解码接口
 	Codec interface {

@@ -97,7 +97,7 @@ func (c *ScriptCodec) OnConnect(ctx MessageContext) error {
 	if resp != nil {
 		return nil
 	}
-	return errors.New("notimpl")
+	return ErrNotImpl
 }
 
 // 接收消息

@@ -3,36 +3,47 @@ package models
 import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/eventbus"
-	"go-iot/pkg/models"
 	"sync"
 	"time"
 )
 
+type deviceState struct {
+	deviceId   string
+	productId  string
+	state      string
+	createTime string
+}
+
 func init() {
-	deviceManager := &DbDeviceManager{cache: make(map[string]*core.Device), stateCh: make(chan models.Device, 1000)}
+	deviceManager := &DbDeviceManager{stateCh: make(chan deviceState, 1000)}
+
+	var newDeviceState = func(deviceId, productId, state string) deviceState {
+		return deviceState{deviceId: deviceId,
+			productId:  productId,
+			state:      state,
+			createTime: time.Now().Format("2006-01-02 15:04:05.000")}
+	}
 	eventbus.Subscribe(eventbus.GetOfflineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OfflineMessage); ok {
-			deviceManager.stateCh <- models.Device{Id: m.DeviceId, State: core.OFFLINE}
+			deviceManager.stateCh <- newDeviceState(m.DeviceId, m.ProductId, core.OFFLINE)
 		}
 	})
 	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OnlineMessage); ok {
-			deviceManager.stateCh <- models.Device{Id: m.DeviceId, State: core.ONLINE}
+			deviceManager.stateCh <- newDeviceState(m.DeviceId, m.ProductId, core.ONLINE)
 		}
 	})
 	go deviceManager.saveState()
 }
 
-// DbDeviceManager
 type DbDeviceManager struct {
 	sync.RWMutex
-	cache   map[string]*core.Device
-	stateCh chan models.Device
+	stateCh chan deviceState
 }
 
 func (m *DbDeviceManager) saveState() {
-	var onlineList []models.Device
-	var offlineList []models.Device
+	var onlineList []deviceState
+	var offlineList []deviceState
 
 	var onlineFn = func(size int) {
 		if len(onlineList) >= size {
@@ -52,10 +63,10 @@ func (m *DbDeviceManager) saveState() {
 			onlineFn(0)
 			offlineFn(0)
 		case dev := <-m.stateCh:
-			if dev.State == core.ONLINE {
+			if dev.state == core.ONLINE {
 				onlineList = append(onlineList, dev)
 				onlineFn(100)
-			} else if dev.State == core.OFFLINE {
+			} else if dev.state == core.OFFLINE {
 				offlineList = append(offlineList, dev)
 				offlineFn(100)
 			}
@@ -63,14 +74,14 @@ func (m *DbDeviceManager) saveState() {
 	}
 }
 
-func updateOnlineStatus(list []models.Device, state string) {
+func updateOnlineStatus(list []deviceState, state string) {
 	if len(list) > 0 {
 		var ids []string
 		for _, m := range list {
-			ids = append(ids, m.Id)
-			product := core.GetProduct(m.ProductId)
+			ids = append(ids, m.deviceId)
+			product := core.GetProduct(m.productId)
 			if product != nil {
-				product.GetTimeSeries().SaveLogs(product, core.LogData{DeviceId: m.Id, Type: core.OFFLINE})
+				product.GetTimeSeries().SaveLogs(product, core.LogData{DeviceId: m.deviceId, Type: state, CreateTime: m.createTime})
 			}
 		}
 		UpdateOnlineStatusList(ids, state)

@@ -41,7 +41,7 @@ func PageNotify(page *models.PageQuery[models.Notify], createId int64) (*models.
 	return pr, nil
 }
 
-func ListAll(ob *models.Notify) ([]models.Notify, error) {
+func ListAll(ob *models.Notify, createId *int64) ([]models.Notify, error) {
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.Notify{})
@@ -56,7 +56,9 @@ func ListAll(ob *models.Notify) ([]models.Notify, error) {
 	if len(ob.State) > 0 {
 		qs = qs.Filter("State", ob.State)
 	}
-	qs = qs.Filter("createId", ob.CreateId)
+	if createId != nil {
+		qs = qs.Filter("createId", *createId)
+	}
 
 	var result []models.Notify
 	_, err := qs.All(&result)

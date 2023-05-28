@@ -209,7 +209,9 @@ func (t *EsTimeSeries) SaveLogs(product *Product, d1 LogData) error {
 	if len(d1.DeviceId) == 0 {
 		return errors.New("deviceId must be present, dont save event timeseries data")
 	}
-	d1.CreateTime = time.Now().Format(timeformt)
+	if len(d1.CreateTime) == 0 {
+		d1.CreateTime = time.Now().Format(timeformt)
+	}
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {

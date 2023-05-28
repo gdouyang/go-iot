@@ -72,7 +72,7 @@ func (ctl *NotifyController) ListAll() {
 		return
 	}
 	ob.CreateId = ctl.GetCurrentUser().Id
-	res, err := notify.ListAll(&ob)
+	res, err := notify.ListAll(&ob, &ob.CreateId)
 	if err != nil {
 		ctl.RespError(err)
 	} else {

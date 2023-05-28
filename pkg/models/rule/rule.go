@@ -102,6 +102,7 @@ func AddRule(ob *models.RuleModel) error {
 		return nil
 	})
 	return err
+
 }
 
 func UpdateRule(ob *models.RuleModel) error {

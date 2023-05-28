@@ -105,7 +105,7 @@ func (s *RuleExecutor) stop() {
 
 func (s *RuleExecutor) subscribeEvent(data eventbus.Message) {
 	if s.Trigger.FilterType == "online" || s.Trigger.FilterType == "offline" {
-		s.runAction(nil)
+		s.runAction(map[string]interface{}{"deviceId": data.GetDeviceId()})
 		return
 	}
 	s.evaluate(data)
