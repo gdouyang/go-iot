@@ -7,6 +7,8 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 )
 
+const Prefix = "goiot-"
+
 // the config of elasticsearch
 type EsConfig struct {
 	Url              string
@@ -71,6 +73,16 @@ func Config(fn func(key string, call func(string))) {
 
 const DefaultDateFormat string = "yyyy-MM||yyyy-MM-dd||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd HH:mm:ss.SSS||epoch_millis"
 
+type Query struct {
+	From     int
+	Size     int
+	Filter   []map[string]interface{}
+	Sort     []map[string]SortOrder
+	Includes []string
+}
+type SortOrder struct {
+	Order string `json:"order"` // desc, asc
+}
 type EsQueryResult[T any] struct {
 	Hits EsHit[T] `json:"hits"`
 }

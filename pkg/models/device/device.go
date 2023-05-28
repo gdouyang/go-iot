@@ -1,15 +1,12 @@
 package models
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
 	"time"
 
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/es"
 	"go-iot/pkg/models"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -66,43 +63,6 @@ func PageDevice(page *models.PageQuery[models.Device], createId int64) (*models.
 
 	return pr, nil
 }
-func PageDeviceEs(page *models.PageQuery[models.DeviceModel], createId int64) (*models.PageResult[models.DeviceModel], error) {
-	var dev models.DeviceModel = page.Condition
-	param := map[string]interface{}{}
-	id := dev.Id
-	if len(id) > 0 {
-		param["id"] = id
-	}
-	if len(dev.Name) > 0 {
-		param["name$LIKE"] = dev.Name
-	}
-	if len(dev.State) > 0 {
-		param["state"] = dev.State
-	}
-	if len(dev.ProductId) > 0 {
-		param["productId"] = dev.ProductId
-	}
-	if len(dev.ParentId) > 0 {
-		param["parentId"] = dev.ParentId
-	}
-	if len(dev.DeviceType) > 0 {
-		param["deviceType"] = dev.DeviceType
-	}
-	if len(dev.Tag) > 0 {
-		for key, value := range dev.Tag {
-			param["tag."+key] = value
-		}
-	}
-	total, result, err := es.PageDevice[models.DeviceModel](page.PageOffset(), page.PageSize, param)
-	if err != nil {
-		return nil, err
-	}
-	var pr *models.PageResult[models.DeviceModel]
-	p := models.PageUtil(total, page.PageNum, page.PageSize, result)
-	pr = &p
-
-	return pr, nil
-}
 
 func ListClientDeviceByProductId(productId string) ([]string, error) {
 	o := orm.NewOrm()
@@ -146,24 +106,8 @@ func AddDevice(ob *models.DeviceModel) error {
 	en.CreateTime = time.Now()
 	//插入数据
 	o := orm.NewOrm()
-	return o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		_, err = txOrm.Insert(&en)
-		if err != nil {
-			return err
-		}
-		b, err := json.Marshal(ob)
-		if err != nil {
-			return err
-		}
-		data := map[string]interface{}{}
-		json.Unmarshal(b, &data)
-		data["createTime"] = time.Now().Format("2006-01-02 15:04:05")
-		err = es.AddDevice(ob.Id, data)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
+	_, err = o.Insert(&en)
+	return err
 }
 
 func UpdateDevice(ob *models.Device) error {
@@ -189,17 +133,8 @@ func UpdateDevice(ob *models.Device) error {
 	if len(columns) == 0 {
 		return errors.New("no data to update")
 	}
-	return o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		_, err := txOrm.Update(ob, columns...)
-		if err != nil {
-			return err
-		}
-		err = es.UpdateDevice(ob.Id, data)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
+	_, err := o.Update(ob, columns...)
+	return err
 }
 
 // 更新在线状态
@@ -226,10 +161,6 @@ func UpdateOnlineStatusList(ids []string, state string) error {
 	if err != nil {
 		return err
 	}
-	err = es.UpdateOnlineStatusList(ids, state)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -238,17 +169,8 @@ func DeleteDevice(deviceId string) error {
 		return errors.New("id must be present")
 	}
 	o := orm.NewOrm()
-	return o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		_, err := txOrm.Delete(&models.Device{Id: deviceId})
-		if err != nil {
-			return err
-		}
-		err = es.DeleteDevice(deviceId)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
+	_, err := o.Delete(&models.Device{Id: deviceId})
+	return err
 }
 
 func GetDevice(deviceId string) (*models.DeviceModel, error) {
