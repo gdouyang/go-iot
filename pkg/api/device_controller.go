@@ -469,7 +469,7 @@ func (ctl *DeviceController) QueryProperty() {
 	}
 
 	deviceId := ctl.Param(":id")
-	var param core.QueryParam
+	var param core.TimeDataSearchRequest
 	err := ctl.BindJSON(&param)
 	if err != nil {
 		ctl.RespError(err)

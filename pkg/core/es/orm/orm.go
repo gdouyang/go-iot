@@ -42,7 +42,7 @@ func (o *defaultOrm) QueryTable(md interface{}) *QuerySeter {
 		indexName:  mi.indexName,
 		model:      md,
 		mi:         mi,
-		filter:     map[string]interface{}{},
+		filter:     make([]es.SearchTerm, 0),
 		pageSize:   10000,
 		pageOffset: 0,
 	}
@@ -52,7 +52,7 @@ type QuerySeter struct {
 	indexName  string
 	model      interface{}
 	mi         *modelInfo
-	filter     map[string]interface{}
+	filter     []es.SearchTerm
 	isQuery    bool
 	total      int64
 	pageSize   int
@@ -66,9 +66,17 @@ type orderBy struct {
 }
 
 func (q *QuerySeter) Filter(key string, value interface{}) *QuerySeter {
-	key = strings.ReplaceAll(key, "__contains", "$LIKE")
-	key = strings.ReplaceAll(key, "__in", "$IN")
-	q.filter[FirstLower(key)] = value
+	var term es.SearchTerm
+	if strings.Contains(key, "__contains") {
+		key = strings.ReplaceAll(key, "__contains", "$LIKE")
+		term.Oper = es.LIKE
+	} else if strings.Contains(key, "__in") {
+		key = strings.ReplaceAll(key, "__in", "$IN")
+		term.Oper = es.IN
+	}
+	term.Key = key
+	term.Value = value
+	q.filter = append(q.filter, term)
 	return q
 }
 
@@ -272,10 +280,12 @@ func (o *defaultOrm) Read(md interface{}, cols ...string) error {
 	return ErrNoRows
 }
 
-func appendField(mi *modelInfo, md interface{}, cols ...string) map[string]interface{} {
-	f := map[string]interface{}{}
+func appendField(mi *modelInfo, md interface{}, cols ...string) []es.SearchTerm {
+	f := []es.SearchTerm{}
 	for _, fieldName := range cols {
-		f[FirstLower(fieldName)] = mi.getFieldValue(md, fieldName)
+		key := FirstLower(fieldName)
+		value := mi.getFieldValue(md, fieldName)
+		f = append(f, es.SearchTerm{Key: key, Value: value, Oper: es.EQ})
 	}
 	return f
 }

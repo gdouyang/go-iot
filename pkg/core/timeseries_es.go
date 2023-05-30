@@ -58,12 +58,12 @@ func (t *EsTimeSeries) Del(product *Product) error {
 	}
 	_, err := es.DoRequest[map[string]interface{}](req)
 	if err != nil {
-		return err.OriginErr
+		return err.Error()
 	}
 	return nil
 }
 
-func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[string]interface{}, error) {
+func (t *EsTimeSeries) QueryProperty(product *Product, param TimeDataSearchRequest) (map[string]interface{}, error) {
 	if len(param.DeviceId) == 0 {
 		return nil, errors.New("deviceId must be persent")
 	}
@@ -99,6 +99,10 @@ func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[st
 			},
 		},
 	}
+	if len(param.SearchAfter) > 0 {
+		body["from"] = 0
+		body["search_after"] = param.SearchAfter
+	}
 	data, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
@@ -107,9 +111,9 @@ func (t *EsTimeSeries) QueryProperty(product *Product, param QueryParam) (map[st
 		Index: []string{t.getIndex(product, param.Type)},
 		Body:  bytes.NewReader(data),
 	}
-	r, eserr := es.DoRequest[es.EsQueryResult[map[string]interface{}]](req)
+	r, eserr := es.DoRequest[es.SearchResponse[map[string]interface{}]](req)
 	if eserr != nil {
-		return nil, eserr.OriginErr
+		return nil, eserr.Error()
 	}
 	var resp map[string]interface{} = map[string]interface{}{
 		"pageNum": param.PageNum,
@@ -233,8 +237,8 @@ func (t *EsTimeSeries) propertiesTplMapping(product *Product, model *tsl.TslData
 	for _, p := range model.Properties {
 		(properties)[p.Id] = t.createElasticProperty(p)
 	}
-	properties["deviceId"] = es.EsType{Type: "keyword"}
-	properties["createTime"] = es.EsType{Type: "date", Format: es.DefaultDateFormat}
+	properties["deviceId"] = es.Property{Type: "keyword"}
+	properties["createTime"] = es.Property{Type: "date", Format: es.DefaultDateFormat}
 
 	indexPattern := fmt.Sprintf("%s-%s-*", properties_const, product.GetId())
 	templateName := fmt.Sprintf("%s-%s-template", properties_const, product.GetId())
@@ -248,8 +252,8 @@ func (t *EsTimeSeries) eventsTplMapping(product *Product, model *tsl.TslData) er
 		for _, p := range e.Properties {
 			(properties)[p.Id] = t.createElasticProperty(p)
 		}
-		properties["deviceId"] = es.EsType{Type: "keyword"}
-		properties["createTime"] = es.EsType{Type: "date", Format: es.DefaultDateFormat}
+		properties["deviceId"] = es.Property{Type: "keyword"}
+		properties["createTime"] = es.Property{Type: "date", Format: es.DefaultDateFormat}
 
 		indexPattern := fmt.Sprintf("%s-%s-%s-*", event_const, product.GetId(), e.Id) // event-{productId}-{eventId}-*
 		templateName := fmt.Sprintf("%s-%s-%s-template", event_const, product.GetId(), e.Id)
@@ -263,10 +267,10 @@ func (t *EsTimeSeries) eventsTplMapping(product *Product, model *tsl.TslData) er
 
 func (t *EsTimeSeries) logsTplMapping(product *Product) error {
 	var properties map[string]interface{} = map[string]interface{}{}
-	properties["deviceId"] = es.EsType{Type: "keyword"}
-	properties["type"] = es.EsType{Type: "keyword", IgnoreAbove: "256"}
-	properties["content"] = es.EsType{Type: "keyword", IgnoreAbove: "256"}
-	properties["createTime"] = es.EsType{Type: "date", Format: es.DefaultDateFormat}
+	properties["deviceId"] = es.Property{Type: "keyword"}
+	properties["type"] = es.Property{Type: "keyword", IgnoreAbove: "256"}
+	properties["content"] = es.Property{Type: "keyword", IgnoreAbove: "256"}
+	properties["createTime"] = es.Property{Type: "date", Format: es.DefaultDateFormat}
 
 	indexPattern := fmt.Sprintf("%s-%s-*", devicelogs_const, product.GetId()) // devicelogs-{productId}-{eventId}-*
 	templateName := fmt.Sprintf("%s-%s-template", devicelogs_const, product.GetId())
@@ -278,23 +282,23 @@ func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) interface{} {
 	valType := strings.TrimSpace(p.Type)
 	switch valType {
 	case tsl.TypeInt:
-		return es.EsType{Type: "integer"}
+		return es.Property{Type: "integer"}
 	case tsl.TypeLong:
-		return es.EsType{Type: "long"}
+		return es.Property{Type: "long"}
 	case tsl.TypeFloat:
-		return es.EsType{Type: "float"}
+		return es.Property{Type: "float"}
 	case tsl.TypeDouble:
-		return es.EsType{Type: "double"}
+		return es.Property{Type: "double"}
 	case tsl.TypeBool:
-		return es.EsType{Type: "keyword", IgnoreAbove: "256"}
+		return es.Property{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypeEnum:
-		return es.EsType{Type: "keyword", IgnoreAbove: "256"}
+		return es.Property{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypeString:
-		return es.EsType{Type: "keyword", IgnoreAbove: "256"}
+		return es.Property{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypePassword:
-		return es.EsType{Type: "keyword", IgnoreAbove: "256"}
+		return es.Property{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypeDate:
-		return es.EsType{Type: "date", Format: es.DefaultDateFormat}
+		return es.Property{Type: "date", Format: es.DefaultDateFormat}
 	case tsl.TypeArray:
 		array := p.ValueType.(tsl.ValueTypeArray)
 		return t.createElasticProperty(array.ElementType)
@@ -310,7 +314,7 @@ func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) interface{} {
 		}
 	default:
 		if len(p.Id) > 0 {
-			return es.EsType{Type: "keyword", IgnoreAbove: "256"}
+			return es.Property{Type: "keyword", IgnoreAbove: "256"}
 		}
 	}
 	return nil

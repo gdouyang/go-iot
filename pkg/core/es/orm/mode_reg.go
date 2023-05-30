@@ -220,36 +220,36 @@ func register(prefix string, models ...interface{}) (err error) {
 			typ := tags["type"]
 			if len(typ) > 0 {
 				if typ == "date" {
-					properties[fieldName] = es.EsType{Type: "date", Format: es.DefaultDateFormat}
+					properties[fieldName] = es.Property{Type: "date", Format: es.DefaultDateFormat}
 				} else {
-					properties[fieldName] = es.EsType{Type: typ}
+					properties[fieldName] = es.Property{Type: typ}
 				}
 			} else {
 				switch sf.Type.Kind() {
 				case reflect.Bool:
-					properties[fieldName] = es.EsType{Type: "boolean"}
+					properties[fieldName] = es.Property{Type: "boolean"}
 				case reflect.Float32:
-					properties[fieldName] = es.EsType{Type: "float"}
+					properties[fieldName] = es.Property{Type: "float"}
 				case reflect.Float64:
-					properties[fieldName] = es.EsType{Type: "double"}
+					properties[fieldName] = es.Property{Type: "double"}
 				case reflect.Int:
 				case reflect.Int16:
 				case reflect.Int32:
-					properties[fieldName] = es.EsType{Type: "integer"}
+					properties[fieldName] = es.Property{Type: "integer"}
 				case reflect.Int8:
-					properties[fieldName] = es.EsType{Type: "byte"}
+					properties[fieldName] = es.Property{Type: "byte"}
 				case reflect.Int64:
-					properties[fieldName] = es.EsType{Type: "long"}
+					properties[fieldName] = es.Property{Type: "long"}
 				case reflect.Map:
-					properties[fieldName] = map[string]interface{}{"type": "object", "properties": map[string]es.EsType{"a": {Type: "keyword"}}}
+					properties[fieldName] = map[string]interface{}{"type": "object", "properties": map[string]es.Property{"a": {Type: "keyword"}}}
 				case reflect.Slice:
 					properties[fieldName] = map[string]interface{}{"type": "nested"}
 				default:
 					switch sf.Type.String() {
 					case "time.Time":
-						properties[fieldName] = es.EsType{Type: "date", Format: es.DefaultDateFormat}
+						properties[fieldName] = es.Property{Type: "date", Format: es.DefaultDateFormat}
 					default:
-						properties[fieldName] = es.EsType{Type: "keyword"}
+						properties[fieldName] = es.Property{Type: "keyword"}
 					}
 				}
 			}

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"go-iot/pkg/core/es"
 	"go-iot/pkg/core/tsl"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -27,7 +28,7 @@ type TimeSeriesSave interface {
 	// 发布模型
 	PublishModel(product *Product, model tsl.TslData) error
 	// 查询属性
-	QueryProperty(product *Product, param QueryParam) (map[string]interface{}, error)
+	QueryProperty(product *Product, param TimeDataSearchRequest) (map[string]interface{}, error)
 	// 保存时序数据
 	SaveProperties(product *Product, data map[string]interface{}) error
 	SaveEvents(product *Product, eventId string, data map[string]interface{}) error
@@ -42,15 +43,16 @@ type LogData struct {
 	CreateTime string `json:"createTime"`
 }
 
-type QueryParam struct {
-	Type      string                 `json:"type"`
-	DeviceId  string                 `json:"deviceId"`
-	PageNum   int                    `json:"pageNum"`
-	PageSize  int                    `json:"pageSize"`
-	Condition map[string]interface{} `json:"condition"`
+type TimeDataSearchRequest struct {
+	Type        string          `json:"type"`
+	DeviceId    string          `json:"deviceId"`
+	PageNum     int             `json:"pageNum"`
+	PageSize    int             `json:"pageSize"`
+	Condition   []es.SearchTerm `json:"condition"`
+	SearchAfter []string
 }
 
-func (page *QueryParam) PageOffset() int {
+func (page *TimeDataSearchRequest) PageOffset() int {
 	return (page.PageNum - 1) * page.PageSize
 }
 
@@ -62,7 +64,7 @@ func (t *MockTimeSeries) PublishModel(product *Product, model tsl.TslData) error
 	logs.Info("Mock PublishModel: ", model)
 	return nil
 }
-func (t *MockTimeSeries) QueryProperty(product *Product, param QueryParam) (map[string]interface{}, error) {
+func (t *MockTimeSeries) QueryProperty(product *Product, param TimeDataSearchRequest) (map[string]interface{}, error) {
 	logs.Info("Mock QueryProperty: ")
 	return nil, nil
 }
