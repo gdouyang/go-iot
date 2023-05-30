@@ -181,7 +181,7 @@ func AppendFilter(condition []SearchTerm) []map[string]interface{} {
 		case BTW:
 			s := fmt.Sprintf("%v", val.Value)
 			vals := strings.Split(s, ",")
-			if len(vals) < 1 {
+			if len(vals) < 2 {
 				continue
 			}
 			term["range"] = map[string]interface{}{key: map[string]interface{}{

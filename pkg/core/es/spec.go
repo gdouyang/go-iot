@@ -68,6 +68,7 @@ type SearchHit[T any] struct {
 	Version int64   `json:"_version,omitempty"`
 
 	Source T `json:"_source"`
+	Sort   []interface{}
 }
 
 func NewEsError(e error) *ErrorResponse {
