@@ -45,6 +45,9 @@ func (ctl *ServerController) List() {
 }
 
 func (ctl *ServerController) Add() {
+	if ctl.isForbidden(sysConfigResource, SaveAction) {
+		return
+	}
 	var ob models.Network
 	err := ctl.BindJSON(&ob)
 	if err != nil {
@@ -60,6 +63,9 @@ func (ctl *ServerController) Add() {
 }
 
 func (ctl *ServerController) Update() {
+	if ctl.isForbidden(sysConfigResource, SaveAction) {
+		return
+	}
 	var ob models.Network
 	err := ctl.BindJSON(&ob)
 	if err != nil {
@@ -75,6 +81,9 @@ func (ctl *ServerController) Update() {
 }
 
 func (ctl *ServerController) Delete() {
+	if ctl.isForbidden(sysConfigResource, SaveAction) {
+		return
+	}
 	var ob models.Network
 	err := ctl.BindJSON(&ob)
 	if err != nil {
@@ -90,6 +99,9 @@ func (ctl *ServerController) Delete() {
 }
 
 func (ctl *ServerController) Start() {
+	if ctl.isForbidden(sysConfigResource, SaveAction) {
+		return
+	}
 	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {

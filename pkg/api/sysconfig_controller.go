@@ -9,7 +9,15 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-// 产品管理
+var sysConfigResource = Resource{
+	Id:   "sys-config",
+	Name: "系统配置",
+	Action: []ResourceAction{
+		SaveAction,
+	},
+}
+
+// 系统配置
 func init() {
 	ns := web.NewNamespace("/api/",
 		web.NSRouter("/anon/system/config", &AnonSysConfigController{}, "get:Get"),
@@ -17,13 +25,7 @@ func init() {
 	)
 	web.AddNamespace(ns)
 
-	regResource(Resource{
-		Id:   "sys-config",
-		Name: "系统配置",
-		Action: []ResourceAction{
-			SaveAction,
-		},
-	})
+	regResource(sysConfigResource)
 }
 
 type AnonSysConfigController struct {
@@ -55,6 +57,9 @@ type SysConfigController struct {
 }
 
 func (ctl *SysConfigController) Update() {
+	if ctl.isForbidden(sysConfigResource, SaveAction) {
+		return
+	}
 	var ob = struct {
 		Id     string                 `json:"id"`
 		Config map[string]interface{} `json:"config"`
