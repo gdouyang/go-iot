@@ -319,6 +319,10 @@ func FilterSearch[T any](index string, q Query) (int64, []T, error) {
 	if len(q.Sort) > 0 {
 		body["sort"] = q.Sort
 	}
+	if len(q.SearchAfter) > 0 {
+		body["from"] = 0
+		body["search_after"] = q.SearchAfter
+	}
 	var result []T
 	data, err := json.Marshal(body)
 	if err != nil {
