@@ -29,7 +29,7 @@ type ServerController struct {
 }
 
 func (ctl *ServerController) List() {
-	var ob models.PageQuery[models.Network]
+	var ob models.PageQuery
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)

@@ -4,12 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"time"
 
 	"go-iot/pkg/core"
 	"go-iot/pkg/models"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
 )
 
 func DeviceIdValid(deviceId string) bool {
@@ -18,47 +17,27 @@ func DeviceIdValid(deviceId string) bool {
 }
 
 // 分页查询设备
-func PageDevice(page *models.PageQuery[models.Device], createId int64) (*models.PageResult[models.Device], error) {
+func PageDevice(page *models.PageQuery, createId int64) (*models.PageResult[models.Device], error) {
 	var pr *models.PageResult[models.Device]
-	var dev models.Device = page.Condition
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.Device{})
+	qs = qs.FilterTerm(page.Condition...)
 
-	id := dev.Id
-	if len(id) > 0 {
-		qs = qs.Filter("id", id)
-	}
-	if len(dev.Name) > 0 {
-		qs = qs.Filter("name__contains", dev.Name)
-	}
-	if len(dev.State) > 0 {
-		qs = qs.Filter("State", dev.State)
-	}
-
-	if len(dev.ProductId) > 0 {
-		qs = qs.Filter("ProductId", dev.ProductId)
-	}
-	if len(dev.ParentId) > 0 {
-		qs = qs.Filter("parentId", dev.ParentId)
-	}
-	if len(dev.DeviceType) > 0 {
-		qs = qs.Filter("deviceType", dev.DeviceType)
-	}
 	qs = qs.Filter("CreateId", createId)
 
+	var result []models.Device
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
+	if err != nil {
+		return nil, err
+	}
 	count, err := qs.Count()
 	if err != nil {
 		return nil, err
 	}
 
-	var result []models.Device
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
-	if err != nil {
-		return nil, err
-	}
-
 	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
+	p.SearchAfter = qs.LastSort
 	pr = &p
 
 	return pr, nil
@@ -103,7 +82,7 @@ func AddDevice(ob *models.DeviceModel) error {
 	if len(en.DeviceType) == 0 {
 		en.DeviceType = core.DEVICE
 	}
-	en.CreateTime = time.Now()
+	en.CreateTime = models.NewDateTime()
 	//插入数据
 	o := orm.NewOrm()
 	_, err = o.Insert(&en)

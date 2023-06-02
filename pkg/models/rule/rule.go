@@ -4,35 +4,33 @@ import (
 	"errors"
 	"go-iot/pkg/models"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
 )
 
 // 分页查询
-func PageRule(page *models.PageQuery[models.Rule], user models.User) (*models.PageResult[models.Rule], error) {
+func PageRule(page *models.PageQuery, user models.User) (*models.PageResult[models.Rule], error) {
 	var pr *models.PageResult[models.Rule]
-	var dev models.Rule = page.Condition
 
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.Rule{})
 
-	if len(dev.Name) > 0 {
-		qs = qs.Filter("name__contains", dev.Name)
-	}
+	qs.FilterTerm(page.Condition...)
 	qs = qs.Filter("CreateId", user.Id)
 
-	count, err := qs.Count()
+	var cols = []string{"Id", "Name", "State", "Desc", "CreateId", "CreateTime"}
+	var result []models.Rule
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result, cols...)
 	if err != nil {
 		return nil, err
 	}
-	var cols = []string{"Id", "Name", "State", "Desc", "CreateId", "CreateTime"}
-	var result []models.Rule
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result, cols...)
+	count, err := qs.Count()
 	if err != nil {
 		return nil, err
 	}
 
 	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
+	p.SearchAfter = qs.LastSort
 	pr = &p
 
 	return pr, nil

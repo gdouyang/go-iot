@@ -7,7 +7,7 @@ import (
 	"go-iot/pkg/core/boot"
 	"go-iot/pkg/models"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
 
 	"github.com/beego/beego/v2/core/logs"
 )
@@ -19,7 +19,7 @@ func init() {
 		count, err := qs.Count()
 		if err == nil && count == 0 {
 			for i := 0; i < 10; i++ {
-				AddNetWork(&models.Network{Id: int64(i + 1), Port: int32(9000 + i), State: models.Stop, ProductId: ""})
+				AddNetWork(&models.Network{Id: int64(i + 1), Port: int32(9010 + i), State: models.Stop, ProductId: ""})
 			}
 			logs.Info("init networks")
 		}
@@ -27,43 +27,26 @@ func init() {
 }
 
 // 分页查询设备
-func ListNetwork(page *models.PageQuery[models.Network]) (*models.PageResult[models.Network], error) {
+func ListNetwork(page *models.PageQuery) (*models.PageResult[models.Network], error) {
 	var pr *models.PageResult[models.Network]
-	var n models.Network = page.Condition
-
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.Network{})
 
-	id := n.Id
-	if id > 0 {
-		qs = qs.Filter("id", id)
-	}
-	if n.Port > 0 {
-		qs = qs.Filter("port", n.Port)
-	}
-	if len(n.Name) > 0 {
-		qs = qs.Filter("name__contains", n.Name)
-	}
-	if len(n.ProductId) > 0 {
-		qs = qs.Filter("productId", n.ProductId)
-	}
-	if len(n.Type) > 0 {
-		qs = qs.Filter("type", n.Type)
-	}
+	qs = qs.FilterTerm(page.Condition...)
 
+	var result []models.Network
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
+	if err != nil {
+		return nil, err
+	}
 	count, err := qs.Count()
 	if err != nil {
 		return nil, err
 	}
 
-	var result []models.Network
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
-	if err != nil {
-		return nil, err
-	}
-
 	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
+	p.SearchAfter = qs.LastSort
 	pr = &p
 
 	return pr, nil

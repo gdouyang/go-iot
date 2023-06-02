@@ -27,10 +27,6 @@ func main() {
 
 	configLog()
 	setDefaultConfig()
-
-	getConfigString("db.url", func(s string) {
-		models.DefaultDbConfig.Url = s
-	})
 	models.InitDb()
 
 	web.BConfig.RecoverFunc = defaultRecoverPanic

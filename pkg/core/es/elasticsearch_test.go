@@ -3,7 +3,6 @@ package es_test
 import (
 	"encoding/json"
 	"fmt"
-	"go-iot/pkg/core/es"
 	"testing"
 )
 
@@ -44,7 +43,7 @@ func TestXxx(t *testing.T) {
 		]
 	}
 }`
-	var resp es.SearchResponse[map[string]interface{}]
+	var resp map[string]interface{}
 	json.Unmarshal([]byte(str), &resp)
 	fmt.Println(resp)
 }

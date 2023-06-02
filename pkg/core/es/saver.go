@@ -64,7 +64,7 @@ func (t *EsDataSaveHelper) save() {
 			Body: bytes.NewReader(data),
 		}
 		start := time.Now().UnixMilli()
-		DoRequest[map[string]interface{}](req)
+		DoRequest(req)
 		totalTime := time.Now().UnixMilli() - start
 		if DefaultEsConfig.WarnTime > 0 && totalTime > int64(DefaultEsConfig.WarnTime) {
 			logs.Warn("save data to es use time: %v ms", totalTime)

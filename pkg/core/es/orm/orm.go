@@ -58,6 +58,7 @@ type QuerySeter struct {
 	pageSize   int
 	pageOffset int
 	orderBy    []orderBy
+	LastSort   []any
 }
 
 type orderBy struct {
@@ -74,9 +75,17 @@ func (q *QuerySeter) Filter(key string, value interface{}) *QuerySeter {
 		key = strings.ReplaceAll(key, "__in", "$IN")
 		term.Oper = es.IN
 	}
-	term.Key = key
+	term.Key = FirstLower(key)
 	term.Value = value
 	q.filter = append(q.filter, term)
+	return q
+}
+
+func (q *QuerySeter) FilterTerm(terms ...es.SearchTerm) *QuerySeter {
+	for _, term := range terms {
+		term.Key = FirstLower(term.Key)
+		q.filter = append(q.filter, term)
+	}
 	return q
 }
 
@@ -87,8 +96,11 @@ func (q *QuerySeter) Count() (int64, error) {
 	q.isQuery = true
 	f := es.AppendFilter(q.filter)
 	query := es.Query{From: 0, Size: 1, Filter: f}
-	total, _, err := es.FilterSearch[map[string]interface{}](q.indexName, query)
-	return total, err
+	resp, err := es.FilterSearch(q.indexName, query)
+	if err != nil {
+		return 0, err
+	}
+	return resp.Total, nil
 }
 func (q *QuerySeter) Limit(pageSize, pageOffset int) *QuerySeter {
 	q.pageSize = pageSize
@@ -126,7 +138,7 @@ func (q *QuerySeter) Update(p Params) (int64, error) {
 	return 1, es.UpdateDocByQuery(q.mi.indexName, f, script)
 }
 
-func (q *QuerySeter) All(result interface{}, cols ...string) (int64, error) {
+func (q *QuerySeter) All(result any, cols ...string) (int64, error) {
 	q.isQuery = true
 	f := es.AppendFilter(q.filter)
 	query := es.Query{From: q.pageOffset, Size: q.pageSize, Filter: f}
@@ -139,31 +151,15 @@ func (q *QuerySeter) All(result interface{}, cols ...string) (int64, error) {
 		for _, v := range cols {
 			query.Includes = append(query.Includes, FirstLower(v))
 		}
-
 	}
-	total, list, err := es.FilterSearch[map[string]interface{}](q.indexName, query)
+	resp, err := es.FilterSearch(q.indexName, query)
 	if err != nil {
 		return 0, err
 	}
-	q.total = total
-	length := len(list)
-	if length > 0 {
-		sb := strings.Builder{}
-		sb.WriteString("[")
-		for idx, v := range list {
-			jsonstring, err := json.Marshal(v)
-			if err != nil {
-				return 0, err
-			}
-			sb.Write(jsonstring)
-			if idx < length-1 {
-				sb.WriteString(",")
-			}
-		}
-		sb.WriteString("]")
-		err = json.Unmarshal([]byte(sb.String()), result)
-	}
-	return 0, err
+	q.total = resp.Total
+	resp.ConvertSource(result)
+	q.LastSort = resp.LastSort
+	return q.total, err
 }
 
 func (o *defaultOrm) Insert(md interface{}) (int64, error) {
@@ -227,7 +223,10 @@ func (o *defaultOrm) Update(md interface{}, cols ...string) (int64, error) {
 	if len(cols) == 0 {
 		cols = mi.fieldNames
 	}
-	f := appendField(mi, md, cols...)
+	f := map[string]any{}
+	for _, fieldName := range cols {
+		f[FirstLower(fieldName)] = mi.getFieldValue(md, fieldName)
+	}
 	docId := mi.getPKValue(md)
 	return 1, es.UpdateDoc(mi.indexName, docId, f)
 }
@@ -244,7 +243,7 @@ func (o *defaultOrm) Delete(md interface{}, cols ...string) (int64, error) {
 			return 0, err
 		}
 	} else {
-		f := appendField(mi, md, cols...)
+		f := convertToFilter(mi, md, cols...)
 		filter := es.AppendFilter(f)
 		err := es.DeleteByQuery(mi.indexName, filter)
 		if err != nil {
@@ -262,25 +261,21 @@ func (o *defaultOrm) Read(md interface{}, cols ...string) error {
 	if len(cols) == 0 {
 		cols = []string{mi.pkkey}
 	}
-	f := appendField(mi, md, cols...)
+	f := convertToFilter(mi, md, cols...)
 	filter := es.AppendFilter(f)
 	query := es.Query{From: 0, Size: 1, Filter: filter}
-	_, list, err := es.FilterSearch[map[string]interface{}](mi.indexName, query)
+	resp, err := es.FilterSearch(mi.indexName, query)
 	if err != nil {
 		return err
 	}
-	if len(list) > 0 {
-		jsonstring, err := json.Marshal(list[0])
-		if err != nil {
-			return err
-		}
-		err = json.Unmarshal(jsonstring, md)
+	if resp.Total > 0 {
+		err = json.Unmarshal(resp.FirstSource, md)
 		return err
 	}
 	return ErrNoRows
 }
 
-func appendField(mi *modelInfo, md interface{}, cols ...string) []es.SearchTerm {
+func convertToFilter(mi *modelInfo, md interface{}, cols ...string) []es.SearchTerm {
 	f := []es.SearchTerm{}
 	for _, fieldName := range cols {
 		key := FirstLower(fieldName)

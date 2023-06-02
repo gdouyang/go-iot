@@ -4,37 +4,30 @@ import (
 	"errors"
 	"go-iot/pkg/models"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
 )
 
 // 分页查询设备
-func PageNotify(page *models.PageQuery[models.Notify], createId int64) (*models.PageResult[models.Notify], error) {
+func PageNotify(page *models.PageQuery, createId int64) (*models.PageResult[models.Notify], error) {
 	var pr *models.PageResult[models.Notify]
-	var n models.Notify = page.Condition
-
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.Notify{})
-
-	if len(n.Name) > 0 {
-		qs = qs.Filter("name__contains", n.Name)
-	}
-	if len(n.Type) > 0 {
-		qs = qs.Filter("type", n.Type)
-	}
+	qs = qs.FilterTerm(page.Condition...)
 	qs = qs.Filter("createId", createId)
+
+	var result []models.Notify
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
+	if err != nil {
+		return nil, err
+	}
 
 	count, err := qs.Count()
 	if err != nil {
 		return nil, err
 	}
-
-	var result []models.Notify
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
-	if err != nil {
-		return nil, err
-	}
 	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
+	p.SearchAfter = qs.LastSort
 	pr = &p
 
 	return pr, nil

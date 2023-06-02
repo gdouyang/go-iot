@@ -6,6 +6,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/common"
+	"go-iot/pkg/core/es"
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
 	"go-iot/pkg/models/network"
@@ -60,7 +61,7 @@ func (ctl *DeviceController) Page() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	var ob models.PageQuery[models.Device]
+	var ob models.PageQuery
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -340,9 +341,10 @@ func (ctl *DeviceController) BatchDeploy() {
 			}
 			setSseData(token, fmt.Sprintf(resp, true, total))
 		} else {
-			condition := models.Device{State: core.NoActive}
+			condition := []es.SearchTerm{}
+			condition = append(condition, es.SearchTerm{Key: "state", Value: core.NoActive})
 			for {
-				var page *models.PageQuery[models.Device] = &models.PageQuery[models.Device]{PageSize: 300, PageNum: 1, Condition: condition}
+				var page *models.PageQuery = &models.PageQuery{PageSize: 300, PageNum: 1, Condition: condition}
 				result, err := device.PageDevice(page, ctl.GetCurrentUser().Id)
 				if err != nil {
 					logs.Error(err)

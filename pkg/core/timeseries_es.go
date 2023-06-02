@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -56,14 +55,14 @@ func (t *EsTimeSeries) Del(product *Product) error {
 		Index:             []string{t.getIndex(product, properties_const), t.getIndex(product, event_const), t.getIndex(product, devicelogs_const)},
 		IgnoreUnavailable: &IgnoreUnavailable,
 	}
-	_, err := es.DoRequest[map[string]interface{}](req)
-	if err != nil {
-		return err.Error()
+	_, eserr := es.DoRequest(req)
+	if eserr != nil && !eserr.Is404() {
+		return eserr.Error()
 	}
 	return nil
 }
 
-func (t *EsTimeSeries) QueryProperty(product *Product, param TimeDataSearchRequest) (map[string]interface{}, error) {
+func (t *EsTimeSeries) QueryProperty(product *Product, param TimeDataSearchRequest) (map[string]any, error) {
 	if len(param.DeviceId) == 0 {
 		return nil, errors.New("deviceId must be persent")
 	}
@@ -74,8 +73,8 @@ func (t *EsTimeSeries) QueryProperty(product *Product, param TimeDataSearchReque
 		return nil, errors.New("type is invalid, must be [properties, event, devicelogs]")
 	}
 	filter := es.AppendFilter(param.Condition)
-	filter = append(filter, map[string]interface{}{
-		"term": map[string]interface{}{tsl.PropertyDeviceId: param.DeviceId},
+	filter = append(filter, map[string]any{
+		"term": map[string]any{tsl.PropertyDeviceId: param.DeviceId},
 	})
 	if param.PageNum <= 0 {
 		param.PageNum = 1
@@ -83,59 +82,37 @@ func (t *EsTimeSeries) QueryProperty(product *Product, param TimeDataSearchReque
 	if param.PageSize <= 0 {
 		param.PageSize = 10
 	}
-	body := map[string]interface{}{
-		"from": param.PageOffset(),
-		"size": param.PageSize,
-		"query": map[string]interface{}{
-			"bool": map[string]interface{}{
-				"filter": filter,
-			},
-		},
-		"sort": []map[string]interface{}{
-			{
-				"createTime": map[string]interface{}{
-					"order": "desc",
-				},
-			},
-		},
+	q := es.Query{
+		From:        param.PageOffset(),
+		Size:        param.PageSize,
+		Filter:      filter,
+		Sort:        make([]map[string]es.SortOrder, 1),
+		SearchAfter: param.SearchAfter,
 	}
-	if len(param.SearchAfter) > 0 {
-		body["from"] = 0
-		body["search_after"] = param.SearchAfter
-	}
-	data, err := json.Marshal(body)
+	q.Sort = append(q.Sort, map[string]es.SortOrder{"createTime": {Order: "desc"}})
+
+	resp, err := es.FilterSearch(t.getIndex(product, param.Type), q)
 	if err != nil {
 		return nil, err
 	}
-	req := esapi.SearchRequest{
-		Index: []string{t.getIndex(product, param.Type)},
-		Body:  bytes.NewReader(data),
+	var result map[string]any = map[string]any{
+		"pageNum":     param.PageNum,
+		"totalCount":  0,
+		"list":        []map[string]any{},
+		"searchAfter": []any{},
 	}
-	r, eserr := es.DoRequest[es.SearchResponse[map[string]interface{}]](req)
-	if eserr != nil {
-		return nil, eserr.Error()
-	}
-	var resp map[string]interface{} = map[string]interface{}{
-		"pageNum": param.PageNum,
-	}
-	if err == nil && len(r.Hits.Hits) > 0 {
-		total := r.Hits.Total.Value
-		resp["totalCount"] = total
+	if err == nil && resp.Total > 0 {
+		result["totalCount"] = resp.Total
 		// convert each hit to result.
-		var list []map[string]interface{} = []map[string]interface{}{}
-		for _, hit := range r.Hits.Hits {
-			d := hit.Source
-			list = append(list, d)
-		}
-		resp["list"] = list
-	} else {
-		resp["totalCount"] = 0
-		resp["list"] = []map[string]interface{}{}
+		var list []map[string]any = []map[string]any{}
+		resp.ConvertSource(&list)
+		result["list"] = list
+		result["searchAfter"] = resp.LastSort
 	}
-	return resp, err
+	return result, nil
 }
 
-func (t *EsTimeSeries) SaveProperties(product *Product, d1 map[string]interface{}) error {
+func (t *EsTimeSeries) SaveProperties(product *Product, d1 map[string]any) error {
 	validProperty := product.GetTsl().PropertiesMap()
 	if validProperty == nil {
 		return errors.New("not have tsl property, dont save timeseries data")
@@ -169,7 +146,7 @@ func (t *EsTimeSeries) SaveProperties(product *Product, d1 map[string]interface{
 	return nil
 }
 
-func (t *EsTimeSeries) SaveEvents(product *Product, eventId string, d1 map[string]interface{}) error {
+func (t *EsTimeSeries) SaveEvents(product *Product, eventId string, d1 map[string]any) error {
 	validProperty := product.GetTsl().EventsMap()
 	if validProperty == nil {
 		return errors.New("not have tsl property, dont save timeseries data")
@@ -233,7 +210,7 @@ func (t *EsTimeSeries) getIndex(product *Product, typ string) string {
 
 // 把物模型转换成es mapping
 func (t *EsTimeSeries) propertiesTplMapping(product *Product, model *tsl.TslData) error {
-	var properties map[string]interface{} = map[string]interface{}{}
+	var properties map[string]any = map[string]any{}
 	for _, p := range model.Properties {
 		(properties)[p.Id] = t.createElasticProperty(p)
 	}
@@ -248,7 +225,7 @@ func (t *EsTimeSeries) propertiesTplMapping(product *Product, model *tsl.TslData
 
 func (t *EsTimeSeries) eventsTplMapping(product *Product, model *tsl.TslData) error {
 	for _, e := range model.Events {
-		var properties map[string]interface{} = map[string]interface{}{}
+		var properties map[string]any = map[string]any{}
 		for _, p := range e.Properties {
 			(properties)[p.Id] = t.createElasticProperty(p)
 		}
@@ -266,7 +243,7 @@ func (t *EsTimeSeries) eventsTplMapping(product *Product, model *tsl.TslData) er
 }
 
 func (t *EsTimeSeries) logsTplMapping(product *Product) error {
-	var properties map[string]interface{} = map[string]interface{}{}
+	var properties map[string]any = map[string]any{}
 	properties["deviceId"] = es.Property{Type: "keyword"}
 	properties["type"] = es.Property{Type: "keyword", IgnoreAbove: "256"}
 	properties["content"] = es.Property{Type: "keyword", IgnoreAbove: "256"}
@@ -278,7 +255,7 @@ func (t *EsTimeSeries) logsTplMapping(product *Product) error {
 	return err
 }
 
-func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) interface{} {
+func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) any {
 	valType := strings.TrimSpace(p.Type)
 	switch valType {
 	case tsl.TypeInt:
@@ -304,11 +281,11 @@ func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) interface{} {
 		return t.createElasticProperty(array.ElementType)
 	case tsl.TypeObject:
 		object := p.ValueType.(tsl.ValueTypeObject)
-		var mapping map[string]interface{} = map[string]interface{}{}
+		var mapping map[string]any = map[string]any{}
 		for _, p1 := range object.Properties {
 			mapping[p1.Id] = t.createElasticProperty(p1)
 		}
-		return map[string]interface{}{
+		return map[string]any{
 			"type":       "nested",
 			"properties": mapping,
 		}

@@ -12,7 +12,10 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
+	"github.com/tidwall/gjson"
 )
+
+var Err404 = errors.New("404")
 
 type esDoFunc interface {
 	Do(ctx context.Context, transport esapi.Transport) (*esapi.Response, error)
@@ -33,50 +36,6 @@ func getEsClient() (*elasticsearch.Client, error) {
 	}
 	es, err := elasticsearch.NewClient(config)
 	return es, err
-}
-
-func DoRequest[T any](s esDoFunc) (T, *ErrorResponse) {
-	var result T
-	es, err := getEsClient()
-	if err != nil {
-		logs.Error("Error creating the client: %s", err)
-	}
-	// Perform the request with the client.
-	res, err := s.Do(context.Background(), es)
-	if err != nil {
-		logs.Error("Error getting response: %s", err)
-		return result, &ErrorResponse{Info: &ErrorInfo{Reason: err.Error()}}
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode == 404 {
-		return result, nil
-	}
-
-	if res.IsError() {
-		// Deserialize the response into a map.
-		var eserr *ErrorResponse
-		if err := json.NewDecoder(res.Body).Decode(eserr); err != nil {
-			logs.Error("Error parsing the response body: %s", err)
-			logs.Error("[%s] Error:[%s]", res.Status(), res.String())
-		} else {
-			return result, eserr
-		}
-	} else {
-		// Deserialize the response into a map.
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(res.Body)
-		s := buf.String()
-		if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
-			logs.Error("Error parsing the response body: %s, err: %s", s, err)
-		} else {
-			return result, nil
-		}
-	}
-	if err != nil {
-		return result, &ErrorResponse{Info: &ErrorInfo{Reason: err.Error()}}
-	}
-	return result, nil
 }
 
 func CreateEsTemplate(properties map[string]interface{}, indexPattern string, templateName string, refresh_interval string) error {
@@ -111,8 +70,8 @@ func CreateEsTemplate(properties map[string]interface{}, indexPattern string, te
 		Name: templateName,
 		Body: bytes.NewReader(data),
 	}
-	_, eserr := DoRequest[map[string]interface{}](req)
-	if eserr != nil {
+	_, eserr := DoRequest(req)
+	if eserr != nil && !eserr.Is404() {
 		return errors.New(eserr.Info.Phase)
 	}
 	return nil
@@ -144,8 +103,8 @@ func CreateEsIndex(properties map[string]interface{}, indexName string) *ErrorRe
 		Index: indexName,
 		Body:  bytes.NewReader(data),
 	}
-	_, eserr := DoRequest[map[string]interface{}](req)
-	if eserr != nil {
+	_, eserr := DoRequest(req)
+	if eserr != nil && !eserr.Is404() {
 		return eserr
 	}
 	return nil
@@ -189,7 +148,7 @@ func AppendFilter(condition []SearchTerm) []map[string]interface{} {
 				"lte": vals[1],
 			}}
 		default:
-			term["term"] = map[string]interface{}{key: val}
+			term["term"] = map[string]interface{}{key: val.Value}
 		}
 		filter = append(filter, term)
 	}
@@ -208,8 +167,8 @@ func CreateDoc(index string, docId string, ob any) error {
 	if len(docId) > 0 {
 		req.DocumentID = docId
 	}
-	_, eserr := DoRequest[map[string]interface{}](req)
-	if eserr != nil {
+	_, eserr := DoRequest(req)
+	if eserr != nil && !eserr.Is404() {
 		return eserr.Error()
 	}
 	return nil
@@ -225,8 +184,8 @@ func UpdateDoc(index string, docId string, data any) error {
 		DocumentID: docId,
 		Body:       bytes.NewReader([]byte(fmt.Sprintf(`{"doc": %s}`, string(b)))),
 	}
-	_, eserr := DoRequest[map[string]interface{}](req)
-	if eserr != nil {
+	_, eserr := DoRequest(req)
+	if eserr != nil && !eserr.Is404() {
 		return eserr.Error()
 	}
 	return nil
@@ -236,9 +195,9 @@ func BulkDoc(data []byte) error {
 	req := esapi.BulkRequest{
 		Body: bytes.NewReader([]byte(data)),
 	}
-	_, err := DoRequest[map[string]interface{}](req)
-	if err != nil {
-		return err.Error()
+	_, eserr := DoRequest(req)
+	if eserr != nil && !eserr.Is404() {
+		return eserr.Error()
 	}
 	return nil
 }
@@ -260,8 +219,8 @@ func UpdateDocByQuery(index string, filter []map[string]interface{}, script map[
 		Index: []string{index},
 		Body:  bytes.NewReader(data),
 	}
-	_, eserr := DoRequest[map[string]interface{}](req)
-	if eserr != nil {
+	_, eserr := DoRequest(req)
+	if eserr != nil && !eserr.Is404() {
 		return eserr.Error()
 	}
 	return nil
@@ -272,9 +231,9 @@ func DeleteDoc(index string, docId string) error {
 		Index:      index,
 		DocumentID: docId,
 	}
-	_, err := DoRequest[map[string]interface{}](req)
-	if err != nil {
-		return err.Error()
+	_, eserr := DoRequest(req)
+	if eserr != nil && !eserr.Is404() {
+		return eserr.Error()
 	}
 	return nil
 }
@@ -295,15 +254,14 @@ func DeleteByQuery(index string, filter []map[string]interface{}) error {
 		Index: []string{index},
 		Body:  bytes.NewReader(data),
 	}
-	_, eserr := DoRequest[map[string]interface{}](req)
-	if eserr != nil {
+	_, eserr := DoRequest(req)
+	if eserr != nil && !eserr.Is404() {
 		return eserr.Error()
 	}
 	return nil
 }
 
-func FilterSearch[T any](index string, q Query) (int64, []T, error) {
-	var total int64
+func FilterSearch(index string, q Query) (*SearchResponse, error) {
 	body := map[string]interface{}{
 		"from": q.From,
 		"size": q.Size,
@@ -323,26 +281,85 @@ func FilterSearch[T any](index string, q Query) (int64, []T, error) {
 		body["from"] = 0
 		body["search_after"] = q.SearchAfter
 	}
-	var result []T
 	data, err := json.Marshal(body)
 	if err != nil {
-		return total, result, err
+		return nil, err
 	}
 	req := esapi.SearchRequest{
 		Index: []string{index},
 		Body:  bytes.NewReader(data),
 	}
-	r, eserr := DoRequest[SearchResponse[T]](req)
+	str, eserr := DoRequest(req)
 	if eserr != nil {
-		return total, result, eserr.Error()
+		if !eserr.Is404() {
+			return nil, eserr.Error()
+		}
+		str = `{"hits": {"total":{"value": 0}, "hits": []}}`
 	}
-	if eserr == nil && len(r.Hits.Hits) > 0 {
-		total = int64(r.Hits.Total.Value)
-		// convert each hit to result.
-		for _, hit := range r.Hits.Hits {
-			d := hit.Source
-			result = append(result, d)
+	var resp SearchResponse
+	total := gjson.Get(str, "hits.total.value")
+	resp.Total = total.Int()
+	hits := gjson.Get(str, "hits.hits")
+	buf := bytes.Buffer{}
+	buf.WriteString("[")
+	if hits.IsArray() {
+		array := hits.Array()
+		length := len(array)
+		for idx, v := range array {
+			_source := gjson.Get(v.Raw, "_source")
+			buf.WriteString(_source.Raw)
+			if idx == 0 {
+				resp.FirstSource = []byte(_source.Raw)
+			}
+			if idx < length-1 {
+				buf.WriteString(",")
+			} else {
+				sort := gjson.Get(v.Raw, "sort")
+				if sort.Exists() {
+					lastSort := []any{}
+					err = json.Unmarshal([]byte(sort.Raw), &lastSort)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
 		}
 	}
-	return total, result, nil
+	buf.WriteString("]")
+	resp.Sources = buf.Bytes()
+	return &resp, nil
+}
+
+func DoRequest(s esDoFunc) (string, *ErrorResponse) {
+	es, err := getEsClient()
+	if err != nil {
+		logs.Error("Error creating the client: %s", err)
+	}
+	// Perform the request with the client.
+	res, err := s.Do(context.Background(), es)
+	if err != nil {
+		logs.Error("Error getting response: %s", err)
+		return "", NewEsError(err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == 404 {
+		return "", NewEsError(Err404)
+	}
+
+	if res.IsError() {
+		// Deserialize the response into a map.
+		var eserr ErrorResponse
+		var buf bytes.Buffer
+		buf.ReadFrom(res.Body)
+		if err := json.Unmarshal(buf.Bytes(), &eserr); err != nil {
+			logs.Error("Error parsing the response body: %s, err: %s", buf.String(), err)
+			logs.Error("[%s] Error:[%s]", res.Status(), res.String())
+		} else {
+			return "", &eserr
+		}
+	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(res.Body)
+	return buf.String(), nil
 }

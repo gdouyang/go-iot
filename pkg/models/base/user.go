@@ -7,7 +7,7 @@ import (
 	"go-iot/pkg/core/boot"
 	"go-iot/pkg/models"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
 
 	"github.com/beego/beego/v2/core/logs"
 )
@@ -29,33 +29,22 @@ func init() {
 }
 
 // 分页查询设备
-func PageUser(page *models.PageQuery[models.User], createId int64) (*models.PageResult[models.User], error) {
+func PageUser(page *models.PageQuery, createId int64) (*models.PageResult[models.User], error) {
 	var pr *models.PageResult[models.User]
-	var n models.User = page.Condition
-
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.User{})
 
-	id := n.Id
-	if id > 0 {
-		qs = qs.Filter("id", id)
-	}
-	if len(n.Username) > 0 {
-		qs = qs.Filter("username__contains", n.Username)
-	}
-	if len(n.Nickname) > 0 {
-		qs = qs.Filter("nickname__contains", n.Nickname)
-	}
+	qs = qs.FilterTerm(page.Condition...)
 	qs = qs.Filter("createId", createId)
 
-	count, err := qs.Count()
+	var result []models.User
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
 	if err != nil {
 		return nil, err
 	}
 
-	var result []models.User
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
+	count, err := qs.Count()
 	if err != nil {
 		return nil, err
 	}
@@ -63,6 +52,7 @@ func PageUser(page *models.PageQuery[models.User], createId int64) (*models.Page
 		us.Password = ""
 	}
 	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
+	p.SearchAfter = qs.LastSort
 	pr = &p
 
 	return pr, nil

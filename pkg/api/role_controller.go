@@ -45,7 +45,7 @@ func (ctl *RoleController) Page() {
 	if ctl.isForbidden(roleResource, QueryAction) {
 		return
 	}
-	var ob models.PageQuery[models.Role]
+	var ob models.PageQuery
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)

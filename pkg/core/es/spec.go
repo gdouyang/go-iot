@@ -1,6 +1,7 @@
 package es
 
 import (
+	"encoding/json"
 	"errors"
 )
 
@@ -26,15 +27,15 @@ const (
 )
 
 type SearchTerm struct {
-	Key   string
-	Value interface{}
-	Oper  string // IN,EQ,GT,LE,LIKE
+	Key   string `json:"key"`   // 查询的字段
+	Value any    `json:"value"` // 值
+	Oper  string `json:"oper"`  // 操作符IN,EQ,GT,LE,LIKE;默认(EQ)
 }
 
 type Query struct {
 	From        int
 	Size        int
-	Filter      []map[string]interface{}
+	Filter      []map[string]any
 	Sort        []map[string]SortOrder
 	Includes    []string
 	SearchAfter []string
@@ -51,24 +52,16 @@ type IndexResponse struct {
 	Result  string
 }
 
-type SearchResponse[T any] struct {
-	Took int64
-	Hits struct {
-		Total struct {
-			Value int64
-		}
-		Hits []*SearchHit[T]
-	}
+type SearchResponse struct {
+	Total       int64
+	Sources     []byte
+	FirstSource []byte
+	LastSort    []any
 }
 
-type SearchHit[T any] struct {
-	Score   float64 `json:"_score"`
-	Index   string  `json:"_index"`
-	Type    string  `json:"_type"`
-	Version int64   `json:"_version,omitempty"`
-
-	Source T `json:"_source"`
-	Sort   []interface{}
+func (r *SearchResponse) ConvertSource(result any) error {
+	err := json.Unmarshal(r.Sources, result)
+	return err
 }
 
 func NewEsError(e error) *ErrorResponse {
@@ -81,6 +74,10 @@ type ErrorResponse struct {
 
 func (e *ErrorResponse) Error() error {
 	return errors.New(e.Info.Reason)
+}
+
+func (e *ErrorResponse) Is404() bool {
+	return e.Info.Reason == Err404.Error()
 }
 
 type ErrorInfo struct {

@@ -8,7 +8,7 @@ import (
 	"go-iot/pkg/models"
 	"go-iot/pkg/ruleengine"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
 
 	"github.com/beego/beego/v2/core/logs"
 )
@@ -44,32 +44,26 @@ func saveAlarmEvent(data eventbus.Message) {
 	}
 }
 
-func PageAlarmLog(page *models.PageQuery[models.AlarmLog]) (*models.PageResult[models.AlarmLog], error) {
+func PageAlarmLog(page *models.PageQuery, createId int64) (*models.PageResult[models.AlarmLog], error) {
 	var pr *models.PageResult[models.AlarmLog]
-	var q models.AlarmLog = page.Condition
-
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.AlarmLog{})
-	if len(q.DeviceId) > 0 {
-		qs = qs.Filter("DeviceId", q.DeviceId)
+	qs = qs.FilterTerm(page.Condition...)
+	qs = qs.Filter("CreateId", createId)
+
+	var result []models.AlarmLog
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
+	if err != nil {
+		return nil, err
 	}
-	if len(q.ProductId) > 0 {
-		qs = qs.Filter("ProductId", q.ProductId)
-	}
-	qs = qs.Filter("CreateId", q.CreateId)
 	count, err := qs.Count()
 	if err != nil {
 		return nil, err
 	}
 
-	var result []models.AlarmLog
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
-	if err != nil {
-		return nil, err
-	}
-
 	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
+	p.SearchAfter = qs.LastSort
 	pr = &p
 
 	return pr, nil

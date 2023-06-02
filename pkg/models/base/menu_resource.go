@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"go-iot/pkg/models"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
 )
 
 type RolePermissionDTO struct {

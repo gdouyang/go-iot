@@ -49,7 +49,7 @@ type TimeDataSearchRequest struct {
 	PageNum     int             `json:"pageNum"`
 	PageSize    int             `json:"pageSize"`
 	Condition   []es.SearchTerm `json:"condition"`
-	SearchAfter []string
+	SearchAfter []string        `json:"searchAfter"`
 }
 
 func (page *TimeDataSearchRequest) PageOffset() int {

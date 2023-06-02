@@ -5,7 +5,7 @@ import (
 	"errors"
 	"go-iot/pkg/models"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
 )
 
 type RelType string
@@ -16,35 +16,29 @@ const (
 )
 
 // 分页查询设备
-func PageRole(page *models.PageQuery[models.Role], createId int64) (*models.PageResult[models.Role], error) {
+func PageRole(page *models.PageQuery, createId int64) (*models.PageResult[models.Role], error) {
 	var pr *models.PageResult[models.Role]
-	var n models.Role = page.Condition
 
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.Role{})
 
-	id := n.Id
-	if id > 0 {
-		qs = qs.Filter("id", id)
-	}
-	if len(n.Name) > 0 {
-		qs = qs.Filter("name__contains", n.Name)
-	}
+	qs = qs.FilterTerm(page.Condition...)
 	qs = qs.Filter("createId", createId)
+
+	var result []models.Role
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
+	if err != nil {
+		return nil, err
+	}
 
 	count, err := qs.Count()
 	if err != nil {
 		return nil, err
 	}
 
-	var result []models.Role
-	_, err = qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
-	if err != nil {
-		return nil, err
-	}
-
 	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
+	p.SearchAfter = qs.LastSort
 	pr = &p
 
 	return pr, nil

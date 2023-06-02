@@ -12,8 +12,6 @@ import (
 type DeviceModel struct {
 	Device
 	Metaconfig map[string]string `json:"metaconfig,omitempty"`
-	Tag        map[string]string `json:"tag,omitempty"`
-	CreateTime string            `json:"createTime,omitempty"`
 }
 
 func (d *DeviceModel) FromEnitty(en Device) {
@@ -26,14 +24,6 @@ func (d *DeviceModel) FromEnitty(en Device) {
 		}
 		d.Metaconfig = m
 	}
-	if len(en.Tag) > 0 {
-		m := map[string]string{}
-		err := json.Unmarshal([]byte(en.Metaconfig), &m)
-		if err != nil {
-			logs.Error(err)
-		}
-		d.Tag = m
-	}
 }
 
 func (d *DeviceModel) ToEnitty() Device {
@@ -44,12 +34,6 @@ func (d *DeviceModel) ToEnitty() Device {
 	} else {
 		en.Metaconfig = string(v)
 	}
-	t, err := json.Marshal(d.Tag)
-	if err != nil {
-		logs.Error(err)
-	} else {
-		en.Tag = string(t)
-	}
 	return en
 }
 
@@ -57,7 +41,6 @@ func (d *DeviceModel) ToEnitty() Device {
 type ProductModel struct {
 	Product
 	Metaconfig []core.ProductMetaConfig `json:"metaconfig,omitempty"`
-	Tag        map[string]string        `json:"tag,omitempty"`
 }
 
 func (d *ProductModel) FromEnitty(en Product) {
@@ -70,14 +53,6 @@ func (d *ProductModel) FromEnitty(en Product) {
 		}
 		d.Metaconfig = m
 	}
-	if len(en.Tag) > 0 {
-		m := map[string]string{}
-		err := json.Unmarshal([]byte(en.Metaconfig), &m)
-		if err != nil {
-			logs.Error(err)
-		}
-		d.Tag = m
-	}
 }
 
 func (d *ProductModel) ToEnitty() Product {
@@ -87,12 +62,6 @@ func (d *ProductModel) ToEnitty() Product {
 		logs.Error(err)
 	} else {
 		en.Metaconfig = string(v)
-	}
-	t, err := json.Marshal(d.Tag)
-	if err != nil {
-		logs.Error(err)
-	} else {
-		en.Tag = string(t)
 	}
 	return en
 }

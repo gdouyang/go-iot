@@ -36,14 +36,13 @@ func (ctl *AlarmController) PageAlarmLog() {
 	if ctl.isForbidden(alarmResource, QueryAction) {
 		return
 	}
-	var ob models.PageQuery[models.AlarmLog]
+	var ob models.PageQuery
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	ob.Condition.CreateId = ctl.GetCurrentUser().Id
-	res, err := alarm.PageAlarmLog(&ob)
+	res, err := alarm.PageAlarmLog(&ob, ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 	} else {

@@ -43,7 +43,7 @@ func (ctl *UserController) Page() {
 	if ctl.isForbidden(userResource, QueryAction) {
 		return
 	}
-	var ob models.PageQuery[models.User]
+	var ob models.PageQuery
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)

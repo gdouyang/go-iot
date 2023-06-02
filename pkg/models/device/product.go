@@ -9,27 +9,20 @@ import (
 
 	"go-iot/pkg/models/network"
 
-	"github.com/beego/beego/v2/client/orm"
+	"go-iot/pkg/core/es/orm"
 
 	"github.com/beego/beego/v2/core/logs"
 )
 
 // 分页查询设备
-func PageProduct(page *models.PageQuery[models.Product], createId int64) (*models.PageResult[models.Product], error) {
+func PageProduct(page *models.PageQuery, createId int64) (*models.PageResult[models.Product], error) {
 	var pr *models.PageResult[models.Product]
-	var dev models.Product = page.Condition
 
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.Product{})
+	qs = qs.FilterTerm(page.Condition...)
 
-	id := dev.Id
-	if len(id) > 0 {
-		qs = qs.Filter("id__contains", id)
-	}
-	if len(dev.Name) > 0 {
-		qs = qs.Filter("name__contains", dev.Name)
-	}
 	qs = qs.Filter("createId", createId)
 
 	var result []models.Product
@@ -44,6 +37,7 @@ func PageProduct(page *models.PageQuery[models.Product], createId int64) (*model
 	}
 
 	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
+	p.SearchAfter = qs.LastSort
 	pr = &p
 
 	return pr, nil
