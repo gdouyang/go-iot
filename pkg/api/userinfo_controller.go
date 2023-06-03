@@ -42,7 +42,7 @@ func (ctl *UserInfoController) Get() {
 }
 
 func (ctl *UserInfoController) SaveBasic() {
-	var ob models.User
+	var ob user.UserDTO
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)

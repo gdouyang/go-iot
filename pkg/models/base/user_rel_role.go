@@ -20,3 +20,17 @@ func GetUserRelRoleByUserId(userId int64) ([]models.UserRelRole, error) {
 
 	return reslut, nil
 }
+
+func AddUserRelRole(userId, roleId int64) error {
+	o := orm.NewOrm()
+	ob := &models.UserRelRole{UserId: userId, RoleId: roleId}
+	_, err := o.Insert(ob)
+	return err
+}
+
+func DeleteUserRelRoleByUserId(userId int64) error {
+	o := orm.NewOrm()
+	ob := &models.UserRelRole{UserId: userId}
+	_, err := o.Delete(ob, "userId")
+	return err
+}

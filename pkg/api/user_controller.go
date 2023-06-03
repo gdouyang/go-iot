@@ -81,7 +81,7 @@ func (ctl *UserController) Add() {
 	if ctl.isForbidden(userResource, CretaeAction) {
 		return
 	}
-	var ob models.User
+	var ob user.UserDTO
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -100,7 +100,7 @@ func (ctl *UserController) Update() {
 	if ctl.isForbidden(userResource, SaveAction) {
 		return
 	}
-	var ob models.User
+	var ob user.UserDTO
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)
@@ -199,8 +199,8 @@ func (ctl *UserController) Disable() {
 	ctl.RespOk()
 }
 
-func (ctl *UserController) getUserAndCheckCreateId(roleId int64) (*models.User, error) {
-	ob, err := user.GetUser(roleId)
+func (ctl *UserController) getUserAndCheckCreateId(userId int64) (*user.UserDTO, error) {
+	ob, err := user.GetUser(userId)
 	if err != nil {
 		return nil, err
 	}

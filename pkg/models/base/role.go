@@ -95,7 +95,7 @@ func AddRole(ob *RoleDTO) error {
 func UpdateRole(ob *RoleDTO) error {
 	//更新数据
 	o := orm.NewOrm()
-	_, err := o.Update(&ob.Role, "Desc")
+	_, err := o.Update(&ob.Role, "name", "Desc")
 	if err != nil {
 		return err
 	}

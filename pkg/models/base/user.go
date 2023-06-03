@@ -16,16 +16,23 @@ func init() {
 	boot.AddStartLinstener(func() {
 		admin, _ := GetUser(1)
 		if admin == nil {
-			AddUser(&models.User{
-				Id:         1,
-				Username:   "admin",
-				Nickname:   "admin",
-				Password:   "123456",
-				EnableFlag: true,
+			AddUser(&UserDTO{
+				User: models.User{
+					Id:         1,
+					Username:   "admin",
+					Nickname:   "admin",
+					Password:   "123456",
+					EnableFlag: true,
+				},
 			})
 			logs.Info("init admin user")
 		}
 	})
+}
+
+type UserDTO struct {
+	models.User
+	RoleId int64 `json:"roleId"`
 }
 
 // 分页查询设备
@@ -57,7 +64,7 @@ func PageUser(page *models.PageQuery, createId int64) (*models.PageResult[models
 	return pr, nil
 }
 
-func AddUser(ob *models.User) error {
+func AddUser(ob *UserDTO) error {
 	if len(ob.Password) == 0 {
 		return errors.New("password must be present")
 	}
@@ -68,24 +75,39 @@ func AddUser(ob *models.User) error {
 	if rs != nil {
 		return errors.New("user exist")
 	}
-	Md5Pwd(ob)
+	u := &ob.User
+	Md5Pwd(u)
 	//插入数据
 	o := orm.NewOrm()
-	ob.CreateTime = models.NewDateTime()
-	_, err = o.Insert(ob)
+	u.CreateTime = models.NewDateTime()
+	_, err = o.Insert(u)
 	if err != nil {
 		return err
+	}
+	if ob.RoleId > 0 {
+		err = AddUserRelRole(u.Id, ob.RoleId)
+		if err != nil {
+			o.Delete(u)
+			return err
+		}
 	}
 	return nil
 }
 
-func UpdateUser(ob *models.User) error {
+func UpdateUser(ob *UserDTO) error {
 	if len(ob.Nickname) == 0 {
 		return fmt.Errorf("nickname must be present")
 	}
+	u := &ob.User
 	o := orm.NewOrm()
-	_, err := o.Update(ob, "Nickname", "Email", "Desc")
+	_, err := o.Update(u, "Nickname", "Email", "Desc")
 	if err != nil {
+		return err
+	}
+	DeleteUserRelRoleByUserId(u.Id)
+	err = AddUserRelRole(u.Id, ob.RoleId)
+	if err != nil {
+		o.Delete(u)
 		return err
 	}
 	return nil
@@ -134,10 +156,11 @@ func DeleteUser(ob *models.User) error {
 		logs.Error("delete fail", err)
 		return err
 	}
+	DeleteUserRelRoleByUserId(ob.Id)
 	return nil
 }
 
-func GetUser(id int64) (*models.User, error) {
+func GetUser(id int64) (*UserDTO, error) {
 
 	o := orm.NewOrm()
 
@@ -148,7 +171,15 @@ func GetUser(id int64) (*models.User, error) {
 	} else if err == orm.ErrMissPK {
 		return nil, err
 	} else {
-		return &p, nil
+		dto := &UserDTO{User: p}
+		list, err := GetUserRelRoleByUserId(id)
+		if err != nil {
+			logs.Error("GetUserRelRoleByUserId error:", err)
+		}
+		if len(list) > 0 {
+			dto.RoleId = list[0].RoleId
+		}
+		return dto, nil
 	}
 }
 
