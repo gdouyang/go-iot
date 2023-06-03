@@ -2,7 +2,6 @@ package es
 
 import (
 	"encoding/json"
-	"errors"
 )
 
 const Prefix = "goiot-"
@@ -52,6 +51,16 @@ type IndexResponse struct {
 	Result  string
 }
 
+type EsResponse struct {
+	Data       string
+	StatusCode int
+	IsError    bool
+}
+
+func (e *EsResponse) Is404() bool {
+	return e.StatusCode == 404
+}
+
 type SearchResponse struct {
 	Total       int64
 	Sources     []byte
@@ -62,27 +71,4 @@ type SearchResponse struct {
 func (r *SearchResponse) ConvertSource(result any) error {
 	err := json.Unmarshal(r.Sources, result)
 	return err
-}
-
-func NewEsError(e error) *ErrorResponse {
-	return &ErrorResponse{Info: &ErrorInfo{Reason: e.Error()}}
-}
-
-type ErrorResponse struct {
-	Info *ErrorInfo `json:"error,omitempty"`
-}
-
-func (e *ErrorResponse) Error() error {
-	return errors.New(e.Info.Reason)
-}
-
-func (e *ErrorResponse) Is404() bool {
-	return e.Info.Reason == Err404.Error()
-}
-
-type ErrorInfo struct {
-	RootCause []*ErrorInfo
-	Type      string
-	Reason    string
-	Phase     string
 }

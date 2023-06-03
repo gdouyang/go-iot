@@ -30,6 +30,7 @@ func init() {
 		web.NSRouter("/:id", &NotifyController{}, "get:Get"),
 		web.NSRouter("/types", &NotifyController{}, "get:Types"),
 		web.NSRouter("/:id", &NotifyController{}, "delete:Delete"),
+		web.NSRouter("/:id/copy", &NotifyController{}, "post:Copy"),
 		web.NSRouter("/:id/start", &NotifyController{}, "post:Enable"),
 		web.NSRouter("/:id/stop", &NotifyController{}, "post:Disable"),
 	)
@@ -179,6 +180,38 @@ func (ctl *NotifyController) Delete() {
 		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
+}
+
+func (ctl *NotifyController) Copy() {
+	if ctl.isForbidden(notifyResource, CretaeAction) {
+		return
+	}
+	id := ctl.Param(":id")
+	_id, err := strconv.Atoi(id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = ctl.getNotifyAndCheckCreateId(int64(_id))
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	var ob *models.Notify = &models.Notify{
+		Id: int64(_id),
+	}
+	data, err := notify.GetNotify(ob.Id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	if data == nil {
+		ctl.RespError(errors.New("data not found"))
+		return
+	}
+	data.Id = 0
+	notify.AddNotify(data)
 	ctl.RespOk()
 }
 

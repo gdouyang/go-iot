@@ -85,7 +85,7 @@ func SolveAlarmLog(q models.AlarmLog) error {
 	}
 	q.State = "solve"
 	o := orm.NewOrm()
-	_, err := o.Update(q, "State")
+	_, err := o.Update(q, "State", "desc")
 	if err != nil {
 		return err
 	}

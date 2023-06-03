@@ -55,9 +55,12 @@ func (t *EsTimeSeries) Del(product *Product) error {
 		Index:             []string{t.getIndex(product, properties_const), t.getIndex(product, event_const), t.getIndex(product, devicelogs_const)},
 		IgnoreUnavailable: &IgnoreUnavailable,
 	}
-	_, eserr := es.DoRequest(req)
-	if eserr != nil && !eserr.Is404() {
-		return eserr.Error()
+	resp, eserr := es.DoRequest(req)
+	if eserr != nil {
+		return eserr
+	}
+	if resp.IsError && !resp.Is404() {
+		return errors.New(resp.Data)
 	}
 	return nil
 }
@@ -86,7 +89,7 @@ func (t *EsTimeSeries) QueryProperty(product *Product, param TimeDataSearchReque
 		From:        param.PageOffset(),
 		Size:        param.PageSize,
 		Filter:      filter,
-		Sort:        make([]map[string]es.SortOrder, 1),
+		Sort:        []map[string]es.SortOrder{},
 		SearchAfter: param.SearchAfter,
 	}
 	q.Sort = append(q.Sort, map[string]es.SortOrder{"createTime": {Order: "desc"}})

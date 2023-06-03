@@ -2,6 +2,7 @@ package ruleengine
 
 import (
 	"fmt"
+	"go-iot/pkg/core"
 	"go-iot/pkg/core/eventbus"
 	"sync"
 
@@ -103,60 +104,63 @@ func (s *RuleExecutor) stop() {
 	}
 }
 
-func (s *RuleExecutor) subscribeEvent(data eventbus.Message) {
-	if s.Trigger.FilterType == "online" || s.Trigger.FilterType == "offline" {
-		s.runAction(map[string]interface{}{"deviceId": data.GetDeviceId()})
-		return
-	}
-	s.evaluate(data)
+// 事件触发
+func (s *RuleExecutor) subscribeEvent(msg eventbus.Message) {
+	s.evaluate(msg)
 }
 
-func (s *RuleExecutor) evaluate(data eventbus.Message) {
+func (s *RuleExecutor) evaluate(msg eventbus.Message) {
 	pass := true
-	var data1 map[string]interface{}
-	var deviceId string
-	if p, ok := data.(*eventbus.PropertiesMessage); ok {
-		data1 = p.Data
-		deviceId = p.DeviceId
-	}
-	if p, ok := data.(*eventbus.EventMessage); ok {
-		data1 = p.Data
-		deviceId = p.DeviceId
-	}
-	if len(s.deviceIdMap) > 0 {
-		pass = false
-		if _, ok := s.deviceIdMap[deviceId]; ok {
-			pass = true
+	var data map[string]interface{}
+	deviceId := msg.GetDeviceId()
+	if s.Trigger.FilterType == core.ONLINE || s.Trigger.FilterType == core.OFFLINE {
+		data = map[string]interface{}{"deviceId": deviceId, "state": s.Trigger.FilterType}
+	} else {
+		if p, ok := msg.(*eventbus.PropertiesMessage); ok {
+			data = p.Data
+		} else if p, ok := msg.(*eventbus.EventMessage); ok {
+			data = p.Data
+		}
+		// 指定了设备
+		if len(s.deviceIdMap) > 0 {
+			pass = false
+			if _, ok := s.deviceIdMap[deviceId]; ok {
+				pass = true
+			}
+		}
+		if pass {
+			evalPass, err := s.Trigger.Evaluate(data)
+			if err != nil {
+				logs.Error("rule trigger evaluate error: ", err)
+				return
+			}
+			pass = evalPass
+		} else {
+			logs.Debug("device %s skip", deviceId)
 		}
 	}
 	if pass {
-		// product := core.GetProductManager().Get(s.ProductId)
-		// if nil != product {
-		// 	tsl.ValueConvert1(product.GetTslProperty(), &data1)
-		// }
-		pass, err := s.Trigger.Evaluate(data1)
-		if err != nil {
-			logs.Error(err)
-			return
-		}
-		if pass {
-			if s.Type == TypeAlarm {
-				event := AlarmEvent{
-					ProductId: s.ProductId,
-					DeviceId:  deviceId,
-					RuleId:    s.Id,
-					AlarmName: s.Name,
-					Data:      data1,
-				}
-				eventbus.Publish(eventbus.GetAlarmTopic(s.ProductId, deviceId), &event)
-			}
-			s.runAction(data1)
-		}
+		s.createAlarm(deviceId, data)
+		s.runAction(data)
 	}
 }
 
+// 定时任务触发
 func (s *RuleExecutor) cronRun() {
 	s.runAction(nil)
+}
+
+func (s *RuleExecutor) createAlarm(deviceId string, data map[string]interface{}) {
+	if s.Type == TypeAlarm {
+		event := AlarmEvent{
+			ProductId: s.ProductId,
+			DeviceId:  deviceId,
+			RuleId:    s.Id,
+			AlarmName: s.Name,
+			Data:      data,
+		}
+		eventbus.Publish(eventbus.GetAlarmTopic(s.ProductId, deviceId), &event)
+	}
 }
 
 func (s *RuleExecutor) runAction(data map[string]interface{}) {
@@ -164,19 +168,19 @@ func (s *RuleExecutor) runAction(data map[string]interface{}) {
 		if action.Executor == "device-message-sender" {
 			a, err := NewDeviceCmdAction(action.Configuration)
 			if err != nil {
-				logs.Error(err)
+				logs.Error("rule executor run action [device-message-sender] error: ", err)
 			} else {
 				a.Do()
 			}
 		} else if action.Executor == "notifier" {
 			a, err := NewNotifierAction(action.Configuration, data)
 			if err != nil {
-				logs.Error(err)
+				logs.Error("rule executor run action [notifier] error: ", err)
 			} else {
 				a.Do()
 			}
 		} else {
-			logs.Info("%s %s %s action is run", s.Name, s.Type, s.TriggerType)
+			logs.Warn("%s %s %s %s Executor not support", s.Name, s.Type, s.TriggerType, action.Executor)
 		}
 	}
 }

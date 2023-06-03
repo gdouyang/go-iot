@@ -129,7 +129,7 @@ func UpdateProduct(ob *models.ProductModel) error {
 	}
 	//更新数据
 	o := orm.NewOrm()
-	_, err := o.Update(ob, columns...)
+	_, err := o.Update(ob.ToEnitty(), columns...)
 	if err != nil {
 		logs.Error("update fail", err)
 		return err

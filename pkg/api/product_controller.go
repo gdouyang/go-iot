@@ -421,9 +421,11 @@ func (ctl *ProductController) RunNetwork() {
 			ctl.RespError(err)
 			return
 		}
-		nw.ProductId = productId
-		nw.Type = produc.NetworkType
-		err = network.UpdateNetwork(nw)
+		err = network.UpdateNetwork(&models.Network{
+			Id:        nw.Id,
+			ProductId: productId,
+			Type:      produc.NetworkType,
+		})
 		if err != nil {
 			ctl.RespError(err)
 			return

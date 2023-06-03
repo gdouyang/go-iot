@@ -38,24 +38,24 @@ func getEsClient() (*elasticsearch.Client, error) {
 	return es, err
 }
 
-func CreateEsTemplate(properties map[string]interface{}, indexPattern string, templateName string, refresh_interval string) error {
-	settings := map[string]interface{}{
+func CreateEsTemplate(properties map[string]any, indexPattern string, templateName string, refresh_interval string) error {
+	settings := map[string]any{
 		"number_of_shards":   DefaultEsConfig.NumberOfShards,
 		"number_of_replicas": DefaultEsConfig.NumberOfReplicas,
 	}
 	if len(refresh_interval) > 0 {
 		settings["refresh_interval"] = refresh_interval
 	}
-	var payload map[string]interface{} = map[string]interface{}{
+	var payload map[string]any = map[string]any{
 		"index_patterns": []string{indexPattern},
 		"order":          0,
-		// "template": map[string]interface{}{
+		// "template": map[string]any{
 		"settings": settings,
-		"mappings": map[string]interface{}{
+		"mappings": map[string]any{
 			// "dynamic":    false,
 			"properties": properties,
-			"dynamic_templates": []map[string]interface{}{
-				{"strings": map[string]interface{}{"match_mapping_type": "string", "match": "*", "mapping": map[string]interface{}{"type": "keyword"}}},
+			"dynamic_templates": []map[string]any{
+				{"strings": map[string]any{"match_mapping_type": "string", "match": "*", "mapping": map[string]any{"type": "keyword"}}},
 			},
 		},
 		// },
@@ -70,32 +70,35 @@ func CreateEsTemplate(properties map[string]interface{}, indexPattern string, te
 		Name: templateName,
 		Body: bytes.NewReader(data),
 	}
-	_, eserr := DoRequest(req)
-	if eserr != nil && !eserr.Is404() {
-		return errors.New(eserr.Info.Phase)
+	resp, err := DoRequest(req)
+	if err != nil {
+		return err
+	}
+	if resp.IsError {
+		return fmt.Errorf("%s", resp.Data)
 	}
 	return nil
 }
 
-func CreateEsIndex(properties map[string]interface{}, indexName string) *ErrorResponse {
-	var payload map[string]interface{} = map[string]interface{}{
-		// "template": map[string]interface{}{
-		"settings": map[string]interface{}{
+func CreateEsIndex(properties map[string]any, indexName string) error {
+	var payload map[string]any = map[string]any{
+		// "template": map[string]any{
+		"settings": map[string]any{
 			"number_of_shards":   DefaultEsConfig.NumberOfShards,
 			"number_of_replicas": DefaultEsConfig.NumberOfReplicas,
 		},
-		"mappings": map[string]interface{}{
+		"mappings": map[string]any{
 			// "dynamic":    false,
 			"properties": properties,
-			"dynamic_templates": []map[string]interface{}{
-				{"strings": map[string]interface{}{"match_mapping_type": "string", "match": "*", "mapping": map[string]interface{}{"type": "keyword"}}},
+			"dynamic_templates": []map[string]any{
+				{"strings": map[string]any{"match_mapping_type": "string", "match": "*", "mapping": map[string]any{"type": "keyword"}}},
 			},
 		},
 		// },
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return NewEsError(fmt.Errorf("%s error: %s", indexName, err.Error()))
+		return fmt.Errorf("%s error: %s", indexName, err.Error())
 	}
 	logs.Info(string(data))
 	// Set up the request object.
@@ -103,56 +106,14 @@ func CreateEsIndex(properties map[string]interface{}, indexName string) *ErrorRe
 		Index: indexName,
 		Body:  bytes.NewReader(data),
 	}
-	_, eserr := DoRequest(req)
-	if eserr != nil && !eserr.Is404() {
+	resp, eserr := DoRequest(req)
+	if eserr != nil {
 		return eserr
 	}
-	return nil
-}
-
-func AppendFilter(condition []SearchTerm) []map[string]interface{} {
-	filter := []map[string]interface{}{}
-	for _, val := range condition {
-		if val.Value == nil {
-			continue
-		}
-		key := val.Key
-		var term map[string]interface{} = map[string]interface{}{}
-		switch val.Oper {
-		case IN:
-			kind := reflect.TypeOf(val).Kind()
-			if kind == reflect.Array || kind == reflect.Slice {
-				term["terms"] = map[string]interface{}{key: val}
-			} else {
-				s := fmt.Sprintf("%v", val.Value)
-				term["terms"] = map[string]interface{}{key: strings.Split(s, ",")}
-			}
-		case LIKE:
-			term["prefix"] = map[string]interface{}{key: val.Value}
-		case GT:
-			term["gt"] = map[string]interface{}{key: val.Value}
-		case GTE:
-			term["gte"] = map[string]interface{}{key: val.Value}
-		case LT:
-			term["lt"] = map[string]interface{}{key: val.Value}
-		case LTE:
-			term["lte"] = map[string]interface{}{key: val.Value}
-		case BTW:
-			s := fmt.Sprintf("%v", val.Value)
-			vals := strings.Split(s, ",")
-			if len(vals) < 2 {
-				continue
-			}
-			term["range"] = map[string]interface{}{key: map[string]interface{}{
-				"gte": vals[0],
-				"lte": vals[1],
-			}}
-		default:
-			term["term"] = map[string]interface{}{key: val.Value}
-		}
-		filter = append(filter, term)
+	if resp.IsError {
+		return fmt.Errorf("%s error: %s", indexName, resp.Data)
 	}
-	return filter
+	return nil
 }
 
 func CreateDoc(index string, docId string, ob any) error {
@@ -167,9 +128,12 @@ func CreateDoc(index string, docId string, ob any) error {
 	if len(docId) > 0 {
 		req.DocumentID = docId
 	}
-	_, eserr := DoRequest(req)
-	if eserr != nil && !eserr.Is404() {
-		return eserr.Error()
+	resp, eserr := DoRequest(req)
+	if eserr != nil {
+		return eserr
+	}
+	if resp.IsError {
+		return fmt.Errorf("%s error: %s", index, resp.Data)
 	}
 	return nil
 }
@@ -184,9 +148,12 @@ func UpdateDoc(index string, docId string, data any) error {
 		DocumentID: docId,
 		Body:       bytes.NewReader([]byte(fmt.Sprintf(`{"doc": %s}`, string(b)))),
 	}
-	_, eserr := DoRequest(req)
-	if eserr != nil && !eserr.Is404() {
-		return eserr.Error()
+	resp, eserr := DoRequest(req)
+	if eserr != nil {
+		return eserr
+	}
+	if resp.IsError {
+		return fmt.Errorf("%s error: %s", index, resp.Data)
 	}
 	return nil
 }
@@ -195,17 +162,20 @@ func BulkDoc(data []byte) error {
 	req := esapi.BulkRequest{
 		Body: bytes.NewReader([]byte(data)),
 	}
-	_, eserr := DoRequest(req)
-	if eserr != nil && !eserr.Is404() {
-		return eserr.Error()
+	resp, eserr := DoRequest(req)
+	if eserr != nil {
+		return eserr
+	}
+	if resp.IsError {
+		return fmt.Errorf("error: %s", resp.Data)
 	}
 	return nil
 }
 
-func UpdateDocByQuery(index string, filter []map[string]interface{}, script map[string]interface{}) error {
-	body := map[string]interface{}{
-		"query": map[string]interface{}{
-			"bool": map[string]interface{}{
+func UpdateDocByQuery(index string, filter []map[string]any, script map[string]any) error {
+	body := map[string]any{
+		"query": map[string]any{
+			"bool": map[string]any{
 				"filter": filter,
 			},
 		},
@@ -215,13 +185,19 @@ func UpdateDocByQuery(index string, filter []map[string]interface{}, script map[
 	if err != nil {
 		return err
 	}
+	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+		logs.Debug(string(data))
+	}
 	req := esapi.UpdateByQueryRequest{
 		Index: []string{index},
 		Body:  bytes.NewReader(data),
 	}
-	_, eserr := DoRequest(req)
-	if eserr != nil && !eserr.Is404() {
-		return eserr.Error()
+	resp, eserr := DoRequest(req)
+	if eserr != nil {
+		return eserr
+	}
+	if resp.IsError {
+		return fmt.Errorf("%s error: %s", index, resp.Data)
 	}
 	return nil
 }
@@ -231,17 +207,20 @@ func DeleteDoc(index string, docId string) error {
 		Index:      index,
 		DocumentID: docId,
 	}
-	_, eserr := DoRequest(req)
-	if eserr != nil && !eserr.Is404() {
-		return eserr.Error()
+	resp, eserr := DoRequest(req)
+	if eserr != nil {
+		return eserr
+	}
+	if resp.IsError {
+		return fmt.Errorf("%s error: %s", index, resp.Data)
 	}
 	return nil
 }
 
-func DeleteByQuery(index string, filter []map[string]interface{}) error {
-	body := map[string]interface{}{
-		"query": map[string]interface{}{
-			"bool": map[string]interface{}{
+func DeleteByQuery(index string, filter []map[string]any) error {
+	body := map[string]any{
+		"query": map[string]any{
+			"bool": map[string]any{
 				"filter": filter,
 			},
 		},
@@ -254,19 +233,22 @@ func DeleteByQuery(index string, filter []map[string]interface{}) error {
 		Index: []string{index},
 		Body:  bytes.NewReader(data),
 	}
-	_, eserr := DoRequest(req)
-	if eserr != nil && !eserr.Is404() {
-		return eserr.Error()
+	resp, eserr := DoRequest(req)
+	if eserr != nil {
+		return eserr
+	}
+	if resp.IsError {
+		return fmt.Errorf("%s error: %s", index, resp.Data)
 	}
 	return nil
 }
 
 func FilterSearch(index string, q Query) (*SearchResponse, error) {
-	body := map[string]interface{}{
+	body := map[string]any{
 		"from": q.From,
 		"size": q.Size,
-		"query": map[string]interface{}{
-			"bool": map[string]interface{}{
+		"query": map[string]any{
+			"bool": map[string]any{
 				"filter": q.Filter,
 			},
 		},
@@ -289,11 +271,16 @@ func FilterSearch(index string, q Query) (*SearchResponse, error) {
 		Index: []string{index},
 		Body:  bytes.NewReader(data),
 	}
-	str, eserr := DoRequest(req)
+	res, eserr := DoRequest(req)
 	if eserr != nil {
-		if !eserr.Is404() {
-			return nil, eserr.Error()
-		}
+		return nil, eserr
+	}
+	if res.IsError && !res.Is404() {
+		return nil, fmt.Errorf("error: %s", res.Data)
+	}
+
+	str := res.Data
+	if res.Is404() {
 		str = `{"hits": {"total":{"value": 0}, "hits": []}}`
 	}
 	var resp SearchResponse
@@ -331,36 +318,69 @@ func FilterSearch(index string, q Query) (*SearchResponse, error) {
 	return &resp, nil
 }
 
-func DoRequest(s esDoFunc) (string, *ErrorResponse) {
+func AppendFilter(condition []SearchTerm) []map[string]any {
+	filter := []map[string]any{}
+	for _, _term := range condition {
+		if _term.Value == nil {
+			continue
+		}
+		key := _term.Key
+		value := _term.Value
+		var term map[string]any = map[string]any{}
+		switch _term.Oper {
+		case IN:
+			kind := reflect.TypeOf(value).Kind()
+			if kind == reflect.Array || kind == reflect.Slice {
+				term["terms"] = map[string]any{key: value}
+			} else {
+				s := fmt.Sprintf("%v", value)
+				term["terms"] = map[string]any{key: strings.Split(s, ",")}
+			}
+		case LIKE:
+			term["prefix"] = map[string]any{key: value}
+		case GT:
+			term["gt"] = map[string]any{key: value}
+		case GTE:
+			term["gte"] = map[string]any{key: value}
+		case LT:
+			term["lt"] = map[string]any{key: value}
+		case LTE:
+			term["lte"] = map[string]any{key: value}
+		case BTW:
+			s := fmt.Sprintf("%v", value)
+			vals := strings.Split(s, ",")
+			if len(vals) < 2 {
+				continue
+			}
+			term["range"] = map[string]any{key: map[string]any{
+				"gte": vals[0],
+				"lte": vals[1],
+			}}
+		default:
+			term["term"] = map[string]any{key: value}
+		}
+		filter = append(filter, term)
+	}
+	return filter
+}
+func DoRequest(s esDoFunc) (EsResponse, error) {
 	es, err := getEsClient()
 	if err != nil {
 		logs.Error("Error creating the client: %s", err)
 	}
+	var esResp EsResponse
 	// Perform the request with the client.
 	res, err := s.Do(context.Background(), es)
 	if err != nil {
 		logs.Error("Error getting response: %s", err)
-		return "", NewEsError(err)
+		return esResp, err
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == 404 {
-		return "", NewEsError(Err404)
-	}
-
-	if res.IsError() {
-		// Deserialize the response into a map.
-		var eserr ErrorResponse
-		var buf bytes.Buffer
-		buf.ReadFrom(res.Body)
-		if err := json.Unmarshal(buf.Bytes(), &eserr); err != nil {
-			logs.Error("Error parsing the response body: %s, err: %s", buf.String(), err)
-			logs.Error("[%s] Error:[%s]", res.Status(), res.String())
-		} else {
-			return "", &eserr
-		}
-	}
-	buf := new(bytes.Buffer)
+	var buf bytes.Buffer
 	buf.ReadFrom(res.Body)
-	return buf.String(), nil
+	esResp.Data = buf.String()
+	esResp.StatusCode = res.StatusCode
+	esResp.IsError = res.IsError()
+	return esResp, nil
 }

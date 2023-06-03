@@ -70,10 +70,10 @@ type orderBy struct {
 func (q *QuerySeter) Filter(key string, value interface{}) *QuerySeter {
 	var term es.SearchTerm
 	if strings.Contains(key, "__contains") {
-		key = strings.ReplaceAll(key, "__contains", "$LIKE")
+		key = strings.ReplaceAll(key, "__contains", "")
 		term.Oper = es.LIKE
 	} else if strings.Contains(key, "__in") {
-		key = strings.ReplaceAll(key, "__in", "$IN")
+		key = strings.ReplaceAll(key, "__in", "")
 		term.Oper = es.IN
 	}
 	term.Key = FirstLower(key)

@@ -15,7 +15,7 @@ type deviceState struct {
 }
 
 func init() {
-	deviceManager := &DbDeviceManager{stateCh: make(chan deviceState, 1000)}
+	stateSaver := &deviceStateSaver{stateCh: make(chan deviceState, 1000)}
 
 	var newDeviceState = func(deviceId, productId, state string) deviceState {
 		return deviceState{deviceId: deviceId,
@@ -25,23 +25,23 @@ func init() {
 	}
 	eventbus.Subscribe(eventbus.GetOfflineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OfflineMessage); ok {
-			deviceManager.stateCh <- newDeviceState(m.DeviceId, m.ProductId, core.OFFLINE)
+			stateSaver.stateCh <- newDeviceState(m.DeviceId, m.ProductId, core.OFFLINE)
 		}
 	})
 	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OnlineMessage); ok {
-			deviceManager.stateCh <- newDeviceState(m.DeviceId, m.ProductId, core.ONLINE)
+			stateSaver.stateCh <- newDeviceState(m.DeviceId, m.ProductId, core.ONLINE)
 		}
 	})
-	go deviceManager.saveState()
+	go stateSaver.saveState()
 }
 
-type DbDeviceManager struct {
+type deviceStateSaver struct {
 	sync.RWMutex
 	stateCh chan deviceState
 }
 
-func (m *DbDeviceManager) saveState() {
+func (m *deviceStateSaver) saveState() {
 	var onlineList []deviceState
 	var offlineList []deviceState
 
@@ -81,7 +81,13 @@ func updateOnlineStatus(list []deviceState, state string) {
 			ids = append(ids, m.deviceId)
 			product := core.GetProduct(m.productId)
 			if product != nil {
-				product.GetTimeSeries().SaveLogs(product, core.LogData{DeviceId: m.deviceId, Type: state, CreateTime: m.createTime})
+				data := core.LogData{
+					DeviceId:   m.deviceId,
+					Type:       state,
+					CreateTime: m.createTime,
+					Content:    `{"deviceId": "` + m.deviceId + `", "state": "` + state + `"}`,
+				}
+				product.GetTimeSeries().SaveLogs(product, data)
 			}
 		}
 		UpdateOnlineStatusList(ids, state)

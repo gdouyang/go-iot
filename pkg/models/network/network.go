@@ -234,7 +234,7 @@ func BindNetworkProduct(productId, networkType string) (*models.Network, error) 
 		return nw, err
 	} else {
 		nw, err := GetUnuseNetwork()
-		if err != nil {
+		if err == nil {
 			nw.ProductId = productId
 			nw.Type = networkType
 			err = UpdateNetwork(nw)
