@@ -21,7 +21,7 @@ func PageRule(page *models.PageQuery, user models.User) (*models.PageResult[mode
 
 	var cols = []string{"Id", "Name", "State", "Desc", "CreateId", "CreateTime"}
 	var result []models.Rule
-	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result, cols...)
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime", "-id").All(&result, cols...)
 	if err != nil {
 		return nil, err
 	}

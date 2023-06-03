@@ -38,7 +38,7 @@ func PageUser(page *models.PageQuery, createId int64) (*models.PageResult[models
 	qs = qs.Filter("createId", createId)
 	qs.SearchAfter = page.SearchAfter
 	var result []models.User
-	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime", "-id").All(&result)
 	if err != nil {
 		return nil, err
 	}

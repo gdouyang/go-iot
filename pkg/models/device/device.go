@@ -27,7 +27,7 @@ func PageDevice(page *models.PageQuery, createId int64) (*models.PageResult[mode
 	qs = qs.Filter("CreateId", createId)
 
 	var result []models.Device
-	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime", "-id").All(&result)
 	if err != nil {
 		return nil, err
 	}

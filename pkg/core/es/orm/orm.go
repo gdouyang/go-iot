@@ -109,15 +109,17 @@ func (q *QuerySeter) Limit(pageSize, pageOffset int) *QuerySeter {
 	return q
 }
 
-func (q *QuerySeter) OrderBy(key string) *QuerySeter {
-	sort := "asc"
-	if strings.HasPrefix(key, "-") {
-		key = FirstLower(strings.Replace(key, "-", "", 1))
-		sort = "desc"
-	} else if strings.HasPrefix(key, "+") {
-		key = FirstLower(strings.Replace(key, "+", "", 1))
+func (q *QuerySeter) OrderBy(keys ...string) *QuerySeter {
+	for _, key := range keys {
+		sort := "asc"
+		if strings.HasPrefix(key, "-") {
+			key = FirstLower(strings.Replace(key, "-", "", 1))
+			sort = "desc"
+		} else if strings.HasPrefix(key, "+") {
+			key = FirstLower(strings.Replace(key, "+", "", 1))
+		}
+		q.orderBy = append(q.orderBy, orderBy{key: key, sort: sort})
 	}
-	q.orderBy = append(q.orderBy, orderBy{key: key, sort: sort})
 	return q
 }
 

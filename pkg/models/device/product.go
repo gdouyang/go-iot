@@ -26,7 +26,7 @@ func PageProduct(page *models.PageQuery, createId int64) (*models.PageResult[mod
 	qs.SearchAfter = page.SearchAfter
 	var result []models.Product
 	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "Desc", "CreateId", "CreateTime"}
-	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result, cols...)
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime", "-id").All(&result, cols...)
 	if err != nil {
 		return nil, err
 	}

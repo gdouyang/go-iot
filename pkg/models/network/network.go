@@ -36,7 +36,7 @@ func ListNetwork(page *models.PageQuery) (*models.PageResult[models.Network], er
 	qs = qs.FilterTerm(page.Condition...)
 
 	var result []models.Network
-	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime", "-id").All(&result)
 	if err != nil {
 		return nil, err
 	}
