@@ -39,6 +39,7 @@ func saveAlarmEvent(data eventbus.Message) {
 			CreateId:  device.GetCreateId(),
 			AlarmName: t.AlarmName,
 			AlarmData: string(b),
+			State:     "unsolve",
 		}
 		go AddAlarmLog(log)
 	}
