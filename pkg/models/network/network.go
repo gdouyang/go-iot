@@ -32,7 +32,7 @@ func ListNetwork(page *models.PageQuery) (*models.PageResult[models.Network], er
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.Network{})
-
+	qs.SearchAfter = page.SearchAfter
 	qs = qs.FilterTerm(page.Condition...)
 
 	var result []models.Network

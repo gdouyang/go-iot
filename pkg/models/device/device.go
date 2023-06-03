@@ -23,7 +23,7 @@ func PageDevice(page *models.PageQuery, createId int64) (*models.PageResult[mode
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.Device{})
 	qs = qs.FilterTerm(page.Condition...)
-
+	qs.SearchAfter = page.SearchAfter
 	qs = qs.Filter("CreateId", createId)
 
 	var result []models.Device

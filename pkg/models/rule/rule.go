@@ -17,6 +17,7 @@ func PageRule(page *models.PageQuery, user models.User) (*models.PageResult[mode
 
 	qs.FilterTerm(page.Condition...)
 	qs = qs.Filter("CreateId", user.Id)
+	qs.SearchAfter = page.SearchAfter
 
 	var cols = []string{"Id", "Name", "State", "Desc", "CreateId", "CreateTime"}
 	var result []models.Rule

@@ -24,6 +24,7 @@ func PageRole(page *models.PageQuery, createId int64) (*models.PageResult[models
 	qs := o.QueryTable(&models.Role{})
 
 	qs = qs.FilterTerm(page.Condition...)
+	qs.SearchAfter = page.SearchAfter
 	qs = qs.Filter("createId", createId)
 
 	var result []models.Role

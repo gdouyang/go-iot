@@ -15,7 +15,7 @@ func PageNotify(page *models.PageQuery, createId int64) (*models.PageResult[mode
 	qs := o.QueryTable(&models.Notify{})
 	qs = qs.FilterTerm(page.Condition...)
 	qs = qs.Filter("createId", createId)
-
+	qs.SearchAfter = page.SearchAfter
 	var result []models.Notify
 	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
 	if err != nil {

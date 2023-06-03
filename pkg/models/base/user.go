@@ -34,10 +34,9 @@ func PageUser(page *models.PageQuery, createId int64) (*models.PageResult[models
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.User{})
-
 	qs = qs.FilterTerm(page.Condition...)
 	qs = qs.Filter("createId", createId)
-
+	qs.SearchAfter = page.SearchAfter
 	var result []models.User
 	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
 	if err != nil {

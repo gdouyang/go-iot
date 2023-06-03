@@ -321,6 +321,7 @@ func FilterSearch(index string, q Query) (*SearchResponse, error) {
 					if err != nil {
 						return nil, err
 					}
+					resp.LastSort = lastSort
 				}
 			}
 		}

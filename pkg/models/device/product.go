@@ -22,9 +22,8 @@ func PageProduct(page *models.PageQuery, createId int64) (*models.PageResult[mod
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.Product{})
 	qs = qs.FilterTerm(page.Condition...)
-
 	qs = qs.Filter("createId", createId)
-
+	qs.SearchAfter = page.SearchAfter
 	var result []models.Product
 	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "Desc", "CreateId", "CreateTime"}
 	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result, cols...)

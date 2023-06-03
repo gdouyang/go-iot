@@ -38,7 +38,7 @@ type Query struct {
 	Filter      []map[string]any
 	Sort        []map[string]SortOrder
 	Includes    []string
-	SearchAfter []string
+	SearchAfter []any
 }
 
 type SortOrder struct {

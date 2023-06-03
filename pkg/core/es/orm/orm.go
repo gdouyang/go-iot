@@ -42,23 +42,24 @@ func (o *defaultOrm) QueryTable(md interface{}) *QuerySeter {
 		indexName:  mi.indexName,
 		model:      md,
 		mi:         mi,
-		filter:     make([]es.SearchTerm, 0),
-		pageSize:   10000,
 		pageOffset: 0,
+		pageSize:   10000,
+		filter:     make([]es.SearchTerm, 0),
 	}
 }
 
 type QuerySeter struct {
-	indexName  string
-	model      interface{}
-	mi         *modelInfo
-	filter     []es.SearchTerm
-	isQuery    bool
-	total      int64
-	pageSize   int
-	pageOffset int
-	orderBy    []orderBy
-	LastSort   []any
+	indexName   string
+	model       interface{}
+	mi          *modelInfo
+	pageOffset  int
+	pageSize    int
+	filter      []es.SearchTerm
+	isQuery     bool
+	total       int64
+	orderBy     []orderBy
+	LastSort    []any
+	SearchAfter []any
 }
 
 type orderBy struct {
@@ -151,6 +152,9 @@ func (q *QuerySeter) All(result any, cols ...string) (int64, error) {
 		for _, v := range cols {
 			query.Includes = append(query.Includes, FirstLower(v))
 		}
+	}
+	if len(q.SearchAfter) > 0 {
+		query.SearchAfter = q.SearchAfter
 	}
 	resp, err := es.FilterSearch(q.indexName, query)
 	if err != nil {

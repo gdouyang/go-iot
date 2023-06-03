@@ -51,7 +51,7 @@ func PageAlarmLog(page *models.PageQuery, createId int64) (*models.PageResult[mo
 	qs := o.QueryTable(models.AlarmLog{})
 	qs = qs.FilterTerm(page.Condition...)
 	qs = qs.Filter("CreateId", createId)
-
+	qs.SearchAfter = page.SearchAfter
 	var result []models.AlarmLog
 	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime").All(&result)
 	if err != nil {
