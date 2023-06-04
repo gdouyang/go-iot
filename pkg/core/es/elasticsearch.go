@@ -189,8 +189,9 @@ func UpdateDocByQuery(index string, filter []map[string]any, script map[string]a
 		logs.Debug(string(data))
 	}
 	req := esapi.UpdateByQueryRequest{
-		Index: []string{index},
-		Body:  bytes.NewReader(data),
+		Index:     []string{index},
+		Body:      bytes.NewReader(data),
+		Conflicts: "proceed",
 	}
 	resp, eserr := DoRequest(req)
 	if eserr != nil {
@@ -230,8 +231,9 @@ func DeleteByQuery(index string, filter []map[string]any) error {
 		return err
 	}
 	req := esapi.DeleteByQueryRequest{
-		Index: []string{index},
-		Body:  bytes.NewReader(data),
+		Index:     []string{index},
+		Body:      bytes.NewReader(data),
+		Conflicts: "proceed",
 	}
 	resp, eserr := DoRequest(req)
 	if eserr != nil {
@@ -241,6 +243,38 @@ func DeleteByQuery(index string, filter []map[string]any) error {
 		return fmt.Errorf("%s error: %s", index, resp.Data)
 	}
 	return nil
+}
+
+func FilterCount(index string, q Query) (int64, error) {
+	body := map[string]any{
+		"query": map[string]any{
+			"bool": map[string]any{
+				"filter": q.Filter,
+			},
+		},
+	}
+	data, err := json.Marshal(body)
+	if err != nil {
+		return 0, err
+	}
+	req := esapi.CountRequest{
+		Index: []string{index},
+		Body:  bytes.NewReader(data),
+	}
+	res, eserr := DoRequest(req)
+	if eserr != nil {
+		return 0, eserr
+	}
+	if res.IsError && !res.Is404() {
+		return 0, fmt.Errorf("error: %s", res.Data)
+	}
+
+	str := res.Data
+	if res.Is404() {
+		str = `{"count": 0}`
+	}
+	total := gjson.Get(str, "count")
+	return total.Int(), nil
 }
 
 func FilterSearch(index string, q Query) (*SearchResponse, error) {
@@ -339,13 +373,13 @@ func AppendFilter(condition []SearchTerm) []map[string]any {
 		case LIKE:
 			term["prefix"] = map[string]any{key: value}
 		case GT:
-			term["gt"] = map[string]any{key: value}
+			term["range"] = map[string]any{key: map[string]any{"gt": value}}
 		case GTE:
-			term["gte"] = map[string]any{key: value}
+			term["range"] = map[string]any{key: map[string]any{"gte": value}}
 		case LT:
-			term["lt"] = map[string]any{key: value}
+			term["range"] = map[string]any{key: map[string]any{"lt": value}}
 		case LTE:
-			term["lte"] = map[string]any{key: value}
+			term["range"] = map[string]any{key: map[string]any{"lte": value}}
 		case BTW:
 			s := fmt.Sprintf("%v", value)
 			vals := strings.Split(s, ",")
@@ -356,6 +390,8 @@ func AppendFilter(condition []SearchTerm) []map[string]any {
 				"gte": vals[0],
 				"lte": vals[1],
 			}}
+		case NEQ:
+			term["bool"] = map[string]any{"must_not": []map[string]any{{"term": map[string]any{key: value}}}}
 		default:
 			term["term"] = map[string]any{key: value}
 		}

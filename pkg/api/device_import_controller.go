@@ -97,31 +97,31 @@ func (ctl *DeviceImportController) Import() {
 		ctl.RespError(err)
 		return
 	}
-	var productMetaconfig map[string]bool = make(map[string]bool)
-	for _, v := range product.Metaconfig {
-		productMetaconfig[v.Property] = true
-	}
-	var devices []models.DeviceModel
-	for rowIdx, row := range rows {
-		if rowIdx == 0 {
-			continue
-		}
-		dev := models.DeviceModel{Device: models.Device{Id: row[0], Name: row[1]}}
-		dev.ProductId = productId
-		dev.CreateId = ctl.GetCurrentUser().Id
-		var devMetaconfig map[string]string = map[string]string{}
-		for i := 2; i < len(row); i++ {
-			head := rows[0][i]
-			if _, ok := productMetaconfig[head]; ok {
-				devMetaconfig[head] = row[i]
-			}
-		}
-		dev.Metaconfig = devMetaconfig
-		devices = append(devices, dev)
-	}
-	token := fmt.Sprintf("%v", time.Now().UnixMicro())
+	token := fmt.Sprintf("batch-import-device-%v", time.Now().UnixMicro())
 	setSseData(token, "")
 	go func() {
+		var productMetaconfig map[string]bool = make(map[string]bool)
+		for _, v := range product.Metaconfig {
+			productMetaconfig[v.Property] = true
+		}
+		var devices []models.DeviceModel
+		for rowIdx, row := range rows {
+			if rowIdx == 0 {
+				continue
+			}
+			dev := models.DeviceModel{Device: models.Device{Id: row[0], Name: row[1]}}
+			dev.ProductId = productId
+			dev.CreateId = ctl.GetCurrentUser().Id
+			var devMetaconfig map[string]string = map[string]string{}
+			for i := 2; i < len(row); i++ {
+				head := rows[0][i]
+				if _, ok := productMetaconfig[head]; ok {
+					devMetaconfig[head] = row[i]
+				}
+			}
+			dev.Metaconfig = devMetaconfig
+			devices = append(devices, dev)
+		}
 		total := 0
 		resp := `{"success":true, "result": {"finish": %v, "num": %d}}`
 		for _, data := range devices {
@@ -171,26 +171,23 @@ func (ctl *DeviceImportController) ImportProcess() {
 	logs.Info("ImportProcess done")
 }
 
-var sseCache map[string]string = make(map[string]string)
+var sseCache = sync.Map{}
 
 func setSseData(token string, val string) {
-	mutex := sync.Mutex{}
-	mutex.Lock()
-	defer mutex.Unlock()
 	if len(val) == 0 {
 		val = `{"success":true, "result": {"finish": false, "num": 0}}`
 	}
-	sseCache[token] = val
+	sseCache.Store(token, val)
 }
 
 func getSseData(token string) string {
-	mutex := sync.Mutex{}
-	mutex.Lock()
-	defer mutex.Unlock()
-	// `"finish": true`
-	result := sseCache[token]
-	if strings.Contains(result, `"finish": true`) {
-		delete(sseCache, token)
+	result, ok := sseCache.Load(token)
+	if !ok {
+		return ""
 	}
-	return result
+	// `"finish": true`
+	if strings.Contains(result.(string), `"finish": true`) {
+		sseCache.Delete(token)
+	}
+	return result.(string)
 }

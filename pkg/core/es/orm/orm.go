@@ -55,7 +55,6 @@ type QuerySeter struct {
 	pageOffset  int
 	pageSize    int
 	filter      []es.SearchTerm
-	isQuery     bool
 	total       int64
 	orderBy     []orderBy
 	LastSort    []any
@@ -91,17 +90,13 @@ func (q *QuerySeter) FilterTerm(terms ...es.SearchTerm) *QuerySeter {
 }
 
 func (q *QuerySeter) Count() (int64, error) {
-	if q.isQuery {
-		return q.total, nil
-	}
-	q.isQuery = true
 	f := es.AppendFilter(q.filter)
 	query := es.Query{From: 0, Size: 1, Filter: f}
-	resp, err := es.FilterSearch(q.indexName, query)
+	total, err := es.FilterCount(q.indexName, query)
 	if err != nil {
 		return 0, err
 	}
-	return resp.Total, nil
+	return total, nil
 }
 func (q *QuerySeter) Limit(pageSize, pageOffset int) *QuerySeter {
 	q.pageSize = pageSize
@@ -142,7 +137,6 @@ func (q *QuerySeter) Update(p Params) (int64, error) {
 }
 
 func (q *QuerySeter) All(result any, cols ...string) (int64, error) {
-	q.isQuery = true
 	f := es.AppendFilter(q.filter)
 	query := es.Query{From: q.pageOffset, Size: q.pageSize, Filter: f}
 	for _, v := range q.orderBy {

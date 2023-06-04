@@ -243,7 +243,7 @@ func (ctx *BaseContext) SaveEvents(eventId string, data map[string]interface{}) 
 func (ctx *BaseContext) _saveProperties(eventId string, data map[string]interface{}) {
 	p := ctx.GetProduct()
 	if p == nil {
-		logs.Error("product not found " + ctx.ProductId)
+		logs.Warn("product [%s] not exist or noActive", ctx.ProductId)
 		return
 	}
 	if ctx.GetDevice() == nil {

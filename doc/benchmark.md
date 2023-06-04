@@ -26,6 +26,17 @@ docker run -d --name elasticsearchv7 -p 9200:9200 -p 9300:9300 -e "discovery.typ
 * soft nofile 655350
 * hard nofile 655350
 ```
+客户端
+```
+# 设置最大句柄
+ulimit -n 655350
+# 增加虚拟网卡
+sudo ifconfig enp0s3:1 192.168.31.51 up
+sudo ifconfig enp0s3:2 192.168.31.52 up
+
+# 运行
+java -jar device-simulator.jar mqtt.address=192.168.31.197 mqtt.port=9010 mqtt.limit=10000 mqtt.eventLimit=10000 mqtt.start=1111 mqtt.batchSize=1000 mqtt.binds=192.168.31.50,192.168.31.51,192.168.31.52
+```
 > 设备模拟器 https://gitee.com/jetlinks/device-simulator/tree/dev-1.0/
 
 - MQTT Broker测试一万设备连接，每隔1秒上报5个属性
@@ -114,7 +125,7 @@ function OnMessage(context) {
         return
     }
   var topic = context.Topic()
-  if (topic == '/prop') {
+  if (topic == '/report-property') {
     context.SaveProperties(data)
   } else if (topic == '/event') {
     context.SaveEvents(data.eventId, data)

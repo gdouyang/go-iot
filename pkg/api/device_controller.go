@@ -326,14 +326,32 @@ func (ctl *DeviceController) BatchDeploy() {
 	}
 	var deviceIds []string
 	ctl.BindJSON(&deviceIds)
-	token := fmt.Sprintf("%v", time.Now().UnixMicro())
+	ctl.batchEnable(deviceIds, es.SearchTerm{Key: "state", Value: core.NoActive, Oper: es.EQ}, core.OFFLINE)
+}
+
+// batch undeploy device
+func (ctl *DeviceController) BatchUndeploy() {
+	if ctl.isForbidden(deviceResource, SaveAction) {
+		return
+	}
+	var deviceIds []string
+	ctl.BindJSON(&deviceIds)
+	ctl.batchEnable(deviceIds, es.SearchTerm{Key: "state", Value: core.NoActive, Oper: es.NEQ}, core.NoActive)
+}
+
+func (ctl *DeviceController) batchEnable(deviceIds []string, term es.SearchTerm, tagertState string) {
+	token := fmt.Sprintf("batch-%s-device-%v", tagertState, time.Now().UnixMicro())
 	setSseData(token, "")
+	isDeploy := true
+	if tagertState == core.NoActive {
+		isDeploy = false
+	}
 	go func() {
 		total := 0
 		resp := `{"success":true, "result": {"finish": %v, "num": %d}}`
 		if len(deviceIds) > 0 {
 			for _, deviceId := range deviceIds {
-				ctl.enable(deviceId, true)
+				ctl.enable(deviceId, isDeploy)
 				total = total + 1
 				if total%5 == 0 {
 					setSseData(token, fmt.Sprintf(resp, false, total))
@@ -342,9 +360,9 @@ func (ctl *DeviceController) BatchDeploy() {
 			setSseData(token, fmt.Sprintf(resp, true, total))
 		} else {
 			condition := []es.SearchTerm{}
-			condition = append(condition, es.SearchTerm{Key: "state", Value: core.NoActive})
+			condition = append(condition, term)
 			for {
-				var page *models.PageQuery = &models.PageQuery{PageSize: 300, PageNum: 1, Condition: condition}
+				var page *models.PageQuery = &models.PageQuery{PageSize: 500, PageNum: 1, Condition: condition}
 				result, err := device.PageDevice(page, ctl.GetCurrentUser().Id)
 				if err != nil {
 					logs.Error(err)
@@ -366,35 +384,20 @@ func (ctl *DeviceController) BatchDeploy() {
 					devopr.Config = model.Metaconfig
 					core.PutDevice(devopr)
 				}
-				err = device.UpdateOnlineStatusList(ids, core.OFFLINE)
+				err = device.UpdateOnlineStatusList(ids, tagertState)
 				if err != nil {
 					logs.Error(err)
 				} else {
 					total = total + len(list)
 				}
 				setSseData(token, fmt.Sprintf(resp, false, total))
+				time.Sleep(time.Millisecond * 500)
 			}
 			setSseData(token, fmt.Sprintf(resp, true, total))
 			logs.Info("batch deploy done")
 		}
 	}()
 	ctl.RespOkData(token)
-}
-
-// batch undeploy device
-func (ctl *DeviceController) BatchUndeploy() {
-	if ctl.isForbidden(deviceResource, SaveAction) {
-		return
-	}
-	var deviceIds []string
-	ctl.BindJSON(&deviceIds)
-	if len(deviceIds) == 0 {
-		ctl.RespError(errors.New("ids must be persent"))
-	}
-	for _, deviceId := range deviceIds {
-		ctl.enable(deviceId, false)
-	}
-	ctl.RespOk()
 }
 
 // enable device

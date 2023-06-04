@@ -17,6 +17,7 @@ type Property struct {
 const (
 	IN   = "IN"
 	EQ   = "EQ"   // Equal to
+	NEQ  = "NEQ"  // Not Equal to
 	GT   = "GT"   // Greater than
 	GTE  = "GTE"  // Greater than or Equal
 	LT   = "LT"   // less then
