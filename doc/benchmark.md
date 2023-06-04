@@ -29,7 +29,7 @@ docker run -d --name elasticsearchv7 -p 9200:9200 -p 9300:9300 -e "discovery.typ
 > 设备模拟器 https://gitee.com/jetlinks/device-simulator/tree/dev-1.0/
 
 - MQTT Broker测试一万设备连接，每隔1秒上报5个属性
-
+物模型
 ```json
 {
   "events": [],
@@ -98,6 +98,34 @@ docker run -d --name elasticsearchv7 -p 9200:9200 -p 9300:9300 -e "discovery.typ
     }
   ],
   "functions": []
+}
+```
+编解码脚本
+```javascript
+function OnConnect(context) {
+  context.DeviceOnline(context.GetClientId())
+}
+
+function OnMessage(context) {
+  console.log("OnMessage: " + context.MsgToString())
+  var data = JSON.parse(context.MsgToString())
+    if (data.name == 'reply') {
+        context.ReplyOk()
+        return
+    }
+  var topic = context.Topic()
+  if (topic == '/prop') {
+    context.SaveProperties(data)
+  } else if (topic == '/event') {
+    context.SaveEvents(data.eventId, data)
+  }
+}
+function OnInvoke(context) {
+  var data = JSON.stringify(context.GetMessage().Data)
+    console.log("OnInvoke: " + data)
+  var session = context.GetSession()
+  // 向Broker发送文本信息
+    session.Publish("/invoke", data)
 }
 ```
 
