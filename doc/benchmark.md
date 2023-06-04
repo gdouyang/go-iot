@@ -7,7 +7,7 @@
 | 硬盘 | 三星SSD 970 EVO 500GB |
 | 操作系统 | Windows 10 专业版 |
 
-##### 虚拟机配置：使用两个Linux虚拟机，一个server，一个client
+##### 虚拟机配置：使用两个Linux虚拟机，一个server(12G)，一个压测client(8G)
 | 标题 | 配置 |
 | --- | --- |
 | CPU | 4C |
@@ -15,9 +15,13 @@
 | 硬盘 | 50G |
 | 操作系统 | CentOS Linux release 7.8.2003 (Core) |
 
-ES内存设置为6G
 
-修改最大文件数在`vim /etc/security/limits.conf`中追加以下配置或使用`ulimit -n 655350`
+- 使用docker运行Redis和elasticsearch，Reids使用容器默认配置，elasticsearch内存设置为6G
+```
+docker run -d --name elasticsearchv7 -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "ES_JAVA_OPTS=-Xms6024m -Xmx6024m" elasticsearch:7.17.7
+```
+
+使用`ulimit -n 655350`修改最大文件句柄数或在`vim /etc/security/limits.conf`中追加以下配置
 ```
 * soft nofile 655350
 * hard nofile 655350
@@ -93,8 +97,7 @@ ES内存设置为6G
       }
     }
   ],
-  "functions": [],
-  "tags": []
+  "functions": []
 }
 ```
 
