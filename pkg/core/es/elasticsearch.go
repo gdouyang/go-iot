@@ -121,6 +121,9 @@ func CreateDoc(index string, docId string, ob any) error {
 	if err != nil {
 		return err
 	}
+	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+		logs.Debug(string(b))
+	}
 	req := esapi.CreateRequest{
 		Index: index,
 		Body:  bytes.NewReader(b),
@@ -142,6 +145,9 @@ func UpdateDoc(index string, docId string, data any) error {
 	b, err := json.Marshal(data)
 	if err != nil {
 		return err
+	}
+	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+		logs.Debug(string(b))
 	}
 	req := esapi.UpdateRequest{
 		Index:      index,
@@ -230,6 +236,9 @@ func DeleteByQuery(index string, filter []map[string]any) error {
 	if err != nil {
 		return err
 	}
+	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+		logs.Debug(string(data))
+	}
 	req := esapi.DeleteByQueryRequest{
 		Index:     []string{index},
 		Body:      bytes.NewReader(data),
@@ -256,6 +265,9 @@ func FilterCount(index string, q Query) (int64, error) {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return 0, err
+	}
+	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+		logs.Debug(string(data))
 	}
 	req := esapi.CountRequest{
 		Index: []string{index},
@@ -300,6 +312,9 @@ func FilterSearch(index string, q Query) (*SearchResponse, error) {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
+	}
+	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+		logs.Debug(string(data))
 	}
 	req := esapi.SearchRequest{
 		Index: []string{index},

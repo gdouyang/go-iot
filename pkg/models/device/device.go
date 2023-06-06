@@ -17,14 +17,16 @@ func DeviceIdValid(deviceId string) bool {
 }
 
 // 分页查询设备
-func PageDevice(page *models.PageQuery, createId int64) (*models.PageResult[models.Device], error) {
+func PageDevice(page *models.PageQuery, createId *int64) (*models.PageResult[models.Device], error) {
 	var pr *models.PageResult[models.Device]
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(models.Device{})
 	qs = qs.FilterTerm(page.Condition...)
 	qs.SearchAfter = page.SearchAfter
-	qs = qs.Filter("CreateId", createId)
+	if createId != nil {
+		qs = qs.Filter("CreateId", *createId)
+	}
 
 	var result []models.Device
 	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime", "-id").All(&result)

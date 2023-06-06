@@ -27,7 +27,7 @@ func init() {
 }
 
 // 分页查询设备
-func ListNetwork(page *models.PageQuery) (*models.PageResult[models.Network], error) {
+func PageNetwork(page *models.PageQuery) (*models.PageResult[models.Network], error) {
 	var pr *models.PageResult[models.Network]
 	//查询数据
 	o := orm.NewOrm()
@@ -50,36 +50,6 @@ func ListNetwork(page *models.PageQuery) (*models.PageResult[models.Network], er
 	pr = &p
 
 	return pr, nil
-}
-
-func ListStartNetwork() ([]models.Network, error) {
-	o := orm.NewOrm()
-	qs := o.QueryTable(&models.Network{})
-
-	qs = qs.Filter("State", models.Runing)
-
-	var result []models.Network
-	_, err := qs.All(&result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func ListStartNetClient() ([]models.Network, error) {
-	o := orm.NewOrm()
-	qs := o.QueryTable(&models.Network{})
-
-	qs = qs.Filter("Port", 0).Filter("productId__isnull", false)
-
-	var result []models.Network
-	_, err := qs.All(&result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
 }
 
 func AddNetWork(ob *models.Network) error {

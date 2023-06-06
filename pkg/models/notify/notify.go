@@ -8,13 +8,15 @@ import (
 )
 
 // 分页查询设备
-func PageNotify(page *models.PageQuery, createId int64) (*models.PageResult[models.Notify], error) {
+func PageNotify(page *models.PageQuery, createId *int64) (*models.PageResult[models.Notify], error) {
 	var pr *models.PageResult[models.Notify]
 	//查询数据
 	o := orm.NewOrm()
 	qs := o.QueryTable(&models.Notify{})
 	qs = qs.FilterTerm(page.Condition...)
-	qs = qs.Filter("createId", createId)
+	if createId != nil {
+		qs = qs.Filter("createId", *createId)
+	}
 	qs.SearchAfter = page.SearchAfter
 	var result []models.Notify
 	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime", "-id").All(&result)

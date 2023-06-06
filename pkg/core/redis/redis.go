@@ -67,7 +67,7 @@ func InitRedis() {
 		err := rdb.Ping(ctx).Err()
 		if err != nil {
 			logs.Error(err)
-			panic(fmt.Sprintf("redis connect error: %v", DefaultRedisConfig))
+			panic(fmt.Sprintf("redis connect error: %v", err))
 		}
 	}
 }

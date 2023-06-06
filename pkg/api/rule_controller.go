@@ -52,7 +52,7 @@ func (ctl *RuleController) Page() {
 		return
 	}
 
-	res, err := rule.PageRule(&ob, *ctl.GetCurrentUser())
+	res, err := rule.PageRule(&ob, &ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 	} else {
@@ -204,18 +204,4 @@ func (ctl *RuleController) getRuleAndCheckCreateId(ruleId int64) (*models.RuleMo
 		return nil, errors.New("data is not you created")
 	}
 	return ob, nil
-}
-
-func ruleModelToRuleExecutor(m *models.RuleModel) ruleengine.RuleExecutor {
-	rule := ruleengine.RuleExecutor{
-		Name:        m.Name,
-		Type:        m.Type,
-		ProductId:   m.ProductId,
-		TriggerType: ruleengine.TriggerType(m.TriggerType),
-		Cron:        m.Cron,
-		Trigger:     m.Trigger,
-		Actions:     m.Actions,
-		DeviceIds:   m.DeviceIds,
-	}
-	return rule
 }

@@ -47,5 +47,8 @@ type PageQuery struct {
 
 // 得到数据偏移，默认数据从0开始
 func (page *PageQuery) PageOffset() int {
+	if page.PageNum < 1 {
+		page.PageNum = 1
+	}
 	return (page.PageNum - 1) * page.PageSize
 }

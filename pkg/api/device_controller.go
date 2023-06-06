@@ -10,7 +10,6 @@ import (
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
 	"go-iot/pkg/models/network"
-	"go-iot/pkg/network/clients"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -68,7 +67,7 @@ func (ctl *DeviceController) Page() {
 		return
 	}
 
-	res, err := device.PageDevice(&ob, ctl.GetCurrentUser().Id)
+	res, err := device.PageDevice(&ob, &ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -232,38 +231,6 @@ func (ctl *DeviceController) Connect() {
 	ctl.RespOk()
 }
 
-func connectClientDevice(deviceId string) error {
-	dev, err := device.GetDeviceMust(deviceId)
-	if err != nil {
-		return err
-	}
-	nw, err := network.GetByProductId(dev.ProductId)
-	if err != nil {
-		return err
-	}
-	if nw == nil {
-		return fmt.Errorf("product [%s] not have network config", dev.ProductId)
-	}
-	// 进行连接
-	devoper := core.GetDevice(deviceId)
-	if devoper == nil {
-		return errors.New("devoper is nil")
-	}
-	conf, err := convertCodecNetwork(*nw)
-	if err != nil {
-		return err
-	}
-	err = clients.Connect(deviceId, conf)
-	if err != nil {
-		return err
-	}
-	err = device.UpdateOnlineStatus(deviceId, core.ONLINE)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (ctl *DeviceController) Disconnect() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
@@ -363,7 +330,7 @@ func (ctl *DeviceController) batchEnable(deviceIds []string, term es.SearchTerm,
 			condition = append(condition, term)
 			for {
 				var page *models.PageQuery = &models.PageQuery{PageSize: 500, PageNum: 1, Condition: condition}
-				result, err := device.PageDevice(page, ctl.GetCurrentUser().Id)
+				result, err := device.PageDevice(page, &ctl.GetCurrentUser().Id)
 				if err != nil {
 					logs.Error(err)
 					break

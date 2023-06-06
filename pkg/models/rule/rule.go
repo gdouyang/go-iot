@@ -8,7 +8,7 @@ import (
 )
 
 // 分页查询
-func PageRule(page *models.PageQuery, user models.User) (*models.PageResult[models.Rule], error) {
+func PageRule(page *models.PageQuery, createId *int64) (*models.PageResult[models.Rule], error) {
 	var pr *models.PageResult[models.Rule]
 
 	//查询数据
@@ -16,7 +16,9 @@ func PageRule(page *models.PageQuery, user models.User) (*models.PageResult[mode
 	qs := o.QueryTable(models.Rule{})
 
 	qs.FilterTerm(page.Condition...)
-	qs = qs.Filter("CreateId", user.Id)
+	if createId != nil {
+		qs = qs.Filter("CreateId", *createId)
+	}
 	qs.SearchAfter = page.SearchAfter
 
 	var cols = []string{"Id", "Name", "State", "Desc", "CreateId", "CreateTime"}
@@ -35,30 +37,6 @@ func PageRule(page *models.PageQuery, user models.User) (*models.PageResult[mode
 	pr = &p
 
 	return pr, nil
-}
-
-func ListRule(r *models.Rule) ([]models.Rule, error) {
-
-	//查询数据
-	o := orm.NewOrm()
-	qs := o.QueryTable(models.Rule{})
-
-	if len(r.Name) > 0 {
-		qs = qs.Filter("name__contains", r.Name)
-	}
-
-	if len(r.State) > 0 {
-		qs = qs.Filter("State", r.State)
-	}
-
-	var cols = []string{"Id", "Name", "State", "Desc", "CreateId", "CreateTime"}
-	var result []models.Rule
-	_, err := qs.All(&result, cols...)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
 }
 
 func AddRule(ob *models.RuleModel) error {

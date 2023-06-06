@@ -54,7 +54,7 @@ func (ctl *NotifyController) Page() {
 		return
 	}
 
-	res, err := notify.PageNotify(&ob, ctl.GetCurrentUser().Id)
+	res, err := notify.PageNotify(&ob, &ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 	} else {
@@ -219,17 +219,17 @@ func (ctl *NotifyController) Enable() {
 	if ctl.isForbidden(notifyResource, SaveAction) {
 		return
 	}
-	ctl.enable(true)
+	ctl._enable(true)
 }
 
 func (ctl *NotifyController) Disable() {
 	if ctl.isForbidden(notifyResource, SaveAction) {
 		return
 	}
-	ctl.enable(false)
+	ctl._enable(false)
 }
 
-func (ctl *NotifyController) enable(flag bool) {
+func (ctl *NotifyController) _enable(flag bool) {
 	id := ctl.Param(":id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
