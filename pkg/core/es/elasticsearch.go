@@ -218,7 +218,7 @@ func DeleteDoc(index string, docId string) error {
 	if eserr != nil {
 		return eserr
 	}
-	if resp.IsError {
+	if resp.IsError && !resp.Is404() {
 		return fmt.Errorf("%s error: %s", index, resp.Data)
 	}
 	return nil
@@ -248,7 +248,7 @@ func DeleteByQuery(index string, filter []map[string]any) error {
 	if eserr != nil {
 		return eserr
 	}
-	if resp.IsError {
+	if resp.IsError && !resp.Is404() {
 		return fmt.Errorf("%s error: %s", index, resp.Data)
 	}
 	return nil
