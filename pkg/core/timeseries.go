@@ -10,6 +10,9 @@ import (
 const (
 	TIME_SERISE_ES   = "es"   // 时序数据存储策略es
 	TIME_SERISE_MOCK = "mock" // 时序数据存储策略mock
+	TIME_TYPE_PROP   = "properties"
+	TIME_TYPE_LOGS   = "devicelogs"
+	TIME_TYPE_EVNT   = "event"
 )
 
 var timeSeriseMap map[string]TimeSeriesSave = map[string]TimeSeriesSave{}
@@ -29,6 +32,8 @@ type TimeSeriesSave interface {
 	PublishModel(product *Product, model tsl.TslData) error
 	// 查询属性
 	QueryProperty(product *Product, param TimeDataSearchRequest) (map[string]interface{}, error)
+	QueryLogs(product *Product, param TimeDataSearchRequest) (map[string]interface{}, error)
+	QueryEvent(product *Product, eventId string, param TimeDataSearchRequest) (map[string]interface{}, error)
 	// 保存时序数据
 	SaveProperties(product *Product, data map[string]interface{}) error
 	SaveEvents(product *Product, eventId string, data map[string]interface{}) error
@@ -44,7 +49,6 @@ type LogData struct {
 }
 
 type TimeDataSearchRequest struct {
-	Type        string          `json:"type"`
 	DeviceId    string          `json:"deviceId"`
 	PageNum     int             `json:"pageNum"`
 	PageSize    int             `json:"pageSize"`
@@ -66,6 +70,15 @@ func (t *MockTimeSeries) PublishModel(product *Product, model tsl.TslData) error
 }
 func (t *MockTimeSeries) QueryProperty(product *Product, param TimeDataSearchRequest) (map[string]interface{}, error) {
 	logs.Info("Mock QueryProperty: ")
+	return nil, nil
+}
+
+func (t *MockTimeSeries) QueryLogs(product *Product, param TimeDataSearchRequest) (map[string]interface{}, error) {
+	logs.Info("Mock QueryLogs: ")
+	return nil, nil
+}
+func (t *MockTimeSeries) QueryEvent(product *Product, eventId string, param TimeDataSearchRequest) (map[string]interface{}, error) {
+	logs.Info("Mock QueryEvent: ")
 	return nil, nil
 }
 func (t *MockTimeSeries) SaveProperties(product *Product, data map[string]interface{}) error {

@@ -41,10 +41,12 @@ func init() {
 		web.NSRouter("/:id/disconnect", &DeviceController{}, "post:Disconnect"),
 		web.NSRouter("/:id/deploy", &DeviceController{}, "post:Deploy"),
 		web.NSRouter("/:id/undeploy", &DeviceController{}, "post:Undeploy"),
-		web.NSRouter("/batch/_deploy", &DeviceController{}, "post:BatchDeploy"),
-		web.NSRouter("/batch/_undeploy", &DeviceController{}, "post:BatchUndeploy"),
-		web.NSRouter("/:id/cmd", &DeviceController{}, "post:CmdInvoke"),
-		web.NSRouter("/propertys/:id/query", &DeviceController{}, "post:QueryProperty"),
+		web.NSRouter("/batch/deploy", &DeviceController{}, "post:BatchDeploy"),
+		web.NSRouter("/batch/undeploy", &DeviceController{}, "post:BatchUndeploy"),
+		web.NSRouter("/:id/invoke", &DeviceController{}, "post:CmdInvoke"),
+		web.NSRouter(":id/properties", &DeviceController{}, "post:QueryProperty"),
+		web.NSRouter(":id/logs", &DeviceController{}, "post:QueryLogs"),
+		web.NSRouter(":id/:eventId/event", &DeviceController{}, "post:QueryEvent"),
 	)
 	web.AddNamespace(ns)
 
@@ -436,6 +438,18 @@ func (ctl *DeviceController) CmdInvoke() {
 
 // 查询设备属性
 func (ctl *DeviceController) QueryProperty() {
+	ctl.queryTimeseriesData(core.TIME_TYPE_PROP)
+}
+
+func (ctl *DeviceController) QueryLogs() {
+	ctl.queryTimeseriesData(core.TIME_TYPE_LOGS)
+}
+
+func (ctl *DeviceController) QueryEvent() {
+	ctl.queryTimeseriesData(core.TIME_TYPE_EVNT)
+}
+
+func (ctl *DeviceController) queryTimeseriesData(typ string) {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
@@ -448,7 +462,6 @@ func (ctl *DeviceController) QueryProperty() {
 		return
 	}
 	param.DeviceId = deviceId
-
 	device, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
@@ -459,7 +472,15 @@ func (ctl *DeviceController) QueryProperty() {
 		ctl.RespError(fmt.Errorf("not found product %s, make sure product is deployed", device.ProductId))
 		return
 	}
-	res, err := product.GetTimeSeries().QueryProperty(product, param)
+	var res map[string]interface{}
+	if typ == core.TIME_TYPE_LOGS {
+		res, err = product.GetTimeSeries().QueryLogs(product, param)
+	} else if typ == core.TIME_TYPE_PROP {
+		res, err = product.GetTimeSeries().QueryProperty(product, param)
+	} else {
+		eventId := ctl.Param(":eventId")
+		res, err = product.GetTimeSeries().QueryEvent(product, eventId, param)
+	}
 	if err != nil {
 		ctl.RespError(err)
 		return
