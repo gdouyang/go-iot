@@ -14,15 +14,22 @@ import (
 
 // websocket实时信息，把监听的数据通过websocket返回
 func init() {
-	web.Router("/api/realtime/:deviceId/:type", &RealtimeWebSocketController{}, "get:Join")
+	web.Router("/api/eventbus/:productId/:deviceId/:type", &EventbusWebSocketController{}, "get:ProductJoin")
+	web.Router("/api/eventbus/:deviceId/:type", &EventbusWebSocketController{}, "get:DeviceJoin")
 }
 
-type RealtimeWebSocketController struct {
+type EventbusWebSocketController struct {
 	AuthController
 }
 
-// 加入方法
-func (ctl *RealtimeWebSocketController) Join() {
+func (ctl *EventbusWebSocketController) ProductJoin() {
+	productId := ctl.Param(":productId")
+	deviceId := ctl.Param(":deviceId")
+	typ := ctl.Param(":type")
+	ctl.loop(productId, deviceId, typ)
+}
+
+func (ctl *EventbusWebSocketController) DeviceJoin() {
 	deviceId := ctl.Param(":deviceId")
 	if len(deviceId) == 0 {
 		ctl.RespError(errors.New("deviceId must be present"))
@@ -33,9 +40,25 @@ func (ctl *RealtimeWebSocketController) Join() {
 		ctl.RespError(errors.New("type must be present"))
 		return
 	}
-	dev, err := device.GetDeviceMust(deviceId)
+	dev, err := device.GetDeviceAndCheckCreateId(deviceId, ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
+		return
+	}
+	ctl.loop(dev.ProductId, deviceId, typ)
+}
+
+func (ctl *EventbusWebSocketController) loop(productId string, deviceId string, typ string) {
+	if len(productId) == 0 {
+		ctl.RespError(errors.New("productId must be present"))
+		return
+	}
+	if len(deviceId) == 0 {
+		ctl.RespError(errors.New("deviceId must be present"))
+		return
+	}
+	if len(typ) == 0 {
+		ctl.RespError(errors.New("type must be present"))
 		return
 	}
 	// Upgrade from http request to WebSocket.
@@ -54,10 +77,10 @@ func (ctl *RealtimeWebSocketController) Join() {
 
 	// Join.
 	addr := ws.RemoteAddr().String()
-	topic := fmt.Sprintf("/device/%s/%s/%s", dev.ProductId, dev.Id, typ)
-	realtime.Subscribe(realtime.Subscriber{ProductId: dev.ProductId, DeviceId: deviceId, Topic: topic, Addr: addr, Conn: ws})
+	topic := fmt.Sprintf("/device/%s/%s/%s", productId, deviceId, typ)
+	realtime.Subscribe(realtime.Subscriber{ProductId: productId, DeviceId: deviceId, Topic: topic, Addr: addr, Conn: ws})
 	defer func() {
-		realtime.Unsubscribe(realtime.Subscriber{ProductId: dev.ProductId, DeviceId: deviceId, Topic: topic, Addr: addr})
+		realtime.Unsubscribe(realtime.Subscriber{ProductId: productId, DeviceId: deviceId, Topic: topic, Addr: addr})
 	}()
 
 	realtime.ListenEventBus(topic)

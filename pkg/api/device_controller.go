@@ -489,12 +489,5 @@ func (ctl *DeviceController) queryTimeseriesData(typ string) {
 }
 
 func (ctl *DeviceController) getDeviceAndCheckCreateId(deviceId string) (*models.DeviceModel, error) {
-	ob, err := device.GetDeviceMust(deviceId)
-	if err != nil {
-		return nil, err
-	}
-	if ob.CreateId != ctl.GetCurrentUser().Id {
-		return nil, errors.New("device is not you created")
-	}
-	return ob, nil
+	return device.GetDeviceAndCheckCreateId(deviceId, ctl.GetCurrentUser().Id)
 }

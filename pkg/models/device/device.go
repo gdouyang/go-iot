@@ -182,6 +182,17 @@ func GetDeviceMust(deviceId string) (*models.DeviceModel, error) {
 	return p, nil
 }
 
+func GetDeviceAndCheckCreateId(deviceId string, createId int64) (*models.DeviceModel, error) {
+	ob, err := GetDeviceMust(deviceId)
+	if err != nil {
+		return nil, err
+	}
+	if ob.CreateId != createId {
+		return nil, errors.New("device is not you created")
+	}
+	return ob, nil
+}
+
 func CountDeviceByProductId(productId string) (int64, error) {
 	if len(productId) == 0 {
 		return -1, errors.New("productId must be present")
