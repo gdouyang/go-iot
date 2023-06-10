@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/store"
+	_ "go-iot/pkg/core/timeseries"
 	"go-iot/pkg/core/tsl"
 	websocketsocker "go-iot/pkg/network/servers/websocket"
 	"log"

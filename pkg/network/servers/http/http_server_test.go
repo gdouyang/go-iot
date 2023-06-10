@@ -3,6 +3,7 @@ package httpserver_test
 import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/store"
+	_ "go-iot/pkg/core/timeseries"
 	"go-iot/pkg/core/tsl"
 	httpserver "go-iot/pkg/network/servers/http"
 	"io"

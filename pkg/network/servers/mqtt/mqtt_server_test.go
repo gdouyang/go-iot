@@ -5,6 +5,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/common"
 	"go-iot/pkg/core/store"
+	_ "go-iot/pkg/core/timeseries"
 	"go-iot/pkg/core/tsl"
 	mqttserver "go-iot/pkg/network/servers/mqtt"
 	"os"

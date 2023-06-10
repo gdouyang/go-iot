@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-iot/pkg/core"
 	"go-iot/pkg/core/es"
 	"go-iot/pkg/core/eventbus"
 	"go-iot/pkg/core/tsl"
@@ -15,17 +16,13 @@ import (
 )
 
 func init() {
-	RegEsTimeSeries(false)
-}
-
-func RegEsTimeSeries(docheck bool) {
-	timeSeriseMap[TIME_SERISE_ES] = &EsTimeSeries{}
+	core.RegisterTimeSeries(&EsTimeSeries{})
 }
 
 const (
-	properties_const = es.Prefix + TIME_TYPE_PROP
-	event_const      = es.Prefix + TIME_TYPE_EVNT
-	devicelogs_const = es.Prefix + TIME_TYPE_LOGS
+	properties_const = es.Prefix + core.TIME_TYPE_PROP
+	event_const      = es.Prefix + core.TIME_TYPE_EVNT
+	devicelogs_const = es.Prefix + core.TIME_TYPE_LOGS
 	timeformt        = "2006-01-02 15:04:05.000"
 )
 
@@ -33,7 +30,11 @@ const (
 type EsTimeSeries struct {
 }
 
-func (t *EsTimeSeries) PublishModel(product *Product, model tsl.TslData) error {
+func (t *EsTimeSeries) Id() string {
+	return core.TIME_SERISE_ES
+}
+
+func (t *EsTimeSeries) PublishModel(product *core.Product, model tsl.TslData) error {
 	{
 		// 属性
 		var properties map[string]any = map[string]any{}
@@ -86,7 +87,7 @@ func (t *EsTimeSeries) PublishModel(product *Product, model tsl.TslData) error {
 	return nil
 }
 
-func (t *EsTimeSeries) Del(product *Product) error {
+func (t *EsTimeSeries) Del(product *core.Product) error {
 	var IgnoreUnavailable bool = true
 	now := time.Now()
 	req := esapi.IndicesDeleteRequest{
@@ -103,19 +104,19 @@ func (t *EsTimeSeries) Del(product *Product) error {
 	return nil
 }
 
-func (t *EsTimeSeries) QueryProperty(product *Product, param TimeDataSearchRequest) (map[string]any, error) {
+func (t *EsTimeSeries) QueryProperty(product *core.Product, param core.TimeDataSearchRequest) (map[string]any, error) {
 	return t.query(t.getIndex(product, properties_const), param)
 }
 
-func (t *EsTimeSeries) QueryLogs(product *Product, param TimeDataSearchRequest) (map[string]any, error) {
+func (t *EsTimeSeries) QueryLogs(product *core.Product, param core.TimeDataSearchRequest) (map[string]any, error) {
 	return t.query(t.getIndex(product, devicelogs_const), param)
 }
 
-func (t *EsTimeSeries) QueryEvent(product *Product, eventId string, param TimeDataSearchRequest) (map[string]interface{}, error) {
+func (t *EsTimeSeries) QueryEvent(product *core.Product, eventId string, param core.TimeDataSearchRequest) (map[string]interface{}, error) {
 	return t.query(t.getEventIndex(product, event_const, eventId), param)
 }
 
-func (t *EsTimeSeries) query(indexName string, param TimeDataSearchRequest) (map[string]any, error) {
+func (t *EsTimeSeries) query(indexName string, param core.TimeDataSearchRequest) (map[string]any, error) {
 	if len(param.DeviceId) == 0 {
 		return nil, errors.New("deviceId must be persent")
 	}
@@ -163,7 +164,7 @@ func (t *EsTimeSeries) query(indexName string, param TimeDataSearchRequest) (map
 	return result, nil
 }
 
-func (t *EsTimeSeries) SaveProperties(product *Product, d1 map[string]any) error {
+func (t *EsTimeSeries) SaveProperties(product *core.Product, d1 map[string]any) error {
 	validProperty := product.GetTsl().PropertiesMap()
 	if validProperty == nil {
 		return errors.New("not have tsl property, dont save timeseries data")
@@ -197,7 +198,7 @@ func (t *EsTimeSeries) SaveProperties(product *Product, d1 map[string]any) error
 	return nil
 }
 
-func (t *EsTimeSeries) SaveEvents(product *Product, eventId string, d1 map[string]any) error {
+func (t *EsTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[string]any) error {
 	validProperty := product.GetTsl().EventsMap()
 	if validProperty == nil {
 		return errors.New("not have tsl property, dont save timeseries data")
@@ -236,7 +237,7 @@ func (t *EsTimeSeries) SaveEvents(product *Product, eventId string, d1 map[strin
 	return nil
 }
 
-func (t *EsTimeSeries) SaveLogs(product *Product, d1 LogData) error {
+func (t *EsTimeSeries) SaveLogs(product *core.Product, d1 core.LogData) error {
 	if len(d1.DeviceId) == 0 {
 		return errors.New("deviceId must be present, dont save event timeseries data")
 	}
@@ -255,31 +256,31 @@ func (t *EsTimeSeries) SaveLogs(product *Product, d1 LogData) error {
 }
 
 // goiot-devicelogs-{productId}, goiot-properties-{productId}
-func (t *EsTimeSeries) getIndex(product *Product, typ string) string {
+func (t *EsTimeSeries) getIndex(product *core.Product, typ string) string {
 	index := typ + "-" + product.GetId()
 	return index
 }
 
 // goiot-devicelogs-{productId}-201102, goiot-properties-{productId}-201102
-func (t *EsTimeSeries) getMonthIndex(product *Product, typ string, date time.Time) string {
+func (t *EsTimeSeries) getMonthIndex(product *core.Product, typ string, date time.Time) string {
 	index := t.getIndex(product, typ) + "-" + date.Format("200601")
 	return index
 }
 
 // goiot-event-{productId}-{eventId}
-func (t *EsTimeSeries) getEventIndex(product *Product, typ string, eventId string) string {
+func (t *EsTimeSeries) getEventIndex(product *core.Product, typ string, eventId string) string {
 	index := typ + "-" + product.GetId() + "-" + eventId
 	return index
 }
 
 // goiot-event-{productId}-{eventId}-201101
-func (t *EsTimeSeries) getMonthEventIndex(product *Product, typ string, eventId string, date time.Time) string {
+func (t *EsTimeSeries) getMonthEventIndex(product *core.Product, typ string, eventId string, date time.Time) string {
 	index := t.getEventIndex(product, typ, eventId) + "-" + date.Format("200601")
 	return index
 }
 
 // 根据查询时间来列举出索引
-func (t *EsTimeSeries) getQueryIndexs(index string, param TimeDataSearchRequest) ([]string, error) {
+func (t *EsTimeSeries) getQueryIndexs(index string, param core.TimeDataSearchRequest) ([]string, error) {
 	startTime := time.Now()
 	endTime := startTime
 	for _, v := range param.Condition {

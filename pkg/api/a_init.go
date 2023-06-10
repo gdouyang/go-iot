@@ -62,7 +62,7 @@ func (i *start) startRuningRule() {
 	logs.Info("start runing rule")
 	var page models.PageQuery
 	page.PageSize = 300
-	page.Condition = []es.SearchTerm{{Key: "state", Value: models.Started}}
+	page.Condition = []core.SearchTerm{{Key: "state", Value: models.Started}}
 	for {
 		result, err := rule.PageRule(&page, nil)
 		if err != nil {
@@ -98,7 +98,7 @@ func (i *start) startRuningNotify() {
 	logs.Info("start runing notify")
 	var page models.PageQuery
 	page.PageSize = 300
-	page.Condition = []es.SearchTerm{{Key: "state", Value: models.Started}}
+	page.Condition = []core.SearchTerm{{Key: "state", Value: models.Started}}
 	for {
 		result, err := notify.PageNotify(&page, nil)
 		if err != nil {
@@ -125,7 +125,7 @@ func (i *start) startRuningNetServer() {
 	logs.Info("start runing network")
 	var page models.PageQuery
 	page.PageSize = 300
-	page.Condition = []es.SearchTerm{{Key: "state", Value: models.Runing}}
+	page.Condition = []core.SearchTerm{{Key: "state", Value: models.Runing}}
 	for {
 		result, err := network.PageNetwork(&page)
 		if err != nil {
@@ -155,7 +155,7 @@ func (i *start) startRuningNetClient() {
 	logs.Info("start runing netclient")
 	var page models.PageQuery
 	page.PageSize = 300
-	page.Condition = []es.SearchTerm{{Key: "port", Value: 0}, {Key: "productId", Value: "", Oper: es.NEQ}}
+	page.Condition = []core.SearchTerm{{Key: "port", Value: 0}, {Key: "productId", Value: "", Oper: es.NEQ}}
 	for {
 		result, err := network.PageNetwork(&page)
 		if err != nil {
@@ -171,7 +171,7 @@ func (i *start) startRuningNetClient() {
 			if len(nw.Configuration) > 0 {
 				var devicePage models.PageQuery
 				devicePage.PageSize = 300
-				devicePage.Condition = []es.SearchTerm{{Key: "State", Value: core.OFFLINE}, {Key: "productId", Value: nw.ProductId}}
+				devicePage.Condition = []core.SearchTerm{{Key: "State", Value: core.OFFLINE}, {Key: "productId", Value: nw.ProductId}}
 				r1, err := device.PageDevice(&devicePage, nil)
 				if err != nil {
 					logs.Error(err)

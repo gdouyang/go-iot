@@ -13,7 +13,7 @@ var instances map[string]core.NetClient = make(map[string]core.NetClient)
 func RegClient(f func() core.NetClient) {
 	s := f()
 	m[s.Type()] = f
-	logs.Info("Client Register [%s]", s.Type())
+	logs.Info("Register Client [%s]", s.Type())
 }
 
 func Connect(deviceId string, conf core.NetworkConf) error {

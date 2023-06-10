@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-iot/pkg/core"
 	"go-iot/pkg/core/es"
 	"reflect"
 	"strings"
@@ -44,7 +45,7 @@ func (o *defaultOrm) QueryTable(md interface{}) *QuerySeter {
 		mi:         mi,
 		pageOffset: 0,
 		pageSize:   10000,
-		filter:     make([]es.SearchTerm, 0),
+		filter:     make([]core.SearchTerm, 0),
 	}
 }
 
@@ -54,7 +55,7 @@ type QuerySeter struct {
 	mi          *modelInfo
 	pageOffset  int
 	pageSize    int
-	filter      []es.SearchTerm
+	filter      []core.SearchTerm
 	total       int64
 	orderBy     []orderBy
 	LastSort    []any
@@ -67,7 +68,7 @@ type orderBy struct {
 }
 
 func (q *QuerySeter) Filter(key string, value interface{}) *QuerySeter {
-	var term es.SearchTerm
+	var term core.SearchTerm
 	if strings.Contains(key, "__contains") {
 		key = strings.ReplaceAll(key, "__contains", "")
 		term.Oper = es.LIKE
@@ -81,7 +82,7 @@ func (q *QuerySeter) Filter(key string, value interface{}) *QuerySeter {
 	return q
 }
 
-func (q *QuerySeter) FilterTerm(terms ...es.SearchTerm) *QuerySeter {
+func (q *QuerySeter) FilterTerm(terms ...core.SearchTerm) *QuerySeter {
 	for _, term := range terms {
 		term.Key = FirstLower(term.Key)
 		q.filter = append(q.filter, term)
@@ -275,12 +276,12 @@ func (o *defaultOrm) Read(md interface{}, cols ...string) error {
 	return ErrNoRows
 }
 
-func convertToFilter(mi *modelInfo, md interface{}, cols ...string) []es.SearchTerm {
-	f := []es.SearchTerm{}
+func convertToFilter(mi *modelInfo, md interface{}, cols ...string) []core.SearchTerm {
+	f := []core.SearchTerm{}
 	for _, fieldName := range cols {
 		key := FirstLower(fieldName)
 		value := mi.getFieldValue(md, fieldName)
-		f = append(f, es.SearchTerm{Key: key, Value: value, Oper: es.EQ})
+		f = append(f, core.SearchTerm{Key: key, Value: value, Oper: es.EQ})
 	}
 	return f
 }

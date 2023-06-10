@@ -1,8 +1,8 @@
 package core
 
 import (
-	"go-iot/pkg/core/es"
 	"go-iot/pkg/core/tsl"
+	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
 )
@@ -15,19 +15,22 @@ const (
 	TIME_TYPE_EVNT   = "event"
 )
 
-var timeSeriseMap map[string]TimeSeriesSave = map[string]TimeSeriesSave{}
+var timeSeriseMap sync.Map
 
-func init() {
-	timeSeriseMap[TIME_SERISE_MOCK] = &MockTimeSeries{}
+func RegisterTimeSeries(ts TimeSeriesSave) {
+	logs.Info("Register timeseries [%s]", ts.Id())
+	timeSeriseMap.Store(ts.Id(), ts)
 }
 
 // 获取时序
 func GetTimeSeries(id string) TimeSeriesSave {
-	return timeSeriseMap[id]
+	val, _ := timeSeriseMap.Load(id)
+	return val.(TimeSeriesSave)
 }
 
 // 时序保存
 type TimeSeriesSave interface {
+	Id() string
 	// 发布模型
 	PublishModel(product *Product, model tsl.TslData) error
 	// 查询属性
@@ -49,51 +52,19 @@ type LogData struct {
 }
 
 type TimeDataSearchRequest struct {
-	DeviceId    string          `json:"deviceId"`
-	PageNum     int             `json:"pageNum"`
-	PageSize    int             `json:"pageSize"`
-	Condition   []es.SearchTerm `json:"condition"`
-	SearchAfter []any           `json:"searchAfter"`
+	DeviceId    string       `json:"deviceId"`
+	PageNum     int          `json:"pageNum"`
+	PageSize    int          `json:"pageSize"`
+	Condition   []SearchTerm `json:"condition"`
+	SearchAfter []any        `json:"searchAfter"`
 }
 
 func (page *TimeDataSearchRequest) PageOffset() int {
 	return (page.PageNum - 1) * page.PageSize
 }
 
-// mock
-type MockTimeSeries struct {
-}
-
-func (t *MockTimeSeries) PublishModel(product *Product, model tsl.TslData) error {
-	logs.Info("Mock PublishModel: ", model)
-	return nil
-}
-func (t *MockTimeSeries) QueryProperty(product *Product, param TimeDataSearchRequest) (map[string]interface{}, error) {
-	logs.Info("Mock QueryProperty: ")
-	return nil, nil
-}
-
-func (t *MockTimeSeries) QueryLogs(product *Product, param TimeDataSearchRequest) (map[string]interface{}, error) {
-	logs.Info("Mock QueryLogs: ")
-	return nil, nil
-}
-func (t *MockTimeSeries) QueryEvent(product *Product, eventId string, param TimeDataSearchRequest) (map[string]interface{}, error) {
-	logs.Info("Mock QueryEvent: ")
-	return nil, nil
-}
-func (t *MockTimeSeries) SaveProperties(product *Product, data map[string]interface{}) error {
-	logs.Info("Mock SaveProperties data: ", data)
-	return nil
-}
-func (t *MockTimeSeries) SaveEvents(product *Product, eventId string, data map[string]interface{}) error {
-	logs.Info("Mock SaveEvents data: ", data)
-	return nil
-}
-func (t *MockTimeSeries) SaveLogs(product *Product, data LogData) error {
-	logs.Info("Mock SaveLogs data: ", data)
-	return nil
-}
-func (t *MockTimeSeries) Del(product *Product) error {
-	logs.Info("Mock Del data: ", product.Id)
-	return nil
+type SearchTerm struct {
+	Key   string `json:"key"`   // 查询的字段
+	Value any    `json:"value"` // 值
+	Oper  string `json:"oper"`  // 操作符IN,EQ,GT,LE,LIKE;默认(EQ)
 }

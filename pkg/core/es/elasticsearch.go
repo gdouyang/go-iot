@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-iot/pkg/core"
 	"reflect"
 	"strings"
 
@@ -381,7 +382,7 @@ func FilterSearch(q Query, indexs ...string) (*SearchResponse, error) {
 	return &resp, nil
 }
 
-func AppendFilter(condition []SearchTerm) []map[string]any {
+func AppendFilter(condition []core.SearchTerm) []map[string]any {
 	filter := []map[string]any{}
 	for _, _term := range condition {
 		if _term.Value == nil {

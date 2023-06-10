@@ -26,12 +26,6 @@ const (
 	BTW  = "BTW"  // between
 )
 
-type SearchTerm struct {
-	Key   string `json:"key"`   // 查询的字段
-	Value any    `json:"value"` // 值
-	Oper  string `json:"oper"`  // 操作符IN,EQ,GT,LE,LIKE;默认(EQ)
-}
-
 type Query struct {
 	From        int
 	Size        int

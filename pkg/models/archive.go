@@ -1,6 +1,6 @@
 package models
 
-import "go-iot/pkg/core/es"
+import "go-iot/pkg/core"
 
 const (
 	Runing  = "runing"  // 网络状态runing
@@ -39,10 +39,10 @@ func PageUtil[T any](count int64, pageNum int, pageSize int, list []T) PageResul
 
 // 分页查询
 type PageQuery struct {
-	PageNum     int             `json:"pageNum"`
-	PageSize    int             `json:"pageSize"`
-	Condition   []es.SearchTerm `json:"condition"`
-	SearchAfter []any           `json:"searchAfter"`
+	PageNum     int               `json:"pageNum"`
+	PageSize    int               `json:"pageSize"`
+	Condition   []core.SearchTerm `json:"condition"`
+	SearchAfter []any             `json:"searchAfter"`
 }
 
 // 得到数据偏移，默认数据从0开始

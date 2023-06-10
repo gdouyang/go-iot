@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/store"
+	_ "go-iot/pkg/core/timeseries"
 	tcpserver "go-iot/pkg/network/servers/tcp"
 	"net"
 	"testing"

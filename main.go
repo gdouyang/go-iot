@@ -9,6 +9,7 @@ import (
 	"go-iot/pkg/core/es"
 	"go-iot/pkg/core/redis"
 	"go-iot/pkg/core/store"
+	_ "go-iot/pkg/core/timeseries"
 	"go-iot/pkg/models"
 	_ "go-iot/pkg/network/clients/registry"
 	_ "go-iot/pkg/network/servers/registry"

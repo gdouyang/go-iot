@@ -14,7 +14,7 @@ var instances map[string]core.NetServer = make(map[string]core.NetServer)
 func RegServer(f func() core.NetServer) {
 	s := f()
 	m[s.Type()] = f
-	logs.Info("Server Register [%s]", s.Type())
+	logs.Info("Register Server [%s]", s.Type())
 }
 
 func StartServer(conf core.NetworkConf) error {
