@@ -122,7 +122,7 @@ func CreateDoc(index string, docId string, ob any) error {
 		return err
 	}
 	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug(string(b))
+		logs.Debug("====>", index, "create", string(b))
 	}
 	req := esapi.CreateRequest{
 		Index: index,
@@ -147,7 +147,7 @@ func UpdateDoc(index string, docId string, data any) error {
 		return err
 	}
 	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug(string(b))
+		logs.Debug("====>", index, "update", string(b))
 	}
 	req := esapi.UpdateRequest{
 		Index:      index,
@@ -192,7 +192,7 @@ func UpdateDocByQuery(index string, filter []map[string]any, script map[string]a
 		return err
 	}
 	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug(string(data))
+		logs.Debug("====>", index, "update_by_query", string(data))
 	}
 	req := esapi.UpdateByQueryRequest{
 		Index:     []string{index},
@@ -237,7 +237,7 @@ func DeleteByQuery(index string, filter []map[string]any) error {
 		return err
 	}
 	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug(string(data))
+		logs.Debug("====>", index, "delete_by_query", string(data))
 	}
 	req := esapi.DeleteByQueryRequest{
 		Index:     []string{index},
@@ -267,11 +267,13 @@ func FilterCount(index string, q Query) (int64, error) {
 		return 0, err
 	}
 	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug(string(data))
+		logs.Debug("====>", index, "count", string(data))
 	}
+	ignoreUnavailable := true
 	req := esapi.CountRequest{
-		Index: []string{index},
-		Body:  bytes.NewReader(data),
+		Index:             []string{index},
+		Body:              bytes.NewReader(data),
+		IgnoreUnavailable: &ignoreUnavailable,
 	}
 	res, eserr := DoRequest(req)
 	if eserr != nil {
@@ -285,11 +287,18 @@ func FilterCount(index string, q Query) (int64, error) {
 	if res.Is404() {
 		str = `{"count": 0}`
 	}
+	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+		logs.Debug("<====", index, "count", str)
+	}
 	total := gjson.Get(str, "count")
 	return total.Int(), nil
 }
 
-func FilterSearch(index string, q Query) (*SearchResponse, error) {
+// 使用filter查询, indexs必填
+func FilterSearch(q Query, indexs ...string) (*SearchResponse, error) {
+	if len(indexs) == 0 {
+		return nil, errors.New("indexs must be persent")
+	}
 	body := map[string]any{
 		"from": q.From,
 		"size": q.Size,
@@ -314,11 +323,13 @@ func FilterSearch(index string, q Query) (*SearchResponse, error) {
 		return nil, err
 	}
 	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug(string(data))
+		logs.Debug("====>", strings.Join(indexs, ","), "search", string(data))
 	}
+	ignoreUnavailable := true
 	req := esapi.SearchRequest{
-		Index: []string{index},
-		Body:  bytes.NewReader(data),
+		Index:             indexs,
+		Body:              bytes.NewReader(data),
+		IgnoreUnavailable: &ignoreUnavailable,
 	}
 	res, eserr := DoRequest(req)
 	if eserr != nil {
@@ -331,6 +342,9 @@ func FilterSearch(index string, q Query) (*SearchResponse, error) {
 	str := res.Data
 	if res.Is404() {
 		str = `{"hits": {"total":{"value": 0}, "hits": []}}`
+	}
+	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+		logs.Debug("<====", strings.Join(indexs, ","), "search", str)
 	}
 	var resp SearchResponse
 	total := gjson.Get(str, "hits.total.value")

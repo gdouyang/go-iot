@@ -88,8 +88,9 @@ func (t *EsTimeSeries) PublishModel(product *Product, model tsl.TslData) error {
 
 func (t *EsTimeSeries) Del(product *Product) error {
 	var IgnoreUnavailable bool = true
+	now := time.Now()
 	req := esapi.IndicesDeleteRequest{
-		Index:             []string{t.getIndex(product, properties_const), t.getIndex(product, event_const), t.getIndex(product, devicelogs_const)},
+		Index:             []string{t.getMonthIndex(product, properties_const, now), t.getMonthIndex(product, event_const, now), t.getMonthIndex(product, devicelogs_const, now)},
 		IgnoreUnavailable: &IgnoreUnavailable,
 	}
 	resp, eserr := es.DoRequest(req)
@@ -118,6 +119,10 @@ func (t *EsTimeSeries) query(indexName string, param TimeDataSearchRequest) (map
 	if len(param.DeviceId) == 0 {
 		return nil, errors.New("deviceId must be persent")
 	}
+	indexs, err := t.getQueryIndexs(indexName, param)
+	if err != nil {
+		return nil, err
+	}
 	filter := es.AppendFilter(param.Condition)
 	filter = append(filter, map[string]any{
 		"term": map[string]any{tsl.PropertyDeviceId: param.DeviceId},
@@ -137,7 +142,7 @@ func (t *EsTimeSeries) query(indexName string, param TimeDataSearchRequest) (map
 	}
 	q.Sort = append(q.Sort, map[string]es.SortOrder{"createTime": {Order: "desc"}})
 
-	resp, err := es.FilterSearch(indexName, q)
+	resp, err := es.FilterSearch(q, indexs...)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +190,7 @@ func (t *EsTimeSeries) SaveProperties(product *Product, d1 map[string]any) error
 		logs.Error("Error marshaling document: %s", err)
 	}
 
-	index := t.getIndex(product, properties_const)
+	index := t.getMonthIndex(product, properties_const, time.Now())
 	es.Commit(index, string(data))
 	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
 	eventbus.PublishProperties(&event)
@@ -224,7 +229,7 @@ func (t *EsTimeSeries) SaveEvents(product *Product, eventId string, d1 map[strin
 		logs.Error("Error marshaling document: %s", err)
 	}
 
-	index := t.getEventIndex(product, event_const, eventId)
+	index := t.getMonthEventIndex(product, event_const, eventId, time.Now())
 	es.Commit(index, string(data))
 	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
 	eventbus.PublishEvent(&evt)
@@ -244,19 +249,74 @@ func (t *EsTimeSeries) SaveLogs(product *Product, d1 LogData) error {
 		logs.Error("Error marshaling document: %s", err)
 	}
 
-	index := t.getIndex(product, devicelogs_const)
+	index := t.getMonthIndex(product, devicelogs_const, time.Now())
 	es.Commit(index, string(data))
 	return nil
 }
 
+// goiot-devicelogs-{productId}, goiot-properties-{productId}
 func (t *EsTimeSeries) getIndex(product *Product, typ string) string {
-	index := typ + "-" + product.GetId() + "-" + time.Now().Format("200601")
+	index := typ + "-" + product.GetId()
 	return index
 }
 
-func (t *EsTimeSeries) getEventIndex(product *Product, typ string, eventId string) string {
-	index := typ + "-" + product.GetId() + "-" + eventId + "-" + time.Now().Format("200601")
+// goiot-devicelogs-{productId}-201102, goiot-properties-{productId}-201102
+func (t *EsTimeSeries) getMonthIndex(product *Product, typ string, date time.Time) string {
+	index := t.getIndex(product, typ) + "-" + date.Format("200601")
 	return index
+}
+
+// goiot-event-{productId}-{eventId}
+func (t *EsTimeSeries) getEventIndex(product *Product, typ string, eventId string) string {
+	index := typ + "-" + product.GetId() + "-" + eventId
+	return index
+}
+
+// goiot-event-{productId}-{eventId}-201101
+func (t *EsTimeSeries) getMonthEventIndex(product *Product, typ string, eventId string, date time.Time) string {
+	index := t.getEventIndex(product, typ, eventId) + "-" + date.Format("200601")
+	return index
+}
+
+// 根据查询时间来列举出索引
+func (t *EsTimeSeries) getQueryIndexs(index string, param TimeDataSearchRequest) ([]string, error) {
+	startTime := time.Now()
+	endTime := startTime
+	for _, v := range param.Condition {
+		if v.Key == "createTime" {
+			s := fmt.Sprintf("%v", v.Value)
+			vals := strings.Split(s, ",")
+			if len(vals) > 0 {
+				sTime, err := time.Parse("2006-01-02 15:04:05", vals[0])
+				if err != nil {
+					return nil, errors.New("createTime format must be YYYY-MM-dd HH:mm:ss")
+				}
+				startTime = sTime
+				endTime = sTime
+			}
+			if len(vals) > 1 {
+				sTime, err := time.Parse("2006-01-02 15:04:05", vals[1])
+				if err != nil {
+					return nil, errors.New("createTime format must be YYYY-MM-dd HH:mm:ss")
+				}
+				endTime = sTime
+			}
+		}
+	}
+	indexs := []string{
+		index + "-" + startTime.Format("200601"),
+	}
+	startTime, _ = time.Parse("2006-01", startTime.Format("2006-01"))
+	endTime, _ = time.Parse("2006-01", endTime.Format("2006-01"))
+	if startTime.Equal(endTime) {
+		return indexs, nil
+	}
+	for startTime.Before(endTime) {
+		startTime = startTime.AddDate(0, 1, 0)
+		indexs = append(indexs, index+"-"+startTime.Format("200601"))
+	}
+
+	return indexs, nil
 }
 
 func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) any {

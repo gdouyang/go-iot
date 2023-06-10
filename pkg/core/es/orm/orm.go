@@ -152,7 +152,7 @@ func (q *QuerySeter) All(result any, cols ...string) (int64, error) {
 	if len(q.SearchAfter) > 0 {
 		query.SearchAfter = q.SearchAfter
 	}
-	resp, err := es.FilterSearch(q.indexName, query)
+	resp, err := es.FilterSearch(query, q.indexName)
 	if err != nil {
 		return 0, err
 	}
@@ -264,7 +264,7 @@ func (o *defaultOrm) Read(md interface{}, cols ...string) error {
 	f := convertToFilter(mi, md, cols...)
 	filter := es.AppendFilter(f)
 	query := es.Query{From: 0, Size: 1, Filter: filter}
-	resp, err := es.FilterSearch(mi.indexName, query)
+	resp, err := es.FilterSearch(query, mi.indexName)
 	if err != nil {
 		return err
 	}
