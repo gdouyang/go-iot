@@ -1,4 +1,4 @@
-package core
+package timeseries
 
 import (
 	"go-iot/pkg/core"

@@ -14,18 +14,6 @@ type Property struct {
 	Format      string `json:"format,omitempty"`
 }
 
-const (
-	IN   = "IN"
-	EQ   = "EQ"   // Equal to
-	NEQ  = "NEQ"  // Not Equal to
-	GT   = "GT"   // Greater than
-	GTE  = "GTE"  // Greater than or Equal
-	LT   = "LT"   // less then
-	LTE  = "LTE"  // less then or Equal
-	LIKE = "LIKE" // like
-	BTW  = "BTW"  // between
-)
-
 type Query struct {
 	From        int
 	Size        int

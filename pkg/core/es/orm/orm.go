@@ -71,10 +71,10 @@ func (q *QuerySeter) Filter(key string, value interface{}) *QuerySeter {
 	var term core.SearchTerm
 	if strings.Contains(key, "__contains") {
 		key = strings.ReplaceAll(key, "__contains", "")
-		term.Oper = es.LIKE
+		term.Oper = core.LIKE
 	} else if strings.Contains(key, "__in") {
 		key = strings.ReplaceAll(key, "__in", "")
-		term.Oper = es.IN
+		term.Oper = core.IN
 	}
 	term.Key = FirstLower(key)
 	term.Value = value
@@ -281,7 +281,7 @@ func convertToFilter(mi *modelInfo, md interface{}, cols ...string) []core.Searc
 	for _, fieldName := range cols {
 		key := FirstLower(fieldName)
 		value := mi.getFieldValue(md, fieldName)
-		f = append(f, core.SearchTerm{Key: key, Value: value, Oper: es.EQ})
+		f = append(f, core.SearchTerm{Key: key, Value: value, Oper: core.EQ})
 	}
 	return f
 }

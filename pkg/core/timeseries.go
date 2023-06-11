@@ -12,7 +12,18 @@ const (
 	TIME_SERISE_MOCK = "mock" // 时序数据存储策略mock
 	TIME_TYPE_PROP   = "properties"
 	TIME_TYPE_LOGS   = "devicelogs"
-	TIME_TYPE_EVNT   = "event"
+	TIME_TYPE_EVENT  = "event"
+)
+const (
+	IN   = "IN"
+	EQ   = "EQ"   // Equal to
+	NEQ  = "NEQ"  // Not Equal to
+	GT   = "GT"   // Greater than
+	GTE  = "GTE"  // Greater than or Equal
+	LT   = "LT"   // less then
+	LTE  = "LTE"  // less then or Equal
+	LIKE = "LIKE" // like
+	BTW  = "BTW"  // between
 )
 
 var timeSeriseMap sync.Map

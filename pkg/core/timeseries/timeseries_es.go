@@ -1,4 +1,4 @@
-package core
+package timeseries
 
 import (
 	"encoding/json"
@@ -21,7 +21,7 @@ func init() {
 
 const (
 	properties_const = es.Prefix + core.TIME_TYPE_PROP
-	event_const      = es.Prefix + core.TIME_TYPE_EVNT
+	event_const      = es.Prefix + core.TIME_TYPE_EVENT
 	devicelogs_const = es.Prefix + core.TIME_TYPE_LOGS
 	timeformt        = "2006-01-02 15:04:05.000"
 )

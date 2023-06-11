@@ -392,7 +392,7 @@ func AppendFilter(condition []core.SearchTerm) []map[string]any {
 		value := _term.Value
 		var term map[string]any = map[string]any{}
 		switch _term.Oper {
-		case IN:
+		case core.IN:
 			kind := reflect.TypeOf(value).Kind()
 			if kind == reflect.Array || kind == reflect.Slice {
 				term["terms"] = map[string]any{key: value}
@@ -400,17 +400,17 @@ func AppendFilter(condition []core.SearchTerm) []map[string]any {
 				s := fmt.Sprintf("%v", value)
 				term["terms"] = map[string]any{key: strings.Split(s, ",")}
 			}
-		case LIKE:
+		case core.LIKE:
 			term["prefix"] = map[string]any{key: value}
-		case GT:
+		case core.GT:
 			term["range"] = map[string]any{key: map[string]any{"gt": value}}
-		case GTE:
+		case core.GTE:
 			term["range"] = map[string]any{key: map[string]any{"gte": value}}
-		case LT:
+		case core.LT:
 			term["range"] = map[string]any{key: map[string]any{"lt": value}}
-		case LTE:
+		case core.LTE:
 			term["range"] = map[string]any{key: map[string]any{"lte": value}}
-		case BTW:
+		case core.BTW:
 			s := fmt.Sprintf("%v", value)
 			vals := strings.Split(s, ",")
 			if len(vals) < 2 {
@@ -420,7 +420,7 @@ func AppendFilter(condition []core.SearchTerm) []map[string]any {
 				"gte": vals[0],
 				"lte": vals[1],
 			}}
-		case NEQ:
+		case core.NEQ:
 			term["bool"] = map[string]any{"must_not": []map[string]any{{"term": map[string]any{key: value}}}}
 		default:
 			term["term"] = map[string]any{key: value}

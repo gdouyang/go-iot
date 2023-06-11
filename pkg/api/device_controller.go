@@ -6,7 +6,6 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/common"
-	"go-iot/pkg/core/es"
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
 	"go-iot/pkg/models/network"
@@ -295,7 +294,7 @@ func (ctl *DeviceController) BatchDeploy() {
 	}
 	var deviceIds []string
 	ctl.BindJSON(&deviceIds)
-	ctl.batchEnable(deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: es.EQ}, core.OFFLINE)
+	ctl.batchEnable(deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: core.EQ}, core.OFFLINE)
 }
 
 // batch undeploy device
@@ -305,7 +304,7 @@ func (ctl *DeviceController) BatchUndeploy() {
 	}
 	var deviceIds []string
 	ctl.BindJSON(&deviceIds)
-	ctl.batchEnable(deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: es.NEQ}, core.NoActive)
+	ctl.batchEnable(deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: core.NEQ}, core.NoActive)
 }
 
 func (ctl *DeviceController) batchEnable(deviceIds []string, term core.SearchTerm, tagertState string) {
@@ -446,7 +445,7 @@ func (ctl *DeviceController) QueryLogs() {
 }
 
 func (ctl *DeviceController) QueryEvent() {
-	ctl.queryTimeseriesData(core.TIME_TYPE_EVNT)
+	ctl.queryTimeseriesData(core.TIME_TYPE_EVENT)
 }
 
 func (ctl *DeviceController) queryTimeseriesData(typ string) {

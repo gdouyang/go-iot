@@ -5,7 +5,6 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/boot"
 	"go-iot/pkg/core/cluster"
-	"go-iot/pkg/core/es"
 	"go-iot/pkg/models"
 	"go-iot/pkg/models/base"
 	device "go-iot/pkg/models/device"
@@ -155,7 +154,7 @@ func (i *start) startRuningNetClient() {
 	logs.Info("start runing netclient")
 	var page models.PageQuery
 	page.PageSize = 300
-	page.Condition = []core.SearchTerm{{Key: "port", Value: 0}, {Key: "productId", Value: "", Oper: es.NEQ}}
+	page.Condition = []core.SearchTerm{{Key: "port", Value: 0}, {Key: "productId", Value: "", Oper: core.NEQ}}
 	for {
 		result, err := network.PageNetwork(&page)
 		if err != nil {
