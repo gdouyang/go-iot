@@ -4,35 +4,38 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
+	"sync"
 
 	"github.com/beego/beego/v2/core/logs"
 )
 
-var m map[core.NetType]func() core.NetServer = make(map[core.NetType]func() core.NetServer)
-var instances map[string]core.NetServer = make(map[string]core.NetServer)
+type CreateFun func() core.NetServer
 
-func RegServer(f func() core.NetServer) {
+var m sync.Map
+var instances sync.Map
+
+func RegServer(f CreateFun) {
 	s := f()
-	m[s.Type()] = f
+	m.Store(s.Type(), f)
 	logs.Info("Register Server [%s]", s.Type())
 }
 
 func StartServer(conf core.NetworkConf) error {
-	if _, ok := instances[conf.ProductId]; ok {
+	if _, ok := instances.Load(conf.ProductId); ok {
 		return errors.New("network is runing")
 	}
 	t := core.NetType(conf.Type)
-	if f, ok := m[t]; ok {
+	if f, ok := m.Load(t); ok {
 		_, err := core.NewCodec(conf)
 		if err != nil {
 			return err
 		}
-		s := f()
+		s := f.(CreateFun)()
 		err = s.Start(conf)
 		if err != nil {
 			return err
 		}
-		instances[conf.ProductId] = s
+		instances.Store(conf.ProductId, s)
 		return nil
 	} else {
 		return fmt.Errorf("unknow type %s", conf.Type)
@@ -40,8 +43,11 @@ func StartServer(conf core.NetworkConf) error {
 }
 
 func GetServer(productId string) core.NetServer {
-	s := instances[productId]
-	return s
+	s, ok := instances.Load(productId)
+	if ok {
+		return s.(core.NetServer)
+	}
+	return nil
 }
 
 func StopServer(productId string) error {
@@ -50,6 +56,6 @@ func StopServer(productId string) error {
 		return errors.New("network is not runing")
 	}
 	server.Stop()
-	delete(instances, productId)
+	instances.Delete(productId)
 	return nil
 }
