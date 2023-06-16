@@ -377,30 +377,37 @@ func (t *TdengineTimeSeries) search(sql string) ([]map[string]any, error) {
 			item := map[string]any{}
 			rowValue := []string{}
 			for idx, val := range row.Array() {
-				if !val.Exists() {
-					continue
-				}
 				columnName := gjson.GetBytes(buf, fmt.Sprintf("column_meta.%v.0", idx))
 				if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
 					columns = append(columns, columnName.Raw)
 					rowValue = append(rowValue, val.Raw)
 				}
+				if val.Raw == "null" {
+					continue
+				}
 				columnType := gjson.GetBytes(buf, fmt.Sprintf("column_meta.%v.1", idx))
 				var value any
-				switch columnType.Raw {
+				switch columnType.String() {
 				case "TINYINT":
+					value = val.Int()
 				case "SMALLINT":
+					value = val.Int()
 				case "INT":
+					value = val.Int()
 				case "BIGINT":
 					value = val.Int()
 				case "TINYINT UNSIGNED":
+					value = val.Uint()
 				case "SMALLINT UNSIGNED":
+					value = val.Uint()
 				case "INT UNSIGNED":
+					value = val.Uint()
 				case "BIGINT UNSIGNED":
 					value = val.Uint()
 				case "BOOL":
 					value = val.Bool()
 				case "DOUBLE":
+					value = val.Float()
 				case "FLOAT":
 					value = val.Float()
 				default:
