@@ -244,7 +244,6 @@ func (p *TslProperty) IsObject() bool {
 	switch (p.ValueType).(type) {
 	case ValueTypeObject:
 		return true
-	default:
 	}
 	return false
 }

@@ -137,22 +137,28 @@ func (c *ConditionFilter) getExpression() string {
 	default:
 		oper = "=="
 	}
-	switch c.DataType {
-	case tsl.TypeString:
-	case tsl.TypeEnum:
-	case tsl.TypeDate:
-	case tsl.TypeBool:
-	case tsl.TypePassword:
+	stringTypeFunc := func(c *ConditionFilter, oper string) string {
 		if oper == "==" || oper == "!=" {
 			oper = oper + "="
 		}
 		return fmt.Sprintf("this.%s %s \"%s\"", c.Key, oper, c.Value)
+	}
+	switch c.DataType {
+	case tsl.TypeString:
+		return stringTypeFunc(c, oper)
+	case tsl.TypeEnum:
+		return stringTypeFunc(c, oper)
+	case tsl.TypeDate:
+		return stringTypeFunc(c, oper)
+	case tsl.TypeBool:
+		return stringTypeFunc(c, oper)
+	case tsl.TypePassword:
+		return stringTypeFunc(c, oper)
 	case "this":
 		return "true" // event self is happen
 	default:
 		return fmt.Sprintf("this.%s %s %s", c.Key, oper, c.Value)
 	}
-	return ""
 }
 
 // 抖动限制

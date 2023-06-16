@@ -233,7 +233,9 @@ func register(prefix string, models ...interface{}) (err error) {
 				case reflect.Float64:
 					properties[fieldName] = es.Property{Type: "double"}
 				case reflect.Int:
+					properties[fieldName] = es.Property{Type: "integer"}
 				case reflect.Int16:
+					properties[fieldName] = es.Property{Type: "integer"}
 				case reflect.Int32:
 					properties[fieldName] = es.Property{Type: "integer"}
 				case reflect.Int8:
