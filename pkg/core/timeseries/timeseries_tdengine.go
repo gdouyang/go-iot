@@ -187,7 +187,7 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 	sTableName := t.getStableName(product, core.TIME_TYPE_PROP)
 	// INSERT INTO d1001 USING meters TAGS('Beijing.Chaoyang', 2) VALUES('a');
 	sql := t.insertSql(sTableName, core.TIME_TYPE_PROP, columns, d1, time.Now().Format(timeformt))
-	err := t.dml(sql)
+	err := t.insert(sql)
 	if err != nil {
 		logs.Error("exec: %s", err)
 	}
@@ -234,7 +234,7 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 	sTableName := t.getEventStableName(product, core.TIME_TYPE_EVENT, eventId)
 	// // INSERT INTO d1001 USING meters TAGS('Beijing.Chaoyang', 2) VALUES('a');
 	sql := t.insertSql(sTableName, core.TIME_TYPE_EVENT, columns, d1, time.Now().Format(timeformt))
-	err := t.dml(sql)
+	err := t.insert(sql)
 	if err != nil {
 		logs.Error("exec: %s", err)
 	}
@@ -258,7 +258,7 @@ func (t *TdengineTimeSeries) SaveLogs(product *core.Product, d1 core.LogData) er
 		"deviceId": d1.DeviceId,
 		"content":  d1.Content,
 	}, d1.CreateTime)
-	err := t.dml(sql)
+	err := t.insert(sql)
 	if err != nil {
 		logs.Error("exec: %s", err)
 	}
@@ -306,15 +306,31 @@ func (t *TdengineTimeSeries) dml(sql string) error {
 	if err != nil {
 		return err
 	}
-
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		// logs.Debug("<==", "rows:", gjson.GetBytes(buf, "rows"))
-		logs.Debug("<==", "affected_rows:", gjson.GetBytes(buf, "data.0.0"))
-	}
 	code := gjson.GetBytes(buf, "code")
+	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug && code.Raw == "0" {
+		sql := strings.TrimSpace(sql)
+		logs.Debug("<==", strings.Split(sql, " ")[0], "OK")
+	}
 	if code.Raw != "0" {
 		logs.Error(string(buf))
+		return errors.New(string(buf))
+	}
+	return nil
+}
+
+func (t *TdengineTimeSeries) insert(sql string) error {
+	buf, err := t.getClient(sql)
+	if err != nil {
 		return err
+	}
+
+	code := gjson.GetBytes(buf, "code")
+	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug && code.Raw == "0" {
+		logs.Debug("<==", "Insert OK, affected_rows:", gjson.GetBytes(buf, "data.0.0"))
+	}
+	if code.Raw != "0" {
+		logs.Error(string(buf))
+		return errors.New(string(buf))
 	}
 	return nil
 }
@@ -337,7 +353,7 @@ func (t *TdengineTimeSeries) count(sql string) (int64, error) {
 		}
 	} else {
 		logs.Error(string(buf))
-		return 0, err
+		return 0, errors.New(string(buf))
 	}
 	return total, nil
 }
@@ -415,7 +431,7 @@ func (t *TdengineTimeSeries) search(sql string) ([]map[string]any, error) {
 		}
 	} else {
 		logs.Error(string(buf))
-		return nil, err
+		return nil, errors.New(string(buf))
 	}
 	return result, nil
 }
