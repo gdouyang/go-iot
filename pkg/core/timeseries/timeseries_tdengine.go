@@ -124,7 +124,6 @@ func (t *TdengineTimeSeries) query(tableName string, param core.TimeDataSearchRe
 		return nil, errors.New("deviceId must be persent")
 	}
 	sb := strings.Builder{}
-	sb.WriteString("select * from ")
 	sb.WriteString(tableName)
 	sb.WriteString(" where ")
 	sb.WriteString(t.columnNameRewrite("deviceId"))
@@ -142,14 +141,22 @@ func (t *TdengineTimeSeries) query(tableName string, param core.TimeDataSearchRe
 	sb.WriteString(",")
 	sb.WriteString(fmt.Sprintf("%v", param.PageSize))
 	sb.WriteString(";")
-	list, err := t.search(sb.String())
+
+	list := []map[string]any{}
+	total, err := t.count("select count(*) from " + sb.String())
 	if err != nil {
 		return nil, err
+	}
+	if total > 0 {
+		list, err = t.search("select * from " + sb.String())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var result map[string]any = map[string]any{
 		"pageNum":    param.PageNum,
-		"totalCount": 0,
+		"totalCount": total,
 		"list":       list,
 	}
 	return result, nil
@@ -244,7 +251,7 @@ func (t *TdengineTimeSeries) SaveLogs(product *core.Product, d1 core.LogData) er
 		d1.CreateTime = time.Now().Format(timeformt)
 	}
 	// Build the request body.
-	columns := []string{}
+	columns := []string{"type", "content"}
 	sTableName := t.getStableName(product, core.TIME_TYPE_LOGS)
 	sql := t.insertSql(sTableName, core.TIME_TYPE_LOGS, columns, map[string]any{
 		"type":     d1.Type,
@@ -260,21 +267,17 @@ func (t *TdengineTimeSeries) SaveLogs(product *core.Product, d1 core.LogData) er
 
 // devicelogs-{productId}, properties-{productId}
 func (t *TdengineTimeSeries) getStableName(product *core.Product, typ string) string {
-	index := "goiot" + "." + t.replace(typ+"_"+product.GetId())
+	index := "goiot" + "." + typ + "_" + strings.ReplaceAll(product.GetId(), "-", "_")
 	return index
 }
 
 // event-{productId}-{eventId}
 func (t *TdengineTimeSeries) getEventStableName(product *core.Product, typ string, eventId string) string {
-	index := "goiot" + "." + t.replace(typ+"_"+product.GetId()+"_"+eventId)
+	index := "goiot" + "." + typ + "_" + strings.ReplaceAll(product.GetId(), "-", "_") + "_" + strings.ReplaceAll(eventId, "-", "_")
 	return index
 }
 
-func (t *TdengineTimeSeries) replace(str string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(str, "-", "_"), ".", "_")
-}
-
-func (t *TdengineTimeSeries) getClient(sql string) (*http.Request, error) {
+func (t *TdengineTimeSeries) getClient(sql string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodPost, "http://localhost:6041/rest/sql",
 		bytes.NewBuffer([]byte(sql)))
 	if err != nil {
@@ -285,26 +288,27 @@ func (t *TdengineTimeSeries) getClient(sql string) (*http.Request, error) {
 	}
 	req.Header.Add("Authorization", "Basic cm9vdDp0YW9zZGF0YQ==")
 	req.Close = true
-	return req, nil
-}
-
-func (t *TdengineTimeSeries) dml(sql string) error {
-	req, err := t.getClient(sql)
-	if err != nil {
-		return err
-	}
 
 	client := &http.Client{Timeout: time.Duration(time.Second * 3)}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	buf, err := io.ReadAll(resp.Body)
 	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+func (t *TdengineTimeSeries) dml(sql string) error {
+	buf, err := t.getClient(sql)
+	if err != nil {
 		return err
 	}
+
 	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug("<==", "Total:", gjson.GetBytes(buf, "rows"))
+		// logs.Debug("<==", "rows:", gjson.GetBytes(buf, "rows"))
 		logs.Debug("<==", "affected_rows:", gjson.GetBytes(buf, "data.0.0"))
 	}
 	code := gjson.GetBytes(buf, "code")
@@ -315,24 +319,38 @@ func (t *TdengineTimeSeries) dml(sql string) error {
 	return nil
 }
 
+func (t *TdengineTimeSeries) count(sql string) (int64, error) {
+	var total int64
+	buf, err := t.getClient(sql)
+	if err != nil {
+		return total, err
+	}
+	// if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+	// 	logs.Debug("<==", "rows:", gjson.GetBytes(buf, "rows"))
+	// }
+	code := gjson.GetBytes(buf, "code")
+	if code.Raw == "0" {
+		total = gjson.GetBytes(buf, "data.0.0").Int()
+		if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+			logs.Debug("<==", "columns:", gjson.GetBytes(buf, "column_meta.0.0"))
+			logs.Debug("<==", "        ", total)
+		}
+	} else {
+		logs.Error(string(buf))
+		return 0, err
+	}
+	return total, nil
+}
+
 func (t *TdengineTimeSeries) search(sql string) ([]map[string]any, error) {
-	req, err := t.getClient(sql)
+	buf, err := t.getClient(sql)
 	if err != nil {
 		return nil, err
 	}
 
-	client := &http.Client{Timeout: time.Duration(time.Second * 3)}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	buf, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug("<==", "Total:", gjson.GetBytes(buf, "rows"))
-	}
+	// if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+	// 	logs.Debug("<==", "rows:", gjson.GetBytes(buf, "rows"))
+	// }
 	code := gjson.GetBytes(buf, "code")
 	result := []map[string]any{}
 	if code.Raw == "0" {
@@ -340,8 +358,12 @@ func (t *TdengineTimeSeries) search(sql string) ([]map[string]any, error) {
 		columns := []string{}
 		values := [][]string{}
 		for _, row := range data {
+			item := map[string]any{}
 			rowValue := []string{}
 			for idx, val := range row.Array() {
+				if !val.Exists() {
+					continue
+				}
 				columnName := gjson.GetBytes(buf, fmt.Sprintf("column_meta.%v.0", idx))
 				if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
 					columns = append(columns, columnName.Raw)
@@ -368,10 +390,21 @@ func (t *TdengineTimeSeries) search(sql string) ([]map[string]any, error) {
 				default:
 					value = val.String()
 				}
-				propertyName := util.FirstLowCamelString(columnName.String())
-				item := map[string]any{propertyName: value}
-				result = append(result, item)
+				colName_ := columnName.String()
+				if strings.Contains(colName_, "_0_") {
+					arr := strings.Split(colName_, "_0_")
+					objName := util.FirstLowCamelString(arr[0])
+					if _, ok := item[objName]; !ok {
+						item[objName] = map[string]any{}
+					}
+					propertyName := util.FirstLowCamelString(arr[1])
+					item[objName].(map[string]any)[propertyName] = value
+				} else {
+					propertyName := util.FirstLowCamelString(colName_)
+					item[propertyName] = value
+				}
 			}
+			result = append(result, item)
 			values = append(values, rowValue)
 		}
 		if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
@@ -392,7 +425,7 @@ func (t *TdengineTimeSeries) createSqlColumn(sb *strings.Builder, columnName str
 	if valType == tsl.TypeObject {
 		object := p.ValueType.(tsl.ValueTypeObject)
 		for idx, p1 := range object.Properties {
-			t.createSqlColumn(sb, p.Id+"_"+p1.Id, p1)
+			t.createSqlColumn(sb, p.Id+"."+p1.Id, p1)
 			if idx < len(object.Properties)-1 {
 				sb.WriteString(", ")
 			}
@@ -473,6 +506,7 @@ func (t *TdengineTimeSeries) whereValueRewrite(value any) string {
 }
 
 func (t *TdengineTimeSeries) columnNameRewrite(value string, type_ ...string) string {
+	value = strings.ReplaceAll(value, ".", "_0_")
 	if len(type_) > 0 {
 		return util.SnakeString(value+"_") + " " + type_[0]
 	}
@@ -484,7 +518,7 @@ func (t *TdengineTimeSeries) where(sb *strings.Builder, terms []core.SearchTerm)
 		if _term.Value == nil {
 			continue
 		}
-		key := t.columnNameRewrite(t.replace(_term.Key))
+		key := t.columnNameRewrite(_term.Key)
 		value := _term.Value
 		sb.WriteString(" AND ")
 		sb.WriteString(key)

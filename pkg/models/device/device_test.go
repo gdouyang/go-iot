@@ -20,4 +20,12 @@ func TestId(t *testing.T) {
 	assert.True(t, matched)
 	matched = device.DeviceIdValid("123abcDew-_@")
 	assert.False(t, matched)
+	matched = device.DeviceIdValid("123abc.Dew")
+	assert.False(t, matched)
+	matched = device.DeviceIdValid(".123abcDew")
+	assert.False(t, matched)
+	matched = device.DeviceIdValid("123abcDew.")
+	assert.False(t, matched)
+	matched = device.DeviceIdValid(".123abcDew.")
+	assert.False(t, matched)
 }

@@ -68,6 +68,18 @@ const text = `
       }
     },
     {
+      "id": "curr0abc",
+      "name": "电流",
+      "valueType": {
+        "type": "double",
+        "scale": 2,
+        "unit": "milliAmpere"
+      },
+      "expands": {
+        "readOnly": "true"
+      }
+    },
+    {
       "id": "obj",
       "name": "obj",
       "type": "object",
@@ -92,6 +104,18 @@ const text = `
                 "maxLength": "32"
               },
               "type": "string"
+            }
+          },
+          {
+            "id": "curr0abc",
+            "name": "电流",
+            "valueType": {
+              "type": "double",
+              "scale": 2,
+              "unit": "milliAmpere"
+            },
+            "expands": {
+              "readOnly": "true"
             }
           }
         ]
@@ -151,7 +175,7 @@ func TestTdengine(t *testing.T) {
 		d, _ := json.Marshal(res)
 		println(string(d))
 	}
-	ts.SaveLogs(product, core.LogData{DeviceId: device.Id, Content: `{"state":"online"}`})
+	ts.SaveLogs(product, core.LogData{DeviceId: device.Id, Content: `{"state":"online"}`, Type: "online"})
 	{
 		query := core.TimeDataSearchRequest{}
 		query.DeviceId = device.Id
