@@ -55,8 +55,13 @@ func (t *EsTimeSeries) PublishModel(product *core.Product, model tsl.TslData) er
 		// 事件
 		for _, e := range model.Events {
 			var properties map[string]any = map[string]any{}
-			for _, p := range e.Properties {
-				(properties)[p.Id] = t.createElasticProperty(p)
+			if e.IsObject() {
+				object := e.ToValueTypeObject()
+				for _, p1 := range object.Properties {
+					properties[p1.Id] = t.createElasticProperty(p1)
+				}
+			} else {
+				(properties)[e.Id] = t.createElasticProperty(e)
 			}
 			properties["deviceId"] = es.Property{Type: "keyword"}
 			properties["createTime"] = es.Property{Type: "date", Format: es.DefaultDateFormat}
@@ -199,25 +204,35 @@ func (t *EsTimeSeries) SaveProperties(product *core.Product, d1 map[string]any) 
 }
 
 func (t *EsTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[string]any) error {
-	validProperty := product.GetTsl().EventsMap()
-	if validProperty == nil {
+	eventMap := product.GetTsl().EventsMap()
+	if eventMap == nil {
 		return errors.New("not have tsl property, dont save timeseries data")
 	}
-	event, ok := validProperty[eventId]
+	property, ok := eventMap[eventId]
 	if !ok {
 		return fmt.Errorf("eventId [%s] not found", eventId)
 	}
-	emap := event.PropertiesMap()
-	for key := range d1 {
-		if key == tsl.PropertyDeviceId {
-			continue
+	columns := []string{}
+	if property.IsObject() {
+		validProperty := property.PropertiesMap()
+		for key := range d1 {
+			if key == tsl.PropertyDeviceId {
+				continue
+			}
+			if _, ok := validProperty[key]; ok {
+				columns = append(columns, key)
+			}
 		}
-		if _, ok := emap[key]; !ok {
-			delete(d1, key)
+	} else {
+		for key := range d1 {
+			if key == tsl.PropertyDeviceId {
+				continue
+			}
+			columns = append(columns, key)
 		}
 	}
-	if len(d1) == 0 {
-		return errors.New("data is empty, dont save timeseries data")
+	if len(columns) == 0 {
+		return errors.New("data is empty, don't save event timeseries data")
 	}
 	deviceId := d1[tsl.PropertyDeviceId]
 	if deviceId == nil {

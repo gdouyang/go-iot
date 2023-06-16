@@ -190,9 +190,7 @@ func TestTsl(t *testing.T) {
 	for _, e := range d.Events {
 		log.Println(e.Id)
 		log.Println(e.Name)
-		for _, p := range e.Properties {
-			log.Println(p.ValueType)
-		}
+		log.Println(e.ValueType)
 	}
 	for _, e := range d.Functions {
 		log.Println(e.Id)

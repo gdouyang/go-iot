@@ -1,11 +1,14 @@
 package timeseries_test
 
 import (
+	"encoding/json"
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/store"
 	"go-iot/pkg/core/timeseries"
 	"go-iot/pkg/core/tsl"
 	"testing"
+
+	"github.com/beego/beego/v2/core/logs"
 )
 
 const text = `
@@ -112,9 +115,54 @@ func TestTdengine(t *testing.T) {
 
 	d := tsl.NewTslData()
 	d.FromJson(text)
+	product.TslData = d
+
+	ts.Del(product)
 
 	ts.PublishModel(product, *d)
 
+	err = ts.SaveProperties(product, map[string]any{"deviceId": device.Id, "current": 10})
+	if err != nil {
+		logs.Error(err)
+	}
+	{
+		query := core.TimeDataSearchRequest{}
+		query.DeviceId = device.Id
+		query.Condition = []core.SearchTerm{}
+		res, err := ts.QueryProperty(product, query)
+		if err != nil {
+			logs.Error(err)
+		}
+		d, _ := json.Marshal(res)
+		println(string(d))
+	}
+	err = ts.SaveEvents(product, "fire_alarm", map[string]any{"deviceId": device.Id, "lnt": 90, "lat": 100})
+	if err != nil {
+		logs.Error(err)
+	}
+	{
+		query := core.TimeDataSearchRequest{}
+		query.DeviceId = device.Id
+		query.Condition = []core.SearchTerm{}
+		res, err := ts.QueryEvent(product, "fire_alarm", query)
+		if err != nil {
+			logs.Error(err)
+		}
+		d, _ := json.Marshal(res)
+		println(string(d))
+	}
+	ts.SaveLogs(product, core.LogData{DeviceId: device.Id, Content: `{"state":"online"}`})
+	{
+		query := core.TimeDataSearchRequest{}
+		query.DeviceId = device.Id
+		query.Condition = []core.SearchTerm{}
+		res, err := ts.QueryLogs(product, query)
+		if err != nil {
+			logs.Error(err)
+		}
+		d, _ := json.Marshal(res)
+		println(string(d))
+	}
 	{
 		query := core.TimeDataSearchRequest{}
 		query.DeviceId = device.Id

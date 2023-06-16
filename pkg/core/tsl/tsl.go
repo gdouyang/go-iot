@@ -26,7 +26,7 @@ const (
 
 type TslData struct {
 	Functions  []TslFunction `json:"functions"`
-	Events     []TslEvent    `json:"events"`
+	Events     []TslProperty `json:"events"`
 	Properties []TslProperty `json:"properties"`
 	Text       string        `json:"-"`
 }
@@ -63,6 +63,12 @@ func (tsl *TslData) FromJson(text string) error {
 	{
 		var idMap map[string]bool = map[string]bool{}
 		for _, v := range tsl.Events {
+			if v.IsObject() {
+				obj := (v.ValueType).(ValueTypeObject)
+				if len(obj.Properties) == 0 {
+					return fmt.Errorf("tsl parse error: events [%s] must have value", v.Id)
+				}
+			}
 			if _, ok := idMap[v.Id]; ok {
 				return fmt.Errorf("tsl parse error: events is repeat [%s]", v.Id)
 			} else {
@@ -90,8 +96,8 @@ func (tsl *TslData) FunctionsMap() map[string]TslFunction {
 	return tslF
 }
 
-func (tsl *TslData) EventsMap() map[string]TslEvent {
-	tslF := map[string]TslEvent{}
+func (tsl *TslData) EventsMap() map[string]TslProperty {
+	tslF := map[string]TslProperty{}
 	for _, p := range tsl.Events {
 		tslF[p.Id] = p
 	}
@@ -134,40 +140,6 @@ func (p *TslFunction) UnmarshalJSON(d []byte) error {
 	p.Outputs = alias.Outputs
 	p.Expands = alias.Expands
 	return nil
-}
-
-type TslEvent struct {
-	Id         string        `json:"id"`
-	Name       string        `json:"name"`
-	Properties []TslProperty `json:"properties"`
-}
-
-func (e *TslEvent) UnmarshalJSON(d []byte) error {
-	var alias struct {
-		Id         string        `json:"id"`
-		Name       string        `json:"name"`
-		Properties []TslProperty `json:"properties"`
-	}
-	err := json.Unmarshal(d, &alias)
-	if err != nil {
-		return fmt.Errorf("event of tsl has error: [%s], data: %s", err.Error(), string(d))
-	}
-	err = idCheck(alias.Id)
-	if err != nil {
-		return err
-	}
-	e.Id = alias.Id
-	e.Name = alias.Name
-	e.Properties = alias.Properties
-	return nil
-}
-
-func (e *TslEvent) PropertiesMap() map[string]TslProperty {
-	tslP := map[string]TslProperty{}
-	for _, p := range e.Properties {
-		tslP[p.Id] = p
-	}
-	return tslP
 }
 
 type TslProperty struct {
@@ -254,6 +226,31 @@ func (p *TslProperty) UnmarshalJSON(d []byte) error {
 		return fmt.Errorf("valueType %v is invalid", t)
 	}
 	return err
+}
+
+func (p *TslProperty) PropertiesMap() map[string]TslProperty {
+	tslP := map[string]TslProperty{}
+	if p.IsObject() {
+		obj := (p.ValueType).(ValueTypeObject)
+		for _, p := range obj.Properties {
+			tslP[p.Id] = p
+		}
+	}
+	return tslP
+}
+
+// is ValueTypeObject
+func (p *TslProperty) IsObject() bool {
+	switch (p.ValueType).(type) {
+	case ValueTypeObject:
+		return true
+	default:
+	}
+	return false
+}
+
+func (p *TslProperty) ToValueTypeObject() ValueTypeObject {
+	return (p.ValueType).(ValueTypeObject)
 }
 
 type ValueTypeEnum struct {

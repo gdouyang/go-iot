@@ -235,12 +235,6 @@ func (ctx *BaseContext) GetConfig(key string) string {
 
 // save time series data
 func (ctx *BaseContext) SaveProperties(data map[string]interface{}) {
-	ctx._saveProperties("", data)
-}
-func (ctx *BaseContext) SaveEvents(eventId string, data map[string]interface{}) {
-	ctx._saveProperties(eventId, data)
-}
-func (ctx *BaseContext) _saveProperties(eventId string, data map[string]interface{}) {
 	p := ctx.GetProduct()
 	if p == nil {
 		logs.Warn("product [%s] not exist or noActive", ctx.ProductId)
@@ -251,11 +245,28 @@ func (ctx *BaseContext) _saveProperties(eventId string, data map[string]interfac
 		return
 	}
 	data["deviceId"] = ctx.DeviceId
-	if len(eventId) == 0 {
-		p.GetTimeSeries().SaveProperties(p, data)
-	} else {
-		p.GetTimeSeries().SaveEvents(p, eventId, data)
+	p.GetTimeSeries().SaveProperties(p, data)
+}
+
+func (ctx *BaseContext) SaveEvents(eventId string, data any) {
+	p := ctx.GetProduct()
+	if p == nil {
+		logs.Warn("product [%s] not exist or noActive", ctx.ProductId)
+		return
 	}
+	if ctx.GetDevice() == nil {
+		logs.Warn("device [%s] is offline", ctx.DeviceId)
+		return
+	}
+	saveData := map[string]any{}
+	switch d := data.(type) {
+	case map[string]any:
+		saveData = d
+	default:
+		saveData[eventId] = data
+	}
+	saveData["deviceId"] = ctx.DeviceId
+	p.GetTimeSeries().SaveProperties(p, saveData)
 }
 
 func (ctx *BaseContext) ReplyOk() {

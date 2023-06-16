@@ -7,6 +7,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/eventbus"
 	"go-iot/pkg/core/tsl"
+	"go-iot/pkg/core/util"
 	"io"
 	"net/http"
 	"reflect"
@@ -26,18 +27,25 @@ func (t *TdengineTimeSeries) Id() string {
 }
 
 func (t *TdengineTimeSeries) PublishModel(product *core.Product, model tsl.TslData) error {
+	err := t.dml("create database if not exists goiot;")
+	if err != nil {
+		return err
+	}
 	if len(model.Properties) > 0 {
 		// 属性
 		sb := strings.Builder{}
 		sb.WriteString("CREATE STABLE IF NOT EXISTS ")
 		sb.WriteString(t.getStableName(product, core.TIME_TYPE_PROP))
-		sb.WriteString(" (createTime TIMESTAMP")
+		sb.WriteString(" (")
+		sb.WriteString(t.columnNameRewrite("createTime", "TIMESTAMP"))
 		for _, p := range model.Properties {
 			sb.WriteString(", ")
-			t.appendSqlColumn(&sb, p.Id, p)
+			t.createSqlColumn(&sb, p.Id, p)
 		}
-		sb.WriteString(" ) tags (deviceId nchar(64));")
-		_, err := t.exec(sb.String())
+		sb.WriteString(" ) tags (")
+		sb.WriteString(t.columnNameRewrite("deviceId", "nchar(64)"))
+		sb.WriteString(");")
+		err := t.dml(sb.String())
 		if err != nil {
 			return err
 		}
@@ -45,20 +53,28 @@ func (t *TdengineTimeSeries) PublishModel(product *core.Product, model tsl.TslDa
 	{
 		// 事件
 		for _, e := range model.Events {
-			if len(e.Properties) > 0 {
-				sb := strings.Builder{}
-				sb.WriteString("CREATE STABLE IF NOT EXISTS ")
-				sb.WriteString(t.getEventStableName(product, core.TIME_TYPE_EVENT, e.Id))
-				sb.WriteString(" (createTime TIMESTAMP")
-				for _, p := range e.Properties {
-					sb.WriteString(", ")
-					t.appendSqlColumn(&sb, p.Id, p)
+			sb := strings.Builder{}
+			sb.WriteString("CREATE STABLE IF NOT EXISTS ")
+			sb.WriteString(t.getEventStableName(product, core.TIME_TYPE_EVENT, e.Id))
+			sb.WriteString(" (")
+			sb.WriteString(t.columnNameRewrite("createTime", "TIMESTAMP, "))
+			if e.IsObject() {
+				object := e.ToValueTypeObject()
+				for idx, p1 := range object.Properties {
+					t.createSqlColumn(&sb, p1.Id, p1)
+					if idx < len(object.Properties)-1 {
+						sb.WriteString(", ")
+					}
 				}
-				sb.WriteString(") tags (deviceId nchar(64));")
-				_, err := t.exec(sb.String())
-				if err != nil {
-					return err
-				}
+			} else {
+				t.createSqlColumn(&sb, e.Id, e)
+			}
+			sb.WriteString(" ) tags (")
+			sb.WriteString(t.columnNameRewrite("deviceId", "nchar(64)"))
+			sb.WriteString(");")
+			err := t.dml(sb.String())
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -67,9 +83,14 @@ func (t *TdengineTimeSeries) PublishModel(product *core.Product, model tsl.TslDa
 		sb := strings.Builder{}
 		sb.WriteString("CREATE STABLE IF NOT EXISTS ")
 		sb.WriteString(t.getStableName(product, core.TIME_TYPE_LOGS))
-		sb.WriteString(" (createTime TIMESTAMP, content nchar(1024) ")
-		sb.WriteString(") tags (deviceId nchar(64), type nchar(32));")
-		_, err := t.exec(sb.String())
+		sb.WriteString(" (")
+		sb.WriteString(t.columnNameRewrite("createTime", "TIMESTAMP, "))
+		sb.WriteString(t.columnNameRewrite("content", "nchar(1024), "))
+		sb.WriteString(t.columnNameRewrite("type", "nchar(32)"))
+		sb.WriteString(" ) tags (")
+		sb.WriteString(t.columnNameRewrite("deviceId", "nchar(64)"))
+		sb.WriteString(");")
+		err := t.dml(sb.String())
 		if err != nil {
 			return err
 		}
@@ -78,7 +99,11 @@ func (t *TdengineTimeSeries) PublishModel(product *core.Product, model tsl.TslDa
 }
 
 func (t *TdengineTimeSeries) Del(product *core.Product) error {
-	t.exec("DROP STABLE IF EXISTS " + product.Id + ";")
+	t.dml("DROP STABLE IF EXISTS " + t.getStableName(product, core.TIME_TYPE_PROP) + ";")
+	for _, e := range product.TslData.Events {
+		t.dml("DROP STABLE IF EXISTS " + t.getEventStableName(product, core.TIME_TYPE_EVENT, e.Id) + ";")
+	}
+	t.dml("DROP STABLE IF EXISTS " + t.getStableName(product, core.TIME_TYPE_LOGS) + ";")
 	return nil
 }
 
@@ -101,8 +126,10 @@ func (t *TdengineTimeSeries) query(tableName string, param core.TimeDataSearchRe
 	sb := strings.Builder{}
 	sb.WriteString("select * from ")
 	sb.WriteString(tableName)
-	sb.WriteString(" where deviceId = ")
-	sb.WriteString(param.DeviceId)
+	sb.WriteString(" where ")
+	sb.WriteString(t.columnNameRewrite("deviceId"))
+	sb.WriteString(" = ")
+	sb.WriteString(t.whereValueRewrite(param.DeviceId))
 	t.where(&sb, param.Condition)
 	if param.PageNum <= 0 {
 		param.PageNum = 1
@@ -115,7 +142,7 @@ func (t *TdengineTimeSeries) query(tableName string, param core.TimeDataSearchRe
 	sb.WriteString(",")
 	sb.WriteString(fmt.Sprintf("%v", param.PageSize))
 	sb.WriteString(";")
-	list, err := t.exec(sb.String())
+	list, err := t.search(sb.String())
 	if err != nil {
 		return nil, err
 	}
@@ -149,10 +176,11 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 	if deviceId == nil {
 		return errors.New("not have deviceId, don't save timeseries data")
 	}
+
 	sTableName := t.getStableName(product, core.TIME_TYPE_PROP)
 	// INSERT INTO d1001 USING meters TAGS('Beijing.Chaoyang', 2) VALUES('a');
-	sql := t.insertSql(sTableName, columns, d1, time.Now().Format(timeformt))
-	_, err := t.exec(sql)
+	sql := t.insertSql(sTableName, core.TIME_TYPE_PROP, columns, d1, time.Now().Format(timeformt))
+	err := t.dml(sql)
 	if err != nil {
 		logs.Error("exec: %s", err)
 	}
@@ -162,21 +190,30 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 }
 
 func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[string]any) error {
-	validProperty := product.GetTsl().EventsMap()
-	if validProperty == nil {
+	eventMap := product.GetTsl().EventsMap()
+	if eventMap == nil {
 		return errors.New("not have tsl property, don't save timeseries data")
 	}
-	event, ok := validProperty[eventId]
+	property, ok := eventMap[eventId]
 	if !ok {
 		return fmt.Errorf("eventId [%s] not found", eventId)
 	}
 	columns := []string{}
-	emap := event.PropertiesMap()
-	for key := range d1 {
-		if key == tsl.PropertyDeviceId {
-			continue
+	if property.IsObject() {
+		validProperty := property.PropertiesMap()
+		for key := range d1 {
+			if key == tsl.PropertyDeviceId {
+				continue
+			}
+			if _, ok := validProperty[key]; ok {
+				columns = append(columns, key)
+			}
 		}
-		if _, ok := emap[key]; ok {
+	} else {
+		for key := range d1 {
+			if key == tsl.PropertyDeviceId {
+				continue
+			}
 			columns = append(columns, key)
 		}
 	}
@@ -189,8 +226,8 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 	}
 	sTableName := t.getEventStableName(product, core.TIME_TYPE_EVENT, eventId)
 	// // INSERT INTO d1001 USING meters TAGS('Beijing.Chaoyang', 2) VALUES('a');
-	sql := t.insertSql(sTableName, columns, d1, time.Now().Format(timeformt))
-	_, err := t.exec(sql)
+	sql := t.insertSql(sTableName, core.TIME_TYPE_EVENT, columns, d1, time.Now().Format(timeformt))
+	err := t.dml(sql)
 	if err != nil {
 		logs.Error("exec: %s", err)
 	}
@@ -209,12 +246,12 @@ func (t *TdengineTimeSeries) SaveLogs(product *core.Product, d1 core.LogData) er
 	// Build the request body.
 	columns := []string{}
 	sTableName := t.getStableName(product, core.TIME_TYPE_LOGS)
-	sql := t.insertSql(sTableName, columns, map[string]any{
+	sql := t.insertSql(sTableName, core.TIME_TYPE_LOGS, columns, map[string]any{
 		"type":     d1.Type,
 		"deviceId": d1.DeviceId,
 		"content":  d1.Content,
 	}, d1.CreateTime)
-	_, err := t.exec(sql)
+	err := t.dml(sql)
 	if err != nil {
 		logs.Error("exec: %s", err)
 	}
@@ -223,13 +260,13 @@ func (t *TdengineTimeSeries) SaveLogs(product *core.Product, d1 core.LogData) er
 
 // devicelogs-{productId}, properties-{productId}
 func (t *TdengineTimeSeries) getStableName(product *core.Product, typ string) string {
-	index := t.replace(typ + "_" + product.GetId())
+	index := "goiot" + "." + t.replace(typ+"_"+product.GetId())
 	return index
 }
 
 // event-{productId}-{eventId}
 func (t *TdengineTimeSeries) getEventStableName(product *core.Product, typ string, eventId string) string {
-	index := t.replace(typ + "_" + product.GetId() + "_" + eventId)
+	index := "goiot" + "." + t.replace(typ+"_"+product.GetId()+"_"+eventId)
 	return index
 }
 
@@ -237,8 +274,8 @@ func (t *TdengineTimeSeries) replace(str string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(str, "-", "_"), ".", "_")
 }
 
-func (t *TdengineTimeSeries) exec(sql string) ([]map[string]any, error) {
-	req, err := http.NewRequest(http.MethodPost, "http://192.168.31.197:6041/rest/sql/test",
+func (t *TdengineTimeSeries) getClient(sql string) (*http.Request, error) {
+	req, err := http.NewRequest(http.MethodPost, "http://localhost:6041/rest/sql",
 		bytes.NewBuffer([]byte(sql)))
 	if err != nil {
 		return nil, err
@@ -248,6 +285,41 @@ func (t *TdengineTimeSeries) exec(sql string) ([]map[string]any, error) {
 	}
 	req.Header.Add("Authorization", "Basic cm9vdDp0YW9zZGF0YQ==")
 	req.Close = true
+	return req, nil
+}
+
+func (t *TdengineTimeSeries) dml(sql string) error {
+	req, err := t.getClient(sql)
+	if err != nil {
+		return err
+	}
+
+	client := &http.Client{Timeout: time.Duration(time.Second * 3)}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	buf, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+		logs.Debug("<==", "Total:", gjson.GetBytes(buf, "rows"))
+		logs.Debug("<==", "affected_rows:", gjson.GetBytes(buf, "data.0.0"))
+	}
+	code := gjson.GetBytes(buf, "code")
+	if code.Raw != "0" {
+		logs.Error(string(buf))
+		return err
+	}
+	return nil
+}
+
+func (t *TdengineTimeSeries) search(sql string) ([]map[string]any, error) {
+	req, err := t.getClient(sql)
+	if err != nil {
+		return nil, err
+	}
 
 	client := &http.Client{Timeout: time.Duration(time.Second * 3)}
 	resp, err := client.Do(req)
@@ -265,9 +337,16 @@ func (t *TdengineTimeSeries) exec(sql string) ([]map[string]any, error) {
 	result := []map[string]any{}
 	if code.Raw == "0" {
 		data := gjson.GetBytes(buf, "data").Array()
+		columns := []string{}
+		values := [][]string{}
 		for _, row := range data {
+			rowValue := []string{}
 			for idx, val := range row.Array() {
 				columnName := gjson.GetBytes(buf, fmt.Sprintf("column_meta.%v.0", idx))
+				if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+					columns = append(columns, columnName.Raw)
+					rowValue = append(rowValue, val.Raw)
+				}
 				columnType := gjson.GetBytes(buf, fmt.Sprintf("column_meta.%v.1", idx))
 				var value any
 				switch columnType.Raw {
@@ -287,10 +366,18 @@ func (t *TdengineTimeSeries) exec(sql string) ([]map[string]any, error) {
 				case "FLOAT":
 					value = val.Float()
 				default:
-					value = val.Raw
+					value = val.String()
 				}
-				item := map[string]any{columnName.Raw: value}
+				propertyName := util.FirstLowCamelString(columnName.String())
+				item := map[string]any{propertyName: value}
 				result = append(result, item)
+			}
+			values = append(values, rowValue)
+		}
+		if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+			logs.Debug("<==", "columns:", strings.Join(columns, ","))
+			for _, datas := range values {
+				logs.Debug("<==", "        ", strings.Join(datas, ","))
 			}
 		}
 	} else {
@@ -300,19 +387,19 @@ func (t *TdengineTimeSeries) exec(sql string) ([]map[string]any, error) {
 	return result, nil
 }
 
-func (t *TdengineTimeSeries) appendSqlColumn(sb *strings.Builder, columnName string, p tsl.TslProperty) {
+func (t *TdengineTimeSeries) createSqlColumn(sb *strings.Builder, columnName string, p tsl.TslProperty) {
 	valType := strings.TrimSpace(p.Type)
 	if valType == tsl.TypeObject {
 		object := p.ValueType.(tsl.ValueTypeObject)
 		for idx, p1 := range object.Properties {
-			t.appendSqlColumn(sb, p.Id+"_"+p1.Id, p1)
+			t.createSqlColumn(sb, p.Id+"_"+p1.Id, p1)
 			if idx < len(object.Properties)-1 {
 				sb.WriteString(", ")
 			}
 		}
 		return
 	}
-	sb.WriteString(columnName)
+	sb.WriteString(t.columnNameRewrite(columnName))
 	switch valType {
 	case tsl.TypeInt:
 		sb.WriteString(" INT")
@@ -342,42 +429,54 @@ func (t *TdengineTimeSeries) appendSqlColumn(sb *strings.Builder, columnName str
 	}
 }
 
-func (t *TdengineTimeSeries) insertSql(sTableName string, columns []string, data map[string]any, createTime string) string {
+func (t *TdengineTimeSeries) insertSql(sTableName string, type_ string, columns []string, data map[string]any, createTime string) string {
 	sb := strings.Builder{}
 	deviceId := data[tsl.PropertyDeviceId]
-	sb.WriteString("INSERT ")
-	sb.WriteString(fmt.Sprintf("%v ", deviceId))
+	sb.WriteString("INSERT INTO goiot.")
+	sb.WriteString(type_)
+	sb.WriteString(fmt.Sprintf("_%v ", deviceId))
+	sb.WriteString("USING ")
 	sb.WriteString(sTableName)
 	sb.WriteString(" TAGS(")
-	sb.WriteString(fmt.Sprintf("'%s', ", createTime))
 	sb.WriteString(fmt.Sprintf("'%v'", deviceId))
 	sb.WriteString(") ")
 	sb.WriteString("( ")
-	sb.WriteString(strings.Join(columns, ","))
-	sb.WriteString(") ")
-	sb.WriteString("VALUES(")
+	sb.WriteString(t.columnNameRewrite("createTime"))
+	values := strings.Builder{}
+	if len(columns) > 0 {
+		sb.WriteString(",")
+		values.WriteString(",")
+	}
 	for idx, col := range columns {
-		value := data[col]
-		sb.WriteString(t.strescap(value))
+		sb.WriteString(t.columnNameRewrite(col))
+		values.WriteString(t.whereValueRewrite(data[col]))
 		if idx < len(columns)-1 {
 			sb.WriteString(",")
+			values.WriteString(",")
 		}
 	}
 	sb.WriteString(") ")
+	sb.WriteString("VALUES(")
+	sb.WriteString(fmt.Sprintf("'%s'", createTime))
+	sb.WriteString(values.String())
+	sb.WriteString(");")
 	return sb.String()
 }
 
-func (t *TdengineTimeSeries) strescap(value any) string {
+func (t *TdengineTimeSeries) whereValueRewrite(value any) string {
 	switch value.(type) {
 	case string:
-		return "'" + t.escap(fmt.Sprintf("%v", value)) + "'"
+		return "'" + strings.ReplaceAll(fmt.Sprintf("%v", value), "'", "\\'") + "'"
 	default:
-		return t.escap(fmt.Sprintf("%v", value))
+		return strings.ReplaceAll(fmt.Sprintf("%v", value), "'", "\\'")
 	}
 }
 
-func (t *TdengineTimeSeries) escap(value string) string {
-	return strings.ReplaceAll(value, "'", "\\'")
+func (t *TdengineTimeSeries) columnNameRewrite(value string, type_ ...string) string {
+	if len(type_) > 0 {
+		return util.SnakeString(value+"_") + " " + type_[0]
+	}
+	return util.SnakeString(value + "_")
 }
 
 func (t *TdengineTimeSeries) where(sb *strings.Builder, terms []core.SearchTerm) {
@@ -385,7 +484,7 @@ func (t *TdengineTimeSeries) where(sb *strings.Builder, terms []core.SearchTerm)
 		if _term.Value == nil {
 			continue
 		}
-		key := t.replace(_term.Key)
+		key := t.columnNameRewrite(t.replace(_term.Key))
 		value := _term.Value
 		sb.WriteString(" AND ")
 		sb.WriteString(key)
@@ -396,7 +495,7 @@ func (t *TdengineTimeSeries) where(sb *strings.Builder, terms []core.SearchTerm)
 			if kind == reflect.Array || kind == reflect.Slice {
 				vv := reflect.ValueOf(value)
 				for i := 0; i < vv.Len(); i++ {
-					sb.WriteString(t.strescap(vv.Index(i).Interface()))
+					sb.WriteString(t.whereValueRewrite(vv.Index(i).Interface()))
 					if i < vv.Len()-1 {
 						sb.WriteString(",")
 					}
@@ -405,7 +504,7 @@ func (t *TdengineTimeSeries) where(sb *strings.Builder, terms []core.SearchTerm)
 				s := fmt.Sprintf("%v", value)
 				vals := strings.Split(s, ",")
 				for idx, v := range vals {
-					sb.WriteString(t.strescap(v))
+					sb.WriteString(t.whereValueRewrite(v))
 					if idx < len(vals)-1 {
 						sb.WriteString(",")
 					}
@@ -426,43 +525,43 @@ func (t *TdengineTimeSeries) where(sb *strings.Builder, terms []core.SearchTerm)
 					} else {
 						break
 					}
-					sb.WriteString(t.strescap(vv.Index(i).Interface()))
+					sb.WriteString(t.whereValueRewrite(vv.Index(i).Interface()))
 				}
 			} else {
 				s := fmt.Sprintf("%v", value)
 				vals := strings.Split(s, ",")
 				if len(vals) > 0 {
 					sb.WriteString(" >= ")
-					sb.WriteString(t.escap(vals[0]))
+					sb.WriteString(t.whereValueRewrite(vals[0]))
 				}
 				if len(vals) > 1 {
 					sb.WriteString(" AND ")
 					sb.WriteString(key)
 					sb.WriteString(" <= ")
-					sb.WriteString(t.escap(vals[1]))
+					sb.WriteString(t.whereValueRewrite(vals[1]))
 				}
 			}
 		case core.LIKE:
 			sb.WriteString(" LIKE ")
-			sb.WriteString(t.strescap(value))
+			sb.WriteString(t.whereValueRewrite(value))
 		case core.GT:
 			sb.WriteString(" > ")
-			sb.WriteString(t.strescap(value))
+			sb.WriteString(t.whereValueRewrite(value))
 		case core.GTE:
 			sb.WriteString(" >= ")
-			sb.WriteString(t.strescap(value))
+			sb.WriteString(t.whereValueRewrite(value))
 		case core.LT:
 			sb.WriteString(" < ")
-			sb.WriteString(t.strescap(value))
+			sb.WriteString(t.whereValueRewrite(value))
 		case core.LTE:
 			sb.WriteString(" <= ")
-			sb.WriteString(t.strescap(value))
+			sb.WriteString(t.whereValueRewrite(value))
 		case core.NEQ:
 			sb.WriteString(" != ")
-			sb.WriteString(t.strescap(value))
+			sb.WriteString(t.whereValueRewrite(value))
 		default:
 			sb.WriteString(" = ")
-			sb.WriteString(t.strescap(value))
+			sb.WriteString(t.whereValueRewrite(value))
 		}
 	}
 }
