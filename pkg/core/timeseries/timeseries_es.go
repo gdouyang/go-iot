@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
-	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
 func init() {
@@ -92,20 +91,8 @@ func (t *EsTimeSeries) PublishModel(product *core.Product, model tsl.TslData) er
 }
 
 func (t *EsTimeSeries) Del(product *core.Product) error {
-	var IgnoreUnavailable bool = true
 	now := time.Now()
-	req := esapi.IndicesDeleteRequest{
-		Index:             []string{t.getMonthIndex(product, properties_const, now), t.getMonthIndex(product, event_const, now), t.getMonthIndex(product, devicelogs_const, now)},
-		IgnoreUnavailable: &IgnoreUnavailable,
-	}
-	resp, eserr := es.DoRequest(req)
-	if eserr != nil {
-		return eserr
-	}
-	if resp.IsError && !resp.Is404() {
-		return errors.New(resp.Data)
-	}
-	return nil
+	return es.DeleteIndex(t.getMonthIndex(product, properties_const, now), t.getMonthIndex(product, event_const, now), t.getMonthIndex(product, devicelogs_const, now))
 }
 
 func (t *EsTimeSeries) QueryProperty(product *core.Product, param core.TimeDataSearchRequest) (map[string]any, error) {
@@ -173,12 +160,16 @@ func (t *EsTimeSeries) SaveProperties(product *core.Product, d1 map[string]any) 
 	if validProperty == nil {
 		return errors.New("not have tsl property, dont save timeseries data")
 	}
+	busMsgData := map[string]any{}
 	for key := range d1 {
 		if key == tsl.PropertyDeviceId {
 			continue
 		}
-		if _, ok := validProperty[key]; !ok {
+		_, ok := validProperty[key]
+		if !ok {
 			delete(d1, key)
+		} else {
+			busMsgData[key] = d1[key]
 		}
 	}
 	if len(d1) == 0 {
@@ -189,7 +180,6 @@ func (t *EsTimeSeries) SaveProperties(product *core.Product, d1 map[string]any) 
 		return errors.New("not have deviceId, dont save timeseries data")
 	}
 	d1["createTime"] = time.Now().Format(timeformt)
-	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
 		logs.Error("Error marshaling document: %s", err)
@@ -197,7 +187,8 @@ func (t *EsTimeSeries) SaveProperties(product *core.Product, d1 map[string]any) 
 
 	index := t.getMonthIndex(product, properties_const, time.Now())
 	es.Commit(index, string(data))
-	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
+	// 发送事件总线
+	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), busMsgData)
 	eventbus.PublishProperties(&event)
 	return nil
 }
@@ -211,6 +202,7 @@ func (t *EsTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[
 	if !ok {
 		return fmt.Errorf("eventId [%s] not found", eventId)
 	}
+	busMsgData := map[string]any{}
 	columns := []string{}
 	if obj, ok := property.IsObject(); ok {
 		validProperty := obj.PropertiesMap()
@@ -220,6 +212,7 @@ func (t *EsTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[
 			}
 			if _, ok := validProperty[key]; ok {
 				columns = append(columns, key)
+				busMsgData[key] = d1[key]
 			}
 		}
 	} else {
@@ -228,6 +221,7 @@ func (t *EsTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[
 				continue
 			}
 			columns = append(columns, key)
+			busMsgData[key] = d1[key]
 		}
 	}
 	if len(columns) == 0 {
@@ -238,7 +232,6 @@ func (t *EsTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[
 		return errors.New("not have deviceId, dont save event timeseries data")
 	}
 	d1["createTime"] = time.Now().Format(timeformt)
-	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
 		logs.Error("Error marshaling document: %s", err)
@@ -246,7 +239,8 @@ func (t *EsTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[
 
 	index := t.getMonthEventIndex(product, event_const, eventId, time.Now())
 	es.Commit(index, string(data))
-	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
+	// 发送事件总线
+	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), eventId, busMsgData)
 	eventbus.PublishEvent(&evt)
 	return nil
 }

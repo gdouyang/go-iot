@@ -117,6 +117,23 @@ func CreateEsIndex(properties map[string]any, indexName string) error {
 	return nil
 }
 
+// 删除索引
+func DeleteIndex(index ...string) error {
+	var IgnoreUnavailable bool = true
+	req := esapi.IndicesDeleteRequest{
+		Index:             index,
+		IgnoreUnavailable: &IgnoreUnavailable,
+	}
+	resp, eserr := DoRequest(req)
+	if eserr != nil {
+		return eserr
+	}
+	if resp.IsError && !resp.Is404() {
+		return errors.New(resp.Data)
+	}
+	return nil
+}
+
 func CreateDoc(index string, docId string, ob any) error {
 	b, err := json.Marshal(ob)
 	if err != nil {
@@ -210,6 +227,7 @@ func UpdateDocByQuery(index string, filter []map[string]any, script map[string]a
 	return nil
 }
 
+// 删除文档
 func DeleteDoc(index string, docId string) error {
 	req := esapi.DeleteRequest{
 		Index:      index,
@@ -225,6 +243,7 @@ func DeleteDoc(index string, docId string) error {
 	return nil
 }
 
+// 删除文档
 func DeleteByQuery(index string, filter []map[string]any) error {
 	body := map[string]any{
 		"query": map[string]any{

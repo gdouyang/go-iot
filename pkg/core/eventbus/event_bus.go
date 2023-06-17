@@ -2,6 +2,7 @@ package eventbus
 
 import (
 	"fmt"
+	"time"
 )
 
 const (
@@ -15,6 +16,17 @@ const (
 	DeviceEventTopic string = "/device/%s/%s/event"
 	// alarm topic pattern
 	DeviceAlarmTopic string = "/device/%s/%s/alarm"
+)
+
+type MessageType string
+
+const (
+	PROP      MessageType = "prop"
+	EVENT     MessageType = "event"
+	ALARM     MessageType = "alarm"
+	ONLINE    MessageType = "online"
+	OFFLINE   MessageType = "offline"
+	timeformt             = "2006-01-02 15:04:05.000"
 )
 
 // /device/{productId}/{deviceId}/property
@@ -79,34 +91,26 @@ func PublishOffline(data *OfflineMessage) {
 	Publish(GetOfflineTopic(data.ProductId, data.DeviceId), data)
 }
 
-type MessageType string
-
-const (
-	PROP    MessageType = "prop"
-	EVENT   MessageType = "event"
-	ALARM   MessageType = "alarm"
-	ONLINE  MessageType = "online"
-	OFFLINE MessageType = "offline"
-)
-
 type Message interface {
 	Type() MessageType
 	GetDeviceId() string
 }
 
 type PropertiesMessage struct {
-	Typ       string                 `json:"type"`
-	DeviceId  string                 `json:"deviceId"`
-	ProductId string                 `json:"productId"`
-	Data      map[string]interface{} `json:"data"`
+	Typ        string                 `json:"type"`
+	DeviceId   string                 `json:"deviceId"`
+	ProductId  string                 `json:"productId"`
+	CreateTime string                 `json:"createTime"`
+	Data       map[string]interface{} `json:"data"`
 }
 
 func NewPropertiesMessage(deviceId string, productId string, data map[string]interface{}) PropertiesMessage {
 	return PropertiesMessage{
-		Typ:       string(PROP),
-		DeviceId:  deviceId,
-		ProductId: productId,
-		Data:      data,
+		Typ:        string(PROP),
+		DeviceId:   deviceId,
+		ProductId:  productId,
+		CreateTime: time.Now().Format(timeformt),
+		Data:       data,
 	}
 }
 
@@ -118,18 +122,22 @@ func (m *PropertiesMessage) GetDeviceId() string {
 }
 
 type EventMessage struct {
-	Typ       string                 `json:"type"`
-	DeviceId  string                 `json:"deviceId"`
-	ProductId string                 `json:"productId"`
-	Data      map[string]interface{} `json:"data"`
+	Typ        string                 `json:"type"`
+	DeviceId   string                 `json:"deviceId"`
+	ProductId  string                 `json:"productId"`
+	EventId    string                 `json:"eventId"`
+	CreateTime string                 `json:"createTime"`
+	Data       map[string]interface{} `json:"data"`
 }
 
-func NewEventMessage(deviceId string, productId string, data map[string]interface{}) EventMessage {
+func NewEventMessage(deviceId string, productId string, eventId string, data map[string]interface{}) EventMessage {
 	return EventMessage{
-		Typ:       string(EVENT),
-		DeviceId:  deviceId,
-		ProductId: productId,
-		Data:      data,
+		Typ:        string(EVENT),
+		DeviceId:   deviceId,
+		ProductId:  productId,
+		EventId:    eventId,
+		Data:       data,
+		CreateTime: time.Now().Format(timeformt),
 	}
 }
 

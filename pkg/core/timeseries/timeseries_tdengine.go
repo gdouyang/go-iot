@@ -166,6 +166,7 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 	if validProperty == nil {
 		return errors.New("not have tsl property, don't save timeseries data")
 	}
+	busMsgData := map[string]any{}
 	columns := []string{}
 	for key := range d1 {
 		if key == tsl.PropertyDeviceId {
@@ -173,6 +174,7 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 		}
 		if _, ok := validProperty[key]; ok {
 			columns = append(columns, key)
+			busMsgData[key] = d1[key]
 		}
 	}
 	if len(columns) == 0 {
@@ -190,7 +192,8 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 	if err != nil {
 		logs.Error("exec: %s", err)
 	}
-	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
+	// 发送事件总线
+	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), busMsgData)
 	eventbus.PublishProperties(&event)
 	return nil
 }
@@ -204,6 +207,7 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 	if !ok {
 		return fmt.Errorf("eventId [%s] not found", eventId)
 	}
+	busMsgData := map[string]any{}
 	columns := []string{}
 	if obj, ok := property.IsObject(); ok {
 		validProperty := obj.PropertiesMap()
@@ -213,6 +217,7 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 			}
 			if _, ok := validProperty[key]; ok {
 				columns = append(columns, key)
+				busMsgData[key] = d1[key]
 			}
 		}
 	} else {
@@ -221,6 +226,7 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 				continue
 			}
 			columns = append(columns, key)
+			busMsgData[key] = d1[key]
 		}
 	}
 	if len(columns) == 0 {
@@ -237,7 +243,8 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 	if err != nil {
 		logs.Error("exec: %s", err)
 	}
-	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
+	// 发送事件总线
+	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), eventId, busMsgData)
 	eventbus.PublishEvent(&evt)
 	return nil
 }
