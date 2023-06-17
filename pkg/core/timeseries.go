@@ -15,15 +15,16 @@ const (
 	TIME_TYPE_EVENT  = "event"
 )
 const (
-	IN   = "IN"
-	EQ   = "EQ"   // Equal to
-	NEQ  = "NEQ"  // Not Equal to
-	GT   = "GT"   // Greater than
-	GTE  = "GTE"  // Greater than or Equal
-	LT   = "LT"   // less then
-	LTE  = "LTE"  // less then or Equal
-	LIKE = "LIKE" // like
-	BTW  = "BTW"  // between
+	IN      = "IN"
+	EQ      = "EQ"      // Equal to
+	NEQ     = "NEQ"     // Not Equal to
+	GT      = "GT"      // Greater than
+	GTE     = "GTE"     // Greater than or Equal
+	LT      = "LT"      // less then
+	LTE     = "LTE"     // less then or Equal
+	LIKE    = "LIKE"    // like
+	BTW     = "BTW"     // between
+	NOTNULL = "NOTNULL" // not null
 )
 
 var timeSeriseMap sync.Map

@@ -266,7 +266,7 @@ func (ctx *BaseContext) SaveEvents(eventId string, data any) {
 		saveData[eventId] = data
 	}
 	saveData["deviceId"] = ctx.DeviceId
-	p.GetTimeSeries().SaveProperties(p, saveData)
+	p.GetTimeSeries().SaveEvents(p, eventId, saveData)
 }
 
 func (ctx *BaseContext) ReplyOk() {

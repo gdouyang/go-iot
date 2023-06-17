@@ -58,8 +58,7 @@ func (t *TdengineTimeSeries) PublishModel(product *core.Product, model tsl.TslDa
 			sb.WriteString(t.getEventStableName(product, core.TIME_TYPE_EVENT, e.Id))
 			sb.WriteString(" (")
 			sb.WriteString(t.columnNameRewrite("createTime", "TIMESTAMP, "))
-			if e.IsObject() {
-				object := e.ToValueTypeObject()
+			if object, ok := e.IsObject(); ok {
 				for idx, p1 := range object.Properties {
 					t.createSqlColumn(&sb, p1.Id, p1)
 					if idx < len(object.Properties)-1 {
@@ -206,8 +205,8 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 		return fmt.Errorf("eventId [%s] not found", eventId)
 	}
 	columns := []string{}
-	if property.IsObject() {
-		validProperty := property.PropertiesMap()
+	if obj, ok := property.IsObject(); ok {
+		validProperty := obj.PropertiesMap()
 		for key := range d1 {
 			if key == tsl.PropertyDeviceId {
 				continue
@@ -616,6 +615,8 @@ func (t *TdengineTimeSeries) where(sb *strings.Builder, terms []core.SearchTerm)
 		case core.NEQ:
 			sb.WriteString(" != ")
 			sb.WriteString(t.whereValueRewrite(value))
+		case core.NOTNULL:
+			sb.WriteString(" is not null ")
 		default:
 			sb.WriteString(" = ")
 			sb.WriteString(t.whereValueRewrite(value))

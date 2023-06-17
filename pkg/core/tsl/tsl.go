@@ -19,7 +19,7 @@ const (
 	TypePassword = "password"
 	TypeFile     = "file"
 	TypeObject   = "object"
-	TypeArray    = "array"
+	// TypeArray    = "array"
 
 	PropertyDeviceId = "deviceId"
 )
@@ -53,6 +53,11 @@ func (tsl *TslData) FromJson(text string) error {
 	{
 		var idMap map[string]bool = map[string]bool{}
 		for _, v := range tsl.Properties {
+			if obj, ok := v.IsObject(); ok {
+				if len(obj.Properties) == 0 {
+					return fmt.Errorf("tsl parse error: properties [%s] must have value", v.Id)
+				}
+			}
 			if _, ok := idMap[v.Id]; ok {
 				return fmt.Errorf("tsl parse error: properties is repeat [%s]", v.Id)
 			} else {
@@ -63,8 +68,7 @@ func (tsl *TslData) FromJson(text string) error {
 	{
 		var idMap map[string]bool = map[string]bool{}
 		for _, v := range tsl.Events {
-			if v.IsObject() {
-				obj := (v.ValueType).(ValueTypeObject)
+			if obj, ok := v.IsObject(); ok {
 				if len(obj.Properties) == 0 {
 					return fmt.Errorf("tsl parse error: events [%s] must have value", v.Id)
 				}
@@ -210,46 +214,35 @@ func (p *TslProperty) UnmarshalJSON(d []byte) error {
 		valueType := ValueTypeFloat{}
 		err = convert(alias.ValueType, &valueType)
 		p.ValueType = valueType
+	case TypeDate:
+		valueType := ValueTypeString{}
+		err = convert(alias.ValueType, &valueType)
+		p.ValueType = valueType
 	case TypeFile:
 		valueType := ValueTypeFile{}
 		err = convert(alias.ValueType, &valueType)
 		p.ValueType = valueType
-	case TypeArray:
-		valueType := ValueTypeArray{}
-		err = convert(alias.ValueType, &valueType)
-		p.ValueType = valueType
+	// case TypeArray:
+	// 	valueType := ValueTypeArray{}
+	// 	err = convert(alias.ValueType, &valueType)
+	// 	p.ValueType = valueType
 	case TypeObject:
 		valueType := ValueTypeObject{}
 		err = convert(alias.ValueType, &valueType)
 		p.ValueType = valueType
 	default:
-		return fmt.Errorf("valueType %v is invalid", t)
+		return fmt.Errorf("valueType %v is not support", t)
 	}
 	return err
 }
 
-func (p *TslProperty) PropertiesMap() map[string]TslProperty {
-	tslP := map[string]TslProperty{}
-	if p.IsObject() {
-		obj := (p.ValueType).(ValueTypeObject)
-		for _, p := range obj.Properties {
-			tslP[p.Id] = p
-		}
-	}
-	return tslP
-}
-
 // is ValueTypeObject
-func (p *TslProperty) IsObject() bool {
-	switch (p.ValueType).(type) {
+func (p *TslProperty) IsObject() (*ValueTypeObject, bool) {
+	switch d := (p.ValueType).(type) {
 	case ValueTypeObject:
-		return true
+		return &d, true
 	}
-	return false
-}
-
-func (p *TslProperty) ToValueTypeObject() ValueTypeObject {
-	return (p.ValueType).(ValueTypeObject)
+	return nil, false
 }
 
 type ValueTypeEnum struct {
@@ -305,6 +298,14 @@ type ValueTypeFloat struct {
 type ValueTypeObject struct {
 	Type       string        `json:"type"`
 	Properties []TslProperty `json:"properties"`
+}
+
+func (p *ValueTypeObject) PropertiesMap() map[string]TslProperty {
+	tslP := map[string]TslProperty{}
+	for _, p := range p.Properties {
+		tslP[p.Id] = p
+	}
+	return tslP
 }
 
 type ValueTypeArray struct {

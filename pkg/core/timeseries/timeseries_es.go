@@ -55,8 +55,7 @@ func (t *EsTimeSeries) PublishModel(product *core.Product, model tsl.TslData) er
 		// 事件
 		for _, e := range model.Events {
 			var properties map[string]any = map[string]any{}
-			if e.IsObject() {
-				object := e.ToValueTypeObject()
+			if object, ok := e.IsObject(); ok {
 				for _, p1 := range object.Properties {
 					properties[p1.Id] = t.createElasticProperty(p1)
 				}
@@ -213,8 +212,8 @@ func (t *EsTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[
 		return fmt.Errorf("eventId [%s] not found", eventId)
 	}
 	columns := []string{}
-	if property.IsObject() {
-		validProperty := property.PropertiesMap()
+	if obj, ok := property.IsObject(); ok {
+		validProperty := obj.PropertiesMap()
 		for key := range d1 {
 			if key == tsl.PropertyDeviceId {
 				continue
@@ -296,8 +295,8 @@ func (t *EsTimeSeries) getMonthEventIndex(product *core.Product, typ string, eve
 
 // 根据查询时间来列举出索引
 func (t *EsTimeSeries) getQueryIndexs(index string, param core.TimeDataSearchRequest) ([]string, error) {
-	startTime := time.Now()
-	endTime := startTime
+	endTime, _ := time.Parse("2006-01", time.Now().Format("2006-01"))
+	startTime := endTime.AddDate(0, -1, 0)
 	for _, v := range param.Condition {
 		if v.Key == "createTime" {
 			s := fmt.Sprintf("%v", v.Value)
@@ -356,9 +355,9 @@ func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) any {
 		return es.Property{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypeDate:
 		return es.Property{Type: "date", Format: es.DefaultDateFormat}
-	case tsl.TypeArray:
-		array := p.ValueType.(tsl.ValueTypeArray)
-		return t.createElasticProperty(array.ElementType)
+	// case tsl.TypeArray:
+	// 	array := p.ValueType.(tsl.ValueTypeArray)
+	// 	return t.createElasticProperty(array.ElementType)
 	case tsl.TypeObject:
 		object := p.ValueType.(tsl.ValueTypeObject)
 		var mapping map[string]any = map[string]any{}

@@ -422,6 +422,8 @@ func AppendFilter(condition []core.SearchTerm) []map[string]any {
 			}}
 		case core.NEQ:
 			term["bool"] = map[string]any{"must_not": []map[string]any{{"term": map[string]any{key: value}}}}
+		case core.NOTNULL:
+			term["exists"] = map[string]any{"field": key}
 		default:
 			term["term"] = map[string]any{key: value}
 		}
