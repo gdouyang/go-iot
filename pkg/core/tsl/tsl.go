@@ -185,6 +185,9 @@ func (p *TslProperty) UnmarshalJSON(d []byte) error {
 	case TypeEnum:
 		valueType := ValueTypeEnum{}
 		err = convert(alias.ValueType, &valueType)
+		// if err == nil && valueType.Valid() != nil {
+		// 	return valueType.Valid()
+		// }
 		p.ValueType = valueType
 	case TypeInt:
 		valueType := ValueTypeInt{}
@@ -250,8 +253,23 @@ type ValueTypeEnum struct {
 	Elements []ValueTypeEnumEle `json:"elements"`
 }
 
+// func (v *ValueTypeEnum) Valid() error {
+// 	if len(v.Elements) == 0 {
+// 		return errors.New("enum elements is empty")
+// 	}
+// 	for _, v := range v.Elements {
+// 		if len(v.Value) == 0 {
+// 			return errors.New("enum elements value is empty")
+// 		}
+// 		err := idCheck(v.Value)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
+
 type ValueTypeEnumEle struct {
-	Id    string `json:"id"`
 	Text  string `json:"text"`
 	Value string `json:"value"`
 }
@@ -324,7 +342,7 @@ func convert(data map[string]interface{}, v any) error {
 func idCheck(id string) error {
 	matched, _ := regexp.Match("^[0-9a-zA-Z_\\-]+$", []byte(id))
 	if !matched {
-		return fmt.Errorf("%s is invalid", id)
+		return fmt.Errorf("id [%s] is invalid, must be alphabet,number,underscores", id)
 	}
 	return nil
 }

@@ -45,7 +45,7 @@ func init() {
 		web.NSRouter("/:id/invoke", &DeviceController{}, "post:CmdInvoke"),
 		web.NSRouter(":id/properties", &DeviceController{}, "post:QueryProperty"),
 		web.NSRouter(":id/logs", &DeviceController{}, "post:QueryLogs"),
-		web.NSRouter(":id/:eventId/event", &DeviceController{}, "post:QueryEvent"),
+		web.NSRouter(":id/event/:eventId", &DeviceController{}, "post:QueryEvent"),
 	)
 	web.AddNamespace(ns)
 
