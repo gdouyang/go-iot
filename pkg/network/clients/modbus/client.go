@@ -2,11 +2,12 @@ package modbus
 
 import (
 	"go-iot/pkg/core"
+	"go-iot/pkg/network"
 	"go-iot/pkg/network/clients"
 )
 
 func init() {
-	clients.RegClient(func() core.NetClient {
+	clients.RegClient(func() network.NetClient {
 		return NewClient()
 	})
 }
@@ -18,10 +19,10 @@ func NewClient() *Client {
 	return &Client{}
 }
 
-func (c *Client) Type() core.NetType {
-	return core.MODBUS
+func (c *Client) Type() network.NetType {
+	return network.MODBUS
 }
-func (c *Client) Connect(deviceId string, network core.NetworkConf) error {
+func (c *Client) Connect(deviceId string, network network.NetworkConf) error {
 	devoper := core.GetDevice(deviceId)
 	tcpInfo, err := createTcpConnectionInfoByConfig(devoper)
 	if err != nil {

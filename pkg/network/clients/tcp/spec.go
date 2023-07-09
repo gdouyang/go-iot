@@ -7,18 +7,18 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/network/servers"
+	"go-iot/pkg/network"
 	tcpserver "go-iot/pkg/network/servers/tcp"
 	"strconv"
 )
 
 func init() {
-	core.RegNetworkMetaConfigCreator(string(core.TCP_CLIENT), func() core.DefaultMetaConfig {
-		list := []core.ProductMetaConfig{
+	network.RegNetworkMetaConfigCreator(string(network.TCP_CLIENT), func() core.CodecMetaConfig {
+		list := []core.MetaConfig{
 			{Property: "host", Type: "string", Buildin: true, Desc: "The host of remote [eg: 127.0.0.1]"},
 			{Property: "port", Type: "number", Buildin: true, Desc: "The port of remote"},
 		}
-		return core.DefaultMetaConfig{MetaConfigs: list}
+		return core.CodecMetaConfig{MetaConfigs: list}
 	})
 }
 
@@ -30,7 +30,7 @@ type (
 		Host                 string                 `json:"host"`
 		Port                 int32                  `json:"port"`
 		UseTLS               bool                   `json:"useTLS"`
-		Certificate          []servers.Certificate  `json:"certificate"`
+		Certificate          []network.Certificate  `json:"certificate"`
 		MaxAllowedConnection int                    `json:"maxAllowedConnection"`
 		Delimeter            tcpserver.TcpDelimeter `json:"delimeter"`
 	}
@@ -44,7 +44,7 @@ func (spec *TcpClientSpec) FromJson(str string) error {
 	return nil
 }
 
-func (spec *TcpClientSpec) FromNetwork(network core.NetworkConf) error {
+func (spec *TcpClientSpec) FromNetwork(network network.NetworkConf) error {
 	err := spec.FromJson(network.Configuration)
 	if err != nil {
 		return err
@@ -85,18 +85,18 @@ func (spec *TcpClientSpec) SetByConfig(devoper *core.Device) error {
 	return nil
 }
 
-func (spec *TcpClientSpec) SetCertificate(network core.NetworkConf) error {
-	if len(network.CertBase64) == 0 || len(network.KeyBase64) == 0 {
+func (spec *TcpClientSpec) SetCertificate(conf network.NetworkConf) error {
+	if len(conf.CertBase64) == 0 || len(conf.KeyBase64) == 0 {
 		return nil
 	}
-	cert, err := base64.StdEncoding.DecodeString(network.CertBase64)
+	cert, err := base64.StdEncoding.DecodeString(conf.CertBase64)
 	if err != nil {
 		return fmt.Errorf("tcp server cert error: %v", err)
 	}
-	key, err := base64.StdEncoding.DecodeString(network.KeyBase64)
+	key, err := base64.StdEncoding.DecodeString(conf.KeyBase64)
 	if err != nil {
 		return fmt.Errorf("tcp server key error: %v", err)
 	}
-	spec.Certificate = []servers.Certificate{{Key: string(key), Cert: string(cert)}}
+	spec.Certificate = []network.Certificate{{Key: string(key), Cert: string(cert)}}
 	return nil
 }

@@ -4,11 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
+	"go-iot/pkg/network"
 	"log"
 	"sync"
 )
 
-type CreateFun func() core.NetServer
+type CreateFun func() network.NetServer
 
 var m sync.Map
 var instances sync.Map
@@ -19,13 +20,13 @@ func RegServer(f CreateFun) {
 	log.Printf("Register Server [%s]", s.Type())
 }
 
-func StartServer(conf core.NetworkConf) error {
+func StartServer(conf network.NetworkConf) error {
 	if _, ok := instances.Load(conf.ProductId); ok {
 		return errors.New("network is runing")
 	}
-	t := core.NetType(conf.Type)
+	t := network.NetType(conf.Type)
 	if f, ok := m.Load(t); ok {
-		_, err := core.NewCodec(conf)
+		_, err := core.NewCodec(conf.CodecId, conf.ProductId, conf.Script)
 		if err != nil {
 			return err
 		}
@@ -41,10 +42,10 @@ func StartServer(conf core.NetworkConf) error {
 	}
 }
 
-func GetServer(productId string) core.NetServer {
+func GetServer(productId string) network.NetServer {
 	s, ok := instances.Load(productId)
 	if ok {
-		return s.(core.NetServer)
+		return s.(network.NetServer)
 	}
 	return nil
 }

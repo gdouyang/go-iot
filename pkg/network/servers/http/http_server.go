@@ -3,8 +3,8 @@ package httpserver
 import (
 	"crypto/tls"
 	"fmt"
-	"go-iot/pkg/core"
 	"go-iot/pkg/eventbus"
+	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
 	"net"
 	"net/http"
@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	servers.RegServer(func() core.NetServer {
+	servers.RegServer(func() network.NetServer {
 		return NewServer()
 	})
 }
@@ -33,11 +33,11 @@ func NewServer() *HttpServer {
 	}
 }
 
-func (s *HttpServer) Type() core.NetType {
-	return core.HTTP_SERVER
+func (s *HttpServer) Type() network.NetType {
+	return network.HTTP_SERVER
 }
 
-func (s *HttpServer) Start(network core.NetworkConf) error {
+func (s *HttpServer) Start(network network.NetworkConf) error {
 	spec := &HttpServerSpec{}
 	err := spec.FromNetwork(network)
 	if err != nil {

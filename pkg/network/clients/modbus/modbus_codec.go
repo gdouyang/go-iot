@@ -7,8 +7,8 @@ import (
 const MODBUS_CODEC = "modbus-script-core"
 
 func init() {
-	core.RegCodecCreator(MODBUS_CODEC, func(network core.NetworkConf) (core.Codec, error) {
-		core, err := NewModbusScriptCodec(network)
+	core.RegCodecCreator(MODBUS_CODEC, func(productId string, script string) (core.Codec, error) {
+		core, err := NewModbusScriptCodec(productId, script)
 		return core, err
 	})
 }
@@ -17,16 +17,16 @@ type ModbusScriptCodec struct {
 	*core.ScriptCodec
 }
 
-func NewModbusScriptCodec(network core.NetworkConf) (core.Codec, error) {
-	c, err := core.NewScriptCodec(network)
+func NewModbusScriptCodec(productId string, script string) (core.Codec, error) {
+	c, err := core.NewScriptCodec(productId, script)
 	if err != nil {
 		return nil, err
 	}
 	sc := &ModbusScriptCodec{
 		ScriptCodec: c.(*core.ScriptCodec),
 	}
-	core.RegCodec(network.ProductId, sc)
-	core.RegDeviceLifeCycle(network.ProductId, sc)
+	core.RegCodec(productId, sc)
+	core.RegDeviceLifeCycle(productId, sc)
 	return sc, nil
 }
 

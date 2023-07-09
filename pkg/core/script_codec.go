@@ -10,8 +10,8 @@ import (
 )
 
 func init() {
-	RegCodecCreator(Script_Codec, func(network NetworkConf) (Codec, error) {
-		core, err := NewScriptCodec(network)
+	RegCodecCreator(Script_Codec, func(productId, script string) (Codec, error) {
+		core, err := NewScriptCodec(productId, script)
 		return core, err
 	})
 }
@@ -74,20 +74,19 @@ type ScriptCodec struct {
 	pool      *VmPool
 }
 
-func NewScriptCodec(network NetworkConf) (Codec, error) {
-	pool, err := NewVmPool(network.Script, 20)
+func NewScriptCodec(productId, script string) (Codec, error) {
+	pool, err := NewVmPool(script, 20)
 	if err != nil {
 		return nil, err
 	}
 	sc := &ScriptCodec{
-		script:    network.Script,
-		productId: network.ProductId,
+		script:    script,
+		productId: productId,
 		pool:      pool,
 	}
-	// consoleRewirte(vm)
 
-	RegCodec(network.ProductId, sc)
-	RegDeviceLifeCycle(network.ProductId, sc)
+	RegCodec(productId, sc)
+	RegDeviceLifeCycle(productId, sc)
 
 	return sc, nil
 }

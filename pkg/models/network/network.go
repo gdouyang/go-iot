@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/boot"
-	"go-iot/pkg/core"
 	"go-iot/pkg/models"
+	"go-iot/pkg/network"
 
 	"go-iot/pkg/es/orm"
 
@@ -53,7 +53,7 @@ func PageNetwork(page *models.PageQuery) (*models.PageResult[models.Network], er
 }
 
 func AddNetWork(ob *models.Network) error {
-	if !core.IsNetClientType(ob.Type) {
+	if !network.IsNetClientType(ob.Type) {
 		if ob.Port <= 1024 || ob.Port > 65535 {
 			return errors.New("invalid port number")
 		}
@@ -180,7 +180,7 @@ func GetUnuseNetwork() (*models.Network, error) {
 	qs := o.QueryTable(&models.Network{})
 	qs = qs.Filter("productId", "")
 	result := []models.Network{}
-	_, err := qs.All(&result)
+	_, err := qs.Limit(1, 0).OrderBy("port").All(&result)
 	if err != nil && err != orm.ErrNoRows {
 		return nil, err
 	}
@@ -191,7 +191,7 @@ func GetUnuseNetwork() (*models.Network, error) {
 }
 
 func BindNetworkProduct(productId, networkType string) (*models.Network, error) {
-	if core.IsNetClientType(networkType) {
+	if network.IsNetClientType(networkType) {
 		nw, err := GetByProductId(productId)
 		if nw == nil && err == nil {
 			AddNetWork(&models.Network{
@@ -219,7 +219,7 @@ func UnbindNetworkProduct(productId string) error {
 		return err
 	}
 	if nw != nil {
-		if core.IsNetClientType(nw.Type) {
+		if network.IsNetClientType(nw.Type) {
 			err := DeleteNetwork(nw)
 			return err
 		} else {

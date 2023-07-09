@@ -6,6 +6,7 @@ import (
 	"go-iot/pkg/core/store"
 	_ "go-iot/pkg/core/timeseries"
 	"go-iot/pkg/core/tsl"
+	"go-iot/pkg/network"
 	websocketsocker "go-iot/pkg/network/servers/websocket"
 	"log"
 	"os"
@@ -36,7 +37,7 @@ function OnInvoke(context) {
 }
 `
 
-var network core.NetworkConf = core.NetworkConf{
+var network1 network.NetworkConf = network.NetworkConf{
 	Name:      "test server",
 	ProductId: "test-product",
 	CodecId:   "script_codec",
@@ -80,11 +81,11 @@ func init() {
 }
 
 func TestServer(t *testing.T) {
-	network := network
+	network := network1
 	network.Configuration = `{"host": "localhost", "useTLS": false, "paths":["/socket"]}`
 
 	websocketsocker.NewServer().Start(network)
-	core.NewCodec(network)
+	core.NewCodec(network1.CodecId, network1.ProductId, network1.Script)
 
 	c := &client{}
 	go c.initClient("1234")
@@ -115,7 +116,7 @@ func (c *client) initClient(deviceId string) {
 
 	signal.Notify(c.interrupt, os.Interrupt) // Notify the interrupt channel for SIGINT
 
-	socketUrl := "ws://localhost:" + fmt.Sprint(network.Port) + "/socket?deviceId=" + deviceId
+	socketUrl := "ws://localhost:" + fmt.Sprint(network1.Port) + "/socket?deviceId=" + deviceId
 	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
 	if err != nil {
 		log.Fatal("Error connecting to Websocket Server:", err)

@@ -7,7 +7,8 @@ import (
 	"go-iot/pkg/core/tsl"
 	"go-iot/pkg/models"
 	product "go-iot/pkg/models/device"
-	"go-iot/pkg/models/network"
+	networkmd "go-iot/pkg/models/network"
+	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
 	"strings"
 
@@ -145,7 +146,7 @@ func (ctl *ProductController) Get() {
 		ctl.RespError(err)
 		return
 	}
-	nw, err := network.GetByProductId(id)
+	nw, err := networkmd.GetByProductId(id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -332,14 +333,14 @@ func (ctl *ProductController) GetNetwork() {
 		ctl.RespError(err)
 		return
 	}
-	nw, err := network.GetByProductId(productId)
+	nw, err := networkmd.GetByProductId(productId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
 	if nw == nil {
 		// client
-		nw, err = network.BindNetworkProduct(productId, product.NetworkType)
+		nw, err = networkmd.BindNetworkProduct(productId, product.NetworkType)
 		if err != nil {
 			ctl.RespError(err)
 			return
@@ -377,20 +378,20 @@ func (ctl *ProductController) UpdateNetwork() {
 		return
 	}
 
-	nw, err := network.GetByProductId(ob.ProductId)
+	nw, err := networkmd.GetByProductId(ob.ProductId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
 	if nw == nil {
-		nw, err = network.GetUnuseNetwork()
+		nw, err = networkmd.GetUnuseNetwork()
 		if err != nil {
 			ctl.RespError(err)
 			return
 		}
 	}
 	ob.Id = nw.Id
-	err = network.UpdateNetwork(&ob)
+	err = networkmd.UpdateNetwork(&ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -410,18 +411,18 @@ func (ctl *ProductController) RunNetwork() {
 		ctl.RespError(err)
 		return
 	}
-	nw, err := network.GetByProductId(productId)
+	nw, err := networkmd.GetByProductId(productId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
 	if nw == nil {
-		nw, err = network.GetUnuseNetwork()
+		nw, err = networkmd.GetUnuseNetwork()
 		if err != nil {
 			ctl.RespError(err)
 			return
 		}
-		err = network.UpdateNetwork(&models.Network{
+		err = networkmd.UpdateNetwork(&models.Network{
 			Id:        nw.Id,
 			ProductId: productId,
 			Type:      produc.NetworkType,
@@ -439,7 +440,7 @@ func (ctl *ProductController) RunNetwork() {
 		ctl.RespError(errors.New("script must be present"))
 		return
 	}
-	if core.IsNetClientType(nw.Type) {
+	if network.IsNetClientType(nw.Type) {
 		ctl.RespError(errors.New("client type net cant run"))
 		return
 	}
@@ -467,7 +468,7 @@ func (ctl *ProductController) RunNetwork() {
 		return
 	}
 	if ctl.isNotClusterRequest() {
-		network.UpdateNetwork(nw)
+		networkmd.UpdateNetwork(nw)
 		// 调用集群接口
 		cluster.BroadcastInvoke(ctl.Ctx.Request)
 	}

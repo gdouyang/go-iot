@@ -6,8 +6,9 @@ import (
 
 	"go-iot/pkg/core"
 	"go-iot/pkg/models"
+	"go-iot/pkg/network"
 
-	"go-iot/pkg/models/network"
+	networkmd "go-iot/pkg/models/network"
 
 	"go-iot/pkg/es/orm"
 
@@ -81,7 +82,7 @@ func AddProduct(ob *models.ProductModel) error {
 	if len(ob.StorePolicy) == 0 {
 		ob.StorePolicy = core.TIME_SERISE_ES
 	}
-	mc := core.GetNetworkMetaConfig(ob.NetworkType)
+	mc := network.GetNetworkMetaConfig(ob.NetworkType)
 	if len(mc.CodecId) > 0 {
 		ob.CodecId = mc.CodecId
 	}
@@ -91,7 +92,7 @@ func AddProduct(ob *models.ProductModel) error {
 	if err != nil {
 		return err
 	}
-	_, err = network.BindNetworkProduct(entity.Id, entity.NetworkType)
+	_, err = networkmd.BindNetworkProduct(entity.Id, entity.NetworkType)
 	if err != nil {
 		logs.Errorf("bind network error: %v", err)
 	}
@@ -163,7 +164,7 @@ func DeleteProduct(ob *models.Product) error {
 	if num == 0 {
 		return errors.New("product not exist")
 	}
-	err = network.UnbindNetworkProduct(ob.Id)
+	err = networkmd.UnbindNetworkProduct(ob.Id)
 	if err != nil {
 		return err
 	}

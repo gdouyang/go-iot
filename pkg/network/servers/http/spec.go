@@ -5,8 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"go-iot/pkg/core"
-	"go-iot/pkg/network/servers"
+	"go-iot/pkg/network"
 )
 
 type (
@@ -16,7 +15,7 @@ type (
 		Host        string                `json:"host"`
 		Port        int32                 `json:"port"`
 		UseTLS      bool                  `json:"useTLS"`
-		Certificate []servers.Certificate `json:"certificate"`
+		Certificate []network.Certificate `json:"certificate"`
 		Routers     []Router              `json:"routers"`
 	}
 	Router struct {
@@ -41,7 +40,7 @@ func (spec *HttpServerSpec) FromJson(str string) error {
 	return nil
 }
 
-func (spec *HttpServerSpec) FromNetwork(network core.NetworkConf) error {
+func (spec *HttpServerSpec) FromNetwork(network network.NetworkConf) error {
 	err := spec.FromJson(network.Configuration)
 	if err != nil {
 		return err
@@ -72,18 +71,18 @@ func (spec *HttpServerSpec) TlsConfig() (*tls.Config, error) {
 	return &tls.Config{Certificates: certificates}, nil
 }
 
-func (spec *HttpServerSpec) SetCertificate(network core.NetworkConf) error {
-	if len(network.CertBase64) == 0 || len(network.KeyBase64) == 0 {
+func (spec *HttpServerSpec) SetCertificate(conf network.NetworkConf) error {
+	if len(conf.CertBase64) == 0 || len(conf.KeyBase64) == 0 {
 		return nil
 	}
-	cert, err := base64.StdEncoding.DecodeString(network.CertBase64)
+	cert, err := base64.StdEncoding.DecodeString(conf.CertBase64)
 	if err != nil {
 		return fmt.Errorf("tcp server cert error: %v", err)
 	}
-	key, err := base64.StdEncoding.DecodeString(network.KeyBase64)
+	key, err := base64.StdEncoding.DecodeString(conf.KeyBase64)
 	if err != nil {
 		return fmt.Errorf("tcp server key error: %v", err)
 	}
-	spec.Certificate = []servers.Certificate{{Key: string(key), Cert: string(cert)}}
+	spec.Certificate = []network.Certificate{{Key: string(key), Cert: string(cert)}}
 	return nil
 }

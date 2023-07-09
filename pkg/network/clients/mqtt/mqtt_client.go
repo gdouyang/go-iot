@@ -3,11 +3,12 @@ package mqttclient
 import (
 	"errors"
 	"go-iot/pkg/core"
+	"go-iot/pkg/network"
 	"go-iot/pkg/network/clients"
 )
 
 func init() {
-	clients.RegClient(func() core.NetClient {
+	clients.RegClient(func() network.NetClient {
 		return &MqttClient{}
 	})
 }
@@ -19,11 +20,11 @@ type MqttClient struct {
 	session   *clientSession
 }
 
-func (c *MqttClient) Type() core.NetType {
-	return core.MQTT_CLIENT
+func (c *MqttClient) Type() network.NetType {
+	return network.MQTT_CLIENT
 }
 
-func (c *MqttClient) Connect(deviceId string, network core.NetworkConf) error {
+func (c *MqttClient) Connect(deviceId string, network network.NetworkConf) error {
 	spec := MQTTClientSpec{}
 	err := spec.FromNetwork(network)
 	if err != nil {

@@ -64,18 +64,18 @@ type (
 	}
 )
 
-type DefaultMetaConfig struct {
-	MetaConfigs []ProductMetaConfig
+type CodecMetaConfig struct {
+	MetaConfigs []MetaConfig
 	CodecId     string
 }
 
-func (p DefaultMetaConfig) ToJson() string {
+func (p CodecMetaConfig) ToJson() string {
 	b, _ := json.Marshal(p.MetaConfigs)
 	return string(b)
 }
 
-// the meta config of product
-type ProductMetaConfig struct {
+// the meta config
+type MetaConfig struct {
 	Property string `json:"property,omitempty"`
 	Type     string `json:"type,omitempty"`
 	Value    string `json:"value,omitempty"`

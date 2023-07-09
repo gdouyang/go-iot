@@ -6,17 +6,18 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
-	"go-iot/pkg/models/network"
+	networkmd "go-iot/pkg/models/network"
+	"go-iot/pkg/network"
 	"go-iot/pkg/network/clients"
 	"go-iot/pkg/ruleengine"
 )
 
-func convertCodecNetwork(nw models.Network) (core.NetworkConf, error) {
+func convertCodecNetwork(nw models.Network) (network.NetworkConf, error) {
 	pro, err := device.GetProductMust(nw.ProductId)
 	if err != nil {
-		return core.NetworkConf{}, err
+		return network.NetworkConf{}, err
 	}
-	config := core.NetworkConf{
+	config := network.NetworkConf{
 		Name:          nw.Name,
 		Port:          nw.Port,
 		ProductId:     nw.ProductId,
@@ -35,7 +36,7 @@ func connectClientDevice(deviceId string) error {
 	if err != nil {
 		return err
 	}
-	nw, err := network.GetByProductId(dev.ProductId)
+	nw, err := networkmd.GetByProductId(dev.ProductId)
 	if err != nil {
 		return err
 	}

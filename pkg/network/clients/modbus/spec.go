@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-iot/pkg/core"
+	"go-iot/pkg/network"
 	"strconv"
 )
 
 func init() {
-	core.RegNetworkMetaConfigCreator(string(core.MODBUS), func() core.DefaultMetaConfig {
+	network.RegNetworkMetaConfigCreator(string(network.MODBUS), func() core.CodecMetaConfig {
 
-		list := []core.ProductMetaConfig{
+		list := []core.MetaConfig{
 			{Property: "address", Type: "string", Buildin: true, Value: "127.0.0.1", Desc: "The host of remote [127.0.0.1]"},
 			{Property: "port", Type: "number", Buildin: true, Value: "502", Desc: "The port of remote"},
 			{Property: "unitID", Type: "number", Buildin: true, Desc: ""},
@@ -22,7 +23,7 @@ func init() {
 			// {Property: "stopBits", Type: "number", Buildin: true, Desc: ""},
 			// {Property: "parity", Type: "number", Buildin: true, Desc: ""},
 		}
-		return core.DefaultMetaConfig{
+		return core.CodecMetaConfig{
 			MetaConfigs: list,
 			CodecId:     MODBUS_CODEC,
 		}

@@ -6,16 +6,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/network/servers"
+	"go-iot/pkg/network"
 )
 
 func init() {
-	core.RegNetworkMetaConfigCreator(string(core.MQTT_BROKER), func() core.DefaultMetaConfig {
-		list := []core.ProductMetaConfig{
+	network.RegNetworkMetaConfigCreator(string(network.MQTT_BROKER), func() core.CodecMetaConfig {
+		list := []core.MetaConfig{
 			{Property: "username", Type: "string", Buildin: true, Desc: "The username of mqtt"},
 			{Property: "password", Type: "password", Buildin: true, Desc: "The password of mqtt"},
 		}
-		return core.DefaultMetaConfig{MetaConfigs: list}
+		return core.CodecMetaConfig{MetaConfigs: list}
 	})
 }
 
@@ -46,7 +46,7 @@ type (
 		Name                 string                `json:"name"`
 		Port                 int32                 `json:"port"`
 		UseTLS               bool                  `json:"useTLS"`
-		Certificate          []servers.Certificate `json:"certificate"`
+		Certificate          []network.Certificate `json:"certificate"`
 		MaxAllowedConnection int                   `json:"maxAllowedConnection"`
 	}
 )
@@ -62,7 +62,7 @@ func (spec *MQTTServerSpec) FromJson(str string) error {
 	return nil
 }
 
-func (spec *MQTTServerSpec) FromNetwork(network core.NetworkConf) error {
+func (spec *MQTTServerSpec) FromNetwork(network network.NetworkConf) error {
 	err := spec.FromJson(network.Configuration)
 	if err != nil {
 		return err
@@ -95,18 +95,18 @@ func (spec *MQTTServerSpec) TlsConfig() (*tls.Config, error) {
 	return &tls.Config{Certificates: certificates}, nil
 }
 
-func (spec *MQTTServerSpec) SetCertificate(network core.NetworkConf) error {
-	if len(network.CertBase64) == 0 || len(network.KeyBase64) == 0 {
+func (spec *MQTTServerSpec) SetCertificate(conf network.NetworkConf) error {
+	if len(conf.CertBase64) == 0 || len(conf.KeyBase64) == 0 {
 		return nil
 	}
-	cert, err := base64.StdEncoding.DecodeString(network.CertBase64)
+	cert, err := base64.StdEncoding.DecodeString(conf.CertBase64)
 	if err != nil {
-		return fmt.Errorf("tcp server cert error: %v", err)
+		return fmt.Errorf("mqtt server cert error: %v", err)
 	}
-	key, err := base64.StdEncoding.DecodeString(network.KeyBase64)
+	key, err := base64.StdEncoding.DecodeString(conf.KeyBase64)
 	if err != nil {
-		return fmt.Errorf("tcp server key error: %v", err)
+		return fmt.Errorf("mqtt server key error: %v", err)
 	}
-	spec.Certificate = []servers.Certificate{{Key: string(key), Cert: string(cert)}}
+	spec.Certificate = []network.Certificate{{Key: string(key), Cert: string(cert)}}
 	return nil
 }

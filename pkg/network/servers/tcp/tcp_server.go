@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"go-iot/pkg/core"
+	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
 	"net"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func init() {
-	servers.RegServer(func() core.NetServer {
+	servers.RegServer(func() network.NetServer {
 		return &TcpServer{}
 	})
 }
@@ -34,12 +35,12 @@ func NewServer() *TcpServer {
 	return &TcpServer{}
 }
 
-func (s *TcpServer) Type() core.NetType {
-	return core.TCP_SERVER
+func (s *TcpServer) Type() network.NetType {
+	return network.TCP_SERVER
 }
 
 // 开启serverSocket
-func (s *TcpServer) Start(network core.NetworkConf) error {
+func (s *TcpServer) Start(network network.NetworkConf) error {
 
 	spec := &TcpServerSpec{}
 	err := spec.FromNetwork(network)

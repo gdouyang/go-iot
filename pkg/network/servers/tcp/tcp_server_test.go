@@ -7,6 +7,7 @@ import (
 	"go-iot/pkg/core/store"
 	_ "go-iot/pkg/core/timeseries"
 	"go-iot/pkg/logger"
+	"go-iot/pkg/network"
 	tcpserver "go-iot/pkg/network/servers/tcp"
 	"net"
 	"testing"
@@ -52,7 +53,7 @@ function OnInvoke(context) {
 }
 `
 
-var network core.NetworkConf = core.NetworkConf{
+var network1 network.NetworkConf = network.NetworkConf{
 	Name:      "test server",
 	ProductId: "test-product",
 	CodecId:   "script_codec",
@@ -78,14 +79,14 @@ func init() {
 	core.PutDevice(device)
 }
 
-func newServer(network core.NetworkConf) *tcpserver.TcpServer {
+func newServer(network network.NetworkConf) *tcpserver.TcpServer {
 	s := tcpserver.NewServer()
 	s.Start(network)
-	core.NewCodec(network)
+	core.NewCodec(network.CodecId, network.ProductId, network.Script)
 	return s
 }
 func TestServerDelimited(t *testing.T) {
-	network := network
+	network := network1
 	network.Configuration = `{"host": "localhost",
 	"port": 8888, "useTLS": false,
 	"delimeter": {"type":"Delimited", "delimited":"}"}}`
@@ -99,7 +100,7 @@ func TestServerDelimited(t *testing.T) {
 }
 
 func TestServerFixLenght(t *testing.T) {
-	network := network
+	network := network1
 	network.Configuration = `{"host": "localhost",
 	"port": 8888, "useTLS": false,
 	"delimeter": {"type":"FixLength", "length":27}}`
@@ -108,7 +109,7 @@ func TestServerFixLenght(t *testing.T) {
 }
 
 func TestServerSplitFunc(t *testing.T) {
-	network := network
+	network := network1
 	network.Configuration = `{"host": "localhost",
 	"port": 8888, "useTLS": false,
 	"delimeter": {
@@ -121,7 +122,7 @@ func TestServerSplitFunc(t *testing.T) {
 }
 
 func TestServerSplitFunc1(t *testing.T) {
-	network := network
+	network := network1
 	network.Configuration = `{"host": "localhost",
 	"port": 8888, "useTLS": false,
 	"delimeter": {
@@ -134,7 +135,7 @@ func TestServerSplitFunc1(t *testing.T) {
 }
 
 func TestServerSplitFunc2(t *testing.T) {
-	network := network
+	network := network1
 	network.Configuration = `{"host": "localhost",
 	"port": 8888, "useTLS": false,
 	"delimeter": {
@@ -146,7 +147,7 @@ func TestServerSplitFunc2(t *testing.T) {
 	newClient(network)
 }
 
-func newClient(network core.NetworkConf) {
+func newClient(network network.NetworkConf) {
 	newClient1(network, func() string {
 		str1 := time.Now().Format("2006-01-02 15:04:05")
 		str := fmt.Sprintf("aasss %s_\n", str1)
@@ -154,7 +155,7 @@ func newClient(network core.NetworkConf) {
 	})
 }
 
-func newClient1(network core.NetworkConf, call func() string) {
+func newClient1(network network.NetworkConf, call func() string) {
 	spec := tcpserver.TcpServerSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port

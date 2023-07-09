@@ -40,13 +40,13 @@ func (d *DeviceModel) ToEnitty() Device {
 // product
 type ProductModel struct {
 	Product
-	Metaconfig []core.ProductMetaConfig `json:"metaconfig,omitempty"`
+	Metaconfig []core.MetaConfig `json:"metaconfig,omitempty"`
 }
 
 func (d *ProductModel) FromEnitty(en Product) {
 	d.Product = en
 	if len(en.Metaconfig) > 0 {
-		m := []core.ProductMetaConfig{}
+		m := []core.MetaConfig{}
 		err := json.Unmarshal([]byte(en.Metaconfig), &m)
 		if err != nil {
 			logs.Errorf(err.Error())

@@ -36,7 +36,7 @@ func (t *MockTimeSeries) QueryEvent(product *core.Product, eventId string, param
 	return nil, nil
 }
 func (t *MockTimeSeries) SaveProperties(product *core.Product, data map[string]interface{}) error {
-	logs.Infof("Mock SaveProperties data: ", data)
+	logs.Infof("Mock SaveProperties data: %v", data)
 	return nil
 }
 func (t *MockTimeSeries) SaveEvents(product *core.Product, eventId string, data map[string]interface{}) error {

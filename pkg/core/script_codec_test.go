@@ -23,10 +23,7 @@ func TestOtto(t *testing.T) {
 }
 
 func TestDecode(t *testing.T) {
-	var network core.NetworkConf = core.NetworkConf{
-		ProductId: "test",
-		CodecId:   "script_codec",
-		Script: `
+	script := `
 function OnConnect(context) {
   console.log(JSON.stringify(context))
 }
@@ -49,9 +46,8 @@ function OnDeviceUpdate(context) {
 function OnStateChecker(context) {
 	console.log(JSON.stringify(context))
 }
-`,
-	}
-	c, err := core.NewCodec(network)
+`
+	c, err := core.NewCodec("script_codec", "test", script)
 	if err != nil {
 		logs.Errorf(err.Error())
 	}

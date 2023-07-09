@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"go-iot/pkg/core"
+	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
 	"net"
 	"sync"
@@ -14,7 +15,7 @@ import (
 )
 
 func init() {
-	servers.RegServer(func() core.NetServer {
+	servers.RegServer(func() network.NetServer {
 		return NewServer()
 	})
 }
@@ -42,11 +43,11 @@ func NewServer() *Broker {
 	return &Broker{}
 }
 
-func (s *Broker) Type() core.NetType {
-	return core.MQTT_BROKER
+func (s *Broker) Type() network.NetType {
+	return network.MQTT_BROKER
 }
 
-func (s *Broker) Start(network core.NetworkConf) error {
+func (s *Broker) Start(network network.NetworkConf) error {
 	spec := &MQTTServerSpec{}
 	err := spec.FromNetwork(network)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"go-iot/pkg/core/store"
 	_ "go-iot/pkg/core/timeseries"
 	"go-iot/pkg/core/tsl"
+	"go-iot/pkg/network"
 	httpserver "go-iot/pkg/network/servers/http"
 	"io"
 	"log"
@@ -30,7 +31,7 @@ function OnInvoke(context) {
 }
 `
 
-var network core.NetworkConf = core.NetworkConf{
+var network1 network.NetworkConf = network.NetworkConf{
 	Name:      "test server",
 	ProductId: "test-product",
 	CodecId:   "script_codec",
@@ -65,10 +66,10 @@ func init() {
 }
 
 func TestServer(t *testing.T) {
-	network := network
+	network := network1
 	network.Configuration = `{"host": "localhost", "useTLS": false, "paths":["/test"]}`
 	httpserver.NewServer().Start(network)
-	core.NewCodec(network)
+	core.NewCodec(network1.CodecId, network1.ProductId, network1.Script)
 	initClient()
 }
 

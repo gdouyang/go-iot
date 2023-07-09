@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
+	"go-iot/pkg/network"
 	"go-iot/pkg/network/clients"
 	"net"
 )
 
 func init() {
-	clients.RegClient(func() core.NetClient {
+	clients.RegClient(func() network.NetClient {
 		return &TcpClient{}
 	})
 }
@@ -22,11 +23,11 @@ type TcpClient struct {
 	session   core.Session
 }
 
-func (c *TcpClient) Type() core.NetType {
-	return core.TCP_CLIENT
+func (c *TcpClient) Type() network.NetType {
+	return network.TCP_CLIENT
 }
 
-func (c *TcpClient) Connect(deviceId string, network core.NetworkConf) error {
+func (c *TcpClient) Connect(deviceId string, network network.NetworkConf) error {
 	spec := &TcpClientSpec{}
 	err := spec.FromNetwork(network)
 	if err != nil {

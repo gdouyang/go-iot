@@ -25,14 +25,14 @@ func RegCodec(productId string, c Codec) {
 	codecMap.Store(productId, c)
 }
 
-func NewCodec(network NetworkConf) (Codec, error) {
-	c, err := codecFactory[network.CodecId](network)
+func NewCodec(codecId, productId, script string) (Codec, error) {
+	c, err := codecFactory[codecId](productId, script)
 	return c, err
 }
 
-var codecFactory = map[string]func(network NetworkConf) (Codec, error){}
+var codecFactory = map[string]func(productId, script string) (Codec, error){}
 
-func RegCodecCreator(codecId string, creator func(network NetworkConf) (Codec, error)) {
+func RegCodecCreator(codecId string, creator func(productId, script string) (Codec, error)) {
 	_, ok := codecFactory[codecId]
 	if ok {
 		logs.Errorf("core %s is exist", codecId)

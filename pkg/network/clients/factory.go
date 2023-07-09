@@ -3,6 +3,7 @@ package clients
 import (
 	"fmt"
 	"go-iot/pkg/core"
+	"go-iot/pkg/network"
 	"log"
 	"sync"
 )
@@ -10,7 +11,7 @@ import (
 var m sync.Map
 var instances sync.Map
 
-type CreaterFun func() core.NetClient
+type CreaterFun func() network.NetClient
 
 func RegClient(f CreaterFun) {
 	s := f()
@@ -18,10 +19,10 @@ func RegClient(f CreaterFun) {
 	log.Printf("Register Client [%s]", s.Type())
 }
 
-func Connect(deviceId string, conf core.NetworkConf) error {
-	t := core.NetType(conf.Type)
+func Connect(deviceId string, conf network.NetworkConf) error {
+	t := network.NetType(conf.Type)
 	if f, ok := m.Load(t); ok {
-		_, err := core.NewCodec(conf)
+		_, err := core.NewCodec(conf.CodecId, conf.ProductId, conf.Script)
 		if err != nil {
 			return err
 		}
@@ -37,10 +38,10 @@ func Connect(deviceId string, conf core.NetworkConf) error {
 	}
 }
 
-func GetClient(deviceId string) core.NetClient {
+func GetClient(deviceId string) network.NetClient {
 	s, ok := instances.Load(deviceId)
 	if ok {
-		return s.(core.NetClient)
+		return s.(network.NetClient)
 	}
 	return nil
 }

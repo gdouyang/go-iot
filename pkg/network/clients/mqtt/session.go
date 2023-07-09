@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"go-iot/pkg/core"
+	"go-iot/pkg/network"
 	"strings"
 
 	logs "go-iot/pkg/logger"
@@ -39,7 +40,7 @@ type clientSession struct {
 	core      core.Codec
 }
 
-func newClientSession(deviceId string, network core.NetworkConf, spec *MQTTClientSpec) (*clientSession, error) {
+func newClientSession(deviceId string, network network.NetworkConf, spec *MQTTClientSpec) (*clientSession, error) {
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker("tcp://" + spec.Host + ":" + fmt.Sprint(spec.Port))
 	opts.SetClientID(spec.ClientId)

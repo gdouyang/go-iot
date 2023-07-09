@@ -7,6 +7,7 @@ import (
 	"go-iot/pkg/core/store"
 	_ "go-iot/pkg/core/timeseries"
 	"go-iot/pkg/core/tsl"
+	"go-iot/pkg/network"
 	mqttserver "go-iot/pkg/network/servers/mqtt"
 	"os"
 	"testing"
@@ -37,7 +38,7 @@ function OnInvoke(context) {
 }
 `
 
-var network core.NetworkConf = core.NetworkConf{
+var network1 network.NetworkConf = network.NetworkConf{
 	Name:      "test server",
 	ProductId: "test-product",
 	CodecId:   "script_codec",
@@ -70,11 +71,11 @@ func init() {
 }
 
 func TestServer(t *testing.T) {
-	network := network
+	network := network1
 	network.Configuration = `{"host": "localhost", "useTLS": false}`
 	b := mqttserver.NewServer()
 	b.Start(network)
-	core.NewCodec(network)
+	core.NewCodec(network1.CodecId, network1.ProductId, network1.Script)
 	go func() {
 		time.Sleep(1 * time.Second)
 		for i := 0; i < 5; i++ {
@@ -98,7 +99,7 @@ func TestServer(t *testing.T) {
 	// newClient(network, "4567")
 }
 
-func newClient(network core.NetworkConf, deviceId string) {
+func newClient(network network.NetworkConf, deviceId string) {
 	spec := mqttserver.MQTTServerSpec{}
 	spec.FromJson(network.Configuration)
 	spec.Port = network.Port
