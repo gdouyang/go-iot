@@ -5,7 +5,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/ruleengine"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 // device
@@ -20,7 +20,7 @@ func (d *DeviceModel) FromEnitty(en Device) {
 		m := map[string]string{}
 		err := json.Unmarshal([]byte(en.Metaconfig), &m)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 		}
 		d.Metaconfig = m
 	}
@@ -30,7 +30,7 @@ func (d *DeviceModel) ToEnitty() Device {
 	en := d.Device
 	v, err := json.Marshal(d.Metaconfig)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	} else {
 		en.Metaconfig = string(v)
 	}
@@ -49,7 +49,7 @@ func (d *ProductModel) FromEnitty(en Product) {
 		m := []core.ProductMetaConfig{}
 		err := json.Unmarshal([]byte(en.Metaconfig), &m)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 		}
 		d.Metaconfig = m
 	}
@@ -59,7 +59,7 @@ func (d *ProductModel) ToEnitty() Product {
 	en := d.Product
 	v, err := json.Marshal(d.Metaconfig)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	} else {
 		en.Metaconfig = string(v)
 	}
@@ -80,7 +80,7 @@ func (d *RuleModel) FromEnitty(en Rule) {
 		m := ruleengine.Trigger{}
 		err := json.Unmarshal([]byte(en.Trigger), &m)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 		}
 		d.Trigger = m
 	}
@@ -88,7 +88,7 @@ func (d *RuleModel) FromEnitty(en Rule) {
 		m := []ruleengine.Action{}
 		err := json.Unmarshal([]byte(en.Actions), &m)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 		}
 		d.Actions = m
 	}
@@ -99,14 +99,14 @@ func (d *RuleModel) ToEnitty() Rule {
 	// trigger
 	v, err := json.Marshal(d.Trigger)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	} else {
 		en.Trigger = string(v)
 	}
 	// actions
 	v, err = json.Marshal(d.Actions)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	} else {
 		en.Actions = string(v)
 	}

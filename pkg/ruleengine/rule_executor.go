@@ -3,10 +3,11 @@ package ruleengine
 import (
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/eventbus"
 	"sync"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/robfig/cron/v3"
 )
 
@@ -91,7 +92,7 @@ func (s *RuleExecutor) start() error {
 		}
 		s.cronId = entryID
 	} else {
-		logs.Error("triggerType not found")
+		logs.Errorf("triggerType not found [%s]", s.TriggerType)
 	}
 	return nil
 }
@@ -131,12 +132,12 @@ func (s *RuleExecutor) evaluate(msg eventbus.Message) {
 		if pass {
 			evalPass, err := s.Trigger.Evaluate(data)
 			if err != nil {
-				logs.Error("rule trigger evaluate error: ", err)
+				logs.Errorf("rule trigger evaluate error: %v", err)
 				return
 			}
 			pass = evalPass
 		} else {
-			logs.Debug("device %s skip", deviceId)
+			logs.Debugf("device %s skip", deviceId)
 		}
 	}
 	if pass {
@@ -168,19 +169,19 @@ func (s *RuleExecutor) runAction(data map[string]interface{}) {
 		if action.Executor == "device-message-sender" {
 			a, err := NewDeviceCmdAction(action.Configuration)
 			if err != nil {
-				logs.Error("rule executor run action [device-message-sender] error: ", err)
+				logs.Errorf("rule executor run action [device-message-sender] error: %v", err)
 			} else {
 				a.Do()
 			}
 		} else if action.Executor == "notifier" {
 			a, err := NewNotifierAction(action.Configuration, data)
 			if err != nil {
-				logs.Error("rule executor run action [notifier] error: ", err)
+				logs.Errorf("rule executor run action [notifier] error: %v", err)
 			} else {
 				a.Do()
 			}
 		} else {
-			logs.Warn("%s %s %s %s Executor not support", s.Name, s.Type, s.TriggerType, action.Executor)
+			logs.Warnf("%s %s %s %s Executor not support", s.Name, s.Type, s.TriggerType, action.Executor)
 		}
 	}
 }

@@ -2,7 +2,7 @@ package eventbus_test
 
 import (
 	"fmt"
-	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/eventbus"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

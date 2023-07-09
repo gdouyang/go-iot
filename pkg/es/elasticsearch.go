@@ -10,7 +10,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 	"github.com/tidwall/gjson"
@@ -65,7 +66,7 @@ func CreateEsTemplate(properties map[string]any, indexPattern string, templateNa
 	if err != nil {
 		return fmt.Errorf("%s error: %s", templateName, err.Error())
 	}
-	logs.Info(string(data))
+	logs.Infof(string(data))
 	// Set up the request object.
 	req := esapi.IndicesPutTemplateRequest{
 		Name: templateName,
@@ -101,7 +102,7 @@ func CreateEsIndex(properties map[string]any, indexName string) error {
 	if err != nil {
 		return fmt.Errorf("%s error: %s", indexName, err.Error())
 	}
-	logs.Info(string(data))
+	logs.Infof(string(data))
 	// Set up the request object.
 	req := esapi.IndicesCreateRequest{
 		Index: indexName,
@@ -139,8 +140,8 @@ func CreateDoc(index string, docId string, ob any) error {
 	if err != nil {
 		return err
 	}
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug("====>", index, "create", string(b))
+	if logs.IsDebug() {
+		logs.Debugf("==> %s create %s", index, string(b))
 	}
 	req := esapi.CreateRequest{
 		Index: index,
@@ -164,8 +165,8 @@ func UpdateDoc(index string, docId string, data any) error {
 	if err != nil {
 		return err
 	}
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug("====>", index, "update", string(b))
+	if logs.IsDebug() {
+		logs.Debugf("==> %s update %s", index, string(b))
 	}
 	req := esapi.UpdateRequest{
 		Index:      index,
@@ -209,8 +210,8 @@ func UpdateDocByQuery(index string, filter []map[string]any, script map[string]a
 	if err != nil {
 		return err
 	}
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug("====>", index, "update_by_query", string(data))
+	if logs.IsDebug() {
+		logs.Debugf("==> %s update_by_query %s", index, string(data))
 	}
 	req := esapi.UpdateByQueryRequest{
 		Index:     []string{index},
@@ -256,8 +257,8 @@ func DeleteByQuery(index string, filter []map[string]any) error {
 	if err != nil {
 		return err
 	}
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug("====>", index, "delete_by_query", string(data))
+	if logs.IsDebug() {
+		logs.Debugf("==> %s delete_by_query", index, string(data))
 	}
 	req := esapi.DeleteByQueryRequest{
 		Index:     []string{index},
@@ -286,8 +287,8 @@ func FilterCount(index string, q Query) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug("====>", index, "count", string(data))
+	if logs.IsDebug() {
+		logs.Debugf("==> %s %s %s", index, "count", string(data))
 	}
 	ignoreUnavailable := true
 	req := esapi.CountRequest{
@@ -307,8 +308,8 @@ func FilterCount(index string, q Query) (int64, error) {
 	if res.Is404() {
 		str = `{"count": 0}`
 	}
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug("<====", index, "count", str)
+	if logs.IsDebug() {
+		logs.Debugf("<== %s %s %s", index, "count", str)
 	}
 	total := gjson.Get(str, "count")
 	return total.Int(), nil
@@ -342,8 +343,8 @@ func FilterSearch(q Query, indexs ...string) (*SearchResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug("====>", strings.Join(indexs, ","), "search", string(data))
+	if logs.IsDebug() {
+		logs.Debugf("==> %s %s %s", strings.Join(indexs, ","), "search", string(data))
 	}
 	ignoreUnavailable := true
 	req := esapi.SearchRequest{
@@ -363,8 +364,8 @@ func FilterSearch(q Query, indexs ...string) (*SearchResponse, error) {
 	if res.Is404() {
 		str = `{"hits": {"total":{"value": 0}, "hits": []}}`
 	}
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug("<====", strings.Join(indexs, ","), "search", str)
+	if logs.IsDebug() {
+		logs.Debugf("<== %s %s %s", strings.Join(indexs, ","), "search", str)
 	}
 	var resp SearchResponse
 	total := gjson.Get(str, "hits.total.value")
@@ -453,13 +454,13 @@ func AppendFilter(condition []core.SearchTerm) []map[string]any {
 func DoRequest(s esDoFunc) (EsResponse, error) {
 	es, err := getEsClient()
 	if err != nil {
-		logs.Error("Error creating the client: %s", err)
+		logs.Errorf("error creating the client: %v", err)
 	}
 	var esResp EsResponse
 	// Perform the request with the client.
 	res, err := s.Do(context.Background(), es)
 	if err != nil {
-		logs.Error("Error getting response: %s", err)
+		logs.Errorf("error getting response: %v", err)
 		return esResp, err
 	}
 	defer res.Body.Close()

@@ -6,7 +6,8 @@ import (
 	"go-iot/pkg/core"
 	"sync"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
@@ -69,7 +70,7 @@ func (s *Session) init(b *Broker, connect *packets.ConnectPacket) error {
 }
 
 func (s *Session) subscribe(topics []string, qoss []byte) error {
-	logs.Debug("session %s sub %v", s.info.ClientID, topics)
+	logs.Debugf("session %s sub %v", s.info.ClientID, topics)
 	s.Lock()
 	for i, t := range topics {
 		s.info.Topics[t] = int(qoss[i])
@@ -79,7 +80,7 @@ func (s *Session) subscribe(topics []string, qoss []byte) error {
 }
 
 func (s *Session) unsubscribe(topics []string) error {
-	logs.Debug("session %s unsub %v", s.info.ClientID, topics)
+	logs.Debugf("session %s unsub %v", s.info.ClientID, topics)
 	s.Lock()
 	for _, t := range topics {
 		delete(s.info.Topics, t)
@@ -103,14 +104,14 @@ func (s *Session) getPacketFromMsg(topic string, payload []byte, qos byte) *pack
 func (s *Session) publish(topic string, payload []byte, qos byte) {
 	client := s.broker.getClient(s.info.ClientID)
 	if client == nil {
-		logs.Error("client %s is offline in eg %v", s.info.ClientID, s.broker.productId)
+		logs.Errorf("client %s is offline in eg %v", s.info.ClientID, s.broker.productId)
 		return
 	}
 
 	s.Lock()
 	defer s.Unlock()
 
-	logs.Debug("session %v publish %v", s.info.ClientID, topic)
+	logs.Debugf("session %v publish %v", s.info.ClientID, topic)
 	p := s.getPacketFromMsg(topic, payload, qos)
 	if qos == QoS0 {
 		select {
@@ -123,7 +124,7 @@ func (s *Session) publish(topic string, payload []byte, qos byte) {
 		s.pendingQueue = append(s.pendingQueue, p.MessageID)
 		client.writePacket(p)
 	} else {
-		logs.Error("publish message with qos=2 is not supported currently")
+		logs.Errorf("publish message with qos=2 is not supported currently")
 	}
 }
 
@@ -146,7 +147,7 @@ func (s *Session) Publish(topic string, payload string) {
 func (s *Session) PublishHex(topic string, payload string) {
 	b, err := hex.DecodeString(payload)
 	if err != nil {
-		logs.Error("mqtt hex decode error:", err)
+		logs.Errorf("mqtt hex decode error: %v", err)
 		return
 	}
 	var qos int
@@ -165,7 +166,7 @@ func (s *Session) Disconnect() error {
 		close(s.done)
 		s.isClose = true
 		core.DelSession(s.info.deviceId)
-		logs.Debug("session close %s", s.info.deviceId)
+		logs.Debugf("session close %s", s.info.deviceId)
 		client := s.broker.getClient(s.info.ClientID)
 		if client != nil {
 			client.close()

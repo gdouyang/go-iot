@@ -2,7 +2,7 @@ package api
 
 import (
 	"errors"
-	"go-iot/pkg/core/cluster"
+	"go-iot/pkg/cluster"
 	"go-iot/pkg/models"
 	rule "go-iot/pkg/models/rule"
 	"go-iot/pkg/ruleengine"

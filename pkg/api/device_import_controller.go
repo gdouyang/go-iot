@@ -12,7 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/beego/beego/v2/server/web"
 	"github.com/xuri/excelize/v2"
 )
@@ -168,7 +169,7 @@ func (ctl *DeviceImportController) ImportProcess() {
 		time.Sleep(1 * time.Second)
 		id = id + 1
 	}
-	logs.Info("ImportProcess done")
+	logs.Infof("ImportProcess done")
 }
 
 var sseCache = sync.Map{}

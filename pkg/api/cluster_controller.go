@@ -2,7 +2,7 @@ package api
 
 import (
 	"errors"
-	"go-iot/pkg/core/cluster"
+	"go-iot/pkg/cluster"
 
 	"github.com/beego/beego/v2/server/web"
 )

@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/eventbus"
 	"go-iot/pkg/models"
 	"go-iot/pkg/ruleengine"
 
-	"go-iot/pkg/core/es/orm"
+	"go-iot/pkg/es/orm"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -24,12 +24,12 @@ func saveAlarmEvent(data eventbus.Message) {
 	if t, ok := data.(*ruleengine.AlarmEvent); ok {
 		b, err := json.Marshal(t.Data)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 			return
 		}
 		device := core.GetDevice(t.DeviceId)
 		if device == nil {
-			logs.Error("saveAlarmEvent error: device not found")
+			logs.Errorf("saveAlarmEvent error: device not found")
 			return
 		}
 		log := models.AlarmLog{

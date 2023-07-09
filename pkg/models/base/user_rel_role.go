@@ -3,7 +3,7 @@ package base
 import (
 	"go-iot/pkg/models"
 
-	"go-iot/pkg/core/es/orm"
+	"go-iot/pkg/es/orm"
 )
 
 func GetUserRelRoleByUserId(userId int64) ([]models.UserRelRole, error) {

@@ -4,7 +4,8 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
@@ -33,7 +34,7 @@ func (s *Session) backgroundResendPending() {
 			s.doResend()
 		}
 		if time.Now().After(debugLogTime) {
-			logs.Debug("session %v resend", s.info.ClientID)
+			logs.Debugf("session %v resend", s.info.ClientID)
 			debugLogTime = time.Now().Add(time.Minute)
 		}
 	}
@@ -57,7 +58,7 @@ func (s *Session) doResend() {
 			p.TopicName = val.Topic
 			payload, err := base64.StdEncoding.DecodeString(val.B64Payload)
 			if err != nil {
-				logs.Error("base64 decode error for Message B64Payload %s", err)
+				logs.Errorf("base64 decode error for Message B64Payload %v", err)
 				return
 			}
 			p.Payload = payload
@@ -65,7 +66,7 @@ func (s *Session) doResend() {
 			if client != nil {
 				client.writePacket(p)
 			} else {
-				logs.Debug("session %v do resend but client is nil", s.info.ClientID)
+				logs.Debugf("session %v do resend but client is nil", s.info.ClientID)
 			}
 			return
 		}

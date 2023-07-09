@@ -3,17 +3,16 @@ package main
 import (
 	"fmt"
 	_ "go-iot/pkg/api"
+	"go-iot/pkg/cluster"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/common"
-	"go-iot/pkg/core/es"
-	"go-iot/pkg/core/redis"
 	"go-iot/pkg/core/store"
 	_ "go-iot/pkg/core/timeseries"
+	"go-iot/pkg/es"
+	"go-iot/pkg/logger"
 	"go-iot/pkg/models"
-	_ "go-iot/pkg/network/clients/registry"
-	_ "go-iot/pkg/network/servers/registry"
-	_ "go-iot/pkg/notify/registry"
+	"go-iot/pkg/redis"
+	_ "go-iot/pkg/registry"
 	"net/http"
 	"runtime"
 	"strings"
@@ -25,15 +24,41 @@ import (
 )
 
 func main() {
-
-	configLog()
-	setDefaultConfig()
+	// goiot log config
+	logger.Init(getConfigString)
+	defer logger.Sync()
+	{ // beego log config
+		var logLevel string
+		getConfigString("logs.level", func(s string) {
+			logLevel = s
+		})
+		level := 7
+		switch logLevel {
+		case "info":
+			level = logs.LevelInfo
+		case "warn":
+			level = logs.LevelWarn
+		case "error":
+			level = logs.LevelError
+		}
+		logs.GetBeeLogger().SetLevel(level)
+	}
+	// configs
+	core.RegDeviceStore(store.NewRedisStore())
+	cluster.Config(getConfigString)
+	es.Config(getConfigString)
+	redis.Config(getConfigString)
+	// init db
 	models.InitDb()
 
 	web.BConfig.RecoverFunc = defaultRecoverPanic
 	web.ErrorHandler("404", func(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(404)
 	})
+	// web.AddAPPStartHook(func() error {
+	// 	logger.Infof("go iot is runing ")
+	// 	return nil
+	// })
 	web.Run()
 }
 
@@ -42,54 +67,20 @@ func defaultRecoverPanic(ctx *context.Context, cfg *web.Config) {
 		if err == web.ErrAbort {
 			return
 		}
-		logs.Error("the request url is ", ctx.Input.URL())
+		logger.Errorf("the request url is %s", ctx.Input.URL())
 		var stack string
 		for i := 1; ; i++ {
 			_, file, line, ok := runtime.Caller(i)
 			if !ok {
 				break
 			}
-			logs.Error(fmt.Sprintf("%s:%d", file, line))
+			logger.Errorf(fmt.Sprintf("%s:%d", file, line))
 			stack = stack + fmt.Sprintf("%s:%d\n", file, line)
 		}
 		if ctx.Output.Status == 0 {
 			ctx.Output.Status = 500
 		}
 		ctx.Output.JSON(common.JsonRespError(fmt.Errorf("%v", err)), false, false)
-	}
-}
-
-func setDefaultConfig() {
-	core.RegDeviceStore(store.NewRedisStore())
-	cluster.Config(getConfigString)
-	es.Config(getConfigString)
-	redis.Config(getConfigString)
-}
-
-func configLog() {
-	logs.Async()
-	var logLevel string
-	getConfigString("logs.level", func(s string) {
-		logLevel = s
-	})
-	level := 7
-	switch logLevel {
-	case "info":
-		level = logs.LevelInfo
-	case "warn":
-		level = logs.LevelWarn
-	case "error":
-		level = logs.LevelError
-	}
-	var filename string = "go-iot.log"
-	getConfigString("logs.filename", func(s string) {
-		filename = "go-iot.log"
-	})
-	logs.GetBeeLogger().SetLevel(level)
-	err := logs.SetLogger(logs.AdapterFile, fmt.Sprintf(`{"filename":"%s","level":%d,"maxlines":0,
-	"maxsize":0,"daily":true,"maxdays":10,"color":false}`, filename, level))
-	if err != nil {
-		panic(err)
 	}
 }
 

@@ -3,15 +3,16 @@ package api
 import (
 	"errors"
 	"fmt"
+	"go-iot/pkg/cluster"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/common"
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
 	"go-iot/pkg/models/network"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/beego/beego/v2/server/web"
 )
 
@@ -333,7 +334,7 @@ func (ctl *DeviceController) batchEnable(deviceIds []string, term core.SearchTer
 				var page *models.PageQuery = &models.PageQuery{PageSize: 500, PageNum: 1, Condition: condition}
 				result, err := device.PageDevice(page, &ctl.GetCurrentUser().Id)
 				if err != nil {
-					logs.Error(err)
+					logs.Errorf("batch enable error: %v", err)
 					break
 				}
 				list := result.List
@@ -354,7 +355,7 @@ func (ctl *DeviceController) batchEnable(deviceIds []string, term core.SearchTer
 				}
 				err = device.UpdateOnlineStatusList(ids, tagertState)
 				if err != nil {
-					logs.Error(err)
+					logs.Errorf("update device state error: %v", err)
 				} else {
 					total = total + len(list)
 				}
@@ -362,7 +363,7 @@ func (ctl *DeviceController) batchEnable(deviceIds []string, term core.SearchTer
 				time.Sleep(time.Millisecond * 500)
 			}
 			setSseData(token, fmt.Sprintf(resp, true, total))
-			logs.Info("batch deploy done")
+			logs.Infof("batch deploy done")
 		}
 	}()
 	ctl.RespOkData(token)

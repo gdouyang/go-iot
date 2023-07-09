@@ -3,13 +3,13 @@ package network
 import (
 	"errors"
 	"fmt"
+	"go-iot/pkg/boot"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/boot"
 	"go-iot/pkg/models"
 
-	"go-iot/pkg/core/es/orm"
+	"go-iot/pkg/es/orm"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -21,7 +21,7 @@ func init() {
 			for i := 0; i < 10; i++ {
 				AddNetWork(&models.Network{Id: int64(i + 1), Port: int32(9010 + i), State: models.Stop, ProductId: ""})
 			}
-			logs.Info("init networks")
+			logs.Infof("init networks")
 		}
 	})
 }

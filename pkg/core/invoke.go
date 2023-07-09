@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go-iot/pkg/core/boot"
-	"go-iot/pkg/core/cluster"
+	"go-iot/pkg/boot"
+	"go-iot/pkg/cluster"
 	"go-iot/pkg/core/common"
-	"go-iot/pkg/core/redis"
+	"go-iot/pkg/redis"
 	"io"
 	"net/http"
 	"net/url"
@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -197,7 +197,7 @@ func HttpRequest(config map[string]interface{}) map[string]interface{} {
 	path := config["url"]
 	u, err := url.ParseRequestURI(fmt.Sprintf("%v", path))
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 		result["status"] = 400
 		result["message"] = err.Error()
 		return result
@@ -212,7 +212,7 @@ func HttpRequest(config map[string]interface{}) map[string]interface{} {
 	if v, ok := config["header"]; ok {
 		h, ok := v.(map[string]interface{})
 		if !ok {
-			logs.Warn("header is not object:", v)
+			logs.Warnf("header is not object: %v", v)
 			h = map[string]interface{}{}
 		}
 		for key, value := range h {
@@ -226,7 +226,7 @@ func HttpRequest(config map[string]interface{}) map[string]interface{} {
 		if body, ok := data.(map[string]interface{}); ok {
 			b, err := json.Marshal(body)
 			if err != nil {
-				logs.Error("http data parse error:", err)
+				logs.Errorf("http data parse error: %v", err)
 				result["status"] = 400
 				result["message"] = err.Error()
 				return result
@@ -238,14 +238,14 @@ func HttpRequest(config map[string]interface{}) map[string]interface{} {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 		result["status"] = resp.StatusCode
 		result["message"] = err.Error()
 		return result
 	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 		result["status"] = 400
 		result["message"] = err.Error()
 		return result

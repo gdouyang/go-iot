@@ -7,7 +7,7 @@ import (
 	"go-iot/pkg/network/servers"
 	"net"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -54,7 +54,7 @@ func (s *TcpServer) Start(network core.NetworkConf) error {
 
 	err = s.setListener()
 	if err != nil {
-		logs.Error("tcp server set listener failed: %v", err)
+		logs.Errorf("tcp server set listener failed: %v", err)
 		return err
 	}
 

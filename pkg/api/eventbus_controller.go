@@ -7,7 +7,8 @@ import (
 	device "go-iot/pkg/models/device"
 	"net/http"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/beego/beego/v2/server/web"
 	"github.com/gorilla/websocket"
 )
@@ -70,8 +71,8 @@ func (ctl *EventbusWebSocketController) loop(productId string, deviceId string, 
 		http.Error(ctl.Ctx.ResponseWriter, "Not a websocket handshake", 400)
 		return
 	} else if err != nil {
-		logs.Error("Cannot setup WebSocket connection:", err)
-		ctl.RespError(fmt.Errorf("cannot setup WebSocket connection:%v", err))
+		logs.Errorf("cannot setup WebSocket connection: %v", err)
+		ctl.RespError(fmt.Errorf("cannot setup WebSocket connection: %v", err))
 		return
 	}
 

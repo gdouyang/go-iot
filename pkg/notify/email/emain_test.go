@@ -5,7 +5,8 @@ import (
 	"go-iot/pkg/notify/email"
 	"testing"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,9 +25,9 @@ func TestEmain(t *testing.T) {
 	}
 	err := e.FromJson(config)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	}
 	result := e.ParseTemplate(data)
-	logs.Info(result)
+	logs.Infof(result)
 	assert.Equal(t, "you have email name=sss age=1 obj.name=test", result)
 }

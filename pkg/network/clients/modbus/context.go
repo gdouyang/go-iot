@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"go-iot/pkg/core"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 type context struct {
@@ -58,14 +58,14 @@ type modbusInvokeContext struct {
 func (ctx *modbusInvokeContext) Int16ToData(val int16) string {
 	dataBytes, err := getBinaryData(int16(val))
 	if err != nil {
-		logs.Warn(err)
+		logs.Warnf(err.Error())
 	}
 	return hex.EncodeToString(dataBytes)
 }
 func (ctx *modbusInvokeContext) FloatToInt16Data(val float64) string {
 	dataBytes, err := getBinaryData(int16(val))
 	if err != nil {
-		logs.Warn(err)
+		logs.Warnf(err.Error())
 	}
 	return hex.EncodeToString(dataBytes)
 }
@@ -73,7 +73,7 @@ func (ctx *modbusInvokeContext) FloatToInt16Data(val float64) string {
 func (ctx *modbusInvokeContext) FloatToUint16Data(val float64) string {
 	dataBytes, err := getBinaryData(uint16(val))
 	if err != nil {
-		logs.Warn(err)
+		logs.Warnf(err.Error())
 	}
 	return hex.EncodeToString(dataBytes)
 }

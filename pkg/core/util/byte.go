@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func BigEndianUnit16(bytes []byte) uint16 {
@@ -20,7 +20,7 @@ func BigEndianUnit64(bytes []byte) uint64 {
 func BigEndianFloatToInt16Data(val float64) []byte {
 	dataBytes, err := getBinaryData(int16(val))
 	if err != nil {
-		logs.Warn(err)
+		logs.Warnf(err.Error())
 	}
 	return dataBytes
 }

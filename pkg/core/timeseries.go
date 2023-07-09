@@ -2,9 +2,8 @@ package core
 
 import (
 	"go-iot/pkg/core/tsl"
+	"log"
 	"sync"
-
-	"github.com/beego/beego/v2/core/logs"
 )
 
 const (
@@ -30,7 +29,7 @@ const (
 var timeSeriseMap sync.Map
 
 func RegisterTimeSeries(ts TimeSeriesSave) {
-	logs.Info("Register timeseries [%s]", ts.Id())
+	log.Printf("Register timeseries [%s]", ts.Id())
 	timeSeriseMap.Store(ts.Id(), ts)
 }
 

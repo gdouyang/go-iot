@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"go-iot/pkg/api/session"
-	"go-iot/pkg/core/cluster"
+	"go-iot/pkg/cluster"
 	"go-iot/pkg/core/common"
 	"go-iot/pkg/models"
 	"strings"

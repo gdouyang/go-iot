@@ -4,7 +4,7 @@ import (
 	"errors"
 	"go-iot/pkg/models"
 
-	"go-iot/pkg/core/es/orm"
+	"go-iot/pkg/es/orm"
 )
 
 // 分页查询

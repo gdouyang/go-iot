@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go-iot/pkg/cluster"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/cluster"
-	"go-iot/pkg/core/eventbus"
-	"go-iot/pkg/core/redis"
 	"go-iot/pkg/core/util"
+	"go-iot/pkg/eventbus"
+	"go-iot/pkg/redis"
 	"sync"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func NewRedisStore() core.DeviceStore {
@@ -64,7 +64,7 @@ func (m *redisDeviceStore) GetDevice(deviceId string) *core.Device {
 		rdb := redis.GetRedisClient()
 		data, err := rdb.HGetAll(ctx, m.getDeviceKey(deviceId)).Result()
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf("hgetall error: %v", err)
 		}
 		if len(data) == 0 {
 			m.cache.Store(m.getDeviceKey(deviceId), nil)
@@ -74,21 +74,21 @@ func (m *redisDeviceStore) GetDevice(deviceId string) *core.Device {
 		if str, ok := data["config"]; ok {
 			err = json.Unmarshal([]byte(str), &config)
 			if err != nil {
-				logs.Error("device config parse error:", err)
+				logs.Errorf("device config parse error: %v", err)
 			}
 		}
 		dat := map[string]string{}
 		if str, ok := data["data"]; ok {
 			err = json.Unmarshal([]byte(str), &dat)
 			if err != nil {
-				logs.Error("device data parse error:", err)
+				logs.Errorf("device data parse error: %v", err)
 			}
 		}
 		var createId int64
 		if str, ok := data["createId"]; ok {
 			createId, err = util.StringToInt64(str)
 			if err != nil {
-				logs.Error("device createId parse error:", err)
+				logs.Errorf("device createId parse error: %v", err)
 			}
 		}
 		dev := &core.Device{
@@ -126,7 +126,7 @@ func (m *redisDeviceStore) PutDevice(device *core.Device) {
 	defer cancel()
 	err := rdb.HSet(ctx, m.getDeviceKey(p.Id), data).Err()
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf("hset error: %v", err)
 	}
 	m.cache.Store(m.getDeviceKey(p.Id), device)
 }
@@ -146,7 +146,7 @@ func (m *redisDeviceStore) updateClusterId(deviceId string) {
 	defer cancel()
 	err := rdb.HSet(ctx, m.getDeviceKey(deviceId), "clusterId", cluster.GetClusterId()).Err()
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf("updateClusterId error: %v", err)
 	}
 	device, ok := m.getDevice(deviceId)
 	if ok {
@@ -181,7 +181,7 @@ func (m *redisDeviceStore) GetProduct(productId string) *core.Product {
 		rdb := redis.GetRedisClient()
 		data, err := rdb.HGetAll(ctx, m.getProductKey(productId)).Result()
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf("get proruct error: %v", err)
 		}
 		if len(data) == 0 {
 			m.cache.Store(m.getProductKey(productId), nil)
@@ -191,12 +191,12 @@ func (m *redisDeviceStore) GetProduct(productId string) *core.Product {
 		if str, ok := data["config"]; ok {
 			err = json.Unmarshal([]byte(str), &config)
 			if err != nil {
-				logs.Error("device config parse error:", err)
+				logs.Errorf("device config parse error: %v", err)
 			}
 		}
 		produ, err := core.NewProduct(data["id"], config, data["storePolicy"], data["tslData"])
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf("new product error: %v", err)
 		} else {
 			m.cache.Store(m.getProductKey(productId), produ)
 			return produ
@@ -225,7 +225,7 @@ func (m *redisDeviceStore) PutProduct(product *core.Product) {
 	rdb := redis.GetRedisClient()
 	err := rdb.HSet(ctx, m.getProductKey(p.Id), data).Err()
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf("put product error: %v", err)
 	}
 	m.cache.Store(m.getProductKey(p.Id), product)
 }

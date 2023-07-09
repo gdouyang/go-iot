@@ -2,7 +2,7 @@ package models
 
 import (
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/eventbus"
 	"sync"
 	"time"
 )

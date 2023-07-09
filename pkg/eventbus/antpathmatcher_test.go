@@ -2,7 +2,7 @@ package eventbus_test
 
 import (
 	"fmt"
-	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/eventbus"
 	"regexp"
 	"testing"
 	"time"

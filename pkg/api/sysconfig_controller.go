@@ -5,7 +5,8 @@ import (
 	"go-iot/pkg/models"
 	base "go-iot/pkg/models/base"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/beego/beego/v2/server/web"
 )
 
@@ -46,7 +47,7 @@ func (ctl *AnonSysConfigController) Get() {
 	if len(c.Config) > 0 {
 		err = json.Unmarshal([]byte(c.Config), &res)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf("unmarshal config error: %v", err)
 		}
 		ctl.RespOkData(res)
 	}

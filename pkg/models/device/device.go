@@ -8,7 +8,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/models"
 
-	"go-iot/pkg/core/es/orm"
+	"go-iot/pkg/es/orm"
 )
 
 func DeviceIdValid(deviceId string) bool {

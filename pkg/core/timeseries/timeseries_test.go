@@ -8,7 +8,7 @@ import (
 	"go-iot/pkg/core/tsl"
 	"testing"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 const text = `
@@ -147,7 +147,7 @@ func TestTdengine(t *testing.T) {
 
 	err = ts.SaveProperties(product, map[string]any{"deviceId": device.Id, "current": 10})
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	}
 	{
 		query := core.TimeDataSearchRequest{}
@@ -155,14 +155,14 @@ func TestTdengine(t *testing.T) {
 		query.Condition = []core.SearchTerm{}
 		res, err := ts.QueryProperty(product, query)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 		}
 		d, _ := json.Marshal(res)
 		println(string(d))
 	}
 	err = ts.SaveEvents(product, "fire_alarm", map[string]any{"deviceId": device.Id, "lnt": 90, "lat": 100})
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	}
 	{
 		query := core.TimeDataSearchRequest{}
@@ -170,7 +170,7 @@ func TestTdengine(t *testing.T) {
 		query.Condition = []core.SearchTerm{}
 		res, err := ts.QueryEvent(product, "fire_alarm", query)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 		}
 		d, _ := json.Marshal(res)
 		println(string(d))
@@ -182,7 +182,7 @@ func TestTdengine(t *testing.T) {
 		query.Condition = []core.SearchTerm{}
 		res, err := ts.QueryLogs(product, query)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 		}
 		d, _ := json.Marshal(res)
 		println(string(d))

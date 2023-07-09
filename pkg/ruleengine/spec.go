@@ -4,11 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/eventbus"
 	"go-iot/pkg/core/tsl"
+	"go-iot/pkg/eventbus"
 	"sync"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/dop251/goja"
 )
 
@@ -55,7 +56,7 @@ func (t *Trigger) GetTopic(productId string) string {
 	} else if t.FilterType == "event" {
 		return eventbus.GetEventTopic(productId, "*")
 	}
-	logs.Error("filterType[%s] is illegal, must be [properties, online, offline, event]", t.FilterType)
+	logs.Errorf("filterType[%s] is illegal, must be [properties, online, offline, event]", t.FilterType)
 	return ""
 }
 

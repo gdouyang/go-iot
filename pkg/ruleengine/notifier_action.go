@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"go-iot/pkg/notify"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 type NotifierAction struct {
@@ -31,11 +31,11 @@ func (a *NotifierAction) FromJson(str string) error {
 func (s *NotifierAction) Do() {
 	n := notify.GetNotify(s.NotifierId)
 	if n == nil {
-		logs.Warn("notify not found id=%s, type=%s", s.NotifierId, s.NotifyType)
+		logs.Warnf("notify not found id=%s, type=%s", s.NotifierId, s.NotifyType)
 	} else {
 		err := n.Notify(n.ParseTemplate(s.Data))
 		if err != nil {
-			logs.Warn(err)
+			logs.Warnf(err.Error())
 		}
 	}
 }

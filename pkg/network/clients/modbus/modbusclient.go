@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	MODBUS "github.com/goburrow/modbus"
 )
 
@@ -32,11 +33,11 @@ func (c *ModbusClient) OpenConnection() error {
 	if c.IsModbusTcp {
 		err = c.TCPClientHandler.Connect()
 		newClient = MODBUS.NewClient(&c.TCPClientHandler)
-		logs.Info("Modbus client create TCP connection.")
+		logs.Infof("Modbus client create TCP connection.")
 	} else {
 		err = c.RTUClientHandler.Connect()
 		newClient = MODBUS.NewClient(&c.RTUClientHandler)
-		logs.Info("Modbus client create RTU connection.")
+		logs.Infof("Modbus client create RTU connection.")
 	}
 	c.client = newClient
 	return err
@@ -79,7 +80,7 @@ func (c *ModbusClient) GetValue(parimaryTable string, startingAddress uint16, le
 		return nil, err
 	}
 
-	logs.Debug(fmt.Sprintf("Modbus client GetValue's results %v", response))
+	logs.Debugf("Modbus client GetValue's results %v", response)
 
 	return response, nil
 }
@@ -88,7 +89,7 @@ func (c *ModbusClient) SetValue(parimaryTable string, startingAddress uint16, le
 	var err error
 	value, err := hex.DecodeString(hexStr)
 	if err != nil {
-		logs.Error("ReadHoldingRegisters error: ", err)
+		logs.Errorf("ReadHoldingRegisters error: %v", err)
 		return err
 	}
 	// Write value to device
@@ -115,7 +116,7 @@ func (c *ModbusClient) SetValue(parimaryTable string, startingAddress uint16, le
 	if err != nil {
 		return err
 	}
-	logs.Debug(fmt.Sprintf("Modbus client SetValue successful, results: %v", result))
+	logs.Debugf("Modbus client SetValue successful, results: %v", result)
 
 	return nil
 }

@@ -4,7 +4,8 @@ import (
 	"go-iot/pkg/core"
 	"testing"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/dop251/goja"
 	"github.com/stretchr/testify/assert"
 )
@@ -52,7 +53,7 @@ function OnStateChecker(context) {
 	}
 	c, err := core.NewCodec(network)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	}
 	c.OnConnect(&core.BaseContext{DeviceId: "fff"})
 	c.OnInvoke(core.FuncInvokeContext{BaseContext: core.BaseContext{DeviceId: "fff"}})

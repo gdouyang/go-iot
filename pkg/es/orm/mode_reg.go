@@ -2,7 +2,7 @@ package orm
 
 import (
 	"fmt"
-	"go-iot/pkg/core/es"
+	"go-iot/pkg/es"
 	"reflect"
 	"strings"
 )

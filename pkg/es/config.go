@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 // the config of elasticsearch
@@ -55,7 +55,7 @@ func Config(fn func(key string, call func(string))) {
 		if err == nil {
 			DefaultEsConfig.BufferSize = num
 		} else {
-			logs.Error("es.buffersize error:", err)
+			logs.Errorf("es.buffersize error: %v", err)
 		}
 	})
 	fn("es.warntime", func(s string) {
@@ -63,8 +63,8 @@ func Config(fn func(key string, call func(string))) {
 		if err == nil {
 			DefaultEsConfig.WarnTime = num
 		} else {
-			logs.Error("es.warntime error:", err)
+			logs.Errorf("es.warntime error: %v", err)
 		}
 	})
-	logs.Info("es config: ", DefaultEsConfig)
+	logs.Infof("es config: %v", DefaultEsConfig)
 }

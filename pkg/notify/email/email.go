@@ -9,7 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"gopkg.in/gomail.v2"
 )
 
@@ -43,7 +44,7 @@ func (c *EmailNotify) Name() string {
 func (c *EmailNotify) ParseTemplate(data map[string]interface{}) string {
 	var result bytes.Buffer
 	if err := c.template.Execute(&result, data); err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 		return c.msgTemplate
 	}
 	return result.String()

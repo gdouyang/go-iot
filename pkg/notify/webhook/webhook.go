@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -35,7 +35,7 @@ func (c *WebHookNotify) Name() string {
 func (c *WebHookNotify) ParseTemplate(data map[string]interface{}) string {
 	b, err := json.Marshal(data)
 	if err != nil {
-		logs.Warn("webhook ParseTemplate error:", err)
+		logs.Warnf("webhook ParseTemplate error: %v", err)
 	}
 
 	return string(b)

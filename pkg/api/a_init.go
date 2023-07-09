@@ -2,9 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"go-iot/pkg/boot"
+	"go-iot/pkg/cluster"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/boot"
-	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/models"
 	"go-iot/pkg/models/base"
 	device "go-iot/pkg/models/device"
@@ -15,7 +15,7 @@ import (
 	notify1 "go-iot/pkg/notify"
 	"go-iot/pkg/ruleengine"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -39,12 +39,12 @@ func (i *start) initResources() {
 		m.Name = r.Name
 		ac, err := json.Marshal(r.Action)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf("init resources error: %v", err)
 		}
 		m.Action = string(ac)
 		old, err := base.GetMenuResourceByCode(m.Code)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf("get menu resource by code error: %v", err)
 			continue
 		}
 		if old != nil {
@@ -54,18 +54,18 @@ func (i *start) initResources() {
 			base.AddMenuResource(&m)
 		}
 	}
-	logs.Info("menu resource inited")
+	logs.Infof("menu resource inited")
 }
 
 func (i *start) startRuningRule() {
-	logs.Info("start runing rule")
+	logs.Infof("start runing rule")
 	var page models.PageQuery
 	page.PageSize = 300
 	page.Condition = []core.SearchTerm{{Key: "state", Value: models.Started}}
 	for {
 		result, err := rule.PageRule(&page, nil)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf("page rule error: %v", err)
 			return
 		}
 		page.SearchAfter = result.SearchAfter
@@ -76,32 +76,32 @@ func (i *start) startRuningRule() {
 		for _, r := range list {
 			m, err := rule.GetRuleMust(r.Id)
 			if err != nil {
-				logs.Error(err)
+				logs.Errorf("get rule error: %v", err)
 				continue
 			}
 			rule := ruleModelToRuleExecutor(m)
 			err = ruleengine.Start(m.Id, &rule)
 			if err != nil {
-				logs.Error(err)
+				logs.Errorf("start rule error: %v", err)
 				continue
 			}
 			if err != nil {
-				logs.Error(err)
+				logs.Errorf("start rule error: %v", err)
 			}
 		}
 	}
-	logs.Info("start runing rule done")
+	logs.Infof("start runing rule done")
 }
 
 func (i *start) startRuningNotify() {
-	logs.Info("start runing notify")
+	logs.Infof("start runing notify")
 	var page models.PageQuery
 	page.PageSize = 300
 	page.Condition = []core.SearchTerm{{Key: "state", Value: models.Started}}
 	for {
 		result, err := notify.PageNotify(&page, nil)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf("start notify error: %v", err)
 			return
 		}
 		page.SearchAfter = result.SearchAfter
@@ -113,22 +113,22 @@ func (i *start) startRuningNotify() {
 			config := notify1.NotifyConfig{Config: m.Config, Template: m.Template}
 			err = notify1.EnableNotify(m.Type, m.Id, config)
 			if err != nil {
-				logs.Error(err)
+				logs.Errorf("start notify error: %v", err)
 			}
 		}
 	}
-	logs.Info("start runing notify done")
+	logs.Infof("start runing notify done")
 }
 
 func (i *start) startRuningNetServer() {
-	logs.Info("start runing network")
+	logs.Infof("start runing network")
 	var page models.PageQuery
 	page.PageSize = 300
 	page.Condition = []core.SearchTerm{{Key: "state", Value: models.Runing}}
 	for {
 		result, err := network.PageNetwork(&page)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf("start network error: %v", err)
 			return
 		}
 		page.SearchAfter = result.SearchAfter
@@ -139,26 +139,26 @@ func (i *start) startRuningNetServer() {
 		for _, nw := range list {
 			config, err := convertCodecNetwork(nw)
 			if err != nil {
-				logs.Error(err)
+				logs.Errorf("start network error: %v", err)
 			}
 			err = servers.StartServer(config)
 			if err != nil {
-				logs.Error(err)
+				logs.Errorf("start network error: %v", err)
 			}
 		}
 	}
-	logs.Info("start runing network done")
+	logs.Infof("start runing network done")
 }
 
 func (i *start) startRuningNetClient() {
-	logs.Info("start runing netclient")
+	logs.Infof("start runing netclient")
 	var page models.PageQuery
 	page.PageSize = 300
 	page.Condition = []core.SearchTerm{{Key: "port", Value: 0}, {Key: "productId", Value: "", Oper: core.NEQ}}
 	for {
 		result, err := network.PageNetwork(&page)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf("start netclient error: %v", err)
 			return
 		}
 		page.SearchAfter = result.SearchAfter
@@ -173,7 +173,7 @@ func (i *start) startRuningNetClient() {
 				devicePage.Condition = []core.SearchTerm{{Key: "State", Value: core.OFFLINE}, {Key: "productId", Value: nw.ProductId}}
 				r1, err := device.PageDevice(&devicePage, nil)
 				if err != nil {
-					logs.Error(err)
+					logs.Errorf("start netclient error: %v", err)
 					continue
 				}
 				devicePage.SearchAfter = r1.SearchAfter
@@ -190,11 +190,11 @@ func (i *start) startRuningNetClient() {
 						err = connectClientDevice(dev.Id)
 					}
 					if err != nil {
-						logs.Error(err)
+						logs.Errorf("start netclient error: %v", err)
 					}
 				}
 			}
 		}
 	}
-	logs.Info("start runing netclient done")
+	logs.Infof("start runing netclient done")
 }

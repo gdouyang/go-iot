@@ -13,7 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -44,6 +45,7 @@ var network core.NetworkConf = core.NetworkConf{
 }
 
 func init() {
+	logs.InitNop()
 	core.RegDeviceStore(store.NewMockDeviceStore())
 	var product *core.Product = &core.Product{
 		Id:          "test-product",
@@ -53,7 +55,7 @@ func init() {
 	tslData := &tsl.TslData{}
 	err := tslData.FromJson(`{"properties":[{"id":"temperature","valueType":{"type":"float"}}],"functions":[{"id":"func1","inputs":[{"id":"name", "valueType":{"type":"string"}}]}]}`)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	}
 	product.TslData = tslData
 	core.PutProduct(product)

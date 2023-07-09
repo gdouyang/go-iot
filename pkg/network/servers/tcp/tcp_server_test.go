@@ -6,6 +6,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/store"
 	_ "go-iot/pkg/core/timeseries"
+	"go-iot/pkg/logger"
 	tcpserver "go-iot/pkg/network/servers/tcp"
 	"net"
 	"testing"
@@ -60,6 +61,7 @@ var network core.NetworkConf = core.NetworkConf{
 }
 
 func init() {
+	logger.InitNop()
 	core.RegDeviceStore(store.NewMockDeviceStore())
 	var product *core.Product = &core.Product{
 		Id:          "test-product",

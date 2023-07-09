@@ -6,7 +6,7 @@ import (
 	"go-iot/pkg/core/tsl"
 	"strings"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 const (
@@ -189,7 +189,7 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 		if sess == nil {
 			device := GetDevice(deviceId)
 			if device == nil {
-				logs.Warn("device [%s] not exist, skip online", deviceId)
+				logs.Warnf("device [%s] not exist, skip online", deviceId)
 				return
 			}
 			ctx.DeviceId = deviceId
@@ -237,11 +237,11 @@ func (ctx *BaseContext) GetConfig(key string) string {
 func (ctx *BaseContext) SaveProperties(data map[string]interface{}) {
 	p := ctx.GetProduct()
 	if p == nil {
-		logs.Warn("product [%s] not exist or noActive", ctx.ProductId)
+		logs.Warnf("product [%s] not exist or noActive", ctx.ProductId)
 		return
 	}
 	if ctx.GetDevice() == nil {
-		logs.Warn("device [%s] is offline", ctx.DeviceId)
+		logs.Warnf("device [%s] is offline", ctx.DeviceId)
 		return
 	}
 	data["deviceId"] = ctx.DeviceId
@@ -251,11 +251,11 @@ func (ctx *BaseContext) SaveProperties(data map[string]interface{}) {
 func (ctx *BaseContext) SaveEvents(eventId string, data any) {
 	p := ctx.GetProduct()
 	if p == nil {
-		logs.Warn("product [%s] not exist or noActive", ctx.ProductId)
+		logs.Warnf("product [%s] not exist or noActive", ctx.ProductId)
 		return
 	}
 	if ctx.GetDevice() == nil {
-		logs.Warn("device [%s] is offline", ctx.DeviceId)
+		logs.Warnf("device [%s] is offline", ctx.DeviceId)
 		return
 	}
 	saveData := map[string]any{}

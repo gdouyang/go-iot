@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 var concurrentCommandLimit = 100
@@ -108,7 +108,7 @@ func (s *modbusSession) lockAddress(address string) error {
 	} else if s.workingCount >= concurrentCommandLimit {
 		s.mutex.Unlock()
 		errorMessage := fmt.Sprintf("High-frequency command execution. There are %v commands with the same address in the queue", concurrentCommandLimit)
-		logs.Error(errorMessage)
+		logs.Errorf(errorMessage)
 		return fmt.Errorf(errorMessage)
 	} else {
 		s.workingCount = s.workingCount + 1
@@ -159,13 +159,13 @@ func (s *modbusSession) connection(callback func()) error {
 	}
 	deviceClient, err := NewDeviceClient(protocol, connectionInfo)
 	if err != nil {
-		logs.Error("Read command NewDeviceClient failed. err:%v \n", err)
+		logs.Errorf("Read command NewDeviceClient failed. err:%v \n", err)
 		return err
 	}
 
 	err = deviceClient.OpenConnection()
 	if err != nil {
-		logs.Error("Read command OpenConnection failed. err:%v \n", err)
+		logs.Errorf("Read command OpenConnection failed. err:%v \n", err)
 		return err
 	}
 
@@ -192,11 +192,11 @@ func (s *modbusSession) interval(f tsl.TslFunction) {
 		if val, ok := f.Expands["interval"]; ok && len(val) > 0 {
 			num, err := strconv.Atoi(val)
 			if err != nil {
-				logs.Warn("interval must gt 0, error:", err)
+				logs.Warnf("interval must gt 0, error: %v", err)
 				return
 			}
 			if num < 1 {
-				logs.Warn("interval must gt 0, function=", f.Id)
+				logs.Warnf("interval must gt 0, function=%v", f.Id)
 				return
 			}
 			for {

@@ -6,7 +6,8 @@ import (
 	"go-iot/pkg/core"
 	"strings"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -62,7 +63,7 @@ func newClientSession(deviceId string, network core.NetworkConf, spec *MQTTClien
 		})
 	}
 	opts.SetConnectionLostHandler(func(c MQTT.Client, err error) {
-		logs.Info("connection lost clientId:%s, err:%s ", opts.ClientID, err.Error())
+		logs.Infof("connection lost clientId:%s, err:%s ", opts.ClientID, err.Error())
 		close(session.done)
 	})
 
@@ -102,7 +103,7 @@ func (s *clientSession) Publish(topic string, msg string) error {
 func (s *clientSession) PublishHex(topic string, payload string) {
 	b, err := hex.DecodeString(payload)
 	if err != nil {
-		logs.Error("mqtt client hex decode error:", err)
+		logs.Errorf("mqtt client hex decode error: %v", err)
 		return
 	}
 	s.client.Publish(topic, QoS0, false, b)

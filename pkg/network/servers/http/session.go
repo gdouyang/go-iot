@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func newSession(w http.ResponseWriter, r *http.Request, productId string) *httpSession {
@@ -36,7 +36,7 @@ func (s *httpSession) GetDeviceId() string {
 func (s *httpSession) Disconnect() error {
 	_, err := s.w.Write([]byte(""))
 	if err != nil {
-		logs.Warn("http Disconnect error:", err)
+		logs.Warnf("http Disconnect error: %v", err)
 	}
 	return err
 }
@@ -44,7 +44,7 @@ func (s *httpSession) Disconnect() error {
 func (s *httpSession) Response(msg string) error {
 	_, err := s.w.Write([]byte(msg))
 	if err != nil {
-		logs.Warn("http Response error:", err)
+		logs.Warnf("http Response error: %v", err)
 	}
 	return err
 }
@@ -53,7 +53,7 @@ func (s *httpSession) ResponseJSON(msg string) error {
 	s.ResponseHeader("Content-Type", "application/json; charset=utf-8")
 	_, err := s.w.Write([]byte(msg))
 	if err != nil {
-		logs.Warn("http ResponseJSON error:", err)
+		logs.Warnf("http ResponseJSON error: %v", err)
 	}
 	return err
 }

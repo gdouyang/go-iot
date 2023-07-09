@@ -3,10 +3,10 @@ package realtime
 import (
 	"container/list"
 	"encoding/json"
-	"go-iot/pkg/core/boot"
-	"go-iot/pkg/core/cluster"
-	"go-iot/pkg/core/eventbus"
-	"go-iot/pkg/core/redis"
+	"go-iot/pkg/boot"
+	"go-iot/pkg/cluster"
+	"go-iot/pkg/eventbus"
+	"go-iot/pkg/redis"
 	"sync"
 
 	"github.com/gorilla/websocket"

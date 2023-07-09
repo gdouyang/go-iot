@@ -9,9 +9,9 @@ import (
 
 	"go-iot/pkg/models/network"
 
-	"go-iot/pkg/core/es/orm"
+	"go-iot/pkg/es/orm"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 // 分页查询设备
@@ -93,7 +93,7 @@ func AddProduct(ob *models.ProductModel) error {
 	}
 	_, err = network.BindNetworkProduct(entity.Id, entity.NetworkType)
 	if err != nil {
-		logs.Error("bind network error: ", err)
+		logs.Errorf("bind network error: %v", err)
 	}
 	return err
 }
@@ -131,7 +131,7 @@ func UpdateProduct(ob *models.ProductModel) error {
 	o := orm.NewOrm()
 	_, err := o.Update(ob.ToEnitty(), columns...)
 	if err != nil {
-		logs.Error("update fail", err)
+		logs.Errorf("update fail %v", err)
 		return err
 	}
 	return nil
@@ -145,7 +145,7 @@ func UpdateProductState(ob *models.Product) error {
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "State")
 	if err != nil {
-		logs.Error("update fail", err)
+		logs.Errorf("update fail %v", err)
 		return err
 	}
 	return nil

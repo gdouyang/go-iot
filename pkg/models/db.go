@@ -1,9 +1,9 @@
 package models
 
 import (
-	"go-iot/pkg/core/boot"
+	"go-iot/pkg/boot"
 
-	"go-iot/pkg/core/es/orm"
+	"go-iot/pkg/es/orm"
 )
 
 func InitDb() {

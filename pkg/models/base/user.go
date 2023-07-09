@@ -4,12 +4,12 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
-	"go-iot/pkg/core/boot"
+	"go-iot/pkg/boot"
 	"go-iot/pkg/models"
 
-	"go-iot/pkg/core/es/orm"
+	"go-iot/pkg/es/orm"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -25,7 +25,7 @@ func init() {
 					EnableFlag: true,
 				},
 			})
-			logs.Info("init admin user")
+			logs.Infof("init admin user")
 		}
 	})
 }
@@ -153,7 +153,7 @@ func DeleteUser(ob *models.User) error {
 	o := orm.NewOrm()
 	_, err := o.Delete(ob)
 	if err != nil {
-		logs.Error("delete fail", err)
+		logs.Errorf("delete fail %v", err)
 		return err
 	}
 	DeleteUserRelRoleByUserId(ob.Id)
@@ -174,7 +174,7 @@ func GetUser(id int64) (*UserDTO, error) {
 		dto := &UserDTO{User: p}
 		list, err := GetUserRelRoleByUserId(id)
 		if err != nil {
-			logs.Error("GetUserRelRoleByUserId error:", err)
+			logs.Errorf("GetUserRelRoleByUserId error: %v", err)
 		}
 		if len(list) > 0 {
 			dto.RoleId = list[0].RoleId

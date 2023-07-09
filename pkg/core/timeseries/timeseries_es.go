@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/es"
-	"go-iot/pkg/core/eventbus"
 	"go-iot/pkg/core/tsl"
+	"go-iot/pkg/es"
+	"go-iot/pkg/eventbus"
 	"strings"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -182,7 +182,7 @@ func (t *EsTimeSeries) SaveProperties(product *core.Product, d1 map[string]any) 
 	d1["createTime"] = time.Now().Format(timeformt)
 	data, err := json.Marshal(d1)
 	if err != nil {
-		logs.Error("Error marshaling document: %s", err)
+		logs.Errorf("Error marshaling document: %v", err)
 	}
 
 	index := t.getMonthIndex(product, properties_const, time.Now())
@@ -234,7 +234,7 @@ func (t *EsTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[
 	d1["createTime"] = time.Now().Format(timeformt)
 	data, err := json.Marshal(d1)
 	if err != nil {
-		logs.Error("Error marshaling document: %s", err)
+		logs.Errorf("Error marshaling document: %v", err)
 	}
 
 	index := t.getMonthEventIndex(product, event_const, eventId, time.Now())
@@ -255,7 +255,7 @@ func (t *EsTimeSeries) SaveLogs(product *core.Product, d1 core.LogData) error {
 	// Build the request body.
 	data, err := json.Marshal(d1)
 	if err != nil {
-		logs.Error("Error marshaling document: %s", err)
+		logs.Errorf("error marshaling document: %v", err)
 	}
 
 	index := t.getMonthIndex(product, devicelogs_const, time.Now())

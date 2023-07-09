@@ -4,12 +4,12 @@ import (
 	"crypto/tls"
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/eventbus"
 	"go-iot/pkg/network/servers"
 	"net"
 	"net/http"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -80,7 +80,7 @@ func (s *HttpServer) Start(network core.NetworkConf) error {
 			err = s.server.Serve(listener)
 		}
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 		}
 	}()
 	return nil

@@ -2,8 +2,8 @@ package api
 
 import (
 	"errors"
+	"go-iot/pkg/cluster"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/cluster"
 	"go-iot/pkg/core/tsl"
 	"go-iot/pkg/models"
 	product "go-iot/pkg/models/device"

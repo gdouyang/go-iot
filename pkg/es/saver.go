@@ -5,7 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
@@ -26,7 +27,7 @@ func (t *EsDataSaveHelper) commit(index string, text string) {
 	o := `{ "index" : { "_index" : "` + index + `" } }` + "\n" + text + "\n"
 	t.dataCh <- o
 	if len(t.dataCh) > (DefaultEsConfig.BufferSize / 2) {
-		logs.Info("commit data to es, chan length:", len(t.dataCh))
+		logs.Infof("commit data to es, chan length: %v", len(t.dataCh))
 	}
 	if !t.batchTaskRun {
 		t.Lock()
@@ -67,7 +68,7 @@ func (t *EsDataSaveHelper) save() {
 		DoRequest(req)
 		totalTime := time.Now().UnixMilli() - start
 		if DefaultEsConfig.WarnTime > 0 && totalTime > int64(DefaultEsConfig.WarnTime) {
-			logs.Warn("save data to es use time: %v ms", totalTime)
+			logs.Warnf("save data to es use time: %v ms", totalTime)
 		}
 	}
 }

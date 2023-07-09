@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/es"
+	"go-iot/pkg/es"
 	"reflect"
 	"strings"
 	"time"

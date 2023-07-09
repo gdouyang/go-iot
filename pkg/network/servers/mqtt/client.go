@@ -10,7 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
@@ -129,15 +130,15 @@ func (c *Client) readLoop() {
 
 		if keepAlive > 0 {
 			if err := c.conn.SetDeadline(time.Now().Add(timeOut)); err != nil {
-				logs.Error("set read timeout failed: %s", c.info.cid)
+				logs.Errorf("set read timeout failed: %s", c.info.cid)
 			}
 		}
 
-		logs.Debug("client %s readLoop read packet", c.info.cid)
+		logs.Debugf("client %s readLoop read packet", c.info.cid)
 		packet, err := packets.ReadPacket(c.conn)
 		if err != nil {
 			if err != io.EOF {
-				logs.Error("client %s read packet failed: %v", c.info.cid, err)
+				logs.Errorf("client %s read packet failed: %v", c.info.cid, err)
 			}
 			return
 		}
@@ -148,7 +149,7 @@ func (c *Client) readLoop() {
 		// 根据不同类型的包来选择不同的处理方式
 		err = c.processPacket(packet)
 		if err != nil {
-			logs.Error("client %s process packet failed: %v", c.info.cid, err)
+			logs.Errorf("client %s process packet failed: %v", c.info.cid, err)
 			return
 		}
 	}
@@ -173,7 +174,7 @@ func (c *Client) writeLoop() {
 		case p := <-c.writeCh:
 			err := p.Write(c.conn)
 			if err != nil {
-				logs.Error("write packet %v to client %s failed: %s", p.String(), c.info.cid, err)
+				logs.Errorf("write packet %v to client %s failed: %s", p.String(), c.info.cid, err)
 				c.close()
 			}
 		case <-c.done:
@@ -188,7 +189,7 @@ func (c *Client) close() {
 		c.Unlock()
 		return
 	}
-	logs.Debug("client %v connection close", c.info.cid)
+	logs.Debugf("client %v connection close", c.info.cid)
 	atomic.StoreInt32(&c.statusFlag, Disconnected)
 	close(c.done) // 删除
 	c.broker.deleteSession(c.info.cid)
@@ -230,7 +231,7 @@ func pipelineWrapper(fn processFn, packetType PacketType) processFnWithErr {
 
 func processPublish(c *Client, packet packets.ControlPacket) {
 	publish := packet.(*packets.PublishPacket)
-	logs.Debug("client %s process publish %v", c.info.cid, publish.TopicName)
+	logs.Debugf("client %s process publish %v", c.info.cid, publish.TopicName)
 	switch publish.Qos {
 	case QoS0:
 		// do nothing
@@ -262,7 +263,7 @@ func processPuback(c *Client, packet packets.ControlPacket) {
 
 func processSubscribe(c *Client, p packets.ControlPacket) {
 	packet := p.(*packets.SubscribePacket)
-	logs.Debug("client %s subscribe %v with qos %v", c.info.cid, packet.Topics, packet.Qoss)
+	logs.Debugf("client %s subscribe %v with qos %v", c.info.cid, packet.Topics, packet.Qoss)
 
 	c.session.subscribe(packet.Topics, packet.Qoss)
 
@@ -278,7 +279,7 @@ func processSubscribe(c *Client, p packets.ControlPacket) {
 func processUnsubscribe(c *Client, p packets.ControlPacket) {
 	packet := p.(*packets.UnsubscribePacket)
 
-	logs.Debug("client %s processUnsubscribe %v", c.info.cid, packet.Topics)
+	logs.Debugf("client %s processUnsubscribe %v", c.info.cid, packet.Topics)
 
 	c.session.unsubscribe(packet.Topics)
 

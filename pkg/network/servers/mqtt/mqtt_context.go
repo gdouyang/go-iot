@@ -6,7 +6,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
@@ -65,7 +66,7 @@ func (ctx *authContext) authFail1(code int) {
 	ctx.connack.ReturnCode = byte(code)
 	err := ctx.connack.Write(ctx.conn)
 	if err != nil {
-		logs.Error("send connack to client %s failed: %s", ctx.GetClientId(), err)
+		logs.Errorf("send connack to client %s failed: %v", ctx.GetClientId(), err)
 	}
 }
 

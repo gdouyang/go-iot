@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 // convert value use the tsl
@@ -43,7 +43,7 @@ func ValueConvert1(propMap map[string]TslProperty, data *map[string]interface{})
 					s := fmt.Sprintf("%v", value)
 					f, err := strconv.ParseInt(s, 10, 0)
 					if err != nil {
-						logs.Error(err)
+						logs.Errorf(err.Error())
 					} else {
 						(*data)[key] = f
 					}
@@ -58,7 +58,7 @@ func ValueConvert1(propMap map[string]TslProperty, data *map[string]interface{})
 					s := fmt.Sprintf("%v", value)
 					f, err := strconv.ParseFloat(s, 32)
 					if err != nil {
-						logs.Error(err)
+						logs.Errorf(err.Error())
 					} else {
 						(*data)[key] = f
 					}
@@ -71,7 +71,7 @@ func ValueConvert1(propMap map[string]TslProperty, data *map[string]interface{})
 					s := fmt.Sprintf("%v", value)
 					f, err := strconv.ParseFloat(s, 64)
 					if err != nil {
-						logs.Error(err)
+						logs.Errorf(err.Error())
 					} else {
 						(*data)[key] = f
 					}

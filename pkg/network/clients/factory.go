@@ -3,9 +3,8 @@ package clients
 import (
 	"fmt"
 	"go-iot/pkg/core"
+	"log"
 	"sync"
-
-	"github.com/beego/beego/v2/core/logs"
 )
 
 var m sync.Map
@@ -16,7 +15,7 @@ type CreaterFun func() core.NetClient
 func RegClient(f CreaterFun) {
 	s := f()
 	m.Store(s.Type(), f)
-	logs.Info("Register Client [%s]", s.Type())
+	log.Printf("Register Client [%s]", s.Type())
 }
 
 func Connect(deviceId string, conf core.NetworkConf) error {

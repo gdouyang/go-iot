@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 const script = `
@@ -39,6 +39,7 @@ var network core.NetworkConf = core.NetworkConf{
 }
 
 func init() {
+	logs.InitNop()
 	core.RegDeviceStore(store.NewMockDeviceStore())
 	var product *core.Product = &core.Product{
 		Id:          "test-product",
@@ -48,7 +49,7 @@ func init() {
 	tslData := &tsl.TslData{}
 	err := tslData.FromJson(`{"properties":[{"id":"temperature","valueType":{"type":"float"}}],"functions":[{"id":"func1","inputs":[{"id":"name", "valueType":{"type":"string"}}]}]}`)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	}
 	product.TslData = tslData
 	core.PutProduct(product)
@@ -76,7 +77,7 @@ func initClient() {
 	//Get请求
 	// res, err := http.Get("http://www.baidu.com")
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	}
 	//利用ioutil包读取百度服务器返回的数据
 	data, err := io.ReadAll(res.Body)
@@ -91,7 +92,7 @@ func initClient() {
 func TestHttp(t *testing.T) {
 	u, err := url.ParseRequestURI("http://www.baidu.com")
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 		return
 	}
 	client := http.Client{Timeout: time.Second * 3}
@@ -102,15 +103,15 @@ func TestHttp(t *testing.T) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 		return
 	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 		return
 	}
-	logs.Info(string(b))
+	logs.Infof(string(b))
 }
 
 func TestHttp1(t *testing.T) {
@@ -118,5 +119,5 @@ func TestHttp1(t *testing.T) {
 		"method": "get",
 		"url":    "http://www.baidu.com",
 	})
-	logs.Info(resp)
+	logs.Infof("%v", resp)
 }

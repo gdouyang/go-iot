@@ -4,9 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
+	"log"
 	"sync"
-
-	"github.com/beego/beego/v2/core/logs"
 )
 
 type CreateFun func() core.NetServer
@@ -17,7 +16,7 @@ var instances sync.Map
 func RegServer(f CreateFun) {
 	s := f()
 	m.Store(s.Type(), f)
-	logs.Info("Register Server [%s]", s.Type())
+	log.Printf("Register Server [%s]", s.Type())
 }
 
 func StartServer(conf core.NetworkConf) error {

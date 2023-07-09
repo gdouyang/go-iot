@@ -4,12 +4,13 @@ import (
 	"crypto/tls"
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/eventbus"
+	"go-iot/pkg/eventbus"
 	"go-iot/pkg/network/servers"
 	"net"
 	"net/http"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -84,7 +85,7 @@ func (s *WebSocketServer) Start(network core.NetworkConf) error {
 			err = s.server.Serve(listener)
 		}
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 		}
 	}()
 	return nil
@@ -105,7 +106,7 @@ func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Upgrade our raw HTTP connection to a websocket based one
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		logs.Error("Error during [%s] websocket connection upgradation:%v", s.productId, err)
+		logs.Errorf("Error during [%s] websocket connection upgradation: %v", s.productId, err)
 		return
 	}
 

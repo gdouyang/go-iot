@@ -4,7 +4,8 @@ import (
 	"errors"
 	"runtime/debug"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/dop251/goja"
 )
 
@@ -48,8 +49,8 @@ func NewVmPool(src string, size int) (*VmPool, error) {
 			return nil, err
 		}
 		console := vm.NewObject()
-		console.Set("log", func(f interface{}, v ...interface{}) {
-			logs.Debug(f, v...)
+		console.Set("log", func(v ...interface{}) {
+			logs.Debugf("%v", v...)
 		})
 		vm.Set("console", console)
 		p.Put(vm)
@@ -151,13 +152,13 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) goja.Value {
 	if success {
 		defer func() {
 			if err := recover(); err != nil {
-				logs.Error("productId: [%s], error: %v", c.productId, err)
-				logs.Error(string(debug.Stack()))
+				logs.Errorf("productId: [%s], error: %v", c.productId, err)
+				logs.Errorf(string(debug.Stack()))
 			}
 		}()
 		resp, err := fn(goja.Undefined(), vm.ToValue(param))
 		if err != nil {
-			logs.Error("productId: [%s], error: %v", c.productId, err)
+			logs.Errorf("productId: [%s], error: %v", c.productId, err)
 		}
 		return resp
 	}

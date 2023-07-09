@@ -5,10 +5,10 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"go-iot/pkg/core/redis"
+	"go-iot/pkg/redis"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 const (
@@ -33,7 +33,7 @@ func Get(key string) *HttpSession {
 	sessionid := getSessionId(key)
 	data, err := client.Exists(context.Background(), sessionid).Result()
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf("get http session key: %s, error: %v", key, err)
 		return nil
 	}
 	if data < 1 {
@@ -77,7 +77,7 @@ func (s *HttpSession) Put(key string, value interface{}) {
 	client := redis.GetRedisClient()
 	data, err := json.Marshal(value)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf("put http session key: %s, value: %v, error: %v", key, value, err)
 	}
 	client.HSet(context.Background(), s.getSessionId(), key, string(data))
 }

@@ -5,16 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/eventbus"
 	"go-iot/pkg/core/tsl"
 	"go-iot/pkg/core/util"
+	"go-iot/pkg/eventbus"
 	"io"
 	"net/http"
 	"reflect"
 	"strings"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/tidwall/gjson"
 )
 
@@ -190,7 +191,7 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 	sql := t.insertSql(sTableName, core.TIME_TYPE_PROP, columns, d1, time.Now().Format(timeformt))
 	err := t.insert(sql)
 	if err != nil {
-		logs.Error("exec: %s", err)
+		logs.Errorf("exec: %v", err)
 	}
 	// 发送事件总线
 	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), busMsgData)
@@ -241,7 +242,7 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 	sql := t.insertSql(sTableName, core.TIME_TYPE_EVENT, columns, d1, time.Now().Format(timeformt))
 	err := t.insert(sql)
 	if err != nil {
-		logs.Error("exec: %s", err)
+		logs.Errorf("exec: %v", err)
 	}
 	// 发送事件总线
 	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), eventId, busMsgData)
@@ -266,7 +267,7 @@ func (t *TdengineTimeSeries) SaveLogs(product *core.Product, d1 core.LogData) er
 	}, d1.CreateTime)
 	err := t.insert(sql)
 	if err != nil {
-		logs.Error("exec: %s", err)
+		logs.Errorf("exec: %v", err)
 	}
 	return nil
 }
@@ -289,9 +290,7 @@ func (t *TdengineTimeSeries) getClient(sql string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-		logs.Debug("==>", "  SQL:", sql)
-	}
+	logs.Debugf("==>  SQL:%s", sql)
 	req.Header.Add("Authorization", "Basic cm9vdDp0YW9zZGF0YQ==")
 	req.Close = true
 
@@ -313,12 +312,12 @@ func (t *TdengineTimeSeries) dml(sql string) error {
 		return err
 	}
 	code := gjson.GetBytes(buf, "code")
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug && code.Raw == "0" {
+	if logs.IsDebug() && code.Raw == "0" {
 		sql := strings.TrimSpace(sql)
-		logs.Debug("<==", strings.Split(sql, " ")[0], "OK")
+		logs.Debugf("<== %s %s", strings.Split(sql, " ")[0], "OK")
 	}
 	if code.Raw != "0" {
-		logs.Error(string(buf))
+		logs.Errorf(string(buf))
 		return errors.New(string(buf))
 	}
 	return nil
@@ -331,11 +330,11 @@ func (t *TdengineTimeSeries) insert(sql string) error {
 	}
 
 	code := gjson.GetBytes(buf, "code")
-	if logs.GetBeeLogger().GetLevel() == logs.LevelDebug && code.Raw == "0" {
-		logs.Debug("<==", "Insert OK, affected_rows:", gjson.GetBytes(buf, "data.0.0"))
+	if logs.IsDebug() && code.Raw == "0" {
+		logs.Debugf("<== Insert OK, affected_rows: %v", gjson.GetBytes(buf, "data.0.0"))
 	}
 	if code.Raw != "0" {
-		logs.Error(string(buf))
+		logs.Errorf(string(buf))
 		return errors.New(string(buf))
 	}
 	return nil
@@ -353,12 +352,12 @@ func (t *TdengineTimeSeries) count(sql string) (int64, error) {
 	code := gjson.GetBytes(buf, "code")
 	if code.Raw == "0" {
 		total = gjson.GetBytes(buf, "data.0.0").Int()
-		if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-			logs.Debug("<==", "columns:", gjson.GetBytes(buf, "column_meta.0.0"))
-			logs.Debug("<==", "        ", total)
+		if logs.IsDebug() {
+			logs.Debugf("<== columns:%v", gjson.GetBytes(buf, "column_meta.0.0"))
+			logs.Debugf("<==         %v", total)
 		}
 	} else {
-		logs.Error(string(buf))
+		logs.Errorf(string(buf))
 		return 0, errors.New(string(buf))
 	}
 	return total, nil
@@ -384,7 +383,7 @@ func (t *TdengineTimeSeries) search(sql string) ([]map[string]any, error) {
 			rowValue := []string{}
 			for idx, val := range row.Array() {
 				columnName := gjson.GetBytes(buf, fmt.Sprintf("column_meta.%v.0", idx))
-				if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
+				if logs.IsDebug() {
 					columns = append(columns, columnName.Raw)
 					rowValue = append(rowValue, val.Raw)
 				}
@@ -436,14 +435,14 @@ func (t *TdengineTimeSeries) search(sql string) ([]map[string]any, error) {
 			result = append(result, item)
 			values = append(values, rowValue)
 		}
-		if logs.GetBeeLogger().GetLevel() == logs.LevelDebug {
-			logs.Debug("<==", "columns:", strings.Join(columns, ","))
+		if logs.IsDebug() {
+			logs.Debugf("<== columns:%s", strings.Join(columns, ","))
 			for _, datas := range values {
-				logs.Debug("<==", "        ", strings.Join(datas, ","))
+				logs.Debugf("<==         %s", strings.Join(datas, ","))
 			}
 		}
 	} else {
-		logs.Error(string(buf))
+		logs.Errorf(string(buf))
 		return nil, errors.New(string(buf))
 	}
 	return result, nil

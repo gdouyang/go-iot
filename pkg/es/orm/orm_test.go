@@ -1,7 +1,7 @@
 package orm_test
 
 import (
-	"go-iot/pkg/core/es/orm"
+	"go-iot/pkg/es/orm"
 	"go-iot/pkg/models"
 	"testing"
 )

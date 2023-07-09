@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -45,7 +45,7 @@ func (c *DingtalkNotify) Name() string {
 func (c *DingtalkNotify) ParseTemplate(data map[string]interface{}) string {
 	var result bytes.Buffer
 	if err := c.template.Execute(&result, data); err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 		return c.msgTemplate
 	}
 	return result.String()
@@ -133,6 +133,6 @@ func (c *DingtalkNotify) addSign(webhookURL string, secret string) string {
 		sign := url.QueryEscape(base64.StdEncoding.EncodeToString(h.Sum(nil)))
 		webhook = fmt.Sprint(webhookURL, "&timestamp=", timestamp, "&sign="+sign)
 	}
-	logs.Debug("[%s / %s] - Dingtalk webhook: %s", c.Kind(), c.Name(), webhook)
+	logs.Debugf("[%s / %s] - Dingtalk webhook: %s", c.Kind(), c.Name(), webhook)
 	return webhook
 }

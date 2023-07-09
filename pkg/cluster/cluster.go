@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 const (
@@ -73,7 +73,7 @@ func Config(fn func(key string, call func(string))) {
 		if err == nil {
 			currentNode.Index = index
 		} else {
-			logs.Error("cluster.index error:", err)
+			logs.Errorf("cluster.index error: %v", err)
 		}
 	})
 	fn("cluster.hosts", func(s string) {
@@ -87,17 +87,17 @@ func Config(fn func(key string, call func(string))) {
 		}
 	})
 	if enabled {
-		logs.Info("cluster is enabled")
+		logs.Infof("cluster is enabled")
 		go func() {
 			for {
 				time.Sleep(time.Second * time.Duration(5))
 				for _, n := range nodes {
 					alive := n.keepalive()
 					if !alive {
-						logs.Warn("cluster is offline url: %s, name: %s, index: %v", n.Url, n.Name, n.Index)
+						logs.Warnf("cluster is offline url: %s, name: %s, index: %v", n.Url, n.Name, n.Index)
 					}
 					if !n.Alive && alive {
-						logs.Info("cluster is online url: %s, name: %s, index: %v", n.Url, n.Name, n.Index)
+						logs.Infof("cluster is online url: %s, name: %s, index: %v", n.Url, n.Name, n.Index)
 					}
 					n.Alive = alive
 				}
@@ -174,7 +174,7 @@ func (n *ClusterNode) invoke(req *http.Request) (*common.JsonResp, error) {
 	s_timeout := req.Header.Get("x-cluster-timeout")
 	timeout, err := strconv.Atoi(s_timeout)
 	if err == nil {
-		logs.Warn("x-cluster-timeout parse error:", err)
+		logs.Warnf("x-cluster-timeout parse error: %v", err)
 	}
 	if timeout < 1 {
 		timeout = 10
@@ -198,7 +198,7 @@ func (n *ClusterNode) keepalive() bool {
 	client := http.Client{Timeout: time.Second * 3}
 	uri, err := url.ParseRequestURI(n.Url + "/api/cluster/keepalive")
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf("keepalive error: %v", err)
 		return false
 	}
 	var req *http.Request = &http.Request{
@@ -212,16 +212,16 @@ func (n *ClusterNode) keepalive() bool {
 	req.Body = io.NopCloser(strings.NewReader(string(b)))
 	resp, err := client.Do(req)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf("keepalive error: %v", err)
 		return false
 	}
 	if resp.StatusCode != 200 {
 		b, err := io.ReadAll(resp.Body)
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf("keepalive error: %v", err)
 			return false
 		}
-		logs.Error(string(b))
+		logs.Errorf("keepalive error: %s", string(b))
 		return false
 	}
 	return true

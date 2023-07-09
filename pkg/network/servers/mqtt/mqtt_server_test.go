@@ -12,7 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -45,6 +46,7 @@ var network core.NetworkConf = core.NetworkConf{
 }
 
 func init() {
+	logs.InitNop()
 	core.RegDeviceStore(store.NewMockDeviceStore())
 	var product *core.Product = &core.Product{
 		Id:          "test-product",
@@ -54,7 +56,7 @@ func init() {
 	tslData := &tsl.TslData{}
 	err := tslData.FromJson(`{"properties":[{"id":"temperature","valueType":{"type":"float"}}],"functions":[{"id":"func1","inputs":[{"id":"name", "valueType":{"type":"string"}}]}]}`)
 	if err != nil {
-		logs.Error(err)
+		logs.Errorf(err.Error())
 	}
 	product.TslData = tslData
 	core.PutProduct(product)
@@ -83,9 +85,9 @@ func TestServer(t *testing.T) {
 					Data:       map[string]interface{}{"name": "f"},
 				})
 				if err != nil {
-					logs.Error(err)
+					logs.Errorf(err.Error())
 				} else {
-					logs.Info("cmdInvoke success")
+					logs.Infof("cmdInvoke success")
 				}
 			}()
 			time.Sleep(1 * time.Second)
@@ -111,7 +113,7 @@ func newClient(network core.NetworkConf, deviceId string) {
 	payload := []byte(`{"temperature": 12.1, "fff":1}`)
 	num := 5
 	opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
-		logs.Info("RECEIVED TOPIC: %s MESSAGE: %s", msg.Topic(), string(msg.Payload()))
+		logs.Infof("RECEIVED TOPIC: %s MESSAGE: %s", msg.Topic(), string(msg.Payload()))
 		// reply cmd invoke
 		go func() {
 			client.Publish(topic, byte(qos), false, msg.Payload())

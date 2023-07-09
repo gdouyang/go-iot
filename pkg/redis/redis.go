@@ -7,7 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/go-redis/redis/v8"
 )
 
@@ -41,10 +42,10 @@ func Config(fn func(key string, call func(string))) {
 		if err == nil {
 			DefaultRedisConfig.DB = num
 		} else {
-			logs.Error("redis.db error:", err)
+			logs.Errorf("redis.db error: %v", err)
 		}
 	})
-	logs.Info("redis config: ", DefaultRedisConfig)
+	logs.Infof("redis config: %v", DefaultRedisConfig)
 	InitRedis()
 }
 
@@ -66,7 +67,7 @@ func InitRedis() {
 		defer cancel()
 		err := rdb.Ping(ctx).Err()
 		if err != nil {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 			panic(fmt.Sprintf("redis connect error: %v", err))
 		}
 	}

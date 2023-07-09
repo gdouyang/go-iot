@@ -8,7 +8,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -60,7 +61,7 @@ func (s *websocketSession) Disconnect() error {
 func (s *websocketSession) SendText(msg string) error {
 	err := s.conn.WriteMessage(websocket.TextMessage, []byte(msg))
 	if err != nil {
-		logs.Warn("Error during websocket SendText:", err)
+		logs.Warnf("Error during websocket SendText: %v", err)
 	}
 	return err
 }
@@ -68,12 +69,12 @@ func (s *websocketSession) SendText(msg string) error {
 func (s *websocketSession) SendBinary(msg string) error {
 	payload, err := hex.DecodeString(msg)
 	if err != nil {
-		logs.Warn("Error message, message is not a hex string:", err)
+		logs.Warnf("Error message, message is not a hex string: %v", err)
 		return err
 	}
 	err = s.conn.WriteMessage(websocket.BinaryMessage, payload)
 	if err != nil {
-		logs.Warn("Error during websocket SendBinary:", err)
+		logs.Warnf("Error during websocket SendBinary: %v", err)
 	}
 	return err
 }
@@ -99,7 +100,7 @@ func (s *websocketSession) readLoop() {
 		}
 		messageType, message, err := s.conn.ReadMessage()
 		if err != nil {
-			logs.Error("Error during websocket message reading:", err)
+			logs.Errorf("Error during websocket message reading: %v", err)
 			break
 		}
 		// logs.Info("Received: %s", message)

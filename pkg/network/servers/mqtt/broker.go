@@ -8,7 +8,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
+
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
@@ -61,7 +62,7 @@ func (s *Broker) Start(network core.NetworkConf) error {
 
 	err = s.setListener()
 	if err != nil {
-		logs.Error("mqtt broker set listener failed: %v", err)
+		logs.Errorf("mqtt broker set listener failed: %v", err)
 		return err
 	}
 
@@ -118,7 +119,7 @@ func (b *Broker) deleteSession(clientID string) {
 	defer b.Unlock()
 	if c, ok := b.clients[clientID]; ok {
 		if !c.disconnected() {
-			logs.Debug("broker watch and delete client %v", c.info.cid)
+			logs.Debugf("broker watch and delete client %v", c.info.cid)
 			c.close()
 		}
 	}
@@ -160,16 +161,16 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 	connack.ReturnCode = connect.Validate()
 	if connack.ReturnCode != packets.Accepted {
 		err := connack.Write(conn)
-		logs.Error("invalid connection %v, write connack failed: %s", connack.ReturnCode, err)
+		logs.Errorf("invalid connection %v, write connack failed: %v", connack.ReturnCode, err)
 		return nil, nil, false
 	}
 	// check rate limiter and max allowed connection
 	if !b.checkConnectPermission(connect) {
-		logs.Debug("client %v not get connect permission from rate limiter", connect.ClientIdentifier)
+		logs.Debugf("client %v not get connect permission from rate limiter", connect.ClientIdentifier)
 		connack.ReturnCode = packets.ErrRefusedServerUnavailable
 		err := connack.Write(conn)
 		if err != nil {
-			logs.Error("connack back to client %s failed: %s", connect.ClientIdentifier, err)
+			logs.Errorf("connack back to client %s failed: %v", connect.ClientIdentifier, err)
 		}
 		return nil, nil, false
 	}
@@ -194,7 +195,7 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 	}
 	if err != nil {
 		if err != core.ErrNotImpl {
-			logs.Error(err)
+			logs.Errorf(err.Error())
 			return nil, nil, false
 		}
 		if !ctx.checkAuth() {
@@ -210,15 +211,15 @@ func (b *Broker) handleConn(conn net.Conn) {
 	defer conn.Close()
 	packet, err := packets.ReadPacket(conn)
 	if err != nil {
-		logs.Error("read connect packet failed: %s", err)
+		logs.Errorf("read connect packet failed: %v", err)
 		return
 	}
 	connect, ok := packet.(*packets.ConnectPacket)
 	if !ok {
-		logs.Error("first packet received %s that was not Connect", packet.String())
+		logs.Errorf("first packet received %s that was not Connect", packet.String())
 		return
 	}
-	logs.Debug("connection from client %s", connect.ClientIdentifier)
+	logs.Debugf("connection from client %s", connect.ClientIdentifier)
 
 	client, connack, valid := b.connectionValidation(connect, conn)
 	if !valid {
@@ -229,7 +230,7 @@ func (b *Broker) handleConn(conn net.Conn) {
 
 	b.Lock()
 	if oldClient, ok := b.clients[cid]; ok {
-		logs.Debug("client %v take over by new client with same name", oldClient.info.cid)
+		logs.Debugf("client %v take over by new client with same name", oldClient.info.cid)
 		go oldClient.close()
 	}
 	b.clients[client.info.cid] = client
@@ -239,7 +240,7 @@ func (b *Broker) handleConn(conn net.Conn) {
 
 	err = connack.Write(conn)
 	if err != nil {
-		logs.Error("send connack to client %s failed: %s", connect.ClientIdentifier, err)
+		logs.Errorf("send connack to client %s failed: %v", connect.ClientIdentifier, err)
 		client.close()
 		return
 	}

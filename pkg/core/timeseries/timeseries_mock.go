@@ -4,7 +4,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/tsl"
 
-	"github.com/beego/beego/v2/core/logs"
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -19,35 +19,35 @@ func (t *MockTimeSeries) Id() string {
 	return core.TIME_SERISE_MOCK
 }
 func (t *MockTimeSeries) PublishModel(product *core.Product, model tsl.TslData) error {
-	logs.Info("Mock PublishModel: ", model)
+	logs.Infof("Mock PublishModel: %v", model)
 	return nil
 }
 func (t *MockTimeSeries) QueryProperty(product *core.Product, param core.TimeDataSearchRequest) (map[string]interface{}, error) {
-	logs.Info("Mock QueryProperty: ")
+	logs.Infof("Mock QueryProperty: ")
 	return nil, nil
 }
 
 func (t *MockTimeSeries) QueryLogs(product *core.Product, param core.TimeDataSearchRequest) (map[string]interface{}, error) {
-	logs.Info("Mock QueryLogs: ")
+	logs.Infof("Mock QueryLogs: ")
 	return nil, nil
 }
 func (t *MockTimeSeries) QueryEvent(product *core.Product, eventId string, param core.TimeDataSearchRequest) (map[string]interface{}, error) {
-	logs.Info("Mock QueryEvent: ")
+	logs.Infof("Mock QueryEvent: ")
 	return nil, nil
 }
 func (t *MockTimeSeries) SaveProperties(product *core.Product, data map[string]interface{}) error {
-	logs.Info("Mock SaveProperties data: ", data)
+	logs.Infof("Mock SaveProperties data: ", data)
 	return nil
 }
 func (t *MockTimeSeries) SaveEvents(product *core.Product, eventId string, data map[string]interface{}) error {
-	logs.Info("Mock SaveEvents data: ", data)
+	logs.Infof("Mock SaveEvents data: %v", data)
 	return nil
 }
 func (t *MockTimeSeries) SaveLogs(product *core.Product, data core.LogData) error {
-	logs.Info("Mock SaveLogs data: ", data)
+	logs.Infof("Mock SaveLogs data: %v", data)
 	return nil
 }
 func (t *MockTimeSeries) Del(product *core.Product) error {
-	logs.Info("Mock Del data: ", product.Id)
+	logs.Infof("Mock Del data: %s", product.Id)
 	return nil
 }
