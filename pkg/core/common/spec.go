@@ -68,7 +68,7 @@ func (p *FuncInvoke) Type() MessageType {
 type JsonResp struct {
 	Msg     string      `json:"message"`
 	Success bool        `json:"success"`
-	Data    interface{} `json:"result,omitempty"`
+	Result  interface{} `json:"result,omitempty"`
 	Code    int         `json:"-"` // 20x, 30x, 40x, 50x
 }
 
@@ -77,7 +77,7 @@ func JsonRespOk() JsonResp {
 }
 
 func JsonRespOkData(data interface{}) JsonResp {
-	return JsonResp{Success: true, Data: data, Code: 200}
+	return JsonResp{Success: true, Result: data, Code: 200}
 }
 
 func JsonRespError(err error) JsonResp {

@@ -2,7 +2,6 @@ package api
 
 import (
 	"errors"
-	"go-iot/pkg/api/session"
 	"go-iot/pkg/models"
 	user "go-iot/pkg/models/base"
 
@@ -25,6 +24,7 @@ func (ctl *LoginController) LoginJson() {
 	var ob = struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
+		Expires  int    `json:"expires"`
 	}{}
 
 	err := ctl.BindJSON(&ob)
@@ -33,15 +33,16 @@ func (ctl *LoginController) LoginJson() {
 		return
 	}
 
-	err = ctl.login(&ctl.Controller, ob.Username, ob.Password)
+	err = ctl.login(&ctl.RespController, ob.Username, ob.Password, ob.Expires)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	ctl.RespOk()
+
+	ctl.RespOkData(ctl.GetSession().Sessionid)
 }
 
-func (c *LoginController) login(ctl *web.Controller, username, password string) error {
+func (c *LoginController) login(ctl *RespController, username, password string, expire int) error {
 	u, err := user.GetUserByEntity(models.User{Username: username})
 	if err != nil {
 		return err
@@ -72,10 +73,8 @@ func (c *LoginController) login(ctl *web.Controller, username, password string) 
 			actionMap[ac.Action] = true
 		}
 	}
-	session := session.NewSession()
-	session.Put("user", u)
-	ctl.Ctx.Request.Header.Add("gsessionid", session.Sessionid)
-	ctl.Ctx.Output.Cookie("gsessionid", session.Sessionid, int64(3600*24))
+	session := ctl.NewSession(expire)
+	session.SetAttribute("user", u)
 	session.SetPermission(actionMap)
 	return nil
 }

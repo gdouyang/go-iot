@@ -3,7 +3,6 @@ package logger
 import (
 	"io"
 	"os"
-	"path/filepath"
 	"time"
 
 	"go.uber.org/zap"
@@ -22,7 +21,7 @@ func InitNop() {
 }
 
 const (
-	stdoutFilename = "go-iot.log"
+	stdoutFilename = "logs/go-iot.log"
 )
 
 var (
@@ -72,11 +71,11 @@ func initDefault(fn func(key string, call func(string)), file bool) {
 		})
 		// os.Mkdir("logs", 0o777)
 		goiotLF = &lumberjack.Logger{
-			Filename:   filepath.Join("logs", filename), //filePath
-			MaxSize:    100,                             // 单个文件最大100M
-			MaxBackups: 60,                              // 多于 60 个日志文件后，清理较旧的日志
-			MaxAge:     1,                               // 一天一切割
-			Compress:   false,                           // disabled by default
+			Filename:   filename, //filePath
+			MaxSize:    100,      // 单个文件最大100M
+			MaxBackups: 60,       // 多于 60 个日志文件后，清理较旧的日志
+			MaxAge:     1,        // 一天一切割
+			Compress:   false,    // disabled by default
 		}
 	}
 	var format string = "text"

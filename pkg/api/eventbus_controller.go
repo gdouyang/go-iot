@@ -37,10 +37,6 @@ func (ctl *EventbusWebSocketController) DeviceJoin() {
 		return
 	}
 	typ := ctl.Param(":type")
-	if len(typ) == 0 {
-		ctl.RespError(errors.New("type must be present"))
-		return
-	}
 	dev, err := device.GetDeviceAndCheckCreateId(deviceId, ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)

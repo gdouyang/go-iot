@@ -31,6 +31,22 @@ type RespController struct {
 	web.Controller
 }
 
+func (c *RespController) NewSession(expire int) *session.HttpSession {
+	session := session.NewSession(expire)
+	c.Ctx.Request.Header.Add("x-access-token", session.Sessionid)
+	c.Ctx.Output.Cookie("gsessionid", session.Sessionid, expire)
+	return session
+}
+
+func (c *RespController) GetSession() *session.HttpSession {
+	gsessionid := c.Ctx.Request.Header.Get("x-access-token")
+	if len(gsessionid) == 0 {
+		gsessionid = c.Ctx.Input.Cookie("gsessionid")
+	}
+	s := session.Get(gsessionid)
+	return s
+}
+
 // return request param
 func (c *RespController) Param(key string) string {
 	return c.Ctx.Input.Param(key)
@@ -85,7 +101,7 @@ func (c *AuthController) Prepare() {
 				if len(split) == 2 {
 					username := split[0]
 					password := split[1]
-					err := (&LoginController{}).login(&c.Controller, username, password)
+					err := (&LoginController{}).login(&c.RespController, username, password, 0)
 					if err != nil {
 						c.Ctx.Output.Status = 401
 						c.RespError(err)
@@ -112,14 +128,6 @@ func (c *AuthController) isForbidden(r Resource, rc ResourceAction) bool {
 	return false
 }
 
-func (c *AuthController) GetSession() *session.HttpSession {
-	gsessionid := c.Ctx.Request.Header.Get("gsessionid")
-	if len(gsessionid) == 0 {
-		gsessionid = c.Ctx.Input.Cookie("gsessionid")
-	}
-	s := session.Get(gsessionid)
-	return s
-}
 func (c *AuthController) Logout(ctl *AuthController) {
 	sess := ctl.GetSession()
 	session.Del(sess.Sessionid)
@@ -132,7 +140,7 @@ func (c *AuthController) GetCurrentUser() *models.User {
 		return nil
 	}
 	user := models.User{}
-	succ := s.Get("user", &user)
+	succ := s.GetObject("user", &user)
 	if succ {
 		return &user
 	}

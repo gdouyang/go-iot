@@ -23,6 +23,7 @@ func init() {
 	ns := web.NewNamespace("/api/",
 		web.NSRouter("/anon/system/config", &AnonSysConfigController{}, "get:Get"),
 		web.NSRouter("/system/config", &SysConfigController{}, "post:Update"),
+		web.NSRouter("/token/refresh", &SysConfigController{}, "get:TokenExpire"),
 	)
 	web.AddNamespace(ns)
 
@@ -93,5 +94,9 @@ func (ctl *SysConfigController) Update() {
 		ctl.RespError(err)
 		return
 	}
+	ctl.RespOk()
+}
+
+func (ctl *SysConfigController) TokenExpire() {
 	ctl.RespOk()
 }
