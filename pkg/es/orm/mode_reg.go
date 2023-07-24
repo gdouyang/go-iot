@@ -256,7 +256,7 @@ func register(prefix string, models ...interface{}) (err error) {
 				}
 			}
 		}
-		err := es.CreateEsTemplate(properties, indexName, indexName+"-template", "10ms")
+		err := es.CreateEsTemplate(properties, indexName, indexName+"-template", "100ms")
 		if err != nil {
 			return err
 		}

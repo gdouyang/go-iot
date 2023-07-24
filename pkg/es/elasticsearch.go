@@ -144,8 +144,9 @@ func CreateDoc(index string, docId string, ob any) error {
 		logs.Debugf("==> %s create %s", index, string(b))
 	}
 	req := esapi.CreateRequest{
-		Index: index,
-		Body:  bytes.NewReader(b),
+		Index:   index,
+		Body:    bytes.NewReader(b),
+		Refresh: "true",
 	}
 	if len(docId) > 0 {
 		req.DocumentID = docId
@@ -172,6 +173,7 @@ func UpdateDoc(index string, docId string, data any) error {
 		Index:      index,
 		DocumentID: docId,
 		Body:       bytes.NewReader([]byte(fmt.Sprintf(`{"doc": %s}`, string(b)))),
+		Refresh:    "true",
 	}
 	resp, eserr := DoRequest(req)
 	if eserr != nil {
@@ -186,6 +188,7 @@ func UpdateDoc(index string, docId string, data any) error {
 func BulkDoc(data []byte) error {
 	req := esapi.BulkRequest{
 		Body: bytes.NewReader([]byte(data)),
+		// Refresh: "true",
 	}
 	resp, eserr := DoRequest(req)
 	if eserr != nil {
@@ -213,10 +216,12 @@ func UpdateDocByQuery(index string, filter []map[string]any, script map[string]a
 	if logs.IsDebug() {
 		logs.Debugf("==> %s update_by_query %s", index, string(data))
 	}
+	refresh := true
 	req := esapi.UpdateByQueryRequest{
 		Index:     []string{index},
 		Body:      bytes.NewReader(data),
 		Conflicts: "proceed",
+		Refresh:   &refresh,
 	}
 	resp, eserr := DoRequest(req)
 	if eserr != nil {
@@ -233,6 +238,7 @@ func DeleteDoc(index string, docId string) error {
 	req := esapi.DeleteRequest{
 		Index:      index,
 		DocumentID: docId,
+		Refresh:    "true",
 	}
 	resp, eserr := DoRequest(req)
 	if eserr != nil {
@@ -260,10 +266,12 @@ func DeleteByQuery(index string, filter []map[string]any) error {
 	if logs.IsDebug() {
 		logs.Debugf("==> %s delete_by_query", index, string(data))
 	}
+	refresh := true
 	req := esapi.DeleteByQueryRequest{
 		Index:     []string{index},
 		Body:      bytes.NewReader(data),
 		Conflicts: "proceed",
+		Refresh:   &refresh,
 	}
 	resp, eserr := DoRequest(req)
 	if eserr != nil {

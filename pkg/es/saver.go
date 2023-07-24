@@ -19,6 +19,7 @@ type EsDataSaveHelper struct {
 	batchTaskRun bool
 }
 
+// commit data to saver, every 5 sec send to bulk request to es
 func Commit(index string, text string) {
 	DefaultEsSaveHelper.commit(index, text)
 }
