@@ -3,17 +3,18 @@ package realtime
 import (
 	"container/list"
 	"encoding/json"
+	"fmt"
 	"go-iot/pkg/boot"
 	"go-iot/pkg/cluster"
 	"go-iot/pkg/eventbus"
 	"go-iot/pkg/redis"
-	"sync"
 
 	"github.com/gorilla/websocket"
 )
 
 func init() {
 	boot.AddStartLinstener(func() {
+		go listenEventBus("/device/*/*/*")
 		go realtimeInstance.writeLoop()
 		go realtimeInstance.listenerCluster()
 	})
@@ -30,7 +31,7 @@ func Unsubscribe(sub Subscriber) {
 }
 
 // 监听事件总线
-func ListenEventBus(topic string) {
+func listenEventBus(topic string) {
 	eventbus.Subscribe(topic, send)
 }
 
@@ -46,7 +47,8 @@ var realtimeInstance *realtime = &realtime{
 	unsubscribe: make(chan Subscriber, 10),
 	// Send events here to publish them.
 	publish:     make(chan eventbus.Message, 10),
-	subscribers: sync.Map{},
+	subscribers: list.New(),
+	matcher:     eventbus.NewAntPathMatcher(),
 }
 
 // 订阅者
@@ -62,6 +64,7 @@ type Subscriber struct {
 type clusterMessage struct {
 	ClusterId string `json:"clusterId"`
 	DeviceId  string `json:"deviceId"`
+	ProductId string `json:"productId"`
 	Origin    string `json:"origin"`
 }
 
@@ -78,23 +81,16 @@ func (m *clusterMessage) Type() eventbus.MessageType {
 func (m *clusterMessage) GetDeviceId() string {
 	return m.DeviceId
 }
+func (m *clusterMessage) GetProductId() string {
+	return m.ProductId
+}
 
 type realtime struct {
 	subscribe   chan Subscriber
 	unsubscribe chan Subscriber
 	publish     chan eventbus.Message
-	subscribers sync.Map //map[string]*list.List
-}
-
-func (e *realtime) getSubscriber(deviceId string) (*list.List, bool) {
-	val, ok := e.subscribers.Load(deviceId)
-	if ok {
-		if val != nil {
-			return val.(*list.List), ok
-		}
-		return nil, ok
-	}
-	return nil, false
+	subscribers *list.List
+	matcher     *eventbus.AntPathMatcher
 }
 
 const _CLUST_EVENT_KEY = "go:cluster:realtime"
@@ -117,23 +113,23 @@ func (e *realtime) writeLoop() {
 	for {
 		select {
 		case sub := <-e.subscribe:
-			val, ok := e.getSubscriber(sub.DeviceId)
-			if !ok {
-				val = list.New()
-				e.subscribers.Store(sub.DeviceId, val)
-			}
-			val.PushBack(&sub)
+			e.subscribers.PushBack(&sub)
 		case event := <-e.publish:
-			subs, _ := e.getSubscriber(event.GetDeviceId())
+			subs := e.subscribers
 			if subs != nil {
 				for sub := subs.Front(); sub != nil; sub = sub.Next() {
 					suber := sub.Value.(*Subscriber)
+					// 这里只处理满足条件的
+					path := fmt.Sprintf("/device/%s/%s/%s", event.GetProductId(), event.GetDeviceId(), event.Type())
+					if !e.matcher.Match(suber.Topic, path) {
+						continue
+					}
 					ws := suber.Conn
 					if ws != nil {
 						d, _ := json.Marshal(event)
 						ws.WriteMessage(websocket.TextMessage, d)
 						if event.Type() != clusterMessageType && cluster.Enabled() {
-							clusterMsg := clusterMessage{ClusterId: cluster.GetClusterId(), DeviceId: event.GetDeviceId(), Origin: string(d)}
+							clusterMsg := clusterMessage{ClusterId: cluster.GetClusterId(), DeviceId: event.GetDeviceId(), ProductId: event.GetProductId(), Origin: string(d)}
 							clusterMsgStr, _ := json.Marshal(clusterMsg)
 							redis.Pub(_CLUST_EVENT_KEY, clusterMsgStr)
 						}
@@ -141,7 +137,7 @@ func (e *realtime) writeLoop() {
 				}
 			}
 		case unsub := <-e.unsubscribe:
-			subs, _ := e.getSubscriber(unsub.DeviceId)
+			subs := e.subscribers
 			if subs != nil {
 				for sub := subs.Front(); sub != nil; sub = sub.Next() {
 					suber := sub.Value.(*Subscriber)

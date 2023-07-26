@@ -21,7 +21,7 @@ const (
 type MessageType string
 
 const (
-	PROP      MessageType = "prop"
+	PROP      MessageType = "property"
 	EVENT     MessageType = "event"
 	ALARM     MessageType = "alarm"
 	ONLINE    MessageType = "online"
@@ -94,8 +94,10 @@ func PublishOffline(data *OfflineMessage) {
 type Message interface {
 	Type() MessageType
 	GetDeviceId() string
+	GetProductId() string
 }
 
+// PropertiesMessage
 type PropertiesMessage struct {
 	Typ        string                 `json:"type"`
 	DeviceId   string                 `json:"deviceId"`
@@ -120,7 +122,11 @@ func (m *PropertiesMessage) Type() MessageType {
 func (m *PropertiesMessage) GetDeviceId() string {
 	return m.DeviceId
 }
+func (m *PropertiesMessage) GetProductId() string {
+	return m.ProductId
+}
 
+// EventMessage
 type EventMessage struct {
 	Typ        string                 `json:"type"`
 	DeviceId   string                 `json:"deviceId"`
@@ -148,7 +154,11 @@ func (m *EventMessage) Type() MessageType {
 func (m *EventMessage) GetDeviceId() string {
 	return m.DeviceId
 }
+func (m *EventMessage) GetProductId() string {
+	return m.ProductId
+}
 
+// OnlineMessage
 type OnlineMessage struct {
 	Typ       string `json:"type"`
 	DeviceId  string `json:"deviceId"`
@@ -171,6 +181,11 @@ func (m *OnlineMessage) GetDeviceId() string {
 	return m.DeviceId
 }
 
+func (m *OnlineMessage) GetProductId() string {
+	return m.ProductId
+}
+
+// OfflineMessage
 type OfflineMessage struct {
 	Typ       string `json:"type"`
 	DeviceId  string `json:"deviceId"`
@@ -190,4 +205,7 @@ func (m *OfflineMessage) Type() MessageType {
 }
 func (m *OfflineMessage) GetDeviceId() string {
 	return m.DeviceId
+}
+func (m *OfflineMessage) GetProductId() string {
+	return m.ProductId
 }

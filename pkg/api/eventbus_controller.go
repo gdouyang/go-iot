@@ -80,8 +80,6 @@ func (ctl *EventbusWebSocketController) loop(productId string, deviceId string, 
 		realtime.Unsubscribe(realtime.Subscriber{ProductId: productId, DeviceId: deviceId, Topic: topic, Addr: addr})
 	}()
 
-	realtime.ListenEventBus(topic)
-
 	// Message receive loop.
 	for {
 		_, _, err := ws.ReadMessage()

@@ -30,6 +30,10 @@ func (e *AlarmEvent) GetDeviceId() string {
 	return e.DeviceId
 }
 
+func (e *AlarmEvent) GetProductId() string {
+	return e.DeviceId
+}
+
 type TriggerType string
 
 const (
