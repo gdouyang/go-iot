@@ -81,7 +81,7 @@ func (c *RespController) Resp(resp common.JsonResp) error {
 // 不是集群内部请求
 func (c *RespController) isNotClusterRequest() bool {
 	header := c.Ctx.Request.Header.Get(cluster.X_Cluster_Request)
-	return header != cluster.Token()
+	return cluster.Enabled() && header != cluster.Token()
 }
 
 type AuthController struct {
