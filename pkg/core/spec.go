@@ -186,16 +186,18 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
 		sess := GetSession(deviceId)
-		if sess == nil {
-			device := GetDevice(deviceId)
-			if device == nil {
-				logs.Warnf("device [%s] not exist, skip online", deviceId)
-				return
-			}
-			ctx.DeviceId = deviceId
-			ctx.GetSession().SetDeviceId(deviceId)
-			PutSession(deviceId, ctx.GetSession())
+		if sess != nil && sess != ctx.GetSession() {
+			logs.Infof("an other connection come in, old session disconnect %s", deviceId)
+			sess.Disconnect()
 		}
+		device := GetDevice(deviceId)
+		if device == nil {
+			logs.Warnf("device [%s] not exist, skip online", deviceId)
+			return
+		}
+		ctx.DeviceId = deviceId
+		ctx.GetSession().SetDeviceId(deviceId)
+		PutSession(deviceId, ctx.GetSession())
 	}
 }
 

@@ -13,7 +13,7 @@ var suppertMqttQOS2 bool = false
 
 func (s *Session) cleanSession() bool {
 	if !suppertMqttQOS2 {
-		return false
+		return true
 	}
 	return s.info.CleanFlag
 }

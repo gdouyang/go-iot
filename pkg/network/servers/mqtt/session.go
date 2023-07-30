@@ -159,7 +159,7 @@ func (s *Session) PublishHex(topic string, payload string) {
 }
 
 func (s *Session) Disconnect() error {
-	if !s.cleanSession() {
+	if s.cleanSession() {
 		if s.isClose {
 			return nil
 		}
