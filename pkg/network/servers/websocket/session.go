@@ -13,9 +13,9 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func newSession(conn *websocket.Conn, r *http.Request, productId string) *websocketSession {
+func newSession(conn *websocket.Conn, r *http.Request, productId string) *WebsocketSession {
 	r.ParseForm()
-	session := &websocketSession{
+	session := &WebsocketSession{
 		id:         fmt.Sprintf("%d", time.Now().UnixNano()),
 		conn:       conn,
 		header:     r.Header,
@@ -27,7 +27,7 @@ func newSession(conn *websocket.Conn, r *http.Request, productId string) *websoc
 	return session
 }
 
-type websocketSession struct {
+type WebsocketSession struct {
 	id         string
 	conn       *websocket.Conn
 	header     http.Header
@@ -39,15 +39,21 @@ type websocketSession struct {
 	isClose    bool
 }
 
-func (s *websocketSession) SetDeviceId(deviceId string) {
+func (s *WebsocketSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
 }
 
-func (s *websocketSession) GetDeviceId() string {
+func (s *WebsocketSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *websocketSession) Disconnect() error {
+func (s *WebsocketSession) Disconnect() error {
+	err := s.Close()
+	core.DelSession(s.deviceId)
+	return err
+}
+
+func (s *WebsocketSession) Close() error {
 	if s.isClose {
 		return nil
 	}
@@ -58,7 +64,7 @@ func (s *websocketSession) Disconnect() error {
 	return err
 }
 
-func (s *websocketSession) SendText(msg string) error {
+func (s *WebsocketSession) SendText(msg string) error {
 	err := s.conn.WriteMessage(websocket.TextMessage, []byte(msg))
 	if err != nil {
 		logs.Warnf("Error during websocket SendText: %v", err)
@@ -66,7 +72,7 @@ func (s *websocketSession) SendText(msg string) error {
 	return err
 }
 
-func (s *websocketSession) SendBinary(msg string) error {
+func (s *WebsocketSession) SendBinary(msg string) error {
 	payload, err := hex.DecodeString(msg)
 	if err != nil {
 		logs.Warnf("Error message, message is not a hex string: %v", err)
@@ -79,7 +85,7 @@ func (s *websocketSession) SendBinary(msg string) error {
 	return err
 }
 
-func (s *websocketSession) readLoop() {
+func (s *WebsocketSession) readLoop() {
 	defer s.Disconnect()
 	// The event loop
 	sc := core.GetCodec(s.productId)

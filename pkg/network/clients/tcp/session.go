@@ -11,10 +11,10 @@ import (
 	logs "go-iot/pkg/logger"
 )
 
-func newTcpSession(deviceId string, s *TcpClientSpec, productId string, conn net.Conn) *tcpSession {
+func newTcpSession(deviceId string, s *TcpClientSpec, productId string, conn net.Conn) *TcpSession {
 	//2.网络数据流分隔器
 	delimeter := tcpserver.NewDelimeter(s.Delimeter, conn)
-	session := &tcpSession{
+	session := &TcpSession{
 		deviceId:  deviceId,
 		productId: productId,
 		conn:      conn, delimeter: delimeter,
@@ -24,7 +24,7 @@ func newTcpSession(deviceId string, s *TcpClientSpec, productId string, conn net
 	return session
 }
 
-type tcpSession struct {
+type TcpSession struct {
 	conn      net.Conn
 	deviceId  string
 	productId string
@@ -34,7 +34,7 @@ type tcpSession struct {
 	isClose   bool
 }
 
-func (s *tcpSession) Send(msg string) error {
+func (s *TcpSession) Send(msg string) error {
 	_, err := s.conn.Write([]byte(msg))
 	if err != nil {
 		logs.Errorf("tcpclient Send error: %v", err)
@@ -42,7 +42,7 @@ func (s *tcpSession) Send(msg string) error {
 	return err
 }
 
-func (s *tcpSession) SendHex(msgHex string) error {
+func (s *TcpSession) SendHex(msgHex string) error {
 	b, err := hex.DecodeString(msgHex)
 	if err != nil {
 		logs.Errorf("tcpclient hex decode error: %v", err)
@@ -55,7 +55,7 @@ func (s *tcpSession) SendHex(msgHex string) error {
 	return err
 }
 
-func (s *tcpSession) Disconnect() error {
+func (s *TcpSession) Disconnect() error {
 	if s.isClose {
 		return nil
 	}
@@ -66,22 +66,26 @@ func (s *tcpSession) Disconnect() error {
 	return err
 }
 
-func (s *tcpSession) SetDeviceId(deviceId string) {
+func (s *TcpSession) Close() error {
+	return s.Disconnect()
+}
+
+func (s *TcpSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
 }
 
-func (s *tcpSession) GetDeviceId() string {
+func (s *TcpSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *tcpSession) deviceOnline(deviceId string) {
+func (s *TcpSession) deviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
 		core.PutSession(deviceId, s)
 	}
 }
 
-func (s *tcpSession) readLoop() {
+func (s *TcpSession) readLoop() {
 	keepAlive := time.Duration(s.keepalive) * time.Second
 	timeOut := keepAlive + keepAlive/2
 	for {

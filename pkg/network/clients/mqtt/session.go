@@ -26,7 +26,7 @@ const (
 	QoS2 byte = 2
 )
 
-type clientSession struct {
+type MqttClientSession struct {
 	client    MQTT.Client
 	deviceId  string
 	productId string
@@ -40,7 +40,7 @@ type clientSession struct {
 	core      core.Codec
 }
 
-func newClientSession(deviceId string, network network.NetworkConf, spec *MQTTClientSpec) (*clientSession, error) {
+func newClientSession(deviceId string, network network.NetworkConf, spec *MQTTClientSpec) (*MqttClientSession, error) {
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker("tcp://" + spec.Host + ":" + fmt.Sprint(spec.Port))
 	opts.SetClientID(spec.ClientId)
@@ -48,7 +48,7 @@ func newClientSession(deviceId string, network network.NetworkConf, spec *MQTTCl
 	opts.SetPassword(spec.Password)
 	opts.SetCleanSession(spec.CleanSession)
 
-	session := &clientSession{
+	session := &MqttClientSession{
 		ClientID:  spec.ClientId,
 		Username:  spec.Username,
 		CleanFlag: spec.CleanSession,
@@ -96,12 +96,12 @@ func newClientSession(deviceId string, network network.NetworkConf, spec *MQTTCl
 	return session, nil
 }
 
-func (s *clientSession) Publish(topic string, msg string) error {
+func (s *MqttClientSession) Publish(topic string, msg string) error {
 	s.client.Publish(topic, QoS0, false, msg)
 	return nil
 }
 
-func (s *clientSession) PublishHex(topic string, payload string) {
+func (s *MqttClientSession) PublishHex(topic string, payload string) {
 	b, err := hex.DecodeString(payload)
 	if err != nil {
 		logs.Errorf("mqtt client hex decode error: %v", err)
@@ -110,12 +110,12 @@ func (s *clientSession) PublishHex(topic string, payload string) {
 	s.client.Publish(topic, QoS0, false, b)
 }
 
-func (s *clientSession) PublishQos1(topic string, msg interface{}) error {
+func (s *MqttClientSession) PublishQos1(topic string, msg interface{}) error {
 	s.client.Publish(topic, QoS1, false, msg)
 	return nil
 }
 
-func (s *clientSession) Disconnect() error {
+func (s *MqttClientSession) Disconnect() error {
 	if s.isClose {
 		return nil
 	}
@@ -125,22 +125,26 @@ func (s *clientSession) Disconnect() error {
 	return nil
 }
 
-func (s *clientSession) SetDeviceId(deviceId string) {
+func (s *MqttClientSession) Close() error {
+	return s.Disconnect()
+}
+
+func (s *MqttClientSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
 }
 
-func (s *clientSession) GetDeviceId() string {
+func (s *MqttClientSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *clientSession) deviceOnline(deviceId string) {
+func (s *MqttClientSession) deviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
 		core.PutSession(deviceId, s)
 	}
 }
 
-func (s *clientSession) readLoop() {
+func (s *MqttClientSession) readLoop() {
 	defer s.Disconnect()
 	for {
 		select {

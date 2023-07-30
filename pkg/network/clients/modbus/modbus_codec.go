@@ -44,7 +44,7 @@ func NewModbusScriptCodec(productId string, script string) (core.Codec, error) {
 // 命令调用
 func (c *ModbusScriptCodec) OnInvoke(ctx core.FuncInvokeContext) error {
 	sess := ctx.GetSession()
-	s := sess.(*modbusSession)
+	s := sess.(*ModbusSession)
 	modbusInvokeContext := &modbusInvokeContext{
 		FuncInvokeContext: ctx,
 	}

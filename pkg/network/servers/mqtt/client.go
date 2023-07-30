@@ -64,7 +64,7 @@ type (
 		sync.Mutex
 
 		broker  *Broker
-		session *Session
+		session *MqttSession
 		conn    net.Conn
 
 		info       ClientInfo

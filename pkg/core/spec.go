@@ -45,9 +45,12 @@ type (
 	}
 	// 会话信息
 	Session interface {
+		// 断开连接并使离线
 		Disconnect() error
 		GetDeviceId() string
 		SetDeviceId(deviceId string)
+		// 关闭会话
+		Close() error
 	}
 	// 消息上下文
 	MessageContext interface {
@@ -187,8 +190,8 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 	if len(deviceId) > 0 {
 		sess := GetSession(deviceId)
 		if sess != nil && sess != ctx.GetSession() {
-			logs.Infof("an other connection come in, old session disconnect %s", deviceId)
-			sess.Disconnect()
+			logs.Infof("an other connection come in, old session close %s", deviceId)
+			sess.Close()
 		}
 		device := GetDevice(deviceId)
 		if device == nil {

@@ -22,9 +22,9 @@ type (
 		deviceId  string
 	}
 
-	// Session includes the information about the connect between client and broker,
+	// MqttSession includes the information about the connect between client and broker,
 	// such as topic subscribe, not-send messages, etc.
-	Session struct {
+	MqttSession struct {
 		sync.Mutex
 		broker       *Broker
 		info         *SessionInfo
@@ -52,7 +52,7 @@ func newMsg(topic string, payload []byte, qos byte) *Message {
 	return m
 }
 
-func (s *Session) init(b *Broker, connect *packets.ConnectPacket) error {
+func (s *MqttSession) init(b *Broker, connect *packets.ConnectPacket) error {
 	s.broker = b
 	s.done = make(chan struct{})
 	s.pending = make(map[uint16]*Message)
@@ -69,7 +69,7 @@ func (s *Session) init(b *Broker, connect *packets.ConnectPacket) error {
 	return nil
 }
 
-func (s *Session) subscribe(topics []string, qoss []byte) error {
+func (s *MqttSession) subscribe(topics []string, qoss []byte) error {
 	logs.Debugf("session %s sub %v", s.info.ClientID, topics)
 	s.Lock()
 	for i, t := range topics {
@@ -79,7 +79,7 @@ func (s *Session) subscribe(topics []string, qoss []byte) error {
 	return nil
 }
 
-func (s *Session) unsubscribe(topics []string) error {
+func (s *MqttSession) unsubscribe(topics []string) error {
 	logs.Debugf("session %s unsub %v", s.info.ClientID, topics)
 	s.Lock()
 	for _, t := range topics {
@@ -89,7 +89,7 @@ func (s *Session) unsubscribe(topics []string) error {
 	return nil
 }
 
-func (s *Session) getPacketFromMsg(topic string, payload []byte, qos byte) *packets.PublishPacket {
+func (s *MqttSession) getPacketFromMsg(topic string, payload []byte, qos byte) *packets.PublishPacket {
 	p := packets.NewControlPacket(packets.Publish).(*packets.PublishPacket)
 	p.Qos = qos
 	p.TopicName = topic
@@ -101,7 +101,7 @@ func (s *Session) getPacketFromMsg(topic string, payload []byte, qos byte) *pack
 	return p
 }
 
-func (s *Session) publish(topic string, payload []byte, qos byte) {
+func (s *MqttSession) publish(topic string, payload []byte, qos byte) {
 	client := s.broker.getClient(s.info.ClientID)
 	if client == nil {
 		logs.Errorf("client %s is offline in eg %v", s.info.ClientID, s.broker.productId)
@@ -128,14 +128,14 @@ func (s *Session) publish(topic string, payload []byte, qos byte) {
 	}
 }
 
-func (s *Session) puback(p *packets.PubackPacket) {
+func (s *MqttSession) puback(p *packets.PubackPacket) {
 	s.Lock()
 	delete(s.pending, p.MessageID)
 	s.Unlock()
 }
 
 // device session functions
-func (s *Session) Publish(topic string, payload string) {
+func (s *MqttSession) Publish(topic string, payload string) {
 	var qos int
 	qos, ok := s.info.Topics[topic]
 	if !ok {
@@ -144,7 +144,7 @@ func (s *Session) Publish(topic string, payload string) {
 	s.publish(topic, []byte(payload), byte(qos))
 }
 
-func (s *Session) PublishHex(topic string, payload string) {
+func (s *MqttSession) PublishHex(topic string, payload string) {
 	b, err := hex.DecodeString(payload)
 	if err != nil {
 		logs.Errorf("mqtt hex decode error: %v", err)
@@ -158,14 +158,24 @@ func (s *Session) PublishHex(topic string, payload string) {
 	s.publish(topic, b, byte(qos))
 }
 
-func (s *Session) Disconnect() error {
+func (s *MqttSession) Disconnect() error {
+	if s.cleanSession() {
+		if s.isClose {
+			return nil
+		}
+		s.Close()
+		core.DelSession(s.info.deviceId)
+	}
+	return nil
+}
+
+func (s *MqttSession) Close() error {
 	if s.cleanSession() {
 		if s.isClose {
 			return nil
 		}
 		close(s.done)
 		s.isClose = true
-		core.DelSession(s.info.deviceId)
 		logs.Debugf("session close %s", s.info.deviceId)
 		client := s.broker.getClient(s.info.ClientID)
 		if client != nil {
@@ -175,9 +185,9 @@ func (s *Session) Disconnect() error {
 	return nil
 }
 
-func (s *Session) SetDeviceId(deviceId string) {
+func (s *MqttSession) SetDeviceId(deviceId string) {
 	s.info.deviceId = deviceId
 }
-func (s *Session) GetDeviceId() string {
+func (s *MqttSession) GetDeviceId() string {
 	return s.info.deviceId
 }

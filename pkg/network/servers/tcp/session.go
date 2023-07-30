@@ -9,10 +9,10 @@ import (
 	logs "go-iot/pkg/logger"
 )
 
-func newTcpSession(s *TcpServerSpec, productId string, conn net.Conn) *tcpSession {
+func newTcpSession(s *TcpServerSpec, productId string, conn net.Conn) *TcpSession {
 	//2.网络数据流分隔器
 	delimeter := NewDelimeter(s.Delimeter, conn)
-	session := &tcpSession{
+	session := &TcpSession{
 		productId: productId,
 		conn:      conn, delimeter: delimeter,
 		done: make(chan struct{}),
@@ -20,7 +20,7 @@ func newTcpSession(s *TcpServerSpec, productId string, conn net.Conn) *tcpSessio
 	return session
 }
 
-type tcpSession struct {
+type TcpSession struct {
 	conn      net.Conn
 	deviceId  string
 	productId string
@@ -30,7 +30,7 @@ type tcpSession struct {
 	isClose   bool
 }
 
-func (s *tcpSession) Send(msg string) error {
+func (s *TcpSession) Send(msg string) error {
 	_, err := s.conn.Write([]byte(msg))
 	if err != nil {
 		logs.Errorf("tcp Send error: %v", err)
@@ -38,7 +38,7 @@ func (s *tcpSession) Send(msg string) error {
 	return err
 }
 
-func (s *tcpSession) SendHex(msgHex string) error {
+func (s *TcpSession) SendHex(msgHex string) error {
 	b, err := hex.DecodeString(msgHex)
 	if err != nil {
 		logs.Errorf("tcp hex decode error: %v", err)
@@ -51,26 +51,31 @@ func (s *tcpSession) SendHex(msgHex string) error {
 	return err
 }
 
-func (s *tcpSession) Disconnect() error {
+func (s *TcpSession) Disconnect() error {
+	err := s.Close()
+	core.DelSession(s.deviceId)
+	return err
+}
+
+func (s *TcpSession) Close() error {
 	if s.isClose {
 		return nil
 	}
 	close(s.done)
 	s.isClose = true
 	err := s.conn.Close()
-	core.DelSession(s.deviceId)
 	return err
 }
 
-func (s *tcpSession) SetDeviceId(deviceId string) {
+func (s *TcpSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
 }
 
-func (s *tcpSession) GetDeviceId() string {
+func (s *TcpSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *tcpSession) readLoop() {
+func (s *TcpSession) readLoop() {
 	keepAlive := time.Duration(s.keepalive) * time.Second
 	timeOut := keepAlive + keepAlive/2
 	for {

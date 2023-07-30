@@ -11,14 +11,14 @@ import (
 
 var suppertMqttQOS2 bool = false
 
-func (s *Session) cleanSession() bool {
+func (s *MqttSession) cleanSession() bool {
 	if !suppertMqttQOS2 {
 		return true
 	}
 	return s.info.CleanFlag
 }
 
-func (s *Session) backgroundResendPending() {
+func (s *MqttSession) backgroundResendPending() {
 	if !suppertMqttQOS2 {
 		return
 	}
@@ -40,7 +40,7 @@ func (s *Session) backgroundResendPending() {
 	}
 }
 
-func (s *Session) doResend() {
+func (s *MqttSession) doResend() {
 	client := s.broker.getClient(s.info.ClientID)
 	s.Lock()
 	defer s.Unlock()

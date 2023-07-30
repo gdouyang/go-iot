@@ -254,9 +254,9 @@ func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 	// when clean session is false, previous session exist and previous session not clean session,
 	// then we use previous session, otherwise use new session
 	prevS := core.GetSession(client.info.deviceId)
-	var prevSess *Session = nil
+	var prevSess *MqttSession = nil
 	if prevS != nil {
-		prevSess = prevS.(*Session)
+		prevSess = prevS.(*MqttSession)
 	}
 	if !connect.CleanSession && (prevSess != nil) && !prevSess.cleanSession() {
 		client.session = prevSess
@@ -264,7 +264,7 @@ func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 		if prevSess != nil {
 			prevSess.Disconnect()
 		}
-		sess := &Session{}
+		sess := &MqttSession{}
 		sess.init(b, connect)
 		// here connect is valid, make device online
 		baseContext := &core.BaseContext{

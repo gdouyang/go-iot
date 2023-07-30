@@ -9,8 +9,8 @@ import (
 	logs "go-iot/pkg/logger"
 )
 
-func newSession(w http.ResponseWriter, r *http.Request, productId string) *httpSession {
-	session := &httpSession{
+func newSession(w http.ResponseWriter, r *http.Request, productId string) *HttpSession {
+	session := &HttpSession{
 		w:         w,
 		r:         r,
 		productId: productId,
@@ -18,22 +18,22 @@ func newSession(w http.ResponseWriter, r *http.Request, productId string) *httpS
 	return session
 }
 
-type httpSession struct {
+type HttpSession struct {
 	w         http.ResponseWriter
 	r         *http.Request
 	productId string
 	deviceId  string
 }
 
-func (s *httpSession) SetDeviceId(deviceId string) {
+func (s *HttpSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
 }
 
-func (s *httpSession) GetDeviceId() string {
+func (s *HttpSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *httpSession) Disconnect() error {
+func (s *HttpSession) Disconnect() error {
 	_, err := s.w.Write([]byte(""))
 	if err != nil {
 		logs.Warnf("http Disconnect error: %v", err)
@@ -41,7 +41,11 @@ func (s *httpSession) Disconnect() error {
 	return err
 }
 
-func (s *httpSession) Response(msg string) error {
+func (s *HttpSession) Close() error {
+	return s.Disconnect()
+}
+
+func (s *HttpSession) Response(msg string) error {
 	_, err := s.w.Write([]byte(msg))
 	if err != nil {
 		logs.Warnf("http Response error: %v", err)
@@ -49,7 +53,7 @@ func (s *httpSession) Response(msg string) error {
 	return err
 }
 
-func (s *httpSession) ResponseJSON(msg string) error {
+func (s *HttpSession) ResponseJSON(msg string) error {
 	s.ResponseHeader("Content-Type", "application/json; charset=utf-8")
 	_, err := s.w.Write([]byte(msg))
 	if err != nil {
@@ -58,11 +62,11 @@ func (s *httpSession) ResponseJSON(msg string) error {
 	return err
 }
 
-func (s *httpSession) ResponseHeader(key string, value string) {
+func (s *HttpSession) ResponseHeader(key string, value string) {
 	s.w.Header().Add("Content-Type", "application/json; charset=utf-8")
 }
 
-func (s *httpSession) readData() error {
+func (s *HttpSession) readData() error {
 	sc := core.GetCodec(s.productId)
 	message := s.getBody(s.r, 1024)
 	sc.OnMessage(&httpContext{
@@ -77,7 +81,7 @@ func (s *httpSession) readData() error {
 	return nil
 }
 
-func (s *httpSession) getBody(r *http.Request, MaxMemory int64) []byte {
+func (s *HttpSession) getBody(r *http.Request, MaxMemory int64) []byte {
 	if r.Body == nil {
 		return []byte{}
 	}

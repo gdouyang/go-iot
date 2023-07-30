@@ -14,7 +14,8 @@ import (
 
 var concurrentCommandLimit = 100
 
-type modbusSession struct {
+// modbus协议Session
+type ModbusSession struct {
 	deviceId     string
 	productId    string
 	mutex        sync.Mutex
@@ -27,14 +28,14 @@ type modbusSession struct {
 	done         chan struct{}
 }
 
-func newSession() *modbusSession {
-	return &modbusSession{
+func newSession() *ModbusSession {
+	return &ModbusSession{
 		lock: make(chan bool, 1),
 		done: make(chan struct{}),
 	}
 }
 
-func (s *modbusSession) Disconnect() error {
+func (s *ModbusSession) Disconnect() error {
 	if !s.stopped {
 		core.DelSession(s.deviceId)
 		s.stopped = true
@@ -44,28 +45,31 @@ func (s *modbusSession) Disconnect() error {
 	return nil
 }
 
-func (s *modbusSession) SetDeviceId(deviceId string) {
+func (s *ModbusSession) Close() error {
+	return s.Disconnect()
+}
+func (s *ModbusSession) SetDeviceId(deviceId string) {
 	s.deviceId = deviceId
 }
 
-func (s *modbusSession) GetDeviceId() string {
+func (s *ModbusSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *modbusSession) ReadDiscreteInputs(startingAddress uint16, length uint16) *context {
+func (s *ModbusSession) ReadDiscreteInputs(startingAddress uint16, length uint16) *context {
 	return s.getValue(DISCRETES_INPUT, startingAddress, length)
 }
-func (s *modbusSession) ReadCoils(startingAddress uint16, length uint16) *context {
+func (s *ModbusSession) ReadCoils(startingAddress uint16, length uint16) *context {
 	return s.getValue(COILS, startingAddress, length)
 }
-func (s *modbusSession) ReadInputRegisters(startingAddress uint16, length uint16) *context {
+func (s *ModbusSession) ReadInputRegisters(startingAddress uint16, length uint16) *context {
 	return s.getValue(INPUT_REGISTERS, startingAddress, length)
 }
-func (s *modbusSession) ReadHoldingRegisters(startingAddress uint16, length uint16) *context {
+func (s *ModbusSession) ReadHoldingRegisters(startingAddress uint16, length uint16) *context {
 	return s.getValue(HOLDING_REGISTERS, startingAddress, length)
 }
 
-func (s *modbusSession) getValue(parimaryTable string, startingAddress uint16, length uint16) *context {
+func (s *ModbusSession) getValue(parimaryTable string, startingAddress uint16, length uint16) *context {
 	data, err := s.client.GetValue(parimaryTable, startingAddress, length)
 	if err != nil {
 		panic(err)
@@ -80,15 +84,15 @@ func (s *modbusSession) getValue(parimaryTable string, startingAddress uint16, l
 	}
 }
 
-func (s *modbusSession) WriteCoils(startingAddress uint16, length uint16, hexStr string) {
+func (s *ModbusSession) WriteCoils(startingAddress uint16, length uint16, hexStr string) {
 	s.setValue(COILS, startingAddress, length, hexStr)
 }
 
-func (s *modbusSession) WriteHoldingRegisters(startingAddress uint16, length uint16, hexStr string) {
+func (s *ModbusSession) WriteHoldingRegisters(startingAddress uint16, length uint16, hexStr string) {
 	s.setValue(HOLDING_REGISTERS, startingAddress, length, hexStr)
 }
 
-func (s *modbusSession) setValue(parimaryTable string, startingAddress uint16, length uint16, hexStr string) {
+func (s *ModbusSession) setValue(parimaryTable string, startingAddress uint16, length uint16, hexStr string) {
 	err := s.client.SetValue(parimaryTable, startingAddress, length, hexStr)
 	if err != nil {
 		panic(err)
@@ -96,7 +100,7 @@ func (s *modbusSession) setValue(parimaryTable string, startingAddress uint16, l
 }
 
 // lockAddress mark address is unavailable because real device handle one request at a time
-func (s *modbusSession) lockAddress(address string) error {
+func (s *ModbusSession) lockAddress(address string) error {
 	if s.stopped {
 		return fmt.Errorf("service attempts to stop and unable to handle new request")
 	}
@@ -121,7 +125,7 @@ func (s *modbusSession) lockAddress(address string) error {
 }
 
 // unlockAddress remove token after command finish
-func (s *modbusSession) unlockAddress(address string) {
+func (s *ModbusSession) unlockAddress(address string) {
 	s.mutex.Lock()
 	s.workingCount = s.workingCount - 1
 	s.mutex.Unlock()
@@ -129,7 +133,7 @@ func (s *modbusSession) unlockAddress(address string) {
 }
 
 // lockableAddress return the lockable address according to the protocol
-func (s *modbusSession) lockableAddress(info interface{}) string {
+func (s *ModbusSession) lockableAddress(info interface{}) string {
 	var address string
 	if s.tcpInfo != nil {
 		address = fmt.Sprintf("%s:%d", s.tcpInfo.Address, s.tcpInfo.Port)
@@ -139,7 +143,7 @@ func (s *modbusSession) lockableAddress(info interface{}) string {
 	return address
 }
 
-func (s *modbusSession) connection(callback func()) error {
+func (s *ModbusSession) connection(callback func()) error {
 	var connectionInfo interface{} = s.tcpInfo
 	var err error
 	if s.rtuInfo != nil {
@@ -178,7 +182,7 @@ func (s *modbusSession) connection(callback func()) error {
 	return nil
 }
 
-func (s *modbusSession) readLoop() {
+func (s *ModbusSession) readLoop() {
 	product := core.GetProduct(s.productId)
 	if product != nil {
 		for _, f := range product.GetTsl().Functions {
@@ -187,7 +191,7 @@ func (s *modbusSession) readLoop() {
 	}
 }
 
-func (s *modbusSession) interval(f tsl.TslFunction) {
+func (s *ModbusSession) interval(f tsl.TslFunction) {
 	if f.Expands != nil {
 		if val, ok := f.Expands["interval"]; ok && len(val) > 0 {
 			num, err := strconv.Atoi(val)

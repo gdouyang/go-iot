@@ -17,7 +17,7 @@ type MqttClient struct {
 	deviceId  string
 	productId string
 	spec      *MQTTClientSpec
-	session   *clientSession
+	session   *MqttClientSession
 }
 
 func (c *MqttClient) Type() network.NetType {
