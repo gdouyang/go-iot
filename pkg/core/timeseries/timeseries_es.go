@@ -75,8 +75,9 @@ func (t *EsTimeSeries) PublishModel(product *core.Product, model tsl.TslData) er
 	{
 		// device logs
 		var properties map[string]any = map[string]any{}
-		properties["deviceId"] = es.Property{Type: "keyword"}
 		properties["type"] = es.Property{Type: "keyword", IgnoreAbove: "256"}
+		properties["traceId"] = es.Property{Type: "keyword"}
+		properties["deviceId"] = es.Property{Type: "keyword"}
 		properties["content"] = es.Property{Type: "keyword", IgnoreAbove: "256"}
 		properties["createTime"] = es.Property{Type: "date", Format: es.DefaultDateFormat}
 

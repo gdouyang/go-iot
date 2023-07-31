@@ -54,10 +54,13 @@ func (p *DeviceOffline) Type() MessageType {
 
 // 功能调用
 type FuncInvoke struct {
+	TraceId    string                 `json:"traceId"` // 跟踪ID
 	FunctionId string                 `json:"functionId"`
 	DeviceId   string                 `json:"deviceId"`
-	ClusterId  string                 `json:"clusterId"`
+	ClusterId  string                 `json:"clusterId,omitempty"`
 	Data       map[string]interface{} `json:"data"`
+	Async      string                 `json:"async,omitempty"` // 是否异步执行，为"true"时将覆盖物模型的配置
+	Timeout    int                    `json:"timeout"`         // 同步调用时指定timeout可以覆盖默认超时时间
 	Replay     chan error             `json:"-"`
 }
 

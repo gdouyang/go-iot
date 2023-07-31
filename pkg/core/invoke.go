@@ -77,7 +77,14 @@ func DoCmdInvoke(message common.FuncInvoke) error {
 	}
 	if product != nil {
 		b, _ := json.Marshal(message)
-		product.GetTimeSeries().SaveLogs(product, LogData{DeviceId: message.DeviceId, Type: "call", Content: string(b)})
+		product.GetTimeSeries().SaveLogs(product,
+			LogData{
+				Type:     "call",
+				TraceId:  message.TraceId,
+				DeviceId: message.DeviceId,
+				Content:  string(b),
+			},
+		)
 	}
 	invokeContext := FuncInvokeContext{
 		BaseContext: BaseContext{
@@ -87,13 +94,17 @@ func DoCmdInvoke(message common.FuncInvoke) error {
 		},
 		message: message,
 	}
-	if function.Async {
+	async := message.Async == "true" || function.Async
+	if async {
 		go func() {
 			codec.OnInvoke(invokeContext)
 		}()
 		return nil
 	} else {
 		timeout := (time.Second * 10)
+		if message.Timeout > 0 {
+			timeout = time.Duration(time.Second * 10)
+		}
 		err := replyMap.addReply(&message, timeout)
 		if err != nil {
 			return err
@@ -129,13 +140,20 @@ func replyLog(product *Product, message common.FuncInvoke, reply string) {
 	if product != nil {
 		aligs := struct {
 			common.FuncInvoke
-			Reply string `json:"reply"`
+			Reply string `json:"reply,omitempty"`
 		}{
 			FuncInvoke: message,
 			Reply:      reply,
 		}
 		b, _ := json.Marshal(aligs)
-		product.GetTimeSeries().SaveLogs(product, LogData{DeviceId: message.DeviceId, Type: "reply", Content: string(b)})
+		product.GetTimeSeries().SaveLogs(product,
+			LogData{
+				Type:     "reply",
+				DeviceId: message.DeviceId,
+				TraceId:  message.TraceId,
+				Content:  string(b),
+			},
+		)
 	}
 }
 

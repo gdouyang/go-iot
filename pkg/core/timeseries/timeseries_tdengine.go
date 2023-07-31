@@ -87,6 +87,7 @@ func (t *TdengineTimeSeries) PublishModel(product *core.Product, model tsl.TslDa
 		sb.WriteString(t.columnNameRewrite("createTime", "TIMESTAMP, "))
 		sb.WriteString(t.columnNameRewrite("content", "nchar(1024), "))
 		sb.WriteString(t.columnNameRewrite("type", "nchar(32)"))
+		sb.WriteString(t.columnNameRewrite("traceId", "nchar(64)"))
 		sb.WriteString(" ) tags (")
 		sb.WriteString(t.columnNameRewrite("deviceId", "nchar(64)"))
 		sb.WriteString(");")

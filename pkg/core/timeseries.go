@@ -57,6 +57,7 @@ type TimeSeriesSave interface {
 
 type LogData struct {
 	Type       string `json:"type"`
+	TraceId    string `json:"traceId"`
 	DeviceId   string `json:"deviceId"`
 	Content    string `json:"content"`
 	CreateTime string `json:"createTime"`
