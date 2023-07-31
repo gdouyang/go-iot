@@ -11,9 +11,7 @@ import (
 	"github.com/eclipse/paho.mqtt.golang/packets"
 )
 
-// authContext
-// auth context have no message and session
-// when auth pass then session will be set
+// auth context have no message and session, when auth pass then session will be set
 type authContext struct {
 	core.BaseContext
 	client   *Client
@@ -47,7 +45,7 @@ func (ctx *authContext) DeviceOnline(deviceId string) {
 	if len(deviceId) > 0 {
 		device := core.GetDevice(deviceId)
 		if device == nil {
-			ctx.authFail1(packets.ErrRefusedIDRejected)
+			ctx._authFail(packets.ErrRefusedIDRejected)
 			return
 		}
 		ctx.DeviceId = deviceId
@@ -58,10 +56,10 @@ func (ctx *authContext) DeviceOnline(deviceId string) {
 }
 
 func (ctx *authContext) AuthFail() {
-	ctx.authFail1(packets.ErrRefusedNotAuthorised)
+	ctx._authFail(packets.ErrRefusedNotAuthorised)
 }
 
-func (ctx *authContext) authFail1(code int) {
+func (ctx *authContext) _authFail(code int) {
 	ctx.authFail = true
 	ctx.connack.ReturnCode = byte(code)
 	err := ctx.connack.Write(ctx.conn)

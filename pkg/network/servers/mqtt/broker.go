@@ -262,7 +262,7 @@ func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 		client.session = prevSess
 	} else {
 		if prevSess != nil {
-			prevSess.Disconnect()
+			prevSess.Close()
 		}
 		sess := &MqttSession{}
 		sess.init(b, connect)
