@@ -73,6 +73,12 @@ func (c *RespController) RespError(err error) error {
 	return c.Ctx.Output.JSON(resp, false, false)
 }
 
+func (c *RespController) RespErr(err *common.Err) error {
+	resp := common.JsonRespErr(err)
+	c.Ctx.Output.Status = err.Code
+	return c.Ctx.Output.JSON(resp, false, false)
+}
+
 func (c *RespController) Resp(resp common.JsonResp) error {
 	c.Ctx.Output.Status = resp.Code
 	return c.Ctx.Output.JSON(resp, false, false)

@@ -3,54 +3,8 @@ package common
 type MessageType string
 
 const (
-	PROPERTY_REPORT = "PropertyReport" // 属性上报
-	PROPERTY_READ   = "PropertyRead"   // 属性读取
-	PROPERTY_WRITE  = "PropertyWrite"  // 属性设置
-	DEVICE_ONLINE   = "DeviceOnline"   // 设备上线
-	DEVICE_OFFLINE  = "DeviceOffline"  // 设备离线
-	FUNC_INVOKE     = "FuncInvoke"     // 功能调用
+	FUNC_INVOKE = "FuncInvoke" // 功能调用
 )
-
-type Message interface {
-	Type() MessageType
-	GetData() interface{}
-}
-
-// 属性上报
-type PropertyReport struct {
-	DeviceId string
-	Data     map[string]interface{}
-}
-
-func (p *PropertyReport) Type() MessageType {
-	return PROPERTY_REPORT
-}
-
-func (p *PropertyReport) GetData() interface{} {
-	return p.Data
-}
-
-// 设备上线
-type DeviceOnline struct {
-	DeviceId string
-}
-
-func (p *DeviceOnline) Type() MessageType {
-	return DEVICE_ONLINE
-}
-
-func (p *DeviceOnline) GetData() interface{} {
-	return nil
-}
-
-// 设备离线
-type DeviceOffline struct {
-	DeviceOnline
-}
-
-func (p *DeviceOffline) Type() MessageType {
-	return DEVICE_OFFLINE
-}
 
 // 功能调用
 type FuncInvoke struct {
@@ -61,11 +15,17 @@ type FuncInvoke struct {
 	Data       map[string]interface{} `json:"data"`
 	Async      string                 `json:"async,omitempty"` // 是否异步执行，为"true"时将覆盖物模型的配置
 	Timeout    int                    `json:"timeout"`         // 同步调用时指定timeout可以覆盖默认超时时间
-	Replay     chan error             `json:"-"`
+	Replay     chan *FuncInvokeReply  `json:"-"`
 }
 
 func (p *FuncInvoke) Type() MessageType {
 	return FUNC_INVOKE
+}
+
+type FuncInvokeReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+	TraceId string `json:"-"`
 }
 
 type JsonResp struct {
@@ -89,4 +49,32 @@ func JsonRespError(err error) JsonResp {
 
 func JsonRespError1(err error, code int) JsonResp {
 	return JsonResp{Success: false, Msg: err.Error(), Code: code}
+}
+
+func JsonRespErr(err *Err) JsonResp {
+	return JsonResp{Success: false, Msg: err.Message, Code: err.Code}
+}
+
+type Err struct {
+	Code    int
+	Message string
+}
+
+func NewErr(code int, message string) *Err {
+	return &Err{Code: code, Message: message}
+}
+
+// 请求错误
+func NewErr400(message string) *Err {
+	return NewErr(400, message)
+}
+
+// 内部错误
+func NewErr500(message string) *Err {
+	return NewErr(500, message)
+}
+
+// 超时
+func NewErr504(message string) *Err {
+	return NewErr(504, message)
 }

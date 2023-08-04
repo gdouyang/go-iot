@@ -70,12 +70,7 @@ func init() {
 		StorePolicy: "mock",
 	}
 	core.PutProduct(product)
-	device := &core.Device{
-		Id:        "1234",
-		ProductId: product.GetId(),
-		Data:      make(map[string]string),
-		Config:    make(map[string]string),
-	}
+	device := core.NewDevice("1234", product.Id, 0)
 	core.PutDevice(device)
 }
 

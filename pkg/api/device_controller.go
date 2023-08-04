@@ -427,11 +427,11 @@ func (ctl *DeviceController) CmdInvoke() {
 		ctl.RespOkClusterData(resp)
 		return
 	} else {
-		err = core.DoCmdInvoke(ob)
-	}
-	if err != nil {
-		ctl.RespError(err)
-		return
+		err1 := core.DoCmdInvoke(ob)
+		if err1 != nil {
+			ctl.RespErr(err1)
+			return
+		}
 	}
 	ctl.RespOk()
 }

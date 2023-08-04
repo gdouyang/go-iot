@@ -3,8 +3,15 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"go-iot/pkg/core/common"
 	"go-iot/pkg/core/tsl"
+	"io"
+	"net/http"
+	"net/url"
 	"strings"
+	"sync"
+	"time"
 
 	logs "go-iot/pkg/logger"
 )
@@ -134,7 +141,7 @@ func NewDevice(devieId string, productId string, createId int64) *Device {
 		Id:        devieId,
 		ProductId: productId,
 		CreateId:  createId,
-		Data:      make(map[string]string),
+		Data:      sync.Map{},
 		Config:    make(map[string]string),
 	}
 }
@@ -146,7 +153,7 @@ type Device struct {
 	DeviceType string            `json:"deviceType"`
 	ClusterId  string            `json:"clusterId"` // 所在集群id
 	CreateId   int64             `json:"createId"`
-	Data       map[string]string `json:"data"`
+	Data       sync.Map          `json:"-"`
 	Config     map[string]string `json:"config"`
 }
 
@@ -163,9 +170,18 @@ func (d *Device) GetSession() Session {
 	s := GetSession(d.Id)
 	return s
 }
-func (d *Device) GetData() map[string]string {
-	return d.Data
+
+// 获取临时数据
+func (d *Device) GetData(key string) any {
+	v, _ := d.Data.Load(key)
+	return v
 }
+
+// 设置临时数据
+func (d *Device) SetData(key string, val any) {
+	d.Data.Store(key, val)
+}
+
 func (d *Device) GetConfig(key string) string {
 	if v, ok := d.Config[key]; ok {
 		return v
@@ -275,13 +291,101 @@ func (ctx *BaseContext) SaveEvents(eventId string, data any) {
 }
 
 func (ctx *BaseContext) ReplyOk() {
-	replyMap.reply(ctx.DeviceId, nil)
+	replyMap.reply(ctx.DeviceId, &common.FuncInvokeReply{Success: true})
 }
 
 func (ctx *BaseContext) ReplyFail(resp string) {
-	replyMap.reply(ctx.DeviceId, errors.New(resp))
+	replyMap.reply(ctx.DeviceId, &common.FuncInvokeReply{Success: false, Msg: resp})
+}
+
+// 异步消息的回复
+func (ctx *BaseContext) ReplyAsync(resp map[string]any) {
+	reply := &common.FuncInvokeReply{Success: true}
+	msg, ok := resp["msg"]
+	if ok {
+		reply.Msg = fmt.Sprintf("%v", msg)
+	}
+	if fmt.Sprintf("%v", resp["success"]) == "false" {
+		reply.Success = false
+	}
+	traceId, ok := resp["traceId"]
+	if ok {
+		reply.TraceId = fmt.Sprintf("%v", traceId)
+	}
+	replyLogAsync(ctx.GetProduct(), ctx.DeviceId, reply)
 }
 
 func (ctx *BaseContext) HttpRequest(config map[string]interface{}) map[string]interface{} {
 	return HttpRequest(config)
+}
+
+// http request func for http network
+func HttpRequest(config map[string]interface{}) map[string]interface{} {
+	result := map[string]interface{}{}
+	path := config["url"]
+	u, err := url.ParseRequestURI(fmt.Sprintf("%v", path))
+	if err != nil {
+		logs.Errorf(err.Error())
+		result["status"] = 400
+		result["message"] = err.Error()
+		return result
+	}
+	method := fmt.Sprintf("%v", config["method"])
+	client := http.Client{Timeout: time.Second * 3}
+	var req *http.Request = &http.Request{
+		Method: strings.ToUpper(method),
+		URL:    u,
+		Header: map[string][]string{},
+	}
+	if v, ok := config["header"]; ok {
+		h, ok := v.(map[string]interface{})
+		if !ok {
+			logs.Warnf("header is not object: %v", v)
+			h = map[string]interface{}{}
+		}
+		for key, value := range h {
+			req.Header.Add(key, fmt.Sprintf("%v", value))
+		}
+	}
+	if strings.ToLower(method) == "post" && (len(req.Header.Get("Content-Type")) == 0 || len(req.Header.Get("content-type")) == 0) {
+		req.Header.Add("Content-Type", "application/json; charset=utf-8")
+	}
+	if data, ok := config["data"]; ok {
+		if body, ok := data.(map[string]interface{}); ok {
+			b, err := json.Marshal(body)
+			if err != nil {
+				logs.Errorf("http data parse error: %v", err)
+				result["status"] = 400
+				result["message"] = err.Error()
+				return result
+			}
+			req.Body = io.NopCloser(strings.NewReader(string(b)))
+		} else {
+			req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf("%v", data)))
+		}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		logs.Errorf(err.Error())
+		result["status"] = resp.StatusCode
+		result["message"] = err.Error()
+		return result
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logs.Errorf(err.Error())
+		result["status"] = 400
+		result["message"] = err.Error()
+		return result
+	}
+	header := map[string]string{}
+	if resp.Header != nil {
+		for key := range resp.Header {
+			header[key] = resp.Header.Get(key)
+		}
+	}
+	result["data"] = string(b)
+	result["status"] = resp.StatusCode
+	result["header"] = header
+	return result
 }

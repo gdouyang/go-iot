@@ -3,20 +3,15 @@ package core
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"go-iot/pkg/boot"
 	"go-iot/pkg/cluster"
 	"go-iot/pkg/core/common"
 	"go-iot/pkg/redis"
-	"io"
-	"net/http"
-	"net/url"
-	"strings"
 	"sync"
 	"time"
 
-	logs "go-iot/pkg/logger"
+	"github.com/google/uuid"
 )
 
 func init() {
@@ -52,40 +47,41 @@ func DoCmdInvokeCluster(message common.FuncInvoke) {
 }
 
 // 进行功能调用
-func DoCmdInvoke(message common.FuncInvoke) error {
+func DoCmdInvoke(message common.FuncInvoke) *common.Err {
 	session := GetSession(message.DeviceId)
 	if session == nil {
-		return fmt.Errorf("device %s is offline", message.DeviceId)
+		return common.NewErr400(fmt.Sprintf("设备[%s]已离线", message.DeviceId))
 	}
 	device := GetDevice(message.DeviceId)
 	productId := device.ProductId
-	codec := GetCodec(productId)
-	if codec == nil {
-		return fmt.Errorf("core %s of product not found", productId)
-	}
 	product := GetProduct(productId)
 	if product == nil {
-		return fmt.Errorf("product %s not found, make sure deployed", productId)
+		return common.NewErr400(fmt.Sprintf("产品[%s]不存在，请确产品已发布", productId))
+	}
+	codec := GetCodec(productId)
+	if codec == nil {
+		return common.NewErr400(fmt.Sprintf("产品[%s]没有配置编解码", productId))
 	}
 	tslF := product.GetTsl().FunctionsMap()
 	if len(tslF) == 0 {
-		return fmt.Errorf("product [%s] have no functions", productId)
+		return common.NewErr400(fmt.Sprintf("产品[%s]没有配置功能", productId))
 	}
 	function, ok := tslF[message.FunctionId]
 	if !ok {
-		return fmt.Errorf("function [%s] of tsl not found", message.FunctionId)
+		return common.NewErr400(fmt.Sprintf("功能[%s]不存在", message.FunctionId))
 	}
-	if product != nil {
-		b, _ := json.Marshal(message)
-		product.GetTimeSeries().SaveLogs(product,
-			LogData{
-				Type:     "call",
-				TraceId:  message.TraceId,
-				DeviceId: message.DeviceId,
-				Content:  string(b),
-			},
-		)
+	if len(message.TraceId) == 0 {
+		message.TraceId = uuid.NewString()
 	}
+	b, _ := json.Marshal(message)
+	product.GetTimeSeries().SaveLogs(product,
+		LogData{
+			Type:     "call",
+			TraceId:  message.TraceId,
+			DeviceId: message.DeviceId,
+			Content:  string(b),
+		},
+	)
 	invokeContext := FuncInvokeContext{
 		BaseContext: BaseContext{
 			DeviceId:  message.DeviceId,
@@ -107,50 +103,64 @@ func DoCmdInvoke(message common.FuncInvoke) error {
 		}
 		err := replyMap.addReply(&message, timeout)
 		if err != nil {
-			return err
+			return common.NewErr500(err.Error())
 		}
 		// timeout of invoke
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		message.Replay = make(chan error)
+		message.Replay = make(chan *common.FuncInvokeReply)
 		go func(ctx context.Context) {
 			err := codec.OnInvoke(invokeContext)
 			if nil != err {
-				replyMap.reply(message.DeviceId, err)
+				message.Replay <- &common.FuncInvokeReply{Success: false, Msg: err.Error()}
 			}
 		}(ctx)
 		select {
 		case <-ctx.Done():
-			err = errors.New("invoke timeout")
-			replyLog(product, message, err.Error())
-			return err
-		case err := <-message.Replay:
-			if err != nil {
-				replyLog(product, message, err.Error())
-			} else {
-				replyLog(product, message, "")
+			err = fmt.Errorf("功能[%s]调用超时", message.FunctionId)
+			replyLogSync(product, message, &common.FuncInvokeReply{Success: false, Msg: err.Error()})
+			return common.NewErr504(err.Error())
+		case resp := <-message.Replay:
+			if resp != nil && !resp.Success {
+				// 失败
+				replyLogSync(product, message, resp)
+				if len(resp.Msg) > 0 {
+					return common.NewErr504(resp.Msg)
+				}
+				return common.NewErr504("请求失败")
 			}
-			return err
+			// 成功
+			replyLogSync(product, message, &common.FuncInvokeReply{Success: true})
+			return nil
 		}
 	}
 }
 
-func replyLog(product *Product, message common.FuncInvoke, reply string) {
+// 同步命令回复
+func replyLogSync(product *Product, message common.FuncInvoke, reply *common.FuncInvokeReply) {
 	if product != nil {
-		aligs := struct {
-			common.FuncInvoke
-			Reply string `json:"reply,omitempty"`
-		}{
-			FuncInvoke: message,
-			Reply:      reply,
-		}
-		b, _ := json.Marshal(aligs)
+		b, _ := json.Marshal(reply)
 		product.GetTimeSeries().SaveLogs(product,
 			LogData{
 				Type:     "reply",
 				DeviceId: message.DeviceId,
 				TraceId:  message.TraceId,
+				Content:  string(b),
+			},
+		)
+	}
+}
+
+// 异步命令回复
+func replyLogAsync(product *Product, deviceId string, reply *common.FuncInvokeReply) {
+	if product != nil && reply != nil {
+		b, _ := json.Marshal(reply)
+		product.GetTimeSeries().SaveLogs(product,
+			LogData{
+				Type:     "reply",
+				DeviceId: deviceId,
+				TraceId:  reply.TraceId,
 				Content:  string(b),
 			},
 		)
@@ -171,9 +181,9 @@ func (ctx *FuncInvokeContext) GetMessage() interface{} {
 }
 
 // cmd invoke reply
-var replyMap = &funcInvokeReply{}
+var replyMap = &funcInvokeReplyManager{}
 
-type funcInvokeReply struct {
+type funcInvokeReplyManager struct {
 	m sync.Map
 }
 
@@ -183,13 +193,13 @@ type reply struct {
 	cmd    *common.FuncInvoke
 }
 
-func (r *funcInvokeReply) addReply(i *common.FuncInvoke, exprie time.Duration) error {
+func (r *funcInvokeReplyManager) addReply(i *common.FuncInvoke, exprie time.Duration) error {
 	val, ok := r.m.Load(i.DeviceId)
 	now := time.Now().UnixMilli()
 	if ok {
 		v := val.(*reply)
 		if v.expire > now {
-			return fmt.Errorf("invoke [%s] is in process, please try later", i.FunctionId)
+			return fmt.Errorf("功能[%s]正在执行,请稍后再试", i.FunctionId)
 		}
 	}
 	r.m.Store(i.DeviceId, &reply{
@@ -200,82 +210,11 @@ func (r *funcInvokeReply) addReply(i *common.FuncInvoke, exprie time.Duration) e
 	return nil
 }
 
-func (r *funcInvokeReply) reply(deviceId string, resp error) {
+func (r *funcInvokeReplyManager) reply(deviceId string, resp *common.FuncInvokeReply) {
 	val, ok := r.m.Load(deviceId)
 	if ok {
 		v := val.(*reply)
 		v.cmd.Replay <- resp
 	}
 	r.m.Delete(deviceId)
-}
-
-// http request func for http network
-func HttpRequest(config map[string]interface{}) map[string]interface{} {
-	result := map[string]interface{}{}
-	path := config["url"]
-	u, err := url.ParseRequestURI(fmt.Sprintf("%v", path))
-	if err != nil {
-		logs.Errorf(err.Error())
-		result["status"] = 400
-		result["message"] = err.Error()
-		return result
-	}
-	method := fmt.Sprintf("%v", config["method"])
-	client := http.Client{Timeout: time.Second * 3}
-	var req *http.Request = &http.Request{
-		Method: strings.ToUpper(method),
-		URL:    u,
-		Header: map[string][]string{},
-	}
-	if v, ok := config["header"]; ok {
-		h, ok := v.(map[string]interface{})
-		if !ok {
-			logs.Warnf("header is not object: %v", v)
-			h = map[string]interface{}{}
-		}
-		for key, value := range h {
-			req.Header.Add(key, fmt.Sprintf("%v", value))
-		}
-	}
-	if strings.ToLower(method) == "post" && (len(req.Header.Get("Content-Type")) == 0 || len(req.Header.Get("content-type")) == 0) {
-		req.Header.Add("Content-Type", "application/json; charset=utf-8")
-	}
-	if data, ok := config["data"]; ok {
-		if body, ok := data.(map[string]interface{}); ok {
-			b, err := json.Marshal(body)
-			if err != nil {
-				logs.Errorf("http data parse error: %v", err)
-				result["status"] = 400
-				result["message"] = err.Error()
-				return result
-			}
-			req.Body = io.NopCloser(strings.NewReader(string(b)))
-		} else {
-			req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf("%v", data)))
-		}
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		logs.Errorf(err.Error())
-		result["status"] = resp.StatusCode
-		result["message"] = err.Error()
-		return result
-	}
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logs.Errorf(err.Error())
-		result["status"] = 400
-		result["message"] = err.Error()
-		return result
-	}
-	header := map[string]string{}
-	if resp.Header != nil {
-		for key := range resp.Header {
-			header[key] = resp.Header.Get(key)
-		}
-	}
-	result["data"] = string(b)
-	result["status"] = resp.StatusCode
-	result["header"] = header
-	return result
 }

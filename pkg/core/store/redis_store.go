@@ -77,13 +77,13 @@ func (m *redisDeviceStore) GetDevice(deviceId string) *core.Device {
 				logs.Errorf("device config parse error: %v", err)
 			}
 		}
-		dat := map[string]string{}
-		if str, ok := data["data"]; ok {
-			err = json.Unmarshal([]byte(str), &dat)
-			if err != nil {
-				logs.Errorf("device data parse error: %v", err)
-			}
-		}
+		// dat := map[string]string{}
+		// if str, ok := data["data"]; ok {
+		// 	err = json.Unmarshal([]byte(str), &dat)
+		// 	if err != nil {
+		// 		logs.Errorf("device data parse error: %v", err)
+		// 	}
+		// }
 		var createId int64
 		if str, ok := data["createId"]; ok {
 			createId, err = util.StringToInt64(str)
@@ -91,16 +91,11 @@ func (m *redisDeviceStore) GetDevice(deviceId string) *core.Device {
 				logs.Errorf("device createId parse error: %v", err)
 			}
 		}
-		dev := &core.Device{
-			Id:         data["id"],
-			ProductId:  data["productId"],
-			CreateId:   createId,
-			Config:     config,
-			Data:       dat,
-			ClusterId:  data["clusterId"],
-			DeviceType: data["devType"],
-			ParentId:   data["parentId"],
-		}
+		dev := core.NewDevice(data["id"], data["productId"], createId)
+		dev.Config = config
+		dev.ClusterId = data["clusterId"]
+		dev.DeviceType = data["devType"]
+		dev.ParentId = data["parentId"]
 		m.cache.Store(m.getDeviceKey(deviceId), dev)
 		return dev
 	}
@@ -110,7 +105,7 @@ func (m *redisDeviceStore) GetDevice(deviceId string) *core.Device {
 func (m *redisDeviceStore) PutDevice(device *core.Device) {
 	p := device
 	byt, _ := json.Marshal(p.Config)
-	dat, _ := json.Marshal(p.Data)
+	// dat, _ := json.Marshal(p.Data)
 	data := map[string]string{
 		"id":        p.Id,
 		"productId": p.ProductId,
@@ -119,7 +114,7 @@ func (m *redisDeviceStore) PutDevice(device *core.Device) {
 		"createId":  fmt.Sprintf("%v", p.CreateId),
 		"clusterId": p.ClusterId,
 		"config":    string(byt),
-		"data":      string(dat),
+		// "data":      string(dat),
 	}
 	rdb := redis.GetRedisClient()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)

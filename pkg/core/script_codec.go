@@ -93,7 +93,7 @@ func NewScriptCodec(productId, script string) (Codec, error) {
 
 // 设备连接时
 func (c *ScriptCodec) OnConnect(ctx MessageContext) error {
-	resp := c.FuncInvoke(OnConnect, ctx)
+	resp, _ := c.FuncInvoke(OnConnect, ctx)
 	if resp != nil {
 		return nil
 	}
@@ -108,8 +108,8 @@ func (c *ScriptCodec) OnMessage(ctx MessageContext) error {
 
 // 命令调用
 func (c *ScriptCodec) OnInvoke(ctx FuncInvokeContext) error {
-	c.FuncInvoke(OnInvoke, ctx)
-	return nil
+	_, err := c.FuncInvoke(OnInvoke, ctx)
+	return err
 }
 
 // 连接关闭
@@ -137,14 +137,14 @@ func (c *ScriptCodec) OnUpdate(ctx DeviceLifecycleContext) error {
 
 // 状态检查
 func (c *ScriptCodec) OnStateChecker(ctx DeviceLifecycleContext) (string, error) {
-	resp := c.FuncInvoke(OnStateChecker, ctx)
+	resp, err := c.FuncInvoke(OnStateChecker, ctx)
 	if resp != nil {
 		return resp.String(), nil
 	}
-	return "", nil
+	return "", err
 }
 
-func (c *ScriptCodec) FuncInvoke(name string, param interface{}) goja.Value {
+func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (goja.Value, error) {
 	vm := c.pool.Get()
 	defer c.pool.Put(vm)
 	fn, success := goja.AssertFunction(vm.Get(name))
@@ -159,7 +159,7 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) goja.Value {
 		if err != nil {
 			logs.Errorf("productId: [%s], error: %v", c.productId, err)
 		}
-		return resp
+		return resp, err
 	}
-	return nil
+	return nil, nil
 }
