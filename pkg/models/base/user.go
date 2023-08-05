@@ -113,6 +113,19 @@ func UpdateUser(ob *UserDTO) error {
 	return nil
 }
 
+func UpdateUserBaseInfo(ob *UserDTO) error {
+	if len(ob.Nickname) == 0 {
+		return fmt.Errorf("nickname must be present")
+	}
+	u := &ob.User
+	o := orm.NewOrm()
+	_, err := o.Update(u, "Nickname", "Email", "Desc")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func UpdateUserPwd(ob *models.User) error {
 	if ob.Id == 0 {
 		return errors.New("id must be present")

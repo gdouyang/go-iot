@@ -2,10 +2,13 @@ package rule
 
 import (
 	"errors"
+	"fmt"
 	"go-iot/pkg/models"
 
 	"go-iot/pkg/es/orm"
 )
+
+const maxDeviceIdsLength = 100
 
 // 分页查询
 func PageRule(page *models.PageQuery, createId *int64) (*models.PageResult[models.Rule], error) {
@@ -50,8 +53,8 @@ func AddRule(ob *models.RuleModel) error {
 	if rs != nil {
 		return errors.New("scene is exist")
 	}
-	if len(ob.DeviceIds) > 50 {
-		return errors.New("size of deviceIds must less 51")
+	if len(ob.DeviceIds) > maxDeviceIdsLength {
+		return fmt.Errorf("设备数不能超过%v", maxDeviceIdsLength)
 	}
 	ob.State = models.Stopped
 	en := ob.ToEnitty()
@@ -104,8 +107,8 @@ func UpdateRule(ob *models.RuleModel) error {
 	if len(columns) == 0 {
 		return errors.New("no data to update")
 	}
-	if len(ob.DeviceIds) > 50 {
-		return errors.New("size of deviceIds must less 51")
+	if len(ob.DeviceIds) > maxDeviceIdsLength {
+		return fmt.Errorf("设备数不能超过%v", maxDeviceIdsLength)
 	}
 	o := orm.NewOrm()
 	_, err := o.Update(&en, columns...)

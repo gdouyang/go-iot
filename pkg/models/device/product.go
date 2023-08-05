@@ -63,17 +63,17 @@ func AddProduct(ob *models.ProductModel) error {
 		return errors.New("id and name must be present")
 	}
 	if len(ob.Id) > 32 {
-		return errors.New("id length must less 32")
+		return errors.New("id需要长度小于32")
 	}
 	if !DeviceIdValid(ob.Id) {
-		return errors.New("productId is invalid")
+		return errors.New("id格式错误")
 	}
 	rs, err := GetProduct(ob.Id)
 	if err != nil {
 		return err
 	}
 	if rs != nil {
-		return fmt.Errorf("product %s exist", ob.Id)
+		return fmt.Errorf("产品[%s]已存在", ob.Id)
 	}
 	//插入数据
 	o := orm.NewOrm()

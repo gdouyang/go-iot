@@ -67,17 +67,17 @@ func AddDevice(ob *models.DeviceModel) error {
 		return errors.New("id, name must be present")
 	}
 	if !DeviceIdValid(ob.Id) {
-		return errors.New("deviceId is invalid")
+		return errors.New("ID格式错误")
 	}
 	if ob.DeviceType == core.SUBDEVICE && len(ob.ParentId) == 0 {
-		return errors.New("subdevice must have gateway")
+		return errors.New("子设备需要指定父级")
 	}
 	rs, err := GetDevice(ob.Id)
 	if err != nil {
 		return err
 	}
 	if rs != nil {
-		return errors.New("device is exist")
+		return errors.New("设备已存在")
 	}
 	ob.State = core.NoActive
 	en := ob.ToEnitty()

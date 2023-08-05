@@ -48,7 +48,7 @@ func (c *LoginController) login(ctl *RespController, username, password string, 
 		return err
 	}
 	if u == nil {
-		return errors.New("username or password invalid")
+		return errors.New("账号或密码错误")
 	}
 	u1 := models.User{
 		Username: username,
@@ -60,7 +60,7 @@ func (c *LoginController) login(ctl *RespController, username, password string, 
 		return err
 	}
 	if u1.Password != old.Password {
-		return errors.New("username or password invalid")
+		return errors.New("账号或密码错误")
 	}
 
 	permission, err := user.GetPermissionByUserId(u.Id)

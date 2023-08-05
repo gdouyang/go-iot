@@ -49,7 +49,7 @@ func (ctl *UserInfoController) SaveBasic() {
 		return
 	}
 	ob.Id = ctl.GetCurrentUser().Id
-	err = user.UpdateUser(&ob)
+	err = user.UpdateUserBaseInfo(&ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -87,7 +87,7 @@ func (ctl *UserInfoController) UpdatePwd() {
 		return
 	}
 	if old.Password != u1.Password {
-		ctl.RespError(errors.New("old password is incorrect"))
+		ctl.RespError(errors.New("旧密码错误"))
 		return
 	}
 	//

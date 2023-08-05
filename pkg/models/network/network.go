@@ -62,7 +62,7 @@ func AddNetWork(ob *models.Network) error {
 			return err
 		}
 		if rs != nil && rs.Id > 0 {
-			return fmt.Errorf("network exist of port[%d] ", ob.Port)
+			return fmt.Errorf("端口[%d]已被使用", ob.Port)
 		}
 	}
 	if len(ob.ProductId) > 0 {
@@ -71,7 +71,7 @@ func AddNetWork(ob *models.Network) error {
 			return err
 		}
 		if nw != nil {
-			return fmt.Errorf("network exist of product[%s] ", ob.ProductId)
+			return fmt.Errorf("网络配置已被产品[%s]管理", ob.ProductId)
 		}
 	}
 	//插入数据
@@ -187,7 +187,7 @@ func GetUnuseNetwork() (*models.Network, error) {
 	if len(result) > 0 {
 		return &result[0], nil
 	}
-	return nil, errors.New("no port is available to start the network service")
+	return nil, errors.New("没有空闲的端口可以使用")
 }
 
 func BindNetworkProduct(productId, networkType string) (*models.Network, error) {
