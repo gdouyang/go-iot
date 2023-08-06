@@ -161,9 +161,6 @@ func (e *realtime) writeLoop() {
 						break
 					}
 				}
-				if subs.Len() == 0 {
-					eventbus.UnSubscribe(unsub.Topic, send)
-				}
 			}
 		}
 	}
