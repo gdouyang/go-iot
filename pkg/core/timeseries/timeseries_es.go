@@ -134,19 +134,22 @@ func (t *EsTimeSeries) query(indexName string, param core.TimeDataSearchRequest)
 		SearchAfter: param.SearchAfter,
 	}
 	q.Sort = append(q.Sort, map[string]es.SortOrder{"createTime": {Order: "desc"}})
-
+	es.FilterCount(q, indexs...)
+	total, err := es.FilterCount(q, indexs...)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := es.FilterSearch(q, indexs...)
 	if err != nil {
 		return nil, err
 	}
 	var result map[string]any = map[string]any{
 		"pageNum":     param.PageNum,
-		"totalCount":  0,
+		"totalCount":  total,
 		"list":        []map[string]any{},
 		"searchAfter": []any{},
 	}
 	if err == nil && resp.Total > 0 {
-		result["totalCount"] = resp.Total
 		// convert each hit to result.
 		var list []map[string]any = []map[string]any{}
 		resp.ConvertSource(&list)

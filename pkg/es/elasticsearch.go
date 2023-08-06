@@ -283,7 +283,7 @@ func DeleteByQuery(index string, filter []map[string]any) error {
 	return nil
 }
 
-func FilterCount(index string, q Query) (int64, error) {
+func FilterCount(q Query, indexs ...string) (int64, error) {
 	body := map[string]any{
 		"query": map[string]any{
 			"bool": map[string]any{
@@ -296,11 +296,11 @@ func FilterCount(index string, q Query) (int64, error) {
 		return 0, err
 	}
 	if logs.IsDebug() {
-		logs.Debugf("==> %s %s %s", index, "count", string(data))
+		logs.Debugf("==> %s %s %s", strings.Join(indexs, ","), "count", string(data))
 	}
 	ignoreUnavailable := true
 	req := esapi.CountRequest{
-		Index:             []string{index},
+		Index:             indexs,
 		Body:              bytes.NewReader(data),
 		IgnoreUnavailable: &ignoreUnavailable,
 	}
@@ -317,7 +317,7 @@ func FilterCount(index string, q Query) (int64, error) {
 		str = `{"count": 0}`
 	}
 	if logs.IsDebug() {
-		logs.Debugf("<== %s %s %s", index, "count", str)
+		logs.Debugf("<== %s %s %s", strings.Join(indexs, ","), "count", str)
 	}
 	total := gjson.Get(str, "count")
 	return total.Int(), nil

@@ -93,7 +93,7 @@ func (q *QuerySeter) FilterTerm(terms ...core.SearchTerm) *QuerySeter {
 func (q *QuerySeter) Count() (int64, error) {
 	f := es.AppendFilter(q.filter)
 	query := es.Query{From: 0, Size: 1, Filter: f}
-	total, err := es.FilterCount(q.indexName, query)
+	total, err := es.FilterCount(query, q.indexName)
 	if err != nil {
 		return 0, err
 	}
