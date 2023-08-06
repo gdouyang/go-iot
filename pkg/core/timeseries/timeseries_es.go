@@ -348,7 +348,7 @@ func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) any {
 	case tsl.TypeEnum:
 		return es.Property{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypeString:
-		return es.Property{Type: "keyword"}
+		return es.Property{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypePassword:
 		return es.Property{Type: "keyword", IgnoreAbove: "256"}
 	case tsl.TypeDate:
