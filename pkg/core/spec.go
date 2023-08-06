@@ -204,16 +204,17 @@ type BaseContext struct {
 func (ctx *BaseContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
-		sess := GetSession(deviceId)
+		oldSession := GetSession(deviceId)
 		replace := false
-		if sess != nil && sess != ctx.GetSession() {
+		if oldSession != nil && oldSession != ctx.GetSession() {
 			replace = true
 			logs.Infof("an other connection come in, old session close %s", deviceId)
-			sess.Close()
+			oldSession.Close()
 		}
 		device := GetDevice(deviceId)
 		if device == nil {
 			logs.Warnf("device [%s] not exist, skip online", deviceId)
+			ctx.GetSession().Close()
 			return
 		}
 		ctx.DeviceId = deviceId
