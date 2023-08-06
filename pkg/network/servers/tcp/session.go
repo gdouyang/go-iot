@@ -2,71 +2,50 @@ package tcpserver
 
 import (
 	"encoding/hex"
+	"fmt"
 	"go-iot/pkg/core"
 	"net"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	logs "go-iot/pkg/logger"
 )
 
-func newTcpSession(s *TcpServerSpec, productId string, conn net.Conn) *TcpSession {
+const (
+	// Connected is ws client status of Connected
+	Connected = 1
+	// Disconnected is ws client status of Disconnected
+	Disconnected = 2
+)
+
+func newTcpSession(server *TcpServer, conn net.Conn, productId string) *TcpSession {
 	//2.网络数据流分隔器
-	delimeter := NewDelimeter(s.Delimeter, conn)
+	delimeter := NewDelimeter(server.spec.Delimeter, conn)
 	session := &TcpSession{
-		productId: productId,
-		conn:      conn, delimeter: delimeter,
-		done: make(chan struct{}),
+		id:         fmt.Sprintf("tcp%d", time.Now().UnixNano()),
+		tcpServer:  server,
+		conn:       conn,
+		productId:  productId,
+		delimeter:  delimeter,
+		send:       make(chan []byte, 256),
+		statusFlag: Connected,
 	}
 	return session
 }
 
 type TcpSession struct {
+	sync.Mutex
+	id        string
+	tcpServer *TcpServer
 	conn      net.Conn
-	deviceId  string
 	productId string
+	deviceId  string
 	keepalive uint16
 	delimeter Delimeter
-	done      chan struct{}
-	isClose   bool
-}
-
-func (s *TcpSession) Send(msg string) error {
-	_, err := s.conn.Write([]byte(msg))
-	if err != nil {
-		logs.Errorf("tcp Send error: %v", err)
-	}
-	return err
-}
-
-func (s *TcpSession) SendHex(msgHex string) error {
-	b, err := hex.DecodeString(msgHex)
-	if err != nil {
-		logs.Errorf("tcp hex decode error: %v", err)
-		return err
-	}
-	_, err = s.conn.Write(b)
-	if err != nil {
-		logs.Errorf("tcp SendHex error: %v", err)
-	}
-	return err
-}
-
-func (s *TcpSession) Disconnect() error {
-	if !s.isClose {
-		core.DelSession(s.deviceId)
-	}
-	err := s.Close()
-	return err
-}
-
-func (s *TcpSession) Close() error {
-	if s.isClose {
-		return nil
-	}
-	close(s.done)
-	s.isClose = true
-	err := s.conn.Close()
-	return err
+	// Buffered channel of outbound messages.
+	send       chan []byte
+	statusFlag int32
 }
 
 func (s *TcpSession) SetDeviceId(deviceId string) {
@@ -77,16 +56,52 @@ func (s *TcpSession) GetDeviceId() string {
 	return s.deviceId
 }
 
+func (s *TcpSession) Disconnect() error {
+	if s.disconnected() {
+		return nil
+	}
+	core.DelSession(s.deviceId)
+	err := s.Close()
+	return err
+}
+
+func (s *TcpSession) Close() error {
+	s.Lock()
+	if s.disconnected() {
+		s.Unlock()
+		return nil
+	}
+	atomic.StoreInt32(&s.statusFlag, Disconnected)
+	s.tcpServer.removeClient(s.id)
+	close(s.send)
+	err := s.conn.Close()
+	s.Unlock()
+	return err
+}
+
+func (s *TcpSession) Send(msg string) error {
+	s.send <- []byte(msg)
+	return nil
+}
+
+func (s *TcpSession) SendHex(msgHex string) error {
+	b, err := hex.DecodeString(msgHex)
+	if err != nil {
+		logs.Errorf("tcp hex decode error: %v", err)
+		return err
+	}
+	s.send <- b
+	return nil
+}
+
+func (c *TcpSession) disconnected() bool {
+	return atomic.LoadInt32(&c.statusFlag) == Disconnected
+}
+
 func (s *TcpSession) readLoop() {
 	keepAlive := time.Duration(s.keepalive) * time.Second
 	timeOut := keepAlive + keepAlive/2
 	for {
-		select {
-		case <-s.done:
-			return
-		default:
-		}
-
 		if keepAlive > 0 {
 			if err := s.conn.SetDeadline(time.Now().Add(timeOut)); err != nil {
 				logs.Errorf("set read timeout failed: %s", s.deviceId)
@@ -109,5 +124,22 @@ func (s *TcpSession) readLoop() {
 			},
 			Data: data,
 		})
+	}
+}
+
+func (c *TcpSession) writeLoop() {
+	defer func() {
+		c.Disconnect()
+	}()
+	for {
+		message, ok := <-c.send
+		if !ok {
+			// The hub closed the channel.
+			return
+		}
+		_, err := c.conn.Write(message)
+		if err != nil {
+			logs.Errorf("tcp write error: %v", err)
+		}
 	}
 }

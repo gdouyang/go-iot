@@ -7,13 +7,16 @@ import (
 	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
 	"net"
+	"sync"
 
 	logs "go-iot/pkg/logger"
 )
 
 func init() {
 	servers.RegServer(func() network.NetServer {
-		return &TcpServer{}
+		return &TcpServer{
+			clients: make(map[string]*TcpSession),
+		}
 	})
 }
 
@@ -21,18 +24,22 @@ var m = map[string]*TcpServer{}
 
 type (
 	TcpServer struct {
+		sync.RWMutex
 		productId string
 		spec      *TcpServerSpec
 		listener  net.Listener
 		tlsCfg    *tls.Config
 
 		// done is the channel for shutdowning this server.
-		done chan struct{}
+		done    chan struct{}
+		clients map[string]*TcpSession
 	}
 )
 
 func NewServer() *TcpServer {
-	return &TcpServer{}
+	return &TcpServer{
+		clients: make(map[string]*TcpSession),
+	}
 }
 
 func (s *TcpServer) Type() network.NetType {
@@ -105,7 +112,10 @@ func (s *TcpServer) run() {
 }
 
 func (s *TcpServer) handleConn(c net.Conn) {
-	session := newTcpSession(s.spec, s.productId, c)
+	session := newTcpSession(s, c, s.productId)
+	s.Lock()
+	s.clients[session.id] = session
+	s.Unlock()
 	defer session.Disconnect()
 
 	sc := core.GetCodec(s.productId)
@@ -118,7 +128,8 @@ func (s *TcpServer) handleConn(c net.Conn) {
 	})
 
 	//3.循环读取网络数据流
-	session.readLoop()
+	go session.readLoop()
+	go session.writeLoop()
 }
 
 func (s *TcpServer) Reload() error {
@@ -131,6 +142,17 @@ func (s *TcpServer) Stop() error {
 	return nil
 }
 
+func (b *TcpServer) removeClient(clientID string) {
+	b.Lock()
+	if val, ok := b.clients[clientID]; ok {
+		if val.disconnected() {
+			delete(b.clients, clientID)
+		}
+	}
+	b.Unlock()
+}
+
 func (s *TcpServer) TotalConnection() int32 {
-	return 0
+	l := len(s.clients)
+	return int32(l)
 }

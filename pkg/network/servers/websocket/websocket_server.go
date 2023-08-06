@@ -8,6 +8,7 @@ import (
 	"go-iot/pkg/network/servers"
 	"net"
 	"net/http"
+	"sync"
 
 	logs "go-iot/pkg/logger"
 
@@ -26,16 +27,19 @@ var upgrader = websocket.Upgrader{
 
 type (
 	WebSocketServer struct {
+		sync.RWMutex
 		productId   string
 		spec        *WebsocketServerSpec
 		server      *http.Server
 		pathmatcher eventbus.AntPathMatcher
+		clients     map[string]*WebsocketSession
 	}
 )
 
 func NewServer() *WebSocketServer {
 	return &WebSocketServer{
 		pathmatcher: *eventbus.NewAntPathMatcher(),
+		clients:     make(map[string]*WebsocketSession),
 	}
 }
 
@@ -112,9 +116,14 @@ func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session := newSession(conn, r, s.productId)
+	session := newSession(conn, r, s, s.productId)
+	s.Lock()
+	s.clients[session.id] = session
+	s.Unlock()
+
 	go session.readLoop()
 	go session.writeLoop()
+
 }
 
 func (s *WebSocketServer) Reload() error {
@@ -122,9 +131,25 @@ func (s *WebSocketServer) Reload() error {
 }
 
 func (s *WebSocketServer) Stop() error {
+	s.Lock()
+	defer s.Unlock()
+	for _, v := range s.clients {
+		go v.Disconnect()
+	}
 	return s.server.Close()
 }
 
+func (b *WebSocketServer) removeClient(clientID string) {
+	b.Lock()
+	if val, ok := b.clients[clientID]; ok {
+		if val.disconnected() {
+			delete(b.clients, clientID)
+		}
+	}
+	b.Unlock()
+}
+
 func (s *WebSocketServer) TotalConnection() int32 {
-	return 0
+	l := len(s.clients)
+	return int32(l)
 }

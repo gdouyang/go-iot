@@ -6,6 +6,8 @@ import (
 	"go-iot/pkg/core"
 	"net/http"
 	"net/url"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	logs "go-iot/pkg/logger"
@@ -14,6 +16,10 @@ import (
 )
 
 const (
+	// Connected is ws client status of Connected
+	Connected = 1
+	// Disconnected is ws client status of Disconnected
+	Disconnected = 2
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
 
@@ -24,16 +30,18 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 )
 
-func newSession(conn *websocket.Conn, r *http.Request, productId string) *WebsocketSession {
+func newSession(conn *websocket.Conn, r *http.Request, wsServer *WebSocketServer, productId string) *WebsocketSession {
 	r.ParseForm()
 	session := &WebsocketSession{
-		id:         fmt.Sprintf("%d", time.Now().UnixNano()),
+		id:         fmt.Sprintf("ws%d", time.Now().UnixNano()),
+		wsServer:   wsServer,
 		conn:       conn,
 		header:     r.Header,
 		form:       r.Form,
 		requestURI: r.RequestURI,
 		productId:  productId,
 		send:       make(chan *wsMsg, 256),
+		statusFlag: Connected,
 	}
 	return session
 }
@@ -44,7 +52,9 @@ type wsMsg struct {
 }
 
 type WebsocketSession struct {
+	sync.Mutex
 	id         string
+	wsServer   *WebSocketServer
 	conn       *websocket.Conn
 	header     http.Header
 	form       url.Values
@@ -52,8 +62,8 @@ type WebsocketSession struct {
 	deviceId   string
 	productId  string
 	// Buffered channel of outbound messages.
-	send    chan *wsMsg
-	isClose bool
+	send       chan *wsMsg
+	statusFlag int32
 }
 
 func (s *WebsocketSession) SetDeviceId(deviceId string) {
@@ -65,20 +75,25 @@ func (s *WebsocketSession) GetDeviceId() string {
 }
 
 func (s *WebsocketSession) Disconnect() error {
-	if !s.isClose {
-		core.DelSession(s.deviceId)
+	if s.disconnected() {
+		return nil
 	}
+	core.DelSession(s.deviceId)
 	err := s.Close()
 	return err
 }
 
 func (s *WebsocketSession) Close() error {
-	if s.isClose {
+	s.Lock()
+	if s.disconnected() {
+		s.Unlock()
 		return nil
 	}
-	s.isClose = true
+	atomic.StoreInt32(&s.statusFlag, Disconnected)
+	s.wsServer.removeClient(s.id)
 	close(s.send)
 	err := s.conn.Close()
+	s.Unlock()
 	return err
 }
 
@@ -95,6 +110,10 @@ func (s *WebsocketSession) SendBinary(msg string) error {
 	}
 	s.send <- &wsMsg{messageType: websocket.BinaryMessage, data: payload}
 	return nil
+}
+
+func (c *WebsocketSession) disconnected() bool {
+	return atomic.LoadInt32(&c.statusFlag) == Disconnected
 }
 
 // readLoop pumps messages from the websocket connection to the hub.
