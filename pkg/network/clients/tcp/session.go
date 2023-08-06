@@ -81,7 +81,7 @@ func (s *TcpSession) GetDeviceId() string {
 func (s *TcpSession) deviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
-		core.PutSession(deviceId, s)
+		core.PutSession(deviceId, s, false)
 	}
 }
 

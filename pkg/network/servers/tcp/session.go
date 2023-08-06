@@ -52,8 +52,10 @@ func (s *TcpSession) SendHex(msgHex string) error {
 }
 
 func (s *TcpSession) Disconnect() error {
+	if !s.isClose {
+		core.DelSession(s.deviceId)
+	}
 	err := s.Close()
-	core.DelSession(s.deviceId)
 	return err
 }
 

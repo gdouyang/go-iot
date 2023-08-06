@@ -113,7 +113,8 @@ func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session := newSession(conn, r, s.productId)
-	session.readLoop()
+	go session.readLoop()
+	go session.writeLoop()
 }
 
 func (s *WebSocketServer) Reload() error {

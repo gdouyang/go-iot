@@ -36,7 +36,7 @@ func (c *Client) Connect(deviceId string, network network.NetworkConf) error {
 	if err != nil {
 		return err
 	}
-	core.PutSession(deviceId, session)
+	core.PutSession(deviceId, session, false)
 	session.readLoop()
 	return nil
 }

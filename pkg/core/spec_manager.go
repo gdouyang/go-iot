@@ -17,10 +17,10 @@ func GetSession(deviceId string) Session {
 }
 
 // add session to sessionManager
-func PutSession(deviceId string, session Session) {
+func PutSession(deviceId string, session Session, replace bool) {
 	sessionManager.Store(deviceId, session)
 	device := GetDevice(deviceId)
-	if device != nil {
+	if device != nil && !replace {
 		evt := eventbus.NewOnlineMessage(deviceId, device.GetProductId())
 		eventbus.PublishOnline(&evt)
 	}

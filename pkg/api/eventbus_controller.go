@@ -76,18 +76,20 @@ func (ctl *EventbusWebSocketController) loop(productId string, deviceId string, 
 	addr := ws.RemoteAddr().String()
 	topic := fmt.Sprintf("/device/%s/%s/%s", productId, deviceId, typ)
 	realtime.Subscribe(realtime.Subscriber{ProductId: productId, DeviceId: deviceId, Topic: topic, Addr: addr, Conn: ws})
-	defer func() {
-		realtime.Unsubscribe(realtime.Subscriber{ProductId: productId, DeviceId: deviceId, Topic: topic, Addr: addr})
-	}()
+	go func() {
+		defer func() {
+			realtime.Unsubscribe(realtime.Subscriber{ProductId: productId, DeviceId: deviceId, Topic: topic, Addr: addr})
+		}()
 
-	// Message receive loop.
-	for {
-		_, _, err := ws.ReadMessage()
-		if err != nil {
-			if web.BConfig.WebConfig.AutoRender {
-				ctl.RespOk()
+		// Message receive loop.
+		for {
+			_, _, err := ws.ReadMessage()
+			if err != nil {
+				if web.BConfig.WebConfig.AutoRender {
+					ctl.RespOk()
+				}
+				return
 			}
-			return
 		}
-	}
+	}()
 }

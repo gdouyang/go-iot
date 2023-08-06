@@ -205,7 +205,9 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
 		sess := GetSession(deviceId)
+		replace := false
 		if sess != nil && sess != ctx.GetSession() {
+			replace = true
 			logs.Infof("an other connection come in, old session close %s", deviceId)
 			sess.Close()
 		}
@@ -216,7 +218,7 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 		}
 		ctx.DeviceId = deviceId
 		ctx.GetSession().SetDeviceId(deviceId)
-		PutSession(deviceId, ctx.GetSession())
+		PutSession(deviceId, ctx.GetSession(), replace)
 	}
 }
 

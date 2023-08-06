@@ -62,10 +62,11 @@ type Subscriber struct {
 
 // 集群realtime消息
 type clusterMessage struct {
-	ClusterId string `json:"clusterId"`
-	DeviceId  string `json:"deviceId"`
-	ProductId string `json:"productId"`
-	Origin    string `json:"origin"`
+	ClusterId  string               `json:"clusterId"`
+	DeviceId   string               `json:"deviceId"`
+	ProductId  string               `json:"productId"`
+	OriginType eventbus.MessageType `json:"originType"`
+	Origin     string               `json:"origin"`
 }
 
 func (m *clusterMessage) MarshalJSON() ([]byte, error) {
@@ -120,7 +121,11 @@ func (e *realtime) writeLoop() {
 				for sub := subs.Front(); sub != nil; sub = sub.Next() {
 					suber := sub.Value.(*Subscriber)
 					// 这里只处理满足条件的
-					path := fmt.Sprintf("/device/%s/%s/%s", event.GetProductId(), event.GetDeviceId(), event.Type())
+					eventType := event.Type()
+					if t, ok := event.(*clusterMessage); ok {
+						eventType = t.OriginType
+					}
+					path := fmt.Sprintf("/device/%s/%s/%s", event.GetProductId(), event.GetDeviceId(), eventType)
 					if !e.matcher.Match(suber.Topic, path) {
 						continue
 					}
@@ -129,7 +134,13 @@ func (e *realtime) writeLoop() {
 						d, _ := json.Marshal(event)
 						ws.WriteMessage(websocket.TextMessage, d)
 						if event.Type() != clusterMessageType && cluster.Enabled() {
-							clusterMsg := clusterMessage{ClusterId: cluster.GetClusterId(), DeviceId: event.GetDeviceId(), ProductId: event.GetProductId(), Origin: string(d)}
+							clusterMsg := clusterMessage{
+								ClusterId:  cluster.GetClusterId(),
+								DeviceId:   event.GetDeviceId(),
+								ProductId:  event.GetProductId(),
+								OriginType: event.Type(),
+								Origin:     string(d),
+							}
 							clusterMsgStr, _ := json.Marshal(clusterMsg)
 							redis.Pub(_CLUST_EVENT_KEY, clusterMsgStr)
 						}
