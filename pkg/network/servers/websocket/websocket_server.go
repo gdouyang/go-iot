@@ -116,7 +116,8 @@ func (s *WebSocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session := newSession(conn, r, s, s.productId)
+	session := newWebsocketSession(conn, r, s, s.productId)
+
 	s.Lock()
 	s.clients[session.id] = session
 	s.Unlock()

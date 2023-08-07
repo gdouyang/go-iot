@@ -2,6 +2,7 @@ package core_test
 
 import (
 	"go-iot/pkg/core"
+	"go-iot/pkg/logger"
 	"testing"
 
 	logs "go-iot/pkg/logger"
@@ -58,5 +59,23 @@ function OnStateChecker(context) {
 	case core.DeviceLifecycle:
 		m.OnCreate(&core.BaseContext{DeviceId: "2222"})
 	default:
+	}
+}
+
+func TestDecodeErr(t *testing.T) {
+	logger.InitNop()
+	script := `
+function OnConnect(context) {
+	context.getMessage()
+  console.log(JSON.stringify(context))
+}
+`
+	c, err := core.NewCodec("script_codec", "test", script)
+	if err != nil {
+		logs.Errorf(err.Error())
+	}
+	err = c.OnMessage(&core.BaseContext{DeviceId: "fff"})
+	if err != nil {
+		logs.Errorf(err.Error())
 	}
 }

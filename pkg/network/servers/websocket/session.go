@@ -30,7 +30,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 )
 
-func newSession(conn *websocket.Conn, r *http.Request, wsServer *WebSocketServer, productId string) *WebsocketSession {
+func newWebsocketSession(conn *websocket.Conn, r *http.Request, wsServer *WebSocketServer, productId string) *WebsocketSession {
 	r.ParseForm()
 	session := &WebsocketSession{
 		id:         fmt.Sprintf("ws%d", time.Now().UnixNano()),
@@ -125,7 +125,7 @@ func (s *WebsocketSession) readLoop() {
 	defer func() {
 		s.Disconnect()
 	}()
-	// The event loop
+	// 处理OnConnect步骤
 	sc := core.GetCodec(s.productId)
 	sc.OnConnect(&websocketContext{
 		BaseContext: core.BaseContext{
@@ -136,6 +136,9 @@ func (s *WebsocketSession) readLoop() {
 		form:       s.form,
 		requestURI: s.requestURI,
 	})
+	if s.disconnected() {
+		return
+	}
 	s.conn.SetReadDeadline(time.Now().Add(pongWait))
 	s.conn.SetPongHandler(func(string) error { s.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {

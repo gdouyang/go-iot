@@ -99,6 +99,20 @@ func (c *TcpSession) disconnected() bool {
 }
 
 func (s *TcpSession) readLoop() {
+	defer s.Disconnect()
+
+	// 处理OnConnect步骤
+	sc := core.GetCodec(s.productId)
+	sc.OnConnect(&tcpContext{
+		BaseContext: core.BaseContext{
+			ProductId: s.productId,
+			Session:   s,
+		},
+	})
+	if s.disconnected() {
+		return
+	}
+
 	keepAlive := time.Duration(s.keepalive) * time.Second
 	timeOut := keepAlive + keepAlive/2
 	for {

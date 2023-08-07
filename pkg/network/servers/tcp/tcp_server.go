@@ -3,7 +3,6 @@ package tcpserver
 import (
 	"crypto/tls"
 	"fmt"
-	"go-iot/pkg/core"
 	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
 	"net"
@@ -113,19 +112,10 @@ func (s *TcpServer) run() {
 
 func (s *TcpServer) handleConn(c net.Conn) {
 	session := newTcpSession(s, c, s.productId)
+
 	s.Lock()
 	s.clients[session.id] = session
 	s.Unlock()
-	defer session.Disconnect()
-
-	sc := core.GetCodec(s.productId)
-
-	sc.OnConnect(&tcpContext{
-		BaseContext: core.BaseContext{
-			ProductId: s.productId,
-			Session:   session,
-		},
-	})
 
 	//3.循环读取网络数据流
 	go session.readLoop()

@@ -208,12 +208,12 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 		replace := false
 		if oldSession != nil && oldSession != ctx.GetSession() {
 			replace = true
-			logs.Infof("an other connection come in, old session close %s", deviceId)
+			logs.Infof("device [%s] a new connection come in, old session close", deviceId)
 			oldSession.Close()
 		}
 		device := GetDevice(deviceId)
 		if device == nil {
-			logs.Warnf("device [%s] not exist, skip online", deviceId)
+			logs.Warnf("device [%s] not exist or noActive, close session", deviceId)
 			ctx.GetSession().Close()
 			return
 		}

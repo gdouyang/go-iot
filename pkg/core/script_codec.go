@@ -93,17 +93,14 @@ func NewScriptCodec(productId, script string) (Codec, error) {
 
 // 设备连接时
 func (c *ScriptCodec) OnConnect(ctx MessageContext) error {
-	resp, _ := c.FuncInvoke(OnConnect, ctx)
-	if resp != nil {
-		return nil
-	}
-	return ErrNotImpl
+	_, err := c.FuncInvoke(OnConnect, ctx)
+	return err
 }
 
 // 接收消息
 func (c *ScriptCodec) OnMessage(ctx MessageContext) error {
-	c.FuncInvoke(OnMessage, ctx)
-	return nil
+	_, err := c.FuncInvoke(OnMessage, ctx)
+	return err
 }
 
 // 命令调用
@@ -119,20 +116,20 @@ func (c *ScriptCodec) OnClose(ctx MessageContext) error {
 
 // 设备新增
 func (c *ScriptCodec) OnCreate(ctx DeviceLifecycleContext) error {
-	c.FuncInvoke(OnDeviceCreate, ctx)
-	return nil
+	_, err := c.FuncInvoke(OnDeviceCreate, ctx)
+	return err
 }
 
 // 设备删除
 func (c *ScriptCodec) OnDelete(ctx DeviceLifecycleContext) error {
-	c.FuncInvoke(OnDeviceDelete, ctx)
-	return nil
+	_, err := c.FuncInvoke(OnDeviceDelete, ctx)
+	return err
 }
 
 // 设备修改
 func (c *ScriptCodec) OnUpdate(ctx DeviceLifecycleContext) error {
-	c.FuncInvoke(OnDeviceUpdate, ctx)
-	return nil
+	_, err := c.FuncInvoke(OnDeviceUpdate, ctx)
+	return err
 }
 
 // 状态检查
@@ -161,5 +158,5 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (goja.Value, er
 		}
 		return resp, err
 	}
-	return nil, nil
+	return nil, ErrNotImpl
 }
