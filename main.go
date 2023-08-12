@@ -67,7 +67,7 @@ func defaultRecoverPanic(ctx *context.Context, cfg *web.Config) {
 		if err == web.ErrAbort {
 			return
 		}
-		logger.Errorf("the request url is %s", ctx.Input.URL())
+		logger.Errorf("the request url is %s, error:%v", ctx.Input.URL(), err)
 		var stack string
 		for i := 1; ; i++ {
 			_, file, line, ok := runtime.Caller(i)

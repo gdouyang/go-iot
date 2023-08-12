@@ -85,11 +85,11 @@ func (ctl *EventbusWebSocketController) loop(productId string, deviceId string, 
 		for {
 			_, _, err := ws.ReadMessage()
 			if err != nil {
-				if web.BConfig.WebConfig.AutoRender {
-					ctl.RespOk()
-				}
 				return
 			}
 		}
 	}()
+	if web.BConfig.WebConfig.AutoRender {
+		ctl.RespOk()
+	}
 }
