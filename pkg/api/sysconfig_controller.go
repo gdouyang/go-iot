@@ -2,12 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/models"
 	base "go-iot/pkg/models/base"
 
 	logs "go-iot/pkg/logger"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 var sysConfigResource = Resource{
@@ -20,18 +19,15 @@ var sysConfigResource = Resource{
 
 // 系统配置
 func init() {
-	ns := web.NewNamespace("/api/",
-		web.NSRouter("/anon/system/config", &AnonSysConfigController{}, "get:Get"),
-		web.NSRouter("/system/config", &SysConfigController{}, "post:Update"),
-		web.NSRouter("/token/refresh", &SysConfigController{}, "get:TokenExpire"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/anon/system/config", "GET", &AnonSysConfigController{}, "Get")
+	web.RegisterAPI("/system/config", "POST", &SysConfigController{}, "Update")
+	web.RegisterAPI("/system/config", "GET", &SysConfigController{}, "TokenExpire")
 
-	regResource(sysConfigResource)
+	RegResource(sysConfigResource)
 }
 
 type AnonSysConfigController struct {
-	RespController
+	web.RespController
 }
 
 func (ctl *AnonSysConfigController) Get() {

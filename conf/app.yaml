@@ -1,0 +1,32 @@
+api-addr: :8088
+
+# debug, info, warn, error
+logs:
+  level: debug
+  #format: json
+  #filename: logs/go-iot.log
+
+# es config
+es:
+  url: http://192.168.31.197:9200
+  usename: 
+  password: 
+  buffersize: 10000
+  bulksize: 1000
+  warntime: 1000 
+  numberOfShards: 1
+  numberOfReplicas: 0
+# redis config
+redis:
+  addr: 192.168.31.197:6379
+  db: 0
+  password: 
+
+# 集群配置
+cluster:
+  enabled: false
+  name: 
+  index: 1
+  token: abc
+  # url: http://192.168.31.221:8080
+  # hosts: http://192.168.31.221:8080,http://192.168.31.136:8080

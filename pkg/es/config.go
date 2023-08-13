@@ -2,9 +2,9 @@ package es
 
 import (
 	"fmt"
-	"strconv"
 
 	logs "go-iot/pkg/logger"
+	"go-iot/pkg/option"
 )
 
 // the config of elasticsearch
@@ -34,37 +34,13 @@ var DefaultEsConfig EsConfig = EsConfig{
 	NumberOfReplicas: "0",
 }
 
-func Config(fn func(key string, call func(string))) {
-	fn("es.url", func(s string) {
-		DefaultEsConfig.Url = s
-	})
-	fn("es.usename", func(s string) {
-		DefaultEsConfig.Username = s
-	})
-	fn("es.password", func(s string) {
-		DefaultEsConfig.Password = s
-	})
-	fn("es.numberOfShards", func(s string) {
-		DefaultEsConfig.NumberOfShards = s
-	})
-	fn("es.numberOfReplicas", func(s string) {
-		DefaultEsConfig.NumberOfReplicas = s
-	})
-	fn("es.buffersize", func(s string) {
-		num, err := strconv.Atoi(s)
-		if err == nil {
-			DefaultEsConfig.BufferSize = num
-		} else {
-			logs.Errorf("es.buffersize error: %v", err)
-		}
-	})
-	fn("es.warntime", func(s string) {
-		num, err := strconv.Atoi(s)
-		if err == nil {
-			DefaultEsConfig.WarnTime = num
-		} else {
-			logs.Errorf("es.warntime error: %v", err)
-		}
-	})
+func Config(opt *option.Options) {
+	DefaultEsConfig.Url = opt.Es.Url
+	DefaultEsConfig.Username = opt.Es.Username
+	DefaultEsConfig.Password = opt.Es.Password
+	DefaultEsConfig.NumberOfShards = opt.Es.NumberOfShards
+	DefaultEsConfig.NumberOfReplicas = opt.Es.NumberOfReplicas
+	DefaultEsConfig.BufferSize = opt.Es.BufferSize
+	DefaultEsConfig.WarnTime = opt.Es.WarnTime
 	logs.Infof("es config: %v", DefaultEsConfig)
 }

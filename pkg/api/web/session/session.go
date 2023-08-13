@@ -20,6 +20,7 @@ func getSessionId(key string) string {
 	return KEY_PREFIX + key
 }
 
+// expire sec
 func NewSession(expire int) *HttpSession {
 	val := fmt.Sprintf("%d", time.Now().Nanosecond())
 	data := []byte(val)

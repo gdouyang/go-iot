@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"go-iot/pkg/core/common"
+	"go-iot/pkg/option"
 	"hash/crc32"
 	"io"
 	"net/http"
@@ -53,39 +54,20 @@ func Shard(str string) bool {
 }
 
 // 配置集群
-func Config(fn func(key string, call func(string))) {
-	fn("cluster.enabled", func(s string) {
-		if s == "true" {
-			enabled = true
+func Config(opt *option.Options) {
+	enabled = opt.Cluster.Enable
+	currentNode.Name = opt.Cluster.Name
+	currentNode.Url = opt.Cluster.Url
+	token = opt.Cluster.Token
+	currentNode.Index = opt.Cluster.Index
+	hosts := strings.Split(opt.Cluster.Hosts, ",")
+	for _, url := range hosts {
+		if url != currentNode.Url {
+			var node ClusterNode
+			node.Url = url
+			nodes = append(nodes, &node)
 		}
-	})
-	fn("cluster.name", func(s string) {
-		currentNode.Name = s
-	})
-	fn("cluster.url", func(s string) {
-		currentNode.Url = s
-	})
-	fn("cluster.token", func(s string) {
-		token = s
-	})
-	fn("cluster.index", func(s string) {
-		index, err := strconv.Atoi(s)
-		if err == nil {
-			currentNode.Index = index
-		} else {
-			logs.Errorf("cluster.index error: %v", err)
-		}
-	})
-	fn("cluster.hosts", func(s string) {
-		hosts := strings.Split(s, ",")
-		for _, url := range hosts {
-			if url != currentNode.Url {
-				var node ClusterNode
-				node.Url = url
-				nodes = append(nodes, &node)
-			}
-		}
-	})
+	}
 	if enabled {
 		logs.Infof("cluster is enabled")
 		go func() {

@@ -3,11 +3,10 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/models"
 	role "go-iot/pkg/models/base"
 	"strconv"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 var roleResource = Resource{
@@ -23,17 +22,14 @@ var roleResource = Resource{
 
 // 产品管理
 func init() {
-	ns := web.NewNamespace("/api/role",
-		web.NSRouter("/page", &RoleController{}, "post:Page"),
-		web.NSRouter("/", &RoleController{}, "post:Add"),
-		web.NSRouter("/", &RoleController{}, "put:Update"),
-		web.NSRouter("/:id", &RoleController{}, "get:Get"),
-		web.NSRouter("/:id", &RoleController{}, "delete:Delete"),
-		web.NSRouter("/ref-menus/:id", &RoleController{}, "get:RefMenus"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/role/page", "POST", &RoleController{}, "Page")
+	web.RegisterAPI("/role", "POST", &RoleController{}, "Add")
+	web.RegisterAPI("/role", "PUT", &RoleController{}, "Update")
+	web.RegisterAPI("/role/{id}", "GET", &RoleController{}, "Get")
+	web.RegisterAPI("/role/{id}", "DELETE", &RoleController{}, "Delete")
+	web.RegisterAPI("/role/ref-menus/{id}", "GET", &RoleController{}, "RefMenus")
 
-	regResource(roleResource)
+	RegResource(roleResource)
 }
 
 type RoleController struct {
@@ -64,7 +60,7 @@ func (ctl *RoleController) Get() {
 	if ctl.isForbidden(roleResource, QueryAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -129,7 +125,7 @@ func (ctl *RoleController) Delete() {
 	if ctl.isForbidden(roleResource, DeleteAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -155,7 +151,7 @@ func (ctl *RoleController) RefMenus() {
 	if ctl.isForbidden(roleResource, QueryAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)

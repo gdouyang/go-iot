@@ -33,7 +33,7 @@ type start struct {
 }
 
 func (i *start) initResources() {
-	for _, r := range resources {
+	for _, r := range Resources {
 		var m models.MenuResource
 		m.Code = r.Id
 		m.Name = r.Name

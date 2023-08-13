@@ -2,22 +2,18 @@ package api
 
 import (
 	"errors"
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/models"
 	user "go-iot/pkg/models/base"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 func init() {
-	ns := web.NewNamespace("/api",
-		web.NSRouter("/login", &LoginController{}, "post:LoginJson"),
-		web.NSRouter("/logout", &LogoutController{}, "post:Logout"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/login", "POST", &LoginController{}, "LoginJson")
+	web.RegisterAPI("/logout", "POST", &LogoutController{}, "Logout")
 }
 
 type LoginController struct {
-	RespController
+	web.RespController
 }
 
 func (ctl *LoginController) LoginJson() {
@@ -33,7 +29,7 @@ func (ctl *LoginController) LoginJson() {
 		return
 	}
 
-	err = ctl.login(&ctl.RespController, ob.Username, ob.Password, ob.Expires)
+	err = ctl.login(ob.Username, ob.Password, ob.Expires)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -42,7 +38,7 @@ func (ctl *LoginController) LoginJson() {
 	ctl.RespOkData(ctl.GetSession().Sessionid)
 }
 
-func (c *LoginController) login(ctl *RespController, username, password string, expire int) error {
+func (c *LoginController) login(username, password string, expire int) error {
 	u, err := user.GetUserByEntity(models.User{Username: username})
 	if err != nil {
 		return err
@@ -73,7 +69,7 @@ func (c *LoginController) login(ctl *RespController, username, password string, 
 			actionMap[ac.Action] = true
 		}
 	}
-	session := ctl.NewSession(expire)
+	session := c.NewSession(expire)
 	session.SetAttribute("user", u)
 	session.SetPermission(actionMap)
 	return nil

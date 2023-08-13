@@ -2,12 +2,11 @@ package api
 
 import (
 	"errors"
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/models"
 	"go-iot/pkg/models/notify"
 	notify1 "go-iot/pkg/notify"
 	"strconv"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 var notifyResource = Resource{
@@ -22,21 +21,18 @@ var notifyResource = Resource{
 }
 
 func init() {
-	ns := web.NewNamespace("/api/notifier/config",
-		web.NSRouter("/page", &NotifyController{}, "post:Page"),
-		web.NSRouter("/list", &NotifyController{}, "post:ListAll"),
-		web.NSRouter("/", &NotifyController{}, "post:Add"),
-		web.NSRouter("/:id", &NotifyController{}, "put:Update"),
-		web.NSRouter("/:id", &NotifyController{}, "get:Get"),
-		web.NSRouter("/types", &NotifyController{}, "get:Types"),
-		web.NSRouter("/:id", &NotifyController{}, "delete:Delete"),
-		web.NSRouter("/:id/copy", &NotifyController{}, "post:Copy"),
-		web.NSRouter("/:id/start", &NotifyController{}, "post:Enable"),
-		web.NSRouter("/:id/stop", &NotifyController{}, "post:Disable"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/notifier/config/page", "POST", &NotifyController{}, "Page")
+	web.RegisterAPI("/notifier/config/list", "POST", &NotifyController{}, "ListAll")
+	web.RegisterAPI("/notifier/config", "POST", &NotifyController{}, "Add")
+	web.RegisterAPI("/notifier/config/{id}", "PUT", &NotifyController{}, "Update")
+	web.RegisterAPI("/notifier/config/{id}", "GET", &NotifyController{}, "Get")
+	web.RegisterAPI("/notifier/config/types", "GET", &NotifyController{}, "Types")
+	web.RegisterAPI("/notifier/config/{id}", "DELETE", &NotifyController{}, "Delete")
+	web.RegisterAPI("/notifier/config/{id}/copy", "POST", &NotifyController{}, "Copy")
+	web.RegisterAPI("/notifier/config/{id}/start", "POST", &NotifyController{}, "Enable")
+	web.RegisterAPI("/notifier/config/{id}/stop", "POST", &NotifyController{}, "Disable")
 
-	regResource(notifyResource)
+	RegResource(notifyResource)
 }
 
 type NotifyController struct {
@@ -85,7 +81,7 @@ func (ctl *NotifyController) Get() {
 	if ctl.isForbidden(notifyResource, QueryAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -161,7 +157,7 @@ func (ctl *NotifyController) Delete() {
 	if ctl.isForbidden(notifyResource, DeleteAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -187,7 +183,7 @@ func (ctl *NotifyController) Copy() {
 	if ctl.isForbidden(notifyResource, CretaeAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -230,7 +226,7 @@ func (ctl *NotifyController) Disable() {
 }
 
 func (ctl *NotifyController) _enable(flag bool) {
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)

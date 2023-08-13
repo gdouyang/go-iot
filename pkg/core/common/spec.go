@@ -1,5 +1,7 @@
 package common
 
+import "net/http"
+
 type MessageType string
 
 const (
@@ -36,15 +38,15 @@ type JsonResp struct {
 }
 
 func JsonRespOk() JsonResp {
-	return JsonResp{Success: true, Code: 200}
+	return JsonResp{Success: true, Code: http.StatusOK}
 }
 
 func JsonRespOkData(data interface{}) JsonResp {
-	return JsonResp{Success: true, Result: data, Code: 200}
+	return JsonResp{Success: true, Result: data, Code: http.StatusOK}
 }
 
 func JsonRespError(err error) JsonResp {
-	return JsonResp{Success: false, Msg: err.Error(), Code: 400}
+	return JsonResp{Success: false, Msg: err.Error(), Code: http.StatusBadRequest}
 }
 
 func JsonRespError1(err error, code int) JsonResp {
@@ -56,25 +58,29 @@ func JsonRespErr(err *Err) JsonResp {
 }
 
 type Err struct {
-	Code    int
-	Message string
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
 func NewErr(code int, message string) *Err {
 	return &Err{Code: code, Message: message}
 }
 
+func NewErrCode(code int) *Err {
+	return &Err{Code: code, Message: http.StatusText(code)}
+}
+
 // 请求错误
 func NewErr400(message string) *Err {
-	return NewErr(400, message)
+	return NewErr(http.StatusBadRequest, message)
 }
 
 // 内部错误
 func NewErr500(message string) *Err {
-	return NewErr(500, message)
+	return NewErr(http.StatusInternalServerError, message)
 }
 
 // 超时
 func NewErr504(message string) *Err {
-	return NewErr(504, message)
+	return NewErr(http.StatusGatewayTimeout, message)
 }

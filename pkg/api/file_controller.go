@@ -2,37 +2,17 @@ package api
 
 import (
 	"encoding/base64"
-	"go-iot/pkg/core/util"
+	"go-iot/pkg/api/web"
 	"io"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 func init() {
-	web.Router("/api/file/?:name", &FileAnonController{}, "get:File")
-	web.Router("/api/file/base64", &FileRootController{}, "post:Base64")
-	web.Router("/api/file/upload", &FileRootController{}, "post:Upload")
-}
-
-type FileAnonController struct {
-	RespController
-}
-
-func (ctl *FileAnonController) File() {
-	name := ctl.Param(":name")
-
-	path := "./files/" + name
-	exists, _ := util.FileExists(path)
-	if !exists {
-		http.Error(ctl.Ctx.ResponseWriter, "file not found", 404)
-	} else {
-		ctl.Ctx.Output.Download(path)
-	}
+	web.RegisterAPI("/file/base64", "POST", &FileRootController{}, "Base64")
+	web.RegisterAPI("/file/upload", "POST", &FileRootController{}, "Upload")
 }
 
 type FileRootController struct {
@@ -40,7 +20,7 @@ type FileRootController struct {
 }
 
 func (ctl *FileRootController) Base64() {
-	f, _, err := ctl.GetFile("file")
+	f, _, err := ctl.Request.FormFile("file")
 	if err != nil {
 		if err.Error() != "http: no such file" {
 			ctl.RespError(err)
@@ -58,7 +38,7 @@ func (ctl *FileRootController) Base64() {
 }
 
 func (ctl *FileRootController) Upload() {
-	f, h, err := ctl.GetFile("file")
+	f, h, err := ctl.Request.FormFile("file")
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -70,7 +50,15 @@ func (ctl *FileRootController) Upload() {
 		fileName = fileName[:index] + strconv.Itoa(int(time.Now().Unix())) + fileName[index:]
 	}
 	os.Mkdir("./files", os.ModePerm)
-	err = ctl.SaveToFile("file", "./files/"+fileName)
+
+	dst, err := os.OpenFile("./files/"+fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	defer dst.Close()
+
+	_, err = io.CopyBuffer(dst, f, make([]byte, 1024*32))
 	if err != nil {
 		ctl.RespError(err)
 		return

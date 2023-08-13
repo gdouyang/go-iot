@@ -1,25 +1,21 @@
 package api
 
 import (
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/models"
 	"go-iot/pkg/models/network"
 	"go-iot/pkg/network/servers"
 	"strconv"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 // 服务端管理
 func init() {
-	ns := web.NewNamespace("/api/server",
-		web.NSRouter("/list", &ServerController{}, "post:List"),
-		web.NSRouter("/", &ServerController{}, "post:Add"),
-		web.NSRouter("/", &ServerController{}, "put:Update"),
-		web.NSRouter("/:id", &ServerController{}, "delete:Delete"),
-		web.NSRouter("/start/:id", &ServerController{}, "get:Start"),
-		web.NSRouter("/meters/:id", &ServerController{}, "get:Meters"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/server/list", "POST", &ServerController{}, "List")
+	web.RegisterAPI("/server", "POST", &ServerController{}, "Add")
+	web.RegisterAPI("/server", "PUT", &ServerController{}, "Update")
+	web.RegisterAPI("/server/{id}", "DELETE", &ServerController{}, "Delete")
+	web.RegisterAPI("/server/start/{id}", "POST", &ServerController{}, "Start")
+	web.RegisterAPI("/server/meters/{id}", "GET", &ServerController{}, "Meters")
 }
 
 type ServerController struct {
@@ -100,7 +96,7 @@ func (ctl *ServerController) Start() {
 	if ctl.isForbidden(sysConfigResource, SaveAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -125,7 +121,7 @@ func (ctl *ServerController) Start() {
 }
 
 func (ctl *ServerController) Meters() {
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -137,10 +133,9 @@ func (ctl *ServerController) Meters() {
 		return
 	}
 	s := servers.GetServer(nw.ProductId)
+	m := map[string]interface{}{}
 	if s != nil {
-		m := map[string]interface{}{}
 		m["totalConnection"] = s.TotalConnection()
-		ctl.RespOkData(m)
 	}
-	ctl.RespOk()
+	ctl.RespOkData(m)
 }

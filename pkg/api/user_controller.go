@@ -2,11 +2,10 @@ package api
 
 import (
 	"errors"
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/models"
 	user "go-iot/pkg/models/base"
 	"strconv"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 var userResource = Resource{
@@ -21,18 +20,15 @@ var userResource = Resource{
 }
 
 func init() {
-	ns := web.NewNamespace("/api/user",
-		web.NSRouter("/page", &UserController{}, "post:Page"),
-		web.NSRouter("/", &UserController{}, "post:Add"),
-		web.NSRouter("/", &UserController{}, "put:Update"),
-		web.NSRouter("/:id", &UserController{}, "get:Get"),
-		web.NSRouter("/:id", &UserController{}, "delete:Delete"),
-		web.NSRouter("/enable/:id", &UserController{}, "put:Enable"),
-		web.NSRouter("/disable/:id", &UserController{}, "put:Disable"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/user/page", "POST", &UserController{}, "Page")
+	web.RegisterAPI("/user", "POST", &UserController{}, "Add")
+	web.RegisterAPI("/user", "PUT", &UserController{}, "Update")
+	web.RegisterAPI("/user/{id}", "GET", &UserController{}, "Get")
+	web.RegisterAPI("/user/{id}", "DELETE", &UserController{}, "Delete")
+	web.RegisterAPI("/user/enable/{id}", "PUT", &UserController{}, "Enable")
+	web.RegisterAPI("/user/disable/{id}", "PUT", &UserController{}, "Disable")
 
-	regResource(userResource)
+	RegResource(userResource)
 }
 
 type UserController struct {
@@ -62,7 +58,7 @@ func (ctl *UserController) Get() {
 	if ctl.isForbidden(userResource, QueryAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -123,7 +119,7 @@ func (ctl *UserController) Delete() {
 	if ctl.isForbidden(userResource, DeleteAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -149,7 +145,7 @@ func (ctl *UserController) Enable() {
 	if ctl.isForbidden(userResource, SaveAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -176,7 +172,7 @@ func (ctl *UserController) Disable() {
 	if ctl.isForbidden(userResource, SaveAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)

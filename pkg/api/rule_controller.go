@@ -2,13 +2,12 @@ package api
 
 import (
 	"errors"
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/cluster"
 	"go-iot/pkg/models"
 	rule "go-iot/pkg/models/rule"
 	"go-iot/pkg/ruleengine"
 	"strconv"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 var sceneResource = Resource{
@@ -23,18 +22,15 @@ var sceneResource = Resource{
 }
 
 func init() {
-	ns := web.NewNamespace("/api/rule",
-		web.NSRouter("/page", &RuleController{}, "post:Page"),
-		web.NSRouter("/", &RuleController{}, "post:Add"),
-		web.NSRouter("/:id", &RuleController{}, "put:Update"),
-		web.NSRouter("/:id", &RuleController{}, "get:Get"),
-		web.NSRouter("/:id", &RuleController{}, "delete:Delete"),
-		web.NSRouter("/:id/start", &RuleController{}, "post:Enable"),
-		web.NSRouter("/:id/stop", &RuleController{}, "post:Disable"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/rule/page", "POST", &RuleController{}, "Page")
+	web.RegisterAPI("/rule", "POST", &RuleController{}, "Add")
+	web.RegisterAPI("/rule/{id}", "PUT", &RuleController{}, "Update")
+	web.RegisterAPI("/rule/{id}", "GET", &RuleController{}, "Get")
+	web.RegisterAPI("/rule/{id}", "DELETE", &RuleController{}, "Delete")
+	web.RegisterAPI("/rule/{id}/start", "POST", &RuleController{}, "Enable")
+	web.RegisterAPI("/rule/{id}/stop", "POST", &RuleController{}, "Disable")
 
-	regResource(sceneResource)
+	RegResource(sceneResource)
 }
 
 type RuleController struct {
@@ -64,7 +60,7 @@ func (ctl *RuleController) Get() {
 	if ctl.isForbidden(sceneResource, QueryAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -124,7 +120,7 @@ func (ctl *RuleController) Delete() {
 	if ctl.isForbidden(sceneResource, DeleteAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -161,7 +157,7 @@ func (ctl *RuleController) Disable() {
 }
 
 func (ctl *RuleController) enable(flag bool) {
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	_id, err := strconv.Atoi(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -184,13 +180,13 @@ func (ctl *RuleController) enable(flag bool) {
 		state = models.Stopped
 		ruleengine.Stop(m.Id)
 	}
-	if ctl.isNotClusterRequest() {
+	if ctl.IsNotClusterRequest() {
 		err = rule.UpdateRuleStatus(state, m.Id)
 		if err != nil {
 			ctl.RespError(err)
 			return
 		}
-		cluster.BroadcastInvoke(ctl.Ctx.Request)
+		cluster.BroadcastInvoke(ctl.Request)
 	}
 	ctl.RespOk()
 }

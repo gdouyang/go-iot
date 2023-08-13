@@ -3,11 +3,11 @@ package redis
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
 	logs "go-iot/pkg/logger"
+	"go-iot/pkg/option"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -30,21 +30,10 @@ var DefaultRedisConfig RedisConfig = RedisConfig{
 }
 
 // config redis
-func Config(fn func(key string, call func(string))) {
-	fn("redis.addr", func(s string) {
-		DefaultRedisConfig.Addr = s
-	})
-	fn("redis.password", func(s string) {
-		DefaultRedisConfig.Password = s
-	})
-	fn("redis.db", func(s string) {
-		num, err := strconv.Atoi(s)
-		if err == nil {
-			DefaultRedisConfig.DB = num
-		} else {
-			logs.Errorf("redis.db error: %v", err)
-		}
-	})
+func Config(opt *option.Options) {
+	DefaultRedisConfig.Addr = opt.Redis.Addr
+	DefaultRedisConfig.Password = opt.Redis.Password
+	DefaultRedisConfig.DB = opt.Redis.Db
 	logs.Infof("redis config: %v", DefaultRedisConfig)
 	InitRedis()
 }

@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
 	"log"
@@ -14,19 +15,14 @@ import (
 
 	logs "go-iot/pkg/logger"
 
-	"github.com/beego/beego/v2/server/web"
 	"github.com/xuri/excelize/v2"
 )
 
 // 设备管理
 func init() {
-	ns := web.NewNamespace("/api/device",
-		web.NSRouter("/:productId/template", &DeviceImportController{}, "get:Download"),
-		web.NSRouter("/:productId/import", &DeviceImportController{}, "post:Import"),
-		web.NSRouter("/import-result/:token", &DeviceImportController{}, "get:ImportProcess"),
-	)
-	web.AddNamespace(ns)
-
+	web.RegisterAPI("/device/{productId}/template", "GET", &DeviceImportController{}, "Download")
+	web.RegisterAPI("/device/{productId}/import", "POST", &DeviceImportController{}, "Import")
+	web.RegisterAPI("/device/import-result/{token}", "GET", &DeviceImportController{}, "ImportProcess")
 }
 
 type DeviceImportController struct {
@@ -38,7 +34,7 @@ func (ctl *DeviceImportController) Download() {
 	if ctl.isForbidden(deviceResource, ImportAction) {
 		return
 	}
-	productId := ctl.Param(":productId")
+	productId := ctl.Param("productId")
 	product, err := device.GetProductMust(productId)
 	if err != nil {
 		ctl.RespError(err)
@@ -59,11 +55,11 @@ func (ctl *DeviceImportController) Download() {
 	}
 	xlsx.SetActiveSheet(0)
 	disposition := fmt.Sprintf("attachment; filename=%s导入模板.xlsx", url.QueryEscape(productId))
-	ctl.Ctx.ResponseWriter.Header().Set("Content-Type", "application/octet-stream")
-	ctl.Ctx.ResponseWriter.Header().Set("Content-Disposition", disposition)
-	ctl.Ctx.ResponseWriter.Header().Set("Content-Transfer-Encoding", "binary")
-	ctl.Ctx.ResponseWriter.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
-	xlsx.Write(ctl.Ctx.ResponseWriter)
+	ctl.ResponseWriter.Header().Set("Content-Type", "application/octet-stream")
+	ctl.ResponseWriter.Header().Set("Content-Disposition", disposition)
+	ctl.ResponseWriter.Header().Set("Content-Transfer-Encoding", "binary")
+	ctl.ResponseWriter.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+	xlsx.Write(ctl.ResponseWriter)
 }
 
 // 查询单个设备
@@ -71,7 +67,7 @@ func (ctl *DeviceImportController) Import() {
 	if ctl.isForbidden(deviceResource, ImportAction) {
 		return
 	}
-	productId := ctl.Param(":productId")
+	productId := ctl.Param("productId")
 	product, err := device.GetProductMust(productId)
 	if err != nil {
 		ctl.RespError(err)
@@ -81,7 +77,7 @@ func (ctl *DeviceImportController) Import() {
 		ctl.RespError(errors.New("product is not you created"))
 		return
 	}
-	f, _, err := ctl.GetFile("file")
+	f, _, err := ctl.Request.FormFile("file")
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -140,8 +136,8 @@ func (ctl *DeviceImportController) Import() {
 }
 
 func (ctl *DeviceImportController) ImportProcess() {
-	token := ctl.Param(":token")
-	w := ctl.Ctx.ResponseWriter.ResponseWriter
+	token := ctl.Param("token")
+	w := ctl.ResponseWriter
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")

@@ -2,20 +2,16 @@ package api
 
 import (
 	"errors"
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/models"
 	user "go-iot/pkg/models/base"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 // 产品管理
 func init() {
-	ns := web.NewNamespace("/api/user-info",
-		web.NSRouter("/", &UserInfoController{}, "get:Get"),
-		web.NSRouter("/save-basic", &UserInfoController{}, "put:SaveBasic"),
-		web.NSRouter("/update-pwd", &UserInfoController{}, "put:UpdatePwd"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/user-info", "GET", &UserInfoController{}, "Get")
+	web.RegisterAPI("/user-info/save-basic", "PUT", &UserInfoController{}, "SaveBasic")
+	web.RegisterAPI("/user-info/update-pwd", "PUT", &UserInfoController{}, "UpdatePwd")
 }
 
 type UserInfoController struct {
@@ -68,11 +64,11 @@ func (ctl *UserInfoController) UpdatePwd() {
 		return
 	}
 	if len(ob.PasswordOld) == 0 {
-		ctl.RespError(errors.New("passwrodOld must be present"))
+		ctl.RespErrorParam("passwrodOld")
 		return
 	}
 	if len(ob.Password) == 0 {
-		ctl.RespError(errors.New("passwrod must be present"))
+		ctl.RespErrorParam("passwrod")
 		return
 	}
 	u1 := models.User{

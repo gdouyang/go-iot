@@ -3,10 +3,9 @@ package api
 import (
 	// "runtime/pprof"
 
+	"go-iot/pkg/api/web"
 	"net/http/pprof"
 	"strings"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 var profResource = Resource{
@@ -18,21 +17,18 @@ var profResource = Resource{
 }
 
 func init() {
-	ns := web.NewNamespace("/api/prof",
-		web.NSRouter("/", &ProfController{}, "get:Get"),
-		web.NSRouter("/allocs", &ProfController{}, "get:Get"),
-		web.NSRouter("/block", &ProfController{}, "get:Get"),
-		web.NSRouter("/goroutine", &ProfController{}, "get:Get"),
-		web.NSRouter("/cmdline", &ProfController{}, "get:Get"),
-		web.NSRouter("/heap", &ProfController{}, "get:Get"),
-		web.NSRouter("/mutex", &ProfController{}, "get:Get"),
-		web.NSRouter("/profile", &ProfController{}, "get:Get"),
-		web.NSRouter("/threadcreate", &ProfController{}, "get:Get"),
-		web.NSRouter("/trace", &ProfController{}, "get:Get"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/prof", "GET", &ProfController{}, "Get")
+	web.RegisterAPI("/prof/allocs", "GET", &ProfController{}, "Get")
+	web.RegisterAPI("/prof/block", "GET", &ProfController{}, "Get")
+	web.RegisterAPI("/prof/goroutine", "GET", &ProfController{}, "Get")
+	web.RegisterAPI("/prof/cmdline", "GET", &ProfController{}, "Get")
+	web.RegisterAPI("/prof/heap", "GET", &ProfController{}, "Get")
+	web.RegisterAPI("/prof/mutex", "GET", &ProfController{}, "Get")
+	web.RegisterAPI("/prof/profile", "GET", &ProfController{}, "Get")
+	web.RegisterAPI("/prof/threadcreate", "GET", &ProfController{}, "Get")
+	web.RegisterAPI("/prof/trace", "GET", &ProfController{}, "Get")
 
-	regResource(profResource)
+	RegResource(profResource)
 }
 
 type ProfController struct {
@@ -43,9 +39,6 @@ func (ctl *ProfController) Get() {
 	if ctl.isForbidden(profResource, QueryAction) {
 		return
 	}
-	ctl.Ctx.Request.URL.Path = strings.Replace(ctl.Ctx.Request.URL.Path, "/api/prof/", "/debug/pprof/", 1)
-	pprof.Index(ctl.Ctx.ResponseWriter.ResponseWriter, ctl.Ctx.Request)
-	if web.BConfig.WebConfig.AutoRender {
-		ctl.RespOk()
-	}
+	ctl.Request.URL.Path = strings.Replace(ctl.Request.URL.Path, "/api/prof", "/debug/pprof", 1)
+	pprof.Index(ctl.ResponseWriter, ctl.Request)
 }

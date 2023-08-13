@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/cluster"
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/tsl"
@@ -11,8 +12,6 @@ import (
 	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
 	"strings"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 var productResource = Resource{
@@ -28,24 +27,21 @@ var productResource = Resource{
 
 // 产品管理
 func init() {
-	ns := web.NewNamespace("/api/product",
-		web.NSRouter("/page", &ProductController{}, "post:Page"),
-		web.NSRouter("/list", &ProductController{}, "get:List"),
-		web.NSRouter("/", &ProductController{}, "post:Add"),
-		web.NSRouter("/:id", &ProductController{}, "put:Update"),
-		web.NSRouter("/:id", &ProductController{}, "get:Get"),
-		web.NSRouter("/:id", &ProductController{}, "delete:Delete"),
-		web.NSRouter("/:id/deploy", &ProductController{}, "post:Deploy"),
-		web.NSRouter("/:id/undeploy", &ProductController{}, "post:Undeploy"),
-		web.NSRouter("/:id/tsl", &ProductController{}, "put:UpdateTsl"),
-		web.NSRouter("/:id/script", &ProductController{}, "put:UpdateScript"),
-		web.NSRouter("/network/:productId", &ProductController{}, "get:GetNetwork"),
-		web.NSRouter("/network", &ProductController{}, "put:UpdateNetwork"),
-		web.NSRouter("/network/:productId/run", &ProductController{}, "post:RunNetwork"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/product/page", "POST", &ProductController{}, "Page")
+	web.RegisterAPI("/product/list", "GET", &ProductController{}, "List")
+	web.RegisterAPI("/product", "POST", &ProductController{}, "Add")
+	web.RegisterAPI("/product/{id}", "PUT", &ProductController{}, "Update")
+	web.RegisterAPI("/product/{id}", "GET", &ProductController{}, "Get")
+	web.RegisterAPI("/product/{id}", "DELETE", &ProductController{}, "Delete")
+	web.RegisterAPI("/product/{id}/deploy", "POST", &ProductController{}, "Deploy")
+	web.RegisterAPI("/product/{id}/undeploy", "POST", &ProductController{}, "Undeploy")
+	web.RegisterAPI("/product/{id}/tsl", "PUT", &ProductController{}, "UpdateTsl")
+	web.RegisterAPI("/product/{id}/script", "PUT", &ProductController{}, "UpdateScript")
+	web.RegisterAPI("/product/network/{productId}", "GET", &ProductController{}, "GetNetwork")
+	web.RegisterAPI("/product/network", "PUT", &ProductController{}, "UpdateNetwork")
+	web.RegisterAPI("/product/network/{productId}/run", "POST", &ProductController{}, "RunNetwork")
 
-	regResource(productResource)
+	RegResource(productResource)
 }
 
 type ProductController struct {
@@ -95,7 +91,7 @@ func (ctl *ProductController) Add() {
 		return
 	}
 	if len(aligns.NetworkType) == 0 {
-		ctl.RespError(errors.New("networkType must be present"))
+		ctl.RespErrorParam("networkType")
 		return
 	}
 	aligns.CreateId = ctl.GetCurrentUser().Id
@@ -118,7 +114,7 @@ func (ctl *ProductController) Update() {
 		ctl.RespError(err)
 		return
 	}
-	ob.Id = ctl.Param(":id")
+	ob.Id = ctl.Param("id")
 	_, err = ctl.getProductAndCheckCreate(ob.Id)
 	if err != nil {
 		ctl.RespError(err)
@@ -140,7 +136,7 @@ func (ctl *ProductController) Get() {
 		return
 	}
 
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	p, err := ctl.getProductAndCheckCreate(id)
 	if err != nil {
 		ctl.RespError(err)
@@ -163,7 +159,7 @@ func (ctl *ProductController) Delete() {
 		return
 	}
 
-	productId := ctl.Param(":id")
+	productId := ctl.Param("id")
 	ob, err := ctl.getProductAndCheckCreate(productId)
 	if err != nil {
 		ctl.RespError(err)
@@ -171,7 +167,7 @@ func (ctl *ProductController) Delete() {
 	}
 	server := servers.GetServer(productId)
 	if server != nil {
-		ctl.RespError(errors.New("network is runing, please stop first"))
+		ctl.RespError(errors.New("网络服务正在运行, 请先停止"))
 		return
 	}
 	total, err := product.CountDeviceByProductId(productId)
@@ -180,7 +176,7 @@ func (ctl *ProductController) Delete() {
 		return
 	}
 	if total > 0 {
-		ctl.RespError(errors.New("product have device, can not delete"))
+		ctl.RespError(errors.New("产品下已存在设备, 请先删除设备"))
 		return
 	}
 	productoper, _ := core.NewProduct(productId, map[string]string{}, ob.StorePolicy, "")
@@ -203,14 +199,14 @@ func (ctl *ProductController) Deploy() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
-	id := ctl.Param(":id")
+	id := ctl.Param("id")
 	ob, err := ctl.getProductAndCheckCreate(id)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
 	if len(strings.TrimSpace(ob.Metadata)) == 0 {
-		ctl.RespError(errors.New("product have no tsl, config it first"))
+		ctl.RespError(errors.New("产品没有配置物模型，请先配置"))
 		return
 	}
 	tsl := tsl.TslData{}
@@ -220,7 +216,7 @@ func (ctl *ProductController) Deploy() {
 		return
 	}
 	if len(tsl.Properties) == 0 {
-		ctl.RespError(errors.New("tsl properties must be persent"))
+		ctl.RespError(errors.New("物模型属性为空，请先添加属性"))
 		return
 	}
 	config := map[string]string{}
@@ -247,16 +243,16 @@ func (ctl *ProductController) Undeploy() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
-	productId := ctl.Param(":id")
+	productId := ctl.Param("id")
 	ob, err := ctl.getProductAndCheckCreate(productId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
 	ob.State = false
-	if ctl.isNotClusterRequest() {
+	if ctl.IsNotClusterRequest() {
 		product.UpdateProductState(&ob.Product)
-		cluster.BroadcastInvoke(ctl.Ctx.Request)
+		cluster.BroadcastInvoke(ctl.Request)
 	}
 	core.DeleteProduct(productId)
 	// 调用集群接口
@@ -273,7 +269,7 @@ func (ctl *ProductController) UpdateTsl() {
 		ctl.RespError(err)
 		return
 	}
-	ob.Id = ctl.Param(":id")
+	ob.Id = ctl.Param("id")
 	_, err = ctl.getProductAndCheckCreate(ob.Id)
 	if err != nil {
 		ctl.RespError(err)
@@ -306,7 +302,7 @@ func (ctl *ProductController) UpdateScript() {
 		ctl.RespError(err)
 		return
 	}
-	productId := ctl.Param(":id")
+	productId := ctl.Param("id")
 	_, err = ctl.getProductAndCheckCreate(productId)
 	if err != nil {
 		ctl.RespError(err)
@@ -327,7 +323,7 @@ func (ctl *ProductController) GetNetwork() {
 	if ctl.isForbidden(productResource, QueryAction) {
 		return
 	}
-	productId := ctl.Param(":productId")
+	productId := ctl.Param("productId")
 	product, err := ctl.getProductAndCheckCreate(productId)
 	if err != nil {
 		ctl.RespError(err)
@@ -404,8 +400,8 @@ func (ctl *ProductController) RunNetwork() {
 	if ctl.isForbidden(productResource, SaveAction) {
 		return
 	}
-	productId := ctl.Param(":productId")
-	state := ctl.Ctx.Input.Query("state")
+	productId := ctl.Param("productId")
+	state := ctl.QueryMust("state")
 	produc, err := ctl.getProductAndCheckCreate(productId)
 	if err != nil {
 		ctl.RespError(err)
@@ -433,15 +429,15 @@ func (ctl *ProductController) RunNetwork() {
 		}
 	}
 	if len(nw.Type) == 0 {
-		ctl.RespError(errors.New("type of network must be present"))
+		ctl.RespError(errors.New("产品没有配置网络类型，请先配置"))
 		return
 	}
 	if len(produc.Script) == 0 {
-		ctl.RespError(errors.New("script must be present"))
+		ctl.RespError(errors.New("产品没有配置编解码，请先配置"))
 		return
 	}
 	if network.IsNetClientType(nw.Type) {
-		ctl.RespError(errors.New("client type net cant run"))
+		ctl.RespError(errors.New("客户端类型产品不能启动网络服务"))
 		return
 	}
 	if state == "start" {
@@ -467,10 +463,10 @@ func (ctl *ProductController) RunNetwork() {
 		ctl.RespError(errors.New("state must be start or stop"))
 		return
 	}
-	if ctl.isNotClusterRequest() {
+	if ctl.IsNotClusterRequest() {
 		networkmd.UpdateNetwork(nw)
 		// 调用集群接口
-		cluster.BroadcastInvoke(ctl.Ctx.Request)
+		cluster.BroadcastInvoke(ctl.Request)
 	}
 	ctl.RespOk()
 }

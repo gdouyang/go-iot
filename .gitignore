@@ -5,3 +5,4 @@ files/
 __debug_bin
 mqtt-assemblyscript-sdk/tests/output/
 *.log
+static/

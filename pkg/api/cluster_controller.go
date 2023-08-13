@@ -1,28 +1,24 @@
 package api
 
 import (
-	"errors"
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/cluster"
-
-	"github.com/beego/beego/v2/server/web"
+	"go-iot/pkg/core/common"
+	"net/http"
 )
 
 // 集群管理
 func init() {
-	ns := web.NewNamespace("/api/cluster",
-		web.NSRouter("/keepalive", &ClusterController{}, "post:Keepalive"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/cluster/keepalive", "POST", &ClusterController{}, "Keepalive")
 }
 
 type ClusterController struct {
-	RespController
+	web.RespController
 }
 
 func (ctl *ClusterController) Keepalive() {
-	if ctl.isNotClusterRequest() {
-		ctl.Ctx.Output.Status = 404
-		ctl.RespError(errors.New("NotFound"))
+	if ctl.IsNotClusterRequest() {
+		ctl.RespErr(common.NewErrCode(http.StatusMethodNotAllowed))
 		return
 	}
 	var ob cluster.ClusterNode

@@ -1,18 +1,14 @@
 package api
 
 import (
+	"go-iot/pkg/api/web"
 	user "go-iot/pkg/models/base"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 func init() {
-	ns := web.NewNamespace("/api/menu",
-		web.NSRouter("/list", &MenuController{}, "get:List"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/menu/list", "GET", &MenuController{}, "List")
 
-	regResource(Resource{
+	RegResource(Resource{
 		Id:   "menu-mgr",
 		Name: "菜单资源",
 		Action: []ResourceAction{

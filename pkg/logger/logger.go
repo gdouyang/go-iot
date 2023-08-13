@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"go-iot/pkg/option"
 	"io"
 	"os"
 	"time"
@@ -11,13 +12,13 @@ import (
 )
 
 // Init initializes logger.
-func Init(fn func(key string, call func(string))) {
-	initDefault(fn, true)
+func Init(opt *option.Options) {
+	initDefault(opt, true)
 }
 
 // InitNop initializes all logger as nop, mainly for unit testing
 func InitNop() {
-	initDefault(func(key string, call func(string)) {}, false)
+	initDefault(&option.Options{}, false)
 }
 
 const (
@@ -49,26 +50,24 @@ func defaultEncoderConfig() zapcore.EncoderConfig {
 	}
 }
 
-func initDefault(fn func(key string, call func(string)), file bool) {
+func initDefault(opt *option.Options, file bool) {
 	encoderConfig := defaultEncoderConfig()
 
-	fn("logs.level", func(s string) {
-		switch s {
-		case "debug":
-			lowestLevel = zap.DebugLevel
-		case "warn":
-			lowestLevel = zap.WarnLevel
-		case "error":
-			lowestLevel = zap.ErrorLevel
-		}
-	})
+	switch opt.Log.Level {
+	case "debug":
+		lowestLevel = zap.DebugLevel
+	case "warn":
+		lowestLevel = zap.WarnLevel
+	case "error":
+		lowestLevel = zap.ErrorLevel
+	}
 
 	var goiotLF io.Writer = os.Stdout
 	if file {
 		var filename string = stdoutFilename
-		fn("logs.filename", func(s string) {
-			filename = s
-		})
+		if len(opt.Log.Dir) > 0 {
+			filename = opt.Log.Dir
+		}
 		// os.Mkdir("logs", 0o777)
 		goiotLF = &lumberjack.Logger{
 			Filename:   filename, //filePath
@@ -79,9 +78,9 @@ func initDefault(fn func(key string, call func(string)), file bool) {
 		}
 	}
 	var format string = "text"
-	fn("logs.format", func(s string) {
-		format = s
-	})
+	if len(opt.Log.Format) > 0 {
+		format = opt.Log.Format
+	}
 
 	opts := []zap.Option{zap.AddCaller(), zap.AddCallerSkip(1)}
 	encoder := zapcore.NewConsoleEncoder(encoderConfig)

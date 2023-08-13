@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/cluster"
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/common"
@@ -12,8 +13,6 @@ import (
 	"time"
 
 	logs "go-iot/pkg/logger"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 var deviceResource = Resource{
@@ -30,27 +29,24 @@ var deviceResource = Resource{
 
 // 设备管理
 func init() {
-	ns := web.NewNamespace("/api/device",
-		web.NSRouter("/page", &DeviceController{}, "post:Page"),
-		web.NSRouter("/", &DeviceController{}, "post:Add"),
-		web.NSRouter("/", &DeviceController{}, "put:Update"),
-		web.NSRouter("/:id", &DeviceController{}, "delete:Delete"),
-		web.NSRouter("/:id", &DeviceController{}, "get:GetOne"),
-		web.NSRouter("/:id/detail", &DeviceController{}, "get:GetDetail"),
-		web.NSRouter("/:id/connect", &DeviceController{}, "post:Connect"),
-		web.NSRouter("/:id/disconnect", &DeviceController{}, "post:Disconnect"),
-		web.NSRouter("/:id/deploy", &DeviceController{}, "post:Deploy"),
-		web.NSRouter("/:id/undeploy", &DeviceController{}, "post:Undeploy"),
-		web.NSRouter("/batch/deploy", &DeviceController{}, "post:BatchDeploy"),
-		web.NSRouter("/batch/undeploy", &DeviceController{}, "post:BatchUndeploy"),
-		web.NSRouter("/:id/invoke", &DeviceController{}, "post:CmdInvoke"),
-		web.NSRouter(":id/properties", &DeviceController{}, "post:QueryProperty"),
-		web.NSRouter(":id/logs", &DeviceController{}, "post:QueryLogs"),
-		web.NSRouter(":id/event/:eventId", &DeviceController{}, "post:QueryEvent"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/device/page", "POST", &DeviceController{}, "Page")
+	web.RegisterAPI("/device", "POST", &DeviceController{}, "Add")
+	web.RegisterAPI("/device", "PUT", &DeviceController{}, "Update")
+	web.RegisterAPI("/device/{id}", "DELETE", &DeviceController{}, "Delete")
+	web.RegisterAPI("/device/{id}", "GET", &DeviceController{}, "GetOne")
+	web.RegisterAPI("/device/{id}/detail", "GET", &DeviceController{}, "GetDetail")
+	web.RegisterAPI("/device/{id}/connect", "POST", &DeviceController{}, "Connect")
+	web.RegisterAPI("/device/{id}/disconnect", "POST", &DeviceController{}, "Disconnect")
+	web.RegisterAPI("/device/{id}/deploy", "POST", &DeviceController{}, "Deploy")
+	web.RegisterAPI("/device/{id}/undeploy", "POST", &DeviceController{}, "Undeploy")
+	web.RegisterAPI("/device/batch/deploy", "POST", &DeviceController{}, "BatchDeploy")
+	web.RegisterAPI("/device/batch/undeploy", "POST", &DeviceController{}, "BatchUndeploy")
+	web.RegisterAPI("/device/{id}/invoke", "POST", &DeviceController{}, "CmdInvoke")
+	web.RegisterAPI("/device/{id}/properties", "POST", &DeviceController{}, "QueryProperty")
+	web.RegisterAPI("/device/{id}/logs", "POST", &DeviceController{}, "QueryLogs")
+	web.RegisterAPI("/device/{id}/event/{eventId}", "POST", &DeviceController{}, "QueryEvent")
 
-	regResource(deviceResource)
+	RegResource(deviceResource)
 }
 
 type DeviceController struct {
@@ -82,7 +78,7 @@ func (ctl *DeviceController) GetOne() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	deviceId := ctl.Param(":id")
+	deviceId := ctl.Param("id")
 	ob, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
@@ -96,7 +92,7 @@ func (ctl *DeviceController) GetDetail() {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	ob, err := ctl.getDeviceAndCheckCreateId(ctl.Param(":id"))
+	ob, err := ctl.getDeviceAndCheckCreateId(ctl.Param("id"))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -127,7 +123,7 @@ func (ctl *DeviceController) GetDetail() {
 		dev := core.GetDevice(ob.Id)
 		// 设备在其它节点时转发给其它节点执行
 		if cluster.Enabled() && dev != nil && len(dev.ClusterId) > 0 && dev.ClusterId != cluster.GetClusterId() {
-			resp, err := cluster.SingleInvoke(dev.ClusterId, ctl.Ctx.Request)
+			resp, err := cluster.SingleInvoke(dev.ClusterId, ctl.Request)
 			if err != nil {
 				ctl.RespError(err)
 				return
@@ -192,7 +188,7 @@ func (ctl *DeviceController) Delete() {
 	if ctl.isForbidden(deviceResource, DeleteAction) {
 		return
 	}
-	deviceId := ctl.Param(":id")
+	deviceId := ctl.Param("id")
 	_, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
@@ -211,7 +207,7 @@ func (ctl *DeviceController) Connect() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	deviceId := ctl.Param(":id")
+	deviceId := ctl.Param("id")
 	_, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
@@ -221,7 +217,7 @@ func (ctl *DeviceController) Connect() {
 		if cluster.Shard(deviceId) {
 			err = connectClientDevice(deviceId)
 		} else {
-			err = cluster.BroadcastInvoke(ctl.Ctx.Request)
+			err = cluster.BroadcastInvoke(ctl.Request)
 		}
 	} else {
 		err = connectClientDevice(deviceId)
@@ -237,7 +233,7 @@ func (ctl *DeviceController) Disconnect() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	deviceId := ctl.Param(":id")
+	deviceId := ctl.Param("id")
 	_, err := ctl.getDeviceAndCheckCreateId(deviceId)
 	if err != nil {
 		ctl.RespError(err)
@@ -246,7 +242,7 @@ func (ctl *DeviceController) Disconnect() {
 	dev := core.GetDevice(deviceId)
 	// 设备在其它节点时转发给其它节点执行
 	if cluster.Enabled() && dev != nil && len(dev.ClusterId) > 0 && dev.ClusterId != cluster.GetClusterId() {
-		resp, err := cluster.SingleInvoke(dev.ClusterId, ctl.Ctx.Request)
+		resp, err := cluster.SingleInvoke(dev.ClusterId, ctl.Request)
 		if err != nil {
 			ctl.RespError(err)
 			return
@@ -262,7 +258,7 @@ func (ctl *DeviceController) Disconnect() {
 			return
 		}
 	} else {
-		ctl.RespError(errors.New("device is offline"))
+		ctl.RespError(errors.New("设备离线"))
 		return
 	}
 	ctl.RespOk()
@@ -273,7 +269,7 @@ func (ctl *DeviceController) Deploy() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	deviceId := ctl.Param(":id")
+	deviceId := ctl.Param("id")
 	ctl.enable(deviceId, true)
 	ctl.RespOk()
 }
@@ -283,7 +279,7 @@ func (ctl *DeviceController) Undeploy() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	deviceId := ctl.Param(":id")
+	deviceId := ctl.Param("id")
 	ctl.enable(deviceId, false)
 	ctl.RespOk()
 }
@@ -391,9 +387,9 @@ func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
 		state = core.NoActive
 		core.DeleteDevice(deviceId)
 	}
-	if ctl.isNotClusterRequest() {
+	if ctl.IsNotClusterRequest() {
 		device.UpdateOnlineStatus(deviceId, state)
-		cluster.BroadcastInvoke(ctl.Ctx.Request)
+		cluster.BroadcastInvoke(ctl.Request)
 	}
 }
 
@@ -402,7 +398,7 @@ func (ctl *DeviceController) CmdInvoke() {
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
-	deviceId := ctl.Param(":id")
+	deviceId := ctl.Param("id")
 
 	var ob common.FuncInvoke
 	err := ctl.BindJSON(&ob)
@@ -418,8 +414,8 @@ func (ctl *DeviceController) CmdInvoke() {
 	}
 	device := core.GetDevice(deviceId)
 	if device != nil && device.ClusterId != cluster.GetClusterId() {
-		ctl.Ctx.Request.Header.Add(cluster.X_Cluster_Timeout, "13")
-		resp, err := cluster.SingleInvoke(device.ClusterId, ctl.Ctx.Request)
+		ctl.Request.Header.Add(cluster.X_Cluster_Timeout, "13")
+		resp, err := cluster.SingleInvoke(device.ClusterId, ctl.Request)
 		if err != nil {
 			ctl.RespError(err)
 			return
@@ -454,7 +450,7 @@ func (ctl *DeviceController) queryTimeseriesData(typ string) {
 		return
 	}
 
-	deviceId := ctl.Param(":id")
+	deviceId := ctl.Param("id")
 	var param core.TimeDataSearchRequest
 	err := ctl.BindJSON(&param)
 	if err != nil {
@@ -469,7 +465,7 @@ func (ctl *DeviceController) queryTimeseriesData(typ string) {
 	}
 	product := core.GetProduct(device.ProductId)
 	if product == nil {
-		ctl.RespError(fmt.Errorf("not found product %s, make sure product is deployed", device.ProductId))
+		ctl.RespError(fmt.Errorf("产品'%s'不存在, 请确保产品已发布", device.ProductId))
 		return
 	}
 	var res map[string]interface{}
@@ -478,7 +474,7 @@ func (ctl *DeviceController) queryTimeseriesData(typ string) {
 	} else if typ == core.TIME_TYPE_PROP {
 		res, err = product.GetTimeSeries().QueryProperty(product, param)
 	} else {
-		eventId := ctl.Param(":eventId")
+		eventId := ctl.Param("eventId")
 		res, err = product.GetTimeSeries().QueryEvent(product, eventId, param)
 	}
 	if err != nil {

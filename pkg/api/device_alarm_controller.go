@@ -1,10 +1,9 @@
 package api
 
 import (
+	"go-iot/pkg/api/web"
 	"go-iot/pkg/models"
 	alarm "go-iot/pkg/models/rule"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
 var alarmResource = Resource{
@@ -19,13 +18,10 @@ var alarmResource = Resource{
 }
 
 func init() {
-	ns := web.NewNamespace("/api/alarm",
-		web.NSRouter("/log/page", &AlarmController{}, "post:PageAlarmLog"),
-		web.NSRouter("/log/:id/solve", &AlarmController{}, "put:SolveAlarmLog"),
-	)
-	web.AddNamespace(ns)
+	web.RegisterAPI("/alarm/log/page", "POST", &AlarmController{}, "PageAlarmLog")
+	web.RegisterAPI("/alarm/log/{id}/solve", "PUT", &AlarmController{}, "SolveAlarmLog")
 
-	regResource(alarmResource)
+	RegResource(alarmResource)
 }
 
 type AlarmController struct {
