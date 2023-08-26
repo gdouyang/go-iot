@@ -10,13 +10,17 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
-var DefaultEsSaveHelper EsDataSaveHelper = EsDataSaveHelper{dataCh: make(chan string, DefaultEsConfig.BufferSize)}
+var DefaultEsSaveHelper EsDataSaveHelper = EsDataSaveHelper{
+	dataCh:         make(chan string, DefaultEsConfig.BufferSize),
+	lastCommitTime: time.Now().UnixMilli(),
+}
 
 type EsDataSaveHelper struct {
 	sync.RWMutex
-	batchData    []string
-	dataCh       chan string
-	batchTaskRun bool
+	batchData      []string
+	dataCh         chan string
+	batchTaskRun   bool
+	lastCommitTime int64
 }
 
 // commit data to saver, every 5 sec send to bulk request to es
@@ -43,11 +47,14 @@ func (t *EsDataSaveHelper) commit(index string, text string) {
 func (t *EsDataSaveHelper) batchSave() {
 	for {
 		select {
-		case <-time.After(time.Millisecond * 5000): // every 5 sec save data
+		case <-time.After(time.Millisecond * 5000): // 5秒内没有消息时保存
 			t.save()
 		case d := <-t.dataCh:
 			t.batchData = append(t.batchData, d)
 			if len(t.batchData) >= DefaultEsConfig.BulkSize {
+				t.save()
+			} else if t.lastCommitTime > 0 && time.Now().UnixMilli()-t.lastCommitTime >= 5000 { // 有消息但不够buff的
+				t.lastCommitTime = time.Now().UnixMilli()
 				t.save()
 			}
 		}
