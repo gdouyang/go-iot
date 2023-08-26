@@ -95,7 +95,7 @@ func New() *Options {
 	opt.flags.IntVar(&opt.Es.WarnTime, "es.warntime", 1000, "时序数据库保存时间阈值")
 	// 集群配置
 	opt.flags.BoolVar(&opt.Cluster.Enable, "cluster.enabled", false, "是否启用集群")
-	opt.flags.StringVar(&opt.Cluster.Name, "cluster.name", "node", "集群节点名")
+	opt.flags.StringVar(&opt.Cluster.Name, "cluster.name", "", "集群节点名")
 	opt.flags.IntVar(&opt.Cluster.Index, "cluster.index", 1, "集群index")
 	opt.flags.StringVar(&opt.Cluster.Token, "cluster.token", "", "集群通讯token")
 	opt.flags.StringVar(&opt.Cluster.Url, "cluster.url", "", "本机url")

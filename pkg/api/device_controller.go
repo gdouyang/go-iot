@@ -413,7 +413,7 @@ func (ctl *DeviceController) CmdInvoke() {
 		return
 	}
 	device := core.GetDevice(deviceId)
-	if device != nil && device.ClusterId != cluster.GetClusterId() {
+	if cluster.Enabled() && device != nil && device.ClusterId != cluster.GetClusterId() {
 		ctl.Request.Header.Add(cluster.X_Cluster_Timeout, "13")
 		resp, err := cluster.SingleInvoke(device.ClusterId, ctl.Request)
 		if err != nil {
