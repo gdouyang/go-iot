@@ -63,10 +63,10 @@ func AddProduct(ob *models.ProductModel) error {
 		return errors.New("id and name must be present")
 	}
 	if len(ob.Id) > 32 {
-		return errors.New("id需要长度小于32")
+		return errors.New("产品ID长度不能超过32")
 	}
 	if !DeviceIdValid(ob.Id) {
-		return errors.New("id格式错误")
+		return errors.New("产品ID格式错误")
 	}
 	rs, err := GetProduct(ob.Id)
 	if err != nil {

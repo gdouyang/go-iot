@@ -50,7 +50,7 @@ func DoCmdInvokeCluster(message common.FuncInvoke) {
 func DoCmdInvoke(message common.FuncInvoke) *common.Err {
 	session := GetSession(message.DeviceId)
 	if session == nil {
-		return common.NewErr400(fmt.Sprintf("设备[%s]已离线", message.DeviceId))
+		return common.NewErr400("设备已离线")
 	}
 	device := GetDevice(message.DeviceId)
 	productId := device.ProductId

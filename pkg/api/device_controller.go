@@ -128,7 +128,7 @@ func (ctl *DeviceController) GetDetail() {
 				ctl.RespError(err)
 				return
 			}
-			ctl.RespOkClusterData(resp)
+			ctl.Resp(*resp)
 			return
 		} else {
 			alins.State = core.GetDeviceState(ob.Id, ob.ProductId)
@@ -247,7 +247,7 @@ func (ctl *DeviceController) Disconnect() {
 			ctl.RespError(err)
 			return
 		}
-		ctl.RespOkClusterData(resp)
+		ctl.Resp(*resp)
 		return
 	}
 	session := core.GetSession(deviceId)
@@ -420,7 +420,7 @@ func (ctl *DeviceController) CmdInvoke() {
 			ctl.RespError(err)
 			return
 		}
-		ctl.RespOkClusterData(resp)
+		ctl.Resp(*resp)
 		return
 	} else {
 		err1 := core.DoCmdInvoke(ob)

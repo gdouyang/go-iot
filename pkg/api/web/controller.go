@@ -84,6 +84,11 @@ func (c *RespController) BindJSON(obj interface{}) error {
 
 func (c *RespController) JSON(data any) error {
 	c.ResponseWriter.Header().Add("Content-Type", "application/json; charset=utf-8")
+	if resp, ok := data.(common.JsonResp); ok {
+		c.WriteHeader(resp.Code)
+	} else if resp, ok := data.(*common.JsonResp); ok {
+		c.WriteHeader(resp.Code)
+	}
 	var content []byte
 	var err error
 	content, err = json.Marshal(data)
@@ -104,16 +109,8 @@ func (c *RespController) RespOkData(data interface{}) error {
 	return c.JSON(common.JsonRespOkData(data))
 }
 
-func (c *RespController) RespOkClusterData(data interface{}) error {
-	return c.JSON(data)
-}
-
 func (c *RespController) RespError(err error) error {
 	resp := common.JsonRespError(err)
-	if resp.Code == 0 {
-		resp.Code = 400
-	}
-	c.WriteHeader(resp.Code)
 	return c.JSON(resp)
 }
 
@@ -124,12 +121,10 @@ func (c *RespController) RespErrorParam(key string) error {
 
 func (c *RespController) RespErr(err *common.Err) error {
 	resp := common.JsonRespErr(err)
-	c.WriteHeader(err.Code)
 	return c.JSON(resp)
 }
 
 func (c *RespController) Resp(resp common.JsonResp) error {
-	c.WriteHeader(resp.Code)
 	return c.JSON(resp)
 }
 

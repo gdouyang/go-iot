@@ -66,8 +66,11 @@ func AddDevice(ob *models.DeviceModel) error {
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
 		return errors.New("id, name must be present")
 	}
+	if len(ob.Id) > 32 {
+		return errors.New("设备ID长度不能超过32")
+	}
 	if !DeviceIdValid(ob.Id) {
-		return errors.New("ID格式错误")
+		return errors.New("设备ID格式错误")
 	}
 	if ob.DeviceType == core.SUBDEVICE && len(ob.ParentId) == 0 {
 		return errors.New("子设备需要指定父级")

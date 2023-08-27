@@ -90,8 +90,7 @@ func Config(opt *option.Options) {
 
 func SingleInvoke(cluserId string, req *http.Request) (*common.JsonResp, error) {
 	if !enabled {
-		var r = common.JsonRespError(errors.New("cluster not enable"))
-		return &r, nil
+		return nil, errors.New("cluster not enable")
 	}
 	for _, n := range nodes {
 		if !n.Alive {
@@ -102,8 +101,7 @@ func SingleInvoke(cluserId string, req *http.Request) (*common.JsonResp, error) 
 			return resp, err
 		}
 	}
-	var r = common.JsonRespError(errors.New("clusterId not found"))
-	return &r, nil
+	return nil, errors.New("clusterId not found")
 }
 
 // 广播调用其它节点
