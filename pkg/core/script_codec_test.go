@@ -5,8 +5,6 @@ import (
 	"go-iot/pkg/logger"
 	"testing"
 
-	logs "go-iot/pkg/logger"
-
 	"github.com/dop251/goja"
 	"github.com/stretchr/testify/assert"
 )
@@ -50,7 +48,7 @@ function OnStateChecker(context) {
 `
 	c, err := core.NewCodec("script_codec", "test", script)
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Errorf(err.Error())
 	}
 	c.OnConnect(&core.BaseContext{DeviceId: "fff"})
 	c.OnInvoke(core.FuncInvokeContext{BaseContext: core.BaseContext{DeviceId: "fff"}})
@@ -72,10 +70,10 @@ function OnConnect(context) {
 `
 	c, err := core.NewCodec("script_codec", "test", script)
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Errorf(err.Error())
 	}
 	err = c.OnMessage(&core.BaseContext{DeviceId: "fff"})
 	if err != nil {
-		logs.Errorf(err.Error())
+		logger.Errorf(err.Error())
 	}
 }
