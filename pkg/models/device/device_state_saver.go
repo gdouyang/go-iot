@@ -59,6 +59,7 @@ func (m *deviceStateSaver) saveState() {
 	}
 	ticker := time.NewTicker(time.Millisecond * 3000)
 	defer ticker.Stop()
+	lastCommitTime := time.Now().UnixMilli()
 	for {
 		select {
 		case <-ticker.C: // every 3 sec save data
@@ -71,6 +72,11 @@ func (m *deviceStateSaver) saveState() {
 			} else if dev.state == core.OFFLINE {
 				offlineList = append(offlineList, dev)
 				offlineFn(100)
+			}
+			if time.Now().UnixMilli()-lastCommitTime >= 3000 {
+				lastCommitTime = time.Now().UnixMilli()
+				onlineFn(0)
+				offlineFn(0)
 			}
 		}
 	}
