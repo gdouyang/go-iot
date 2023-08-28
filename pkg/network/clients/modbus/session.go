@@ -203,9 +203,12 @@ func (s *ModbusSession) interval(f tsl.TslFunction) {
 				logs.Warnf("interval must gt 0, function=%v", f.Id)
 				return
 			}
+			ticker := time.NewTicker(time.Second * time.Duration(num))
+			defer ticker.Stop()
+
 			for {
 				select {
-				case <-time.After(time.Second * time.Duration(num)):
+				case <-ticker.C:
 					core.DoCmdInvoke(common.FuncInvoke{
 						FunctionId: f.Id,
 						DeviceId:   s.deviceId,

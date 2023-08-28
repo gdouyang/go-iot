@@ -117,9 +117,11 @@ func (c *client) initClient(deviceId string) {
 	// Our main loop for the client
 	// We send our relevant packets here
 	count := 1
+	ticker := time.NewTicker(time.Second * 1)
+	defer ticker.Stop()
 	for {
 		select {
-		case <-time.After(time.Duration(1) * time.Millisecond * 1000):
+		case <-ticker.C:
 			// Send an echo packet every second
 			err := conn.WriteMessage(websocket.TextMessage, []byte(`{"temperature": 16.1, "fff":1}`))
 			if err != nil {
@@ -146,7 +148,7 @@ func (c *client) initClient(deviceId string) {
 			select {
 			case <-c.done:
 				log.Println("Receiver Channel Closed! Exiting....")
-			case <-time.After(time.Duration(1) * time.Second):
+			case <-ticker.C:
 				log.Println("Timeout in closing receiving channel. Exiting....")
 			}
 			return

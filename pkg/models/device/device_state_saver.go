@@ -57,9 +57,11 @@ func (m *deviceStateSaver) saveState() {
 			offlineList = offlineList[:0]
 		}
 	}
+	ticker := time.NewTicker(time.Millisecond * 3000)
+	defer ticker.Stop()
 	for {
 		select {
-		case <-time.After(time.Millisecond * 3000): // every 3 sec save data
+		case <-ticker.C: // every 3 sec save data
 			onlineFn(0)
 			offlineFn(0)
 		case dev := <-m.stateCh:

@@ -45,9 +45,12 @@ func (t *EsDataSaveHelper) commit(index string, text string) {
 }
 
 func (t *EsDataSaveHelper) batchSave() {
+	ticker := time.NewTicker(time.Millisecond * 5000)
+	defer ticker.Stop()
+
 	for {
 		select {
-		case <-time.After(time.Millisecond * 5000): // 5秒内没有消息时保存
+		case <-ticker.C: // 5秒内没有消息时保存
 			t.save()
 		case d := <-t.dataCh:
 			t.batchData = append(t.batchData, d)
