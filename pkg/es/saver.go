@@ -2,7 +2,6 @@ package es
 
 import (
 	"bytes"
-	"sync"
 	"time"
 
 	logs "go-iot/pkg/logger"
@@ -15,11 +14,13 @@ var DefaultEsSaveHelper EsDataSaveHelper = EsDataSaveHelper{
 	lastCommitTime: time.Now().UnixMilli(),
 }
 
+func init() {
+	go DefaultEsSaveHelper.batchSave()
+}
+
 type EsDataSaveHelper struct {
-	sync.RWMutex
-	batchData      []string
+	bufferData     []string
 	dataCh         chan string
-	batchTaskRun   bool
 	lastCommitTime int64
 }
 
@@ -34,14 +35,6 @@ func (t *EsDataSaveHelper) commit(index string, text string) {
 	if len(t.dataCh) > (DefaultEsConfig.BufferSize / 2) {
 		logs.Infof("commit data to es, chan length: %v", len(t.dataCh))
 	}
-	if !t.batchTaskRun {
-		t.Lock()
-		defer t.Unlock()
-		if !t.batchTaskRun {
-			t.batchTaskRun = true
-			go t.batchSave()
-		}
-	}
 }
 
 func (t *EsDataSaveHelper) batchSave() {
@@ -53,8 +46,8 @@ func (t *EsDataSaveHelper) batchSave() {
 		case <-ticker.C: // 5秒内没有消息时保存
 			t.save()
 		case d := <-t.dataCh:
-			t.batchData = append(t.batchData, d)
-			if len(t.batchData) >= DefaultEsConfig.BulkSize {
+			t.bufferData = append(t.bufferData, d)
+			if len(t.bufferData) >= DefaultEsConfig.BulkSize {
 				t.save()
 			} else if t.lastCommitTime > 0 && time.Now().UnixMilli()-t.lastCommitTime >= 5000 { // 有消息但不够buff的
 				t.lastCommitTime = time.Now().UnixMilli()
@@ -65,13 +58,13 @@ func (t *EsDataSaveHelper) batchSave() {
 }
 
 func (t *EsDataSaveHelper) save() {
-	if len(t.batchData) > 0 {
+	if len(t.bufferData) > 0 {
 		var data []byte
-		for i := 0; i < len(t.batchData); i++ {
-			data = append(data, t.batchData[i]...)
+		for i := 0; i < len(t.bufferData); i++ {
+			data = append(data, t.bufferData[i]...)
 		}
 		// clear batch data
-		t.batchData = t.batchData[:0]
+		t.bufferData = t.bufferData[:0]
 		req := esapi.BulkRequest{
 			Body: bytes.NewReader(data),
 		}

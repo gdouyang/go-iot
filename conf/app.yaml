@@ -8,17 +8,14 @@ logs:
 
 # es config
 es:
-  url: http://192.168.31.197:9200
+  url: http://localhost:9200
   usename: 
   password: 
-  buffersize: 10000
-  bulksize: 1000
-  warntime: 1000 
   numberOfShards: 1
   numberOfReplicas: 0
 # redis config
 redis:
-  addr: 192.168.31.197:6379
+  addr: localhost:6379
   db: 0
   password: 
 

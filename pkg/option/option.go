@@ -26,7 +26,8 @@ type Es struct {
 	Password         string `yaml:"password"`
 	NumberOfShards   string `yaml:"numberOfShards"`
 	NumberOfReplicas string `yaml:"numberOfReplicas"`
-	BufferSize       int    `yaml:"bulksize"`
+	BufferSize       int    `yaml:"bufferSize"`
+	BulkSize         int    `yaml:"bulkSize"`
 	WarnTime         int    `yaml:"warntime"`
 }
 
@@ -91,8 +92,9 @@ func New() *Options {
 	opt.flags.StringVar(&opt.Es.Password, "es.password", "", "elasticsearch密码")
 	opt.flags.StringVar(&opt.Es.NumberOfShards, "es.numberOfShards", "1", "时序数据分片数")
 	opt.flags.StringVar(&opt.Es.NumberOfReplicas, "es.numberOfReplicas", "0", "数序数据副本数")
-	opt.flags.IntVar(&opt.Es.BufferSize, "es.buffersize", 10000, "时序数据库批量提交buffer")
-	opt.flags.IntVar(&opt.Es.WarnTime, "es.warntime", 1000, "时序数据库保存时间阈值")
+	opt.flags.IntVar(&opt.Es.BufferSize, "es.bufferSize", 10000, "时序数据内存缓冲大小")
+	opt.flags.IntVar(&opt.Es.BulkSize, "es.bulkSize", 1000, "时序数据批量提交大小")
+	opt.flags.IntVar(&opt.Es.WarnTime, "es.warntime", 1000, "时序数据保存时间阈值")
 	// 集群配置
 	opt.flags.BoolVar(&opt.Cluster.Enable, "cluster.enabled", false, "是否启用集群")
 	opt.flags.StringVar(&opt.Cluster.Name, "cluster.name", "", "集群节点名")
