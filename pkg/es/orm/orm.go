@@ -129,6 +129,7 @@ func (q *QuerySeter) Update(p Params) (int64, error) {
 		sb.WriteString(" = ")
 		sb.WriteString("params.")
 		sb.WriteString(key)
+		sb.WriteString(";")
 	}
 	script := map[string]interface{}{
 		"source": sb.String(),
