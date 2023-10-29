@@ -9,20 +9,16 @@ import (
 
 // 集群管理
 func init() {
-	web.RegisterAPI("/cluster/keepalive", "POST", &ClusterController{}, "Keepalive")
-}
-
-type ClusterController struct {
-	web.RespController
-}
-
-func (ctl *ClusterController) Keepalive() {
-	if ctl.IsNotClusterRequest() {
-		ctl.RespErr(common.NewErrCode(http.StatusMethodNotAllowed))
-		return
-	}
-	var ob cluster.ClusterNode
-	ctl.BindJSON(&ob)
-	cluster.Keepalive(ob)
-	ctl.RespOk()
+	// 集群保活接口
+	web.RegisterAPI("/cluster/keepalive", "POST", func(w http.ResponseWriter, r *http.Request) {
+		ctl := web.NewController(w, r)
+		if ctl.IsNotClusterRequest() {
+			ctl.RespErr(common.NewErrCode(http.StatusMethodNotAllowed))
+			return
+		}
+		var ob cluster.ClusterNode
+		ctl.BindJSON(&ob)
+		cluster.Keepalive(ob)
+		ctl.RespOk()
+	})
 }

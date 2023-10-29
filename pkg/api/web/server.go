@@ -14,10 +14,11 @@ type (
 
 	// Entry is the entry of API.
 	Entry struct {
-		Path       string
-		Method     string
-		Controller ControllerInterface
-		Handler    string
+		Path          string
+		Method        string
+		Controller    ControllerInterface
+		HandlerMethod string
+		Handler       http.HandlerFunc
 	}
 )
 

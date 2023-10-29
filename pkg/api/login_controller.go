@@ -5,40 +5,41 @@ import (
 	"go-iot/pkg/api/web"
 	"go-iot/pkg/models"
 	user "go-iot/pkg/models/base"
+	"net/http"
 )
 
 func init() {
-	web.RegisterAPI("/login", "POST", &LoginController{}, "LoginJson")
-	web.RegisterAPI("/logout", "POST", &LogoutController{}, "Logout")
+	// 登录
+	web.RegisterAPI("/login", "POST", func(w http.ResponseWriter, r *http.Request) {
+		ctl := web.NewController(w, r)
+		var ob = struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+			Expires  int    `json:"expires"`
+		}{}
+
+		err := ctl.BindJSON(&ob)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+
+		err = login(ctl, ob.Username, ob.Password, ob.Expires)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+
+		ctl.RespOkData(ctl.GetSession().Sessionid)
+	})
+	// 登出
+	web.RegisterAPI("/logout", "POST", func(w http.ResponseWriter, r *http.Request) {
+		ctl := NewAuthController(w, r)
+		ctl.Logout()
+	})
 }
 
-type LoginController struct {
-	web.RespController
-}
-
-func (ctl *LoginController) LoginJson() {
-	var ob = struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Expires  int    `json:"expires"`
-	}{}
-
-	err := ctl.BindJSON(&ob)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-
-	err = ctl.login(ob.Username, ob.Password, ob.Expires)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-
-	ctl.RespOkData(ctl.GetSession().Sessionid)
-}
-
-func (c *LoginController) login(username, password string, expire int) error {
+func login(c *web.RespController, username, password string, expire int) error {
 	u, err := user.GetUserByEntity(models.User{Username: username})
 	if err != nil {
 		return err
@@ -73,12 +74,4 @@ func (c *LoginController) login(username, password string, expire int) error {
 	session.SetAttribute("user", u)
 	session.SetPermission(actionMap)
 	return nil
-}
-
-type LogoutController struct {
-	AuthController
-}
-
-func (ctl *LogoutController) Logout() {
-	ctl.AuthController.Logout(&ctl.AuthController)
 }

@@ -6,6 +6,7 @@ import (
 	"go-iot/pkg/api/web/session"
 	"go-iot/pkg/cluster"
 	"go-iot/pkg/core/common"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,6 +26,13 @@ type ControllerInterface interface {
 type RespController struct {
 	Request        *http.Request
 	ResponseWriter http.ResponseWriter
+}
+
+func NewController(w http.ResponseWriter, r *http.Request) *RespController {
+	ctl := &RespController{}
+	ctl.Init(w, r)
+	ctl.Prepare()
+	return ctl
 }
 
 func (c *RespController) Init(w http.ResponseWriter, r *http.Request) {
@@ -140,6 +148,10 @@ func (c *RespController) WriteHeader(statusCode int) {
 
 func (c *RespController) StopRun() {
 	panic(http.ErrAbortHandler)
+}
+
+func (c *RespController) FormFile(key string) (multipart.File, *multipart.FileHeader, error) {
+	return c.Request.FormFile(key)
 }
 
 func (ctl *RespController) Download(file string, filename ...string) {

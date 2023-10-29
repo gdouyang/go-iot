@@ -45,23 +45,28 @@ func (m *dynamicMux) reloadAPIs() {
 
 	for _, api := range apis {
 		path := APIPrefix + api.Path
-		handler := func(e *Entry) func(w http.ResponseWriter, r *http.Request) {
-			return func(w http.ResponseWriter, r *http.Request) {
-				reflectVal := reflect.ValueOf(e.Controller)
-				t := reflect.Indirect(reflectVal).Type()
-				ctl := reflect.New(t)
-				execController, ok := ctl.Interface().(ControllerInterface)
-				if !ok {
-					panic("controller is not ControllerInterface")
-				}
-				execController.Init(w, r)
-				execController.Prepare()
+		var handler func(w http.ResponseWriter, r *http.Request)
+		if api.Handler != nil {
+			handler = api.Handler
+		} else {
+			handler = func(e *Entry) func(w http.ResponseWriter, r *http.Request) {
+				return func(w http.ResponseWriter, r *http.Request) {
+					reflectVal := reflect.ValueOf(e.Controller)
+					t := reflect.Indirect(reflectVal).Type()
+					ctl := reflect.New(t)
+					execController, ok := ctl.Interface().(ControllerInterface)
+					if !ok {
+						panic("controller is not ControllerInterface")
+					}
+					execController.Init(w, r)
+					execController.Prepare()
 
-				vc := reflect.ValueOf(execController)
-				method := vc.MethodByName(e.Handler)
-				method.Call(nil)
-			}
-		}(api)
+					vc := reflect.ValueOf(execController)
+					method := vc.MethodByName(e.HandlerMethod)
+					method.Call(nil)
+				}
+			}(api)
+		}
 		switch api.Method {
 		case "GET":
 			router.Get(path, handler)

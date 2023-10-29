@@ -10,6 +10,7 @@ import (
 	"go-iot/pkg/models"
 	device "go-iot/pkg/models/device"
 	"go-iot/pkg/models/network"
+	"net/http"
 	"time"
 
 	logs "go-iot/pkg/logger"
@@ -29,32 +30,36 @@ var deviceResource = Resource{
 
 // 设备管理
 func init() {
-	web.RegisterAPI("/device/page", "POST", &DeviceController{}, "Page")
-	web.RegisterAPI("/device", "POST", &DeviceController{}, "Add")
-	web.RegisterAPI("/device", "PUT", &DeviceController{}, "Update")
-	web.RegisterAPI("/device/{id}", "DELETE", &DeviceController{}, "Delete")
-	web.RegisterAPI("/device/{id}", "GET", &DeviceController{}, "GetOne")
-	web.RegisterAPI("/device/{id}/detail", "GET", &DeviceController{}, "GetDetail")
-	web.RegisterAPI("/device/{id}/connect", "POST", &DeviceController{}, "Connect")
-	web.RegisterAPI("/device/{id}/disconnect", "POST", &DeviceController{}, "Disconnect")
-	web.RegisterAPI("/device/{id}/deploy", "POST", &DeviceController{}, "Deploy")
-	web.RegisterAPI("/device/{id}/undeploy", "POST", &DeviceController{}, "Undeploy")
-	web.RegisterAPI("/device/batch/deploy", "POST", &DeviceController{}, "BatchDeploy")
-	web.RegisterAPI("/device/batch/undeploy", "POST", &DeviceController{}, "BatchUndeploy")
-	web.RegisterAPI("/device/{id}/invoke", "POST", &DeviceController{}, "CmdInvoke")
-	web.RegisterAPI("/device/{id}/properties", "POST", &DeviceController{}, "QueryProperty")
-	web.RegisterAPI("/device/{id}/logs", "POST", &DeviceController{}, "QueryLogs")
-	web.RegisterAPI("/device/{id}/event/{eventId}", "POST", &DeviceController{}, "QueryEvent")
+	d := &deviceApi{}
+	web.RegisterAPI("/device/page", "POST", d.Page)
+	web.RegisterAPI("/device", "POST", d.Add)
+	web.RegisterAPI("/device", "PUT", d.Update)
+	web.RegisterAPI("/device/{id}", "DELETE", d.Delete)
+	web.RegisterAPI("/device/{id}", "GET", d.GetOne)
+	web.RegisterAPI("/device/{id}/detail", "GET", d.GetDetail)
+	web.RegisterAPI("/device/{id}/connect", "POST", d.Connect)
+	web.RegisterAPI("/device/{id}/disconnect", "POST", d.Disconnect)
+	web.RegisterAPI("/device/{id}/deploy", "POST", d.Deploy)
+	web.RegisterAPI("/device/{id}/undeploy", "POST", d.Undeploy)
+	web.RegisterAPI("/device/batch/deploy", "POST", d.BatchDeploy)
+	web.RegisterAPI("/device/batch/undeploy", "POST", d.BatchUndeploy)
+	web.RegisterAPI("/device/{id}/invoke", "POST", d.CmdInvoke)
+	web.RegisterAPI("/device/{id}/properties", "POST", d.QueryProperty)
+	web.RegisterAPI("/device/{id}/logs", "POST", d.QueryLogs)
+	web.RegisterAPI("/device/{id}/event/{eventId}", "POST", d.QueryEvent)
 
 	RegResource(deviceResource)
 }
 
-type DeviceController struct {
-	AuthController
+var _deviceMethod = deviceMethod{}
+
+type deviceApi struct {
 }
 
 // 查询设备列表
-func (ctl *DeviceController) Page() {
+func (d *deviceApi) Page(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
@@ -74,12 +79,13 @@ func (ctl *DeviceController) Page() {
 }
 
 // 查询单个设备
-func (ctl *DeviceController) GetOne() {
+func (d *deviceApi) GetOne(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	ob, err := ctl.getDeviceAndCheckCreateId(deviceId)
+	ob, err := _deviceMethod.getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -88,11 +94,12 @@ func (ctl *DeviceController) GetOne() {
 }
 
 // get device detail info
-func (ctl *DeviceController) GetDetail() {
+func (d *deviceApi) GetDetail(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	ob, err := ctl.getDeviceAndCheckCreateId(ctl.Param("id"))
+	ob, err := _deviceMethod.getDeviceAndCheckCreateId(ctl, ctl.Param("id"))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -139,7 +146,8 @@ func (ctl *DeviceController) GetDetail() {
 }
 
 // 添加设备
-func (ctl *DeviceController) Add() {
+func (d *deviceApi) Add(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(deviceResource, CretaeAction) {
 		return
 	}
@@ -159,7 +167,8 @@ func (ctl *DeviceController) Add() {
 }
 
 // 更新设备信息
-func (ctl *DeviceController) Update() {
+func (d *deviceApi) Update(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
@@ -169,7 +178,7 @@ func (ctl *DeviceController) Update() {
 		ctl.RespError(err)
 		return
 	}
-	_, err = ctl.getDeviceAndCheckCreateId(ob.Id)
+	_, err = _deviceMethod.getDeviceAndCheckCreateId(ctl, ob.Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -184,12 +193,13 @@ func (ctl *DeviceController) Update() {
 }
 
 // 删除设备
-func (ctl *DeviceController) Delete() {
+func (d *deviceApi) Delete(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(deviceResource, DeleteAction) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	_, err := ctl.getDeviceAndCheckCreateId(deviceId)
+	_, err := _deviceMethod.getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -203,12 +213,13 @@ func (ctl *DeviceController) Delete() {
 }
 
 // client设备连接
-func (ctl *DeviceController) Connect() {
+func (d *deviceApi) Connect(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	_, err := ctl.getDeviceAndCheckCreateId(deviceId)
+	_, err := _deviceMethod.getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -229,12 +240,13 @@ func (ctl *DeviceController) Connect() {
 	ctl.RespOk()
 }
 
-func (ctl *DeviceController) Disconnect() {
+func (d *deviceApi) Disconnect(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	_, err := ctl.getDeviceAndCheckCreateId(deviceId)
+	_, err := _deviceMethod.getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -265,46 +277,110 @@ func (ctl *DeviceController) Disconnect() {
 }
 
 // deploy device
-func (ctl *DeviceController) Deploy() {
+func (d *deviceApi) Deploy(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	ctl.enable(deviceId, true)
+	_deviceMethod.enableDevice(ctl, deviceId, true)
 	ctl.RespOk()
 }
 
 // undeploy device
-func (ctl *DeviceController) Undeploy() {
+func (d *deviceApi) Undeploy(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	ctl.enable(deviceId, false)
+	_deviceMethod.enableDevice(ctl, deviceId, false)
 	ctl.RespOk()
 }
 
 // batch deploy device
-func (ctl *DeviceController) BatchDeploy() {
+func (d *deviceApi) BatchDeploy(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
 	var deviceIds []string
 	ctl.BindJSON(&deviceIds)
-	ctl.batchEnable(deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: core.EQ}, core.OFFLINE)
+	_deviceMethod.batchEnableDevice(ctl, deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: core.EQ}, core.OFFLINE)
 }
 
 // batch undeploy device
-func (ctl *DeviceController) BatchUndeploy() {
+func (d *deviceApi) BatchUndeploy(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(deviceResource, SaveAction) {
 		return
 	}
 	var deviceIds []string
 	ctl.BindJSON(&deviceIds)
-	ctl.batchEnable(deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: core.NEQ}, core.NoActive)
+	_deviceMethod.batchEnableDevice(ctl, deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: core.NEQ}, core.NoActive)
 }
 
-func (ctl *DeviceController) batchEnable(deviceIds []string, term core.SearchTerm, tagertState string) {
+// 命令下发
+func (d *deviceApi) CmdInvoke(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(deviceResource, SaveAction) {
+		return
+	}
+	deviceId := ctl.Param("id")
+
+	var ob common.FuncInvoke
+	err := ctl.BindJSON(&ob)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	ob.DeviceId = deviceId
+	_, err = _deviceMethod.getDeviceAndCheckCreateId(ctl, deviceId)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	device := core.GetDevice(deviceId)
+	if cluster.Enabled() && device != nil && device.ClusterId != cluster.GetClusterId() {
+		ctl.Request.Header.Add(cluster.X_Cluster_Timeout, "13")
+		resp, err := cluster.SingleInvoke(device.ClusterId, ctl.Request)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+		ctl.Resp(*resp)
+		return
+	} else {
+		err1 := core.DoCmdInvoke(ob)
+		if err1 != nil {
+			ctl.RespErr(err1)
+			return
+		}
+	}
+	ctl.RespOk()
+}
+
+// 查询设备属性
+func (d *deviceApi) QueryProperty(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	_deviceMethod.queryDeviceTimeseriesData(ctl, core.TIME_TYPE_PROP)
+}
+
+func (d *deviceApi) QueryLogs(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	_deviceMethod.queryDeviceTimeseriesData(ctl, core.TIME_TYPE_LOGS)
+}
+
+func (d *deviceApi) QueryEvent(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	_deviceMethod.queryDeviceTimeseriesData(ctl, core.TIME_TYPE_EVENT)
+}
+
+type deviceMethod struct {
+}
+
+// 批量启用、禁用设备
+func (d *deviceMethod) batchEnableDevice(ctl *AuthController, deviceIds []string, term core.SearchTerm, tagertState string) {
 	token := fmt.Sprintf("batch-%s-device-%v", tagertState, time.Now().UnixMicro())
 	setSseData(token, "")
 	isDeploy := true
@@ -316,7 +392,7 @@ func (ctl *DeviceController) batchEnable(deviceIds []string, term core.SearchTer
 		resp := `{"success":true, "result": {"finish": %v, "num": %d}}`
 		if len(deviceIds) > 0 {
 			for _, deviceId := range deviceIds {
-				ctl.enable(deviceId, isDeploy)
+				d.enableDevice(ctl, deviceId, isDeploy)
 				total = total + 1
 				if total%5 == 0 {
 					setSseData(token, fmt.Sprintf(resp, false, total))
@@ -365,9 +441,9 @@ func (ctl *DeviceController) batchEnable(deviceIds []string, term core.SearchTer
 	ctl.RespOkData(token)
 }
 
-// enable device
-func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
-	dev, err := ctl.getDeviceAndCheckCreateId(deviceId)
+// 启动、禁用设备
+func (d *deviceMethod) enableDevice(ctl *AuthController, deviceId string, isDeploy bool) {
+	dev, err := d.getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -393,59 +469,8 @@ func (ctl *DeviceController) enable(deviceId string, isDeploy bool) {
 	}
 }
 
-// 命令下发
-func (ctl *DeviceController) CmdInvoke() {
-	if ctl.isForbidden(deviceResource, SaveAction) {
-		return
-	}
-	deviceId := ctl.Param("id")
-
-	var ob common.FuncInvoke
-	err := ctl.BindJSON(&ob)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	ob.DeviceId = deviceId
-	_, err = ctl.getDeviceAndCheckCreateId(ob.DeviceId)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	device := core.GetDevice(deviceId)
-	if cluster.Enabled() && device != nil && device.ClusterId != cluster.GetClusterId() {
-		ctl.Request.Header.Add(cluster.X_Cluster_Timeout, "13")
-		resp, err := cluster.SingleInvoke(device.ClusterId, ctl.Request)
-		if err != nil {
-			ctl.RespError(err)
-			return
-		}
-		ctl.Resp(*resp)
-		return
-	} else {
-		err1 := core.DoCmdInvoke(ob)
-		if err1 != nil {
-			ctl.RespErr(err1)
-			return
-		}
-	}
-	ctl.RespOk()
-}
-
-// 查询设备属性
-func (ctl *DeviceController) QueryProperty() {
-	ctl.queryTimeseriesData(core.TIME_TYPE_PROP)
-}
-
-func (ctl *DeviceController) QueryLogs() {
-	ctl.queryTimeseriesData(core.TIME_TYPE_LOGS)
-}
-
-func (ctl *DeviceController) QueryEvent() {
-	ctl.queryTimeseriesData(core.TIME_TYPE_EVENT)
-}
-
-func (ctl *DeviceController) queryTimeseriesData(typ string) {
+// 查询设备时序数据
+func (d *deviceMethod) queryDeviceTimeseriesData(ctl *AuthController, typ string) {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
@@ -458,7 +483,7 @@ func (ctl *DeviceController) queryTimeseriesData(typ string) {
 		return
 	}
 	param.DeviceId = deviceId
-	device, err := ctl.getDeviceAndCheckCreateId(deviceId)
+	device, err := d.getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -484,6 +509,6 @@ func (ctl *DeviceController) queryTimeseriesData(typ string) {
 	ctl.RespOkData(res)
 }
 
-func (ctl *DeviceController) getDeviceAndCheckCreateId(deviceId string) (*models.DeviceModel, error) {
+func (d *deviceMethod) getDeviceAndCheckCreateId(ctl *AuthController, deviceId string) (*models.DeviceModel, error) {
 	return device.GetDeviceAndCheckCreateId(deviceId, ctl.GetCurrentUser().Id)
 }

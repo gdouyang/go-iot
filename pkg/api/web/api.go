@@ -1,5 +1,7 @@
 package web
 
+import "net/http"
+
 const (
 	// APIPrefix is the prefix of api.
 	APIPrefix = "/api"
@@ -18,8 +20,12 @@ func RegisterAPIs(api []*Entry) {
 	apis = append(apis, api...)
 }
 
-func RegisterAPI(path string, method string, c ControllerInterface, handler string) {
-	apis = append(apis, &Entry{Path: path, Method: method, Controller: c, Handler: handler})
+func RegisterAPI2(path string, method string, c ControllerInterface, handler string) {
+	apis = append(apis, &Entry{Path: path, Method: method, Controller: c, HandlerMethod: handler})
+}
+
+func RegisterAPI(path string, method string, handler func(w http.ResponseWriter, r *http.Request)) {
+	apis = append(apis, &Entry{Path: path, Method: method, Handler: handler})
 }
 
 // func (s *Server) listAPIEntries() []*Entry {

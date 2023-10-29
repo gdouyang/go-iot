@@ -38,6 +38,13 @@ type ResourceAction struct {
 	Name string `json:"name"`
 }
 
+func NewAuthController(w http.ResponseWriter, r *http.Request) *AuthController {
+	ctl := AuthController{}
+	ctl.Init(w, r)
+	ctl.Prepare()
+	return &ctl
+}
+
 type AuthController struct {
 	web.RespController
 }
@@ -55,7 +62,7 @@ func (c *AuthController) Prepare() {
 				if len(split) == 2 {
 					username := split[0]
 					password := split[1]
-					err := (&LoginController{RespController: c.RespController}).login(username, password, 0)
+					err := login(&c.RespController, username, password, 0)
 					if err != nil {
 						c.WriteHeader(http.StatusUnauthorized)
 						c.RespError(err)
@@ -82,8 +89,8 @@ func (c *AuthController) isForbidden(r Resource, rc ResourceAction) bool {
 	return false
 }
 
-func (c *AuthController) Logout(ctl *AuthController) {
-	sess := ctl.GetSession()
+func (c *AuthController) Logout() {
+	sess := c.GetSession()
 	session.Del(sess.Sessionid)
 	c.RespOk()
 }
