@@ -7,6 +7,14 @@ import (
 )
 
 func init() {
+	RegResource(Resource{
+		Id:   "menu-mgr",
+		Name: "菜单资源",
+		Action: []ResourceAction{
+			QueryAction,
+		},
+	})
+
 	web.RegisterAPI("/menu/list", "GET", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
 		u := ctl.GetCurrentUser()
@@ -25,13 +33,5 @@ func init() {
 			return
 		}
 		ctl.RespOkData(permission.Permissions)
-	})
-
-	RegResource(Resource{
-		Id:   "menu-mgr",
-		Name: "菜单资源",
-		Action: []ResourceAction{
-			QueryAction,
-		},
 	})
 }

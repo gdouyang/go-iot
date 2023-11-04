@@ -51,8 +51,6 @@ func init() {
 	RegResource(deviceResource)
 }
 
-var _deviceMethod = deviceMethod{}
-
 type deviceApi struct {
 }
 
@@ -85,7 +83,7 @@ func (d *deviceApi) GetOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	ob, err := _deviceMethod.getDeviceAndCheckCreateId(ctl, deviceId)
+	ob, err := getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -99,7 +97,7 @@ func (d *deviceApi) GetDetail(w http.ResponseWriter, r *http.Request) {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
-	ob, err := _deviceMethod.getDeviceAndCheckCreateId(ctl, ctl.Param("id"))
+	ob, err := getDeviceAndCheckCreateId(ctl, ctl.Param("id"))
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -178,7 +176,7 @@ func (d *deviceApi) Update(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	_, err = _deviceMethod.getDeviceAndCheckCreateId(ctl, ob.Id)
+	_, err = getDeviceAndCheckCreateId(ctl, ob.Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -199,7 +197,7 @@ func (d *deviceApi) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	_, err := _deviceMethod.getDeviceAndCheckCreateId(ctl, deviceId)
+	_, err := getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -219,7 +217,7 @@ func (d *deviceApi) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	_, err := _deviceMethod.getDeviceAndCheckCreateId(ctl, deviceId)
+	_, err := getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -246,7 +244,7 @@ func (d *deviceApi) Disconnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	_, err := _deviceMethod.getDeviceAndCheckCreateId(ctl, deviceId)
+	_, err := getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -283,7 +281,7 @@ func (d *deviceApi) Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	_deviceMethod.enableDevice(ctl, deviceId, true)
+	enableDevice(ctl, deviceId, true)
 	ctl.RespOk()
 }
 
@@ -294,7 +292,7 @@ func (d *deviceApi) Undeploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceId := ctl.Param("id")
-	_deviceMethod.enableDevice(ctl, deviceId, false)
+	enableDevice(ctl, deviceId, false)
 	ctl.RespOk()
 }
 
@@ -306,7 +304,7 @@ func (d *deviceApi) BatchDeploy(w http.ResponseWriter, r *http.Request) {
 	}
 	var deviceIds []string
 	ctl.BindJSON(&deviceIds)
-	_deviceMethod.batchEnableDevice(ctl, deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: core.EQ}, core.OFFLINE)
+	batchEnableDevice(ctl, deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: core.EQ}, core.OFFLINE)
 }
 
 // batch undeploy device
@@ -317,7 +315,7 @@ func (d *deviceApi) BatchUndeploy(w http.ResponseWriter, r *http.Request) {
 	}
 	var deviceIds []string
 	ctl.BindJSON(&deviceIds)
-	_deviceMethod.batchEnableDevice(ctl, deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: core.NEQ}, core.NoActive)
+	batchEnableDevice(ctl, deviceIds, core.SearchTerm{Key: "state", Value: core.NoActive, Oper: core.NEQ}, core.NoActive)
 }
 
 // 命令下发
@@ -335,7 +333,7 @@ func (d *deviceApi) CmdInvoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ob.DeviceId = deviceId
-	_, err = _deviceMethod.getDeviceAndCheckCreateId(ctl, deviceId)
+	_, err = getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -363,24 +361,21 @@ func (d *deviceApi) CmdInvoke(w http.ResponseWriter, r *http.Request) {
 // 查询设备属性
 func (d *deviceApi) QueryProperty(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	_deviceMethod.queryDeviceTimeseriesData(ctl, core.TIME_TYPE_PROP)
+	queryDeviceTimeseriesData(ctl, core.TIME_TYPE_PROP)
 }
 
 func (d *deviceApi) QueryLogs(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	_deviceMethod.queryDeviceTimeseriesData(ctl, core.TIME_TYPE_LOGS)
+	queryDeviceTimeseriesData(ctl, core.TIME_TYPE_LOGS)
 }
 
 func (d *deviceApi) QueryEvent(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	_deviceMethod.queryDeviceTimeseriesData(ctl, core.TIME_TYPE_EVENT)
-}
-
-type deviceMethod struct {
+	queryDeviceTimeseriesData(ctl, core.TIME_TYPE_EVENT)
 }
 
 // 批量启用、禁用设备
-func (d *deviceMethod) batchEnableDevice(ctl *AuthController, deviceIds []string, term core.SearchTerm, tagertState string) {
+func batchEnableDevice(ctl *AuthController, deviceIds []string, term core.SearchTerm, tagertState string) {
 	token := fmt.Sprintf("batch-%s-device-%v", tagertState, time.Now().UnixMicro())
 	setSseData(token, "")
 	isDeploy := true
@@ -392,7 +387,7 @@ func (d *deviceMethod) batchEnableDevice(ctl *AuthController, deviceIds []string
 		resp := `{"success":true, "result": {"finish": %v, "num": %d}}`
 		if len(deviceIds) > 0 {
 			for _, deviceId := range deviceIds {
-				d.enableDevice(ctl, deviceId, isDeploy)
+				enableDevice(ctl, deviceId, isDeploy)
 				total = total + 1
 				if total%5 == 0 {
 					setSseData(token, fmt.Sprintf(resp, false, total))
@@ -442,8 +437,8 @@ func (d *deviceMethod) batchEnableDevice(ctl *AuthController, deviceIds []string
 }
 
 // 启动、禁用设备
-func (d *deviceMethod) enableDevice(ctl *AuthController, deviceId string, isDeploy bool) {
-	dev, err := d.getDeviceAndCheckCreateId(ctl, deviceId)
+func enableDevice(ctl *AuthController, deviceId string, isDeploy bool) {
+	dev, err := getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -470,7 +465,7 @@ func (d *deviceMethod) enableDevice(ctl *AuthController, deviceId string, isDepl
 }
 
 // 查询设备时序数据
-func (d *deviceMethod) queryDeviceTimeseriesData(ctl *AuthController, typ string) {
+func queryDeviceTimeseriesData(ctl *AuthController, typ string) {
 	if ctl.isForbidden(deviceResource, QueryAction) {
 		return
 	}
@@ -483,7 +478,7 @@ func (d *deviceMethod) queryDeviceTimeseriesData(ctl *AuthController, typ string
 		return
 	}
 	param.DeviceId = deviceId
-	device, err := d.getDeviceAndCheckCreateId(ctl, deviceId)
+	device, err := getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -509,6 +504,6 @@ func (d *deviceMethod) queryDeviceTimeseriesData(ctl *AuthController, typ string
 	ctl.RespOkData(res)
 }
 
-func (d *deviceMethod) getDeviceAndCheckCreateId(ctl *AuthController, deviceId string) (*models.DeviceModel, error) {
+func getDeviceAndCheckCreateId(ctl *AuthController, deviceId string) (*models.DeviceModel, error) {
 	return device.GetDeviceAndCheckCreateId(deviceId, ctl.GetCurrentUser().Id)
 }

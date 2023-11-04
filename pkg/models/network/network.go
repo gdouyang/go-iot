@@ -57,7 +57,7 @@ func AddNetWork(ob *models.Network) error {
 		if ob.Port <= 1024 || ob.Port > 65535 {
 			return errors.New("invalid port number")
 		}
-		rs, err := GetNetworkByPort(models.Network{Port: ob.Port})
+		rs, err := GetNetworkByPort(ob.Port)
 		if err != nil {
 			return err
 		}
@@ -74,6 +74,7 @@ func AddNetWork(ob *models.Network) error {
 			return fmt.Errorf("网络配置已被产品[%s]管理", ob.ProductId)
 		}
 	}
+	ob.State = models.Stop
 	//插入数据
 	ob.CreateTime = models.NewDateTime()
 	o := orm.NewOrm()
@@ -161,10 +162,12 @@ func GetByProductId(productId string) (*models.Network, error) {
 	}
 }
 
-func GetNetworkByPort(p models.Network) (*models.Network, error) {
+// 查询端口是否被使用
+func GetNetworkByPort(port int32) (*models.Network, error) {
 
 	o := orm.NewOrm()
 
+	p := models.Network{Port: port}
 	err := o.Read(&p, "port")
 	if err == orm.ErrNoRows {
 		return nil, nil
@@ -190,6 +193,7 @@ func GetUnuseNetwork() (*models.Network, error) {
 	return nil, errors.New("没有空闲的端口可以使用")
 }
 
+// 绑定网络服务与产品
 func BindNetworkProduct(productId, networkType string) (*models.Network, error) {
 	if network.IsNetClientType(networkType) {
 		nw, err := GetByProductId(productId)
@@ -213,6 +217,7 @@ func BindNetworkProduct(productId, networkType string) (*models.Network, error) 
 	}
 }
 
+// 解绑网络服务与产品
 func UnbindNetworkProduct(productId string) error {
 	nw, err := GetByProductId(productId)
 	if err != nil {

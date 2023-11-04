@@ -10,16 +10,17 @@ import (
 	logs "go-iot/pkg/logger"
 )
 
-var sysConfigResource = Resource{
-	Id:   "sys-config",
-	Name: "系统配置",
-	Action: []ResourceAction{
-		SaveAction,
-	},
-}
-
 // 系统配置
 func init() {
+	var sysConfigResource = Resource{
+		Id:   "sys-config",
+		Name: "系统配置",
+		Action: []ResourceAction{
+			QueryAction,
+			SaveAction,
+		},
+	}
+	RegResource(sysConfigResource)
 	web.RegisterAPI("/anon/system/config", "GET", func(w http.ResponseWriter, r *http.Request) {
 		ctl := web.NewController(w, r)
 		c, err := base.GetSysconfig("sysconfig")
@@ -40,6 +41,7 @@ func init() {
 			ctl.RespOkData(res)
 		}
 	})
+	// 保存配置
 	web.RegisterAPI("/system/config", "POST", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
 		if ctl.isForbidden(sysConfigResource, SaveAction) {
@@ -79,10 +81,9 @@ func init() {
 		}
 		ctl.RespOk()
 	})
-	web.RegisterAPI("/system/config", "GET", func(w http.ResponseWriter, r *http.Request) {
+	// 更新token过期时间
+	web.RegisterAPI("/token/refresh", "GET", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
 		ctl.RespOk()
 	})
-
-	RegResource(sysConfigResource)
 }

@@ -22,6 +22,8 @@ var notifyResource = Resource{
 }
 
 func init() {
+	RegResource(notifyResource)
+
 	getNotifyAndCheckCreateId := func(ctl *AuthController, id int64) (*models.Notify, error) {
 		ob, err := notify.GetNotifyMust(id)
 		if err != nil {
@@ -260,5 +262,4 @@ func init() {
 		enableNotify(ctl, false)
 	})
 
-	RegResource(notifyResource)
 }

@@ -7,18 +7,18 @@ import (
 	"net/http"
 )
 
-var alarmResource = Resource{
-	Id:   "alarm-mgr",
-	Name: "设备告警",
-	Action: []ResourceAction{
-		QueryAction,
-		CretaeAction,
-		SaveAction,
-		DeleteAction,
-	},
-}
-
 func init() {
+	var alarmResource = Resource{
+		Id:   "alarm-mgr",
+		Name: "设备告警",
+		Action: []ResourceAction{
+			QueryAction,
+			CretaeAction,
+			SaveAction,
+			DeleteAction,
+		},
+	}
+	RegResource(alarmResource)
 	// 告警分页接口
 	web.RegisterAPI("/alarm/log/page", "POST", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
@@ -58,5 +58,4 @@ func init() {
 		ctl.RespOk()
 	})
 
-	RegResource(alarmResource)
 }

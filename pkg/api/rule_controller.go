@@ -11,18 +11,19 @@ import (
 	"strconv"
 )
 
-var sceneResource = Resource{
-	Id:   "rule-mgr",
-	Name: "规则引擎",
-	Action: []ResourceAction{
-		QueryAction,
-		CretaeAction,
-		SaveAction,
-		DeleteAction,
-	},
-}
-
 func init() {
+	var sceneResource = Resource{
+		Id:   "rule-mgr",
+		Name: "规则引擎",
+		Action: []ResourceAction{
+			QueryAction,
+			CretaeAction,
+			SaveAction,
+			DeleteAction,
+		},
+	}
+	RegResource(sceneResource)
+
 	getRuleAndCheckCreateId := func(ctl *AuthController, ruleId int64) (*models.RuleModel, error) {
 		ob, err := rule.GetRuleMust(ruleId)
 		if err != nil {
@@ -192,6 +193,4 @@ func init() {
 		}
 		enable(ctl, false)
 	})
-
-	RegResource(sceneResource)
 }

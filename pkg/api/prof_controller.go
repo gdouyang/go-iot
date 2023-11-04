@@ -9,15 +9,16 @@ import (
 	"strings"
 )
 
-var profResource = Resource{
-	Id:   "prof",
-	Name: "系统运行状态",
-	Action: []ResourceAction{
-		QueryAction,
-	},
-}
-
 func init() {
+	var profResource = Resource{
+		Id:   "prof",
+		Name: "系统运行状态",
+		Action: []ResourceAction{
+			QueryAction,
+		},
+	}
+	RegResource(profResource)
+
 	Get := func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
 		if ctl.isForbidden(profResource, QueryAction) {
@@ -37,5 +38,4 @@ func init() {
 	web.RegisterAPI("/prof/threadcreate", "GET", Get)
 	web.RegisterAPI("/prof/trace", "GET", Get)
 
-	RegResource(profResource)
 }

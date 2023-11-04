@@ -10,19 +10,20 @@ import (
 	"strconv"
 )
 
-var roleResource = Resource{
-	Id:   "role-mgr",
-	Name: "角色管理",
-	Action: []ResourceAction{
-		QueryAction,
-		CretaeAction,
-		SaveAction,
-		DeleteAction,
-	},
-}
-
-// 产品管理
+// 角色管理
 func init() {
+	var roleResource = Resource{
+		Id:   "role-mgr",
+		Name: "角色管理",
+		Action: []ResourceAction{
+			QueryAction,
+			CretaeAction,
+			SaveAction,
+			DeleteAction,
+		},
+	}
+	RegResource(roleResource)
+
 	getRoleAndCheckCreateId := func(ctl *AuthController, roleId int64) (*models.Role, error) {
 		ob, err := role.GetRole(roleId)
 		if err != nil {
@@ -190,6 +191,4 @@ func init() {
 		}
 		ctl.RespOkData(result)
 	})
-
-	RegResource(roleResource)
 }

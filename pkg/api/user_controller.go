@@ -9,18 +9,18 @@ import (
 	"strconv"
 )
 
-var userResource = Resource{
-	Id:   "user-mgr",
-	Name: "用户管理",
-	Action: []ResourceAction{
-		QueryAction,
-		CretaeAction,
-		SaveAction,
-		DeleteAction,
-	},
-}
-
 func init() {
+	var userResource = Resource{
+		Id:   "user-mgr",
+		Name: "用户管理",
+		Action: []ResourceAction{
+			QueryAction,
+			CretaeAction,
+			SaveAction,
+			DeleteAction,
+		},
+	}
+	RegResource(userResource)
 
 	getUserAndCheckCreateId := func(ctl *AuthController, userId int64) (*user.UserDTO, error) {
 		ob, err := user.GetUser(userId)
@@ -199,6 +199,4 @@ func init() {
 		}
 		ctl.RespOk()
 	})
-
-	RegResource(userResource)
 }
