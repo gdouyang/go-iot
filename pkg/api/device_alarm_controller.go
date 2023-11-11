@@ -13,9 +13,7 @@ func init() {
 		Name: "设备告警",
 		Action: []ResourceAction{
 			QueryAction,
-			CretaeAction,
 			SaveAction,
-			DeleteAction,
 		},
 	}
 	RegResource(alarmResource)

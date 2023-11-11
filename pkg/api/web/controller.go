@@ -146,6 +146,11 @@ func (c *RespController) WriteHeader(statusCode int) {
 	c.ResponseWriter.WriteHeader(statusCode)
 }
 
+// 设置ResponseHeader
+func (c *RespController) HeaderSet(key, value string) {
+	c.ResponseWriter.Header().Set(key, value)
+}
+
 func (c *RespController) StopRun() {
 	panic(http.ErrAbortHandler)
 }

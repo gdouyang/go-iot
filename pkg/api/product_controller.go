@@ -1,7 +1,9 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"go-iot/pkg/api/web"
 	"go-iot/pkg/cluster"
 	"go-iot/pkg/core"
@@ -11,7 +13,9 @@ import (
 	networkmd "go-iot/pkg/models/network"
 	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -57,6 +61,8 @@ func init() {
 	web.RegisterAPI("/product/network/{productId}", "GET", api.getNetwork)
 	web.RegisterAPI("/product/network", "PUT", api.updateNetwork)
 	web.RegisterAPI("/product/network/{productId}/run", "POST", api.startNetwork)
+	web.RegisterAPI("/product/{id}/export", "GET", api.exportProduct)
+	web.RegisterAPI("/product/import", "POST", api.importProduct)
 
 }
 
@@ -499,6 +505,69 @@ func (a *productApi) startNetwork(w http.ResponseWriter, r *http.Request) {
 		networkmd.UpdateNetwork(nw)
 		// 调用集群接口
 		cluster.BroadcastInvoke(ctl.Request)
+	}
+	ctl.RespOk()
+}
+
+// 产品导出
+func (a *productApi) exportProduct(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(productResource, SaveAction) {
+		return
+	}
+	productId := ctl.Param("id")
+	pd, err := product.GetProductMust(productId)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	data, err := json.Marshal(pd)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	disposition := fmt.Sprintf("attachment; filename=%s.json", url.QueryEscape(productId))
+	ctl.HeaderSet("Content-Type", "application/octet-stream")
+	ctl.HeaderSet("Content-Disposition", disposition)
+	ctl.HeaderSet("Content-Transfer-Encoding", "binary")
+	ctl.HeaderSet("Access-Control-Expose-Headers", "Content-Disposition")
+
+	ctl.ResponseWriter.Write(data)
+}
+
+// 产品导入
+func (a *productApi) importProduct(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(productResource, SaveAction) {
+		return
+	}
+	f, _, err := ctl.FormFile("file")
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	defer f.Close()
+	data, err := io.ReadAll(f)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	var pd models.ProductModel
+	err = json.Unmarshal(data, &pd)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	if len(pd.NetworkType) == 0 {
+		ctl.RespErrorParam("networkType")
+		return
+	}
+	pd.CreateId = ctl.GetCurrentUser().Id
+	pd.State = false
+	err = product.AddProduct(&pd)
+	if err != nil {
+		ctl.RespError(err)
+		return
 	}
 	ctl.RespOk()
 }
