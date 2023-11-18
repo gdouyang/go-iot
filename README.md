@@ -5,7 +5,7 @@
 
 > 项目参考了https://github.com/jetlinks/jetlinks-community，https://github.com/megaease/easegress
 
-前端工程：`https://gitee.com/gdouyang/go-iot-fe`
+前端工程：`gdouyang/go-iot-fe`
 
 #### 功能目录
 - 产品管理
