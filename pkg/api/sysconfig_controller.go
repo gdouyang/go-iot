@@ -5,6 +5,7 @@ import (
 	"go-iot/pkg/api/web"
 	"go-iot/pkg/models"
 	base "go-iot/pkg/models/base"
+	"go-iot/pkg/option"
 	"net/http"
 
 	logs "go-iot/pkg/logger"
@@ -80,6 +81,16 @@ func init() {
 			return
 		}
 		ctl.RespOk()
+	})
+	// 系统信息
+	web.RegisterAPI("/system/info", "GET", func(w http.ResponseWriter, r *http.Request) {
+		ctl := NewAuthController(w, r)
+		m := map[string]string{}
+		m["release"] = option.RELEASE
+		m["buildTime"] = option.BUILD_TIME
+		m["commit"] = option.COMMIT
+		m["repo"] = option.REPO
+		ctl.RespOkData(m)
 	})
 	// 更新token过期时间
 	web.RegisterAPI("/token/refresh", "GET", func(w http.ResponseWriter, r *http.Request) {
