@@ -41,7 +41,7 @@ func (t *TdengineTimeSeries) PublishModel(product *core.Product, model tsl.TslDa
 		sb.WriteString(t.columnNameRewrite("createTime", "TIMESTAMP"))
 		for _, p := range model.Properties {
 			sb.WriteString(", ")
-			t.createSqlColumn(&sb, p.Id, p)
+			t.createSqlColumn(&sb, p.GetId(), p)
 		}
 		sb.WriteString(" ) tags (")
 		sb.WriteString(t.columnNameRewrite("deviceId", "nchar(64)"))
@@ -56,18 +56,18 @@ func (t *TdengineTimeSeries) PublishModel(product *core.Product, model tsl.TslDa
 		for _, e := range model.Events {
 			sb := strings.Builder{}
 			sb.WriteString("CREATE STABLE IF NOT EXISTS ")
-			sb.WriteString(t.getEventStableName(product, core.TIME_TYPE_EVENT, e.Id))
+			sb.WriteString(t.getEventStableName(product, core.TIME_TYPE_EVENT, e.GetId()))
 			sb.WriteString(" (")
 			sb.WriteString(t.columnNameRewrite("createTime", "TIMESTAMP, "))
 			if object, ok := e.IsObject(); ok {
 				for idx, p1 := range object.Properties {
-					t.createSqlColumn(&sb, p1.Id, p1)
+					t.createSqlColumn(&sb, p1.GetId(), p1)
 					if idx < len(object.Properties)-1 {
 						sb.WriteString(", ")
 					}
 				}
 			} else {
-				t.createSqlColumn(&sb, e.Id, e)
+				t.createSqlColumn(&sb, e.GetId(), e)
 			}
 			sb.WriteString(" ) tags (")
 			sb.WriteString(t.columnNameRewrite("deviceId", "nchar(64)"))
@@ -102,7 +102,7 @@ func (t *TdengineTimeSeries) PublishModel(product *core.Product, model tsl.TslDa
 func (t *TdengineTimeSeries) Del(product *core.Product) error {
 	t.dml("DROP STABLE IF EXISTS " + t.getStableName(product, core.TIME_TYPE_PROP) + ";")
 	for _, e := range product.TslData.Events {
-		t.dml("DROP STABLE IF EXISTS " + t.getEventStableName(product, core.TIME_TYPE_EVENT, e.Id) + ";")
+		t.dml("DROP STABLE IF EXISTS " + t.getEventStableName(product, core.TIME_TYPE_EVENT, e.GetId()) + ";")
 	}
 	t.dml("DROP STABLE IF EXISTS " + t.getStableName(product, core.TIME_TYPE_LOGS) + ";")
 	return nil
@@ -449,12 +449,12 @@ func (t *TdengineTimeSeries) search(sql string) ([]map[string]any, error) {
 	return result, nil
 }
 
-func (t *TdengineTimeSeries) createSqlColumn(sb *strings.Builder, columnName string, p tsl.TslProperty) {
-	valType := strings.TrimSpace(p.Type)
+func (t *TdengineTimeSeries) createSqlColumn(sb *strings.Builder, columnName string, p tsl.Property) {
+	valType := strings.TrimSpace(p.GetType())
 	if valType == tsl.TypeObject {
-		object := p.ValueType.(tsl.ValueTypeObject)
+		object := p.(*tsl.PropertyObject)
 		for idx, p1 := range object.Properties {
-			t.createSqlColumn(sb, p.Id+"."+p1.Id, p1)
+			t.createSqlColumn(sb, p.GetId()+"."+p1.GetId(), p1)
 			if idx < len(object.Properties)-1 {
 				sb.WriteString(", ")
 			}
@@ -485,7 +485,7 @@ func (t *TdengineTimeSeries) createSqlColumn(sb *strings.Builder, columnName str
 	// array := p.ValueType.(tsl.ValueTypeArray)
 	// return t.appendSqlColumn(array.ElementType)
 	default:
-		if len(p.Id) > 0 {
+		if len(p.GetId()) > 0 {
 			sb.WriteString(" NCHAR(32)")
 		}
 	}

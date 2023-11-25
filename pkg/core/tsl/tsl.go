@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/tidwall/gjson"
 )
 
 const (
@@ -25,10 +27,10 @@ const (
 )
 
 type TslData struct {
-	Functions  []TslFunction `json:"functions"`
-	Events     []TslProperty `json:"events"`
-	Properties []TslProperty `json:"properties"`
-	Text       string        `json:"-"`
+	Functions  []Function `json:"functions"`
+	Events     []Property `json:"events"`
+	Properties []Property `json:"properties"`
+	Text       string     `json:"-"`
 }
 
 func NewTslData() *TslData {
@@ -36,221 +38,265 @@ func NewTslData() *TslData {
 }
 
 func (tsl *TslData) FromJson(text string) error {
-	err := json.Unmarshal([]byte(text), tsl)
+	functions, err := parseFunctions(text)
 	if err != nil {
 		return fmt.Errorf("tsl parse error: %v", err)
 	}
-	{
-		var idMap map[string]bool = map[string]bool{}
-		for _, v := range tsl.Functions {
-			if _, ok := idMap[v.Id]; ok {
-				return fmt.Errorf("tsl parse error: functions is repeat [%s]", v.Id)
-			} else {
-				idMap[v.Id] = true
-			}
-		}
+	tsl.Functions = functions
+	list, err := parsePropertys(text, "properties")
+	if err != nil {
+		return fmt.Errorf("tsl parse error: %v", err)
 	}
-	{
-		var idMap map[string]bool = map[string]bool{}
-		for _, v := range tsl.Properties {
-			if obj, ok := v.IsObject(); ok {
-				if len(obj.Properties) == 0 {
-					return fmt.Errorf("tsl parse error: properties [%s] must have value", v.Id)
-				}
-			}
-			if _, ok := idMap[v.Id]; ok {
-				return fmt.Errorf("tsl parse error: properties is repeat [%s]", v.Id)
-			} else {
-				idMap[v.Id] = true
-			}
-		}
+	tsl.Properties = list
+	list, err = parsePropertys(text, "events")
+	if err != nil {
+		return fmt.Errorf("tsl parse error: %v", err)
 	}
-	{
-		var idMap map[string]bool = map[string]bool{}
-		for _, v := range tsl.Events {
-			if obj, ok := v.IsObject(); ok {
-				if len(obj.Properties) == 0 {
-					return fmt.Errorf("tsl parse error: events [%s] must have value", v.Id)
-				}
-			}
-			if _, ok := idMap[v.Id]; ok {
-				return fmt.Errorf("tsl parse error: events is repeat [%s]", v.Id)
-			} else {
-				idMap[v.Id] = true
-			}
-		}
-	}
+	tsl.Events = list
 	tsl.Text = text
 	return nil
 }
 
-func (tsl *TslData) PropertiesMap() map[string]TslProperty {
-	tslP := map[string]TslProperty{}
+func (tsl *TslData) PropertiesMap() map[string]Property {
+	tslP := map[string]Property{}
 	for _, p := range tsl.Properties {
-		tslP[p.Id] = p
+		tslP[p.GetId()] = p
 	}
 	return tslP
 }
 
-func (tsl *TslData) FunctionsMap() map[string]TslFunction {
-	tslF := map[string]TslFunction{}
+func (tsl *TslData) FunctionsMap() map[string]Function {
+	tslF := map[string]Function{}
 	for _, p := range tsl.Functions {
 		tslF[p.Id] = p
 	}
 	return tslF
 }
 
-func (tsl *TslData) EventsMap() map[string]TslProperty {
-	tslF := map[string]TslProperty{}
+func (tsl *TslData) EventsMap() map[string]Property {
+	tslF := map[string]Property{}
 	for _, p := range tsl.Events {
-		tslF[p.Id] = p
+		tslF[p.GetId()] = p
 	}
 	return tslF
 }
 
-type TslFunction struct {
+type Function struct {
 	// function id
 	Id   string `json:"id"`
 	Name string `json:"name"`
 	// 是否异步调用
 	Async   bool              `json:"async"`
-	Inputs  []TslProperty     `json:"inputs"`
-	Outputs TslProperty       `json:"output"`
+	Inputs  []Property        `json:"inputs"`
+	Outputs Property          `json:"output"`
 	Expands map[string]string `json:"expands,omitempty"`
 }
 
-func (p *TslFunction) UnmarshalJSON(d []byte) error {
-	var alias struct {
-		Id   string `json:"id"`
-		Name string `json:"name"`
-		// 是否异步调用
-		Async   bool              `json:"async"`
-		Inputs  []TslProperty     `json:"inputs,omitempty"`
-		Outputs TslProperty       `json:"output,omitempty"`
-		Expands map[string]string `json:"expands,omitempty"`
+func parseFunctions(d string) ([]Function, error) {
+	list := []Function{}
+	var err1 error
+	gjson.Get(d, "functions").ForEach(func(key, value gjson.Result) bool {
+		p := Function{}
+		inputs, err := parsePropertys(value.Raw, "inputs")
+		if err != nil {
+			err1 = err
+			return false
+		}
+		p.Inputs = inputs
+		outputval := gjson.Get(d, "output")
+		if len(outputval.Map()) > 0 {
+			output, err := parseProperty(gjson.Get(value.Raw, "output"))
+			if err != nil {
+				err1 = err
+				return false
+			}
+			p.Outputs = output
+		}
+		p.Id = value.Get("id").String()
+		err = idCheck(p.Id)
+		if err != nil {
+			err1 = err
+			return false
+		}
+		p.Name = value.Get("name").String()
+		p.Async = value.Get("async").Bool()
+		p.Expands = map[string]string{}
+		expands := value.Get("expands")
+		if len(expands.Map()) > 0 {
+			err = json.Unmarshal([]byte(value.Get("expands").Raw), &p.Expands)
+			if err != nil {
+				err1 = fmt.Errorf("function has error: [%s], data: %s", err.Error(), string(d))
+				return false
+			}
+		}
+		list = append(list, p)
+		return true
+	})
+	{
+		var idMap map[string]bool = map[string]bool{}
+		for _, v := range list {
+			if _, ok := idMap[v.Id]; ok {
+				return nil, fmt.Errorf("function is repeat [%s]", v.Id)
+			} else {
+				idMap[v.Id] = true
+			}
+		}
 	}
-	err := json.Unmarshal(d, &alias)
-	if err != nil {
-		return fmt.Errorf("function of tsl has error: [%s], data: %s", err.Error(), string(d))
+	if err1 != nil {
+		return nil, err1
 	}
-	err = idCheck(alias.Id)
-	if err != nil {
-		return err
-	}
-	p.Id = alias.Id
-	p.Name = alias.Name
-	p.Async = alias.Async
-	p.Inputs = alias.Inputs
-	p.Outputs = alias.Outputs
-	p.Expands = alias.Expands
-	return nil
+	return list, nil
+}
+
+type Property interface {
+	GetId() string
+	GetName() string
+	GetType() string
+	GetExpands() map[string]string
+	IsObject() (*PropertyObject, bool)
 }
 
 type TslProperty struct {
-	Id        string            `json:"id"`
-	Name      string            `json:"name"`
-	ValueType interface{}       `json:"valueType"`
-	Expands   map[string]string `json:"expands,omitempty"`
-	Type      string            `json:"-"`
+	Id      string            `json:"id"`
+	Name    string            `json:"name"`
+	Expands map[string]string `json:"expands,omitempty"`
 }
 
-func (p *TslProperty) UnmarshalJSON(d []byte) error {
-	var alias struct {
-		Id        string                 `json:"id"`
-		Name      string                 `json:"name"`
-		ValueType map[string]interface{} `json:"valueType"`
-		Expands   map[string]string      `json:"expands,omitempty"`
-		Type      string                 `json:"-"`
+func (p *TslProperty) GetId() string {
+	return p.Id
+}
+func (p *TslProperty) GetName() string {
+	return p.Name
+}
+
+func (p TslProperty) GetExpands() map[string]string {
+	return p.Expands
+}
+
+// is ValueTypeObject
+func (p *TslProperty) IsObject() (*PropertyObject, bool) {
+	return nil, false
+}
+
+func parsePropertys(d string, key string) ([]Property, error) {
+	res := gjson.Get(d, key)
+	var list []Property
+	var err error
+	res.ForEach(func(key, value gjson.Result) bool {
+		var property Property
+		property, err = parseProperty(value)
+		if err != nil {
+			return false
+		}
+		list = append(list, property)
+		return true
+	})
+	{
+		var idMap map[string]bool = map[string]bool{}
+		for _, v := range list {
+			if obj, ok := v.IsObject(); ok {
+				if len(obj.Properties) == 0 {
+					return list, fmt.Errorf("%s [%s] must have properties", key, v.GetId())
+				}
+			}
+			if _, ok := idMap[v.GetId()]; ok {
+				return list, fmt.Errorf("%s is repeat [%s]", key, v.GetId())
+			} else {
+				idMap[v.GetId()] = true
+			}
+		}
 	}
-	err := json.Unmarshal(d, &alias)
-	if err != nil {
-		return err
+
+	return list, err
+}
+
+func parseProperty(value gjson.Result) (Property, error) {
+	var err error
+	ptype := gjson.Get(value.Raw, "type")
+	var property Property
+	typeName := ptype.String()
+	if len(typeName) == 0 {
+		err = fmt.Errorf("type is not exist: %s", value.Raw)
+		return nil, err
 	}
-	t, ok := alias.ValueType["type"]
-	if !ok {
-		return nil
-	}
-	if len(strings.TrimSpace(alias.Id)) == 0 {
-		return fmt.Errorf("id of tslProperty must be persent")
-	}
-	p.Id = alias.Id
-	err = idCheck(p.Id)
-	if err != nil {
-		return err
-	}
-	p.Name = alias.Name
-	p.Expands = alias.Expands
-	p.Type = fmt.Sprintf("%v", t)
-	switch p.Type {
+	switch typeName {
 	case TypeEnum:
-		valueType := ValueTypeEnum{}
-		err = convert(alias.ValueType, &valueType)
+		property = &PropertyEnum{}
 		// if err == nil && valueType.Valid() != nil {
 		// 	return valueType.Valid()
 		// }
-		p.ValueType = valueType
 	case TypeInt:
-		valueType := ValueTypeInt{}
-		err = convert(alias.ValueType, &valueType)
-		p.ValueType = valueType
+		property = &PropertyInt{}
 	case TypeLong:
-		valueType := ValueTypeInt{}
-		err = convert(alias.ValueType, &valueType)
-		p.ValueType = valueType
+		property = &PropertyLong{}
 	case TypeString:
-		valueType := ValueTypeString{}
-		err = convert(alias.ValueType, &valueType)
-		p.ValueType = valueType
+		property = &PropertyString{}
 	case TypeBool:
-		valueType := ValueTypeBool{}
-		err = convert(alias.ValueType, &valueType)
-		p.ValueType = valueType
+		property = &PropertyBool{}
 	case TypePassword:
-		valueType := ValueTypePassword{}
-		err = convert(alias.ValueType, &valueType)
-		p.ValueType = valueType
+		property = &PropertyPassword{}
 	case TypeFloat:
-		valueType := ValueTypeFloat{}
-		err = convert(alias.ValueType, &valueType)
-		p.ValueType = valueType
+		property = &PropertyFloat{}
 	case TypeDouble:
-		valueType := ValueTypeFloat{}
-		err = convert(alias.ValueType, &valueType)
-		p.ValueType = valueType
+		property = &PropertyDouble{}
 	case TypeDate:
-		valueType := ValueTypeString{}
-		err = convert(alias.ValueType, &valueType)
-		p.ValueType = valueType
+		property = &PropertyDate{}
 	case TypeFile:
-		valueType := ValueTypeFile{}
-		err = convert(alias.ValueType, &valueType)
-		p.ValueType = valueType
+		property = &PropertyFile{}
+	case TypeObject:
+		property = &PropertyObject{}
 	// case TypeArray:
 	// 	valueType := ValueTypeArray{}
 	// 	err = convert(alias.ValueType, &valueType)
 	// 	p.ValueType = valueType
-	case TypeObject:
-		valueType := ValueTypeObject{}
-		err = convert(alias.ValueType, &valueType)
-		p.ValueType = valueType
 	default:
-		return fmt.Errorf("valueType %v is not support", t)
+		err = fmt.Errorf("type %v is not support", typeName)
+		return nil, err
 	}
-	return err
+	switch d1 := property.(type) {
+	case *PropertyObject:
+		d1.Id = value.Get("id").String()
+		d1.Name = value.Get("name").String()
+		d1.Expands = map[string]string{}
+		value.Get("expands").ForEach(func(key, value gjson.Result) bool {
+			d1.Expands[key.String()] = value.String()
+			return true
+		})
+		var properties []Property
+		value.Get("properties").ForEach(func(key, value gjson.Result) bool {
+			p, e := parseProperty(value)
+			if e != nil {
+				err = e
+				return false
+			}
+			properties = append(properties, p)
+			return true
+		})
+		d1.Properties = properties
+	default:
+		err = convert(value.Raw, property)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(strings.TrimSpace(property.GetId())) == 0 {
+		err = fmt.Errorf("id of tslProperty must be persent")
+		return nil, err
+	}
+	err = idCheck(property.GetId())
+	if err != nil {
+		return nil, err
+	}
+	return property, err
 }
 
-// is ValueTypeObject
-func (p *TslProperty) IsObject() (*ValueTypeObject, bool) {
-	switch d := (p.ValueType).(type) {
-	case ValueTypeObject:
-		return &d, true
-	}
-	return nil, false
+type PropertyEnum struct {
+	TslProperty
+	Elements []EnumElement `json:"elements"`
 }
 
-type ValueTypeEnum struct {
-	Type     string             `json:"type"`
-	Elements []ValueTypeEnumEle `json:"elements"`
+func (p *PropertyEnum) GetType() string {
+	return TypeEnum
 }
 
 // func (v *ValueTypeEnum) Valid() error {
@@ -269,74 +315,136 @@ type ValueTypeEnum struct {
 // 	return nil
 // }
 
-type ValueTypeEnumEle struct {
+type EnumElement struct {
 	Text  string `json:"text"`
 	Value string `json:"value"`
 }
 
-type ValueTypeInt struct {
-	Type string `json:"type"`
-	Max  int32  `json:"max"`
-	Min  int32  `json:"min"`
+type PropertyInt struct {
+	TslProperty
+	Max int32 `json:"max"`
+	Min int32 `json:"min"`
 }
 
-type ValueTypeBool struct {
-	Type       string `json:"type"`
+func (p *PropertyInt) GetType() string {
+	return TypeInt
+}
+
+type PropertyLong struct {
+	TslProperty
+	Max int32 `json:"max"`
+	Min int32 `json:"min"`
+}
+
+func (p *PropertyLong) GetType() string {
+	return TypeLong
+}
+
+type PropertyBool struct {
+	TslProperty
 	TrueText   string `json:"trueText"`
 	TrueValue  string `json:"trueValue"`
 	FalseText  string `json:"falseText"`
 	FalseValue string `json:"falseValue"`
 }
 
-type ValueTypeString struct {
-	Type string `json:"type"`
-	Max  int32  `json:"max"`
-	Min  int32  `json:"min"`
+func (p *PropertyBool) GetType() string {
+	return TypeBool
 }
 
-type ValueTypePassword struct {
-	Type string `json:"type"`
-	Max  int32  `json:"max"`
-	Min  int32  `json:"min"`
+type PropertyString struct {
+	TslProperty
+	Max int32 `json:"max"`
+	Min int32 `json:"min"`
 }
 
-type ValueTypeFile struct {
-	Type     string `json:"type"`
+func (p *PropertyString) GetType() string {
+	return TypeString
+}
+
+type PropertyDate struct {
+	TslProperty
+}
+
+func (p *PropertyDate) GetType() string {
+	return TypeDate
+}
+
+type PropertyPassword struct {
+	TslProperty
+	Max int32 `json:"max"`
+	Min int32 `json:"min"`
+}
+
+func (p *PropertyPassword) GetType() string {
+	return TypePassword
+}
+
+type PropertyFile struct {
+	TslProperty
 	BodyType string `json:"bodyType"` // url, base64
 }
 
-type ValueTypeFloat struct {
-	Type  string `json:"type"`
+func (p *PropertyFile) GetType() string {
+	return TypeFile
+}
+
+type PropertyFloat struct {
+	TslProperty
 	Scale int32  `json:"scale"`
 	Unit  string `json:"unit"`
 	Max   int32  `json:"max"`
 	Min   int32  `json:"min"`
 }
 
-type ValueTypeObject struct {
-	Type       string        `json:"type"`
-	Properties []TslProperty `json:"properties"`
+func (p *PropertyFloat) GetType() string {
+	return TypeFloat
 }
 
-func (p *ValueTypeObject) PropertiesMap() map[string]TslProperty {
-	tslP := map[string]TslProperty{}
+type PropertyDouble struct {
+	TslProperty
+	Scale int32  `json:"scale"`
+	Unit  string `json:"unit"`
+	Max   int32  `json:"max"`
+	Min   int32  `json:"min"`
+}
+
+func (p *PropertyDouble) GetType() string {
+	return TypeDouble
+}
+
+type PropertyObject struct {
+	TslProperty
+	Properties []Property `json:"properties"`
+}
+
+func (p *PropertyObject) GetType() string {
+	return TypeObject
+}
+
+func (p *PropertyObject) IsObject() (*PropertyObject, bool) {
+	return p, true
+}
+
+func (p *PropertyObject) PropertiesMap() map[string]Property {
+	tslP := map[string]Property{}
 	for _, p := range p.Properties {
-		tslP[p.Id] = p
+		tslP[p.GetId()] = p
 	}
 	return tslP
 }
 
-type ValueTypeArray struct {
-	Type        string      `json:"type"`
-	ElementType TslProperty `json:"elementType"`
-}
+// type PropertyArray struct {
+// 	TslProperty
+// 	ElementType TslProperty `json:"elementType"`
+// }
 
-func convert(data map[string]interface{}, v any) error {
-	str, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(str, v)
+// func (p *PropertyArray) GetType() string {
+// 	return TypeArray
+// }
+
+func convert(data string, v any) error {
+	return json.Unmarshal([]byte(data), v)
 }
 
 func idCheck(id string) error {

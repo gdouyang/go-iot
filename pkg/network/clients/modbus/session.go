@@ -191,7 +191,7 @@ func (s *ModbusSession) readLoop() {
 	}
 }
 
-func (s *ModbusSession) interval(f tsl.TslFunction) {
+func (s *ModbusSession) interval(f tsl.Function) {
 	if f.Expands != nil {
 		if val, ok := f.Expands["interval"]; ok && len(val) > 0 {
 			num, err := strconv.Atoi(val)

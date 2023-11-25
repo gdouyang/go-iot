@@ -34,10 +34,15 @@ func TestRule(t *testing.T) {
 	err := ruleengine.Start(1, &rule)
 	assert.Nil(t, err)
 	tslData := tsl.NewTslData()
-	tslData.Properties = []tsl.TslProperty{
-		{Id: "light", Name: "亮度", ValueType: map[string]interface{}{"type": "int"}},
-		{Id: "current", Name: "电流", ValueType: map[string]interface{}{"type": "double"}},
-		{Id: "obj", Name: "obj", ValueType: map[string]interface{}{"properties": []tsl.TslProperty{{Id: "name", Name: "name", ValueType: map[string]interface{}{"type": "string"}}}}},
+	tslData.Properties = []tsl.Property{
+		&tsl.PropertyInt{TslProperty: tsl.TslProperty{Id: "light", Name: "亮度"}},
+		&tsl.PropertyFloat{TslProperty: tsl.TslProperty{Id: "current", Name: "电流"}},
+		&tsl.PropertyObject{
+			TslProperty: tsl.TslProperty{Id: "obj", Name: "obj"},
+			Properties: []tsl.Property{
+				&tsl.PropertyString{TslProperty: tsl.TslProperty{Id: "name", Name: "name"}},
+			},
+		},
 	}
 	b, err := json.Marshal(tslData)
 	assert.Nil(t, err)

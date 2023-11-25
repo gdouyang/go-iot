@@ -8,16 +8,16 @@ import (
 )
 
 // convert value use the tsl
-func ValueConvert(propertys []TslProperty, data *map[string]interface{}) {
-	var propMap map[string]TslProperty = map[string]TslProperty{}
+func ValueConvert(propertys []Property, data *map[string]interface{}) {
+	var propMap map[string]Property = map[string]Property{}
 	for _, prop := range propertys {
-		propMap[prop.Id] = prop
+		propMap[prop.GetId()] = prop
 	}
 	ValueConvert1(propMap, data)
 }
 
 // convert value use the tsl
-func ValueConvert1(propMap map[string]TslProperty, data *map[string]interface{}) error {
+func ValueConvert1(propMap map[string]Property, data *map[string]interface{}) error {
 	for key, value := range *data {
 		if key == PropertyDeviceId {
 			continue
@@ -25,7 +25,7 @@ func ValueConvert1(propMap map[string]TslProperty, data *map[string]interface{})
 		if prop, ok := propMap[key]; !ok {
 			delete(*data, key)
 		} else {
-			valType := fmt.Sprintf("%v", prop.Type)
+			valType := fmt.Sprintf("%v", prop.GetType())
 			switch valType {
 			case TypeEnum:
 				switch value.(type) {

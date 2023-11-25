@@ -38,7 +38,7 @@ func (t *EsTimeSeries) PublishModel(product *core.Product, model tsl.TslData) er
 		// 属性
 		var properties map[string]any = map[string]any{}
 		for _, p := range model.Properties {
-			(properties)[p.Id] = t.createElasticProperty(p)
+			(properties)[p.GetId()] = t.createElasticProperty(p)
 		}
 		properties["deviceId"] = es.Property{Type: "keyword"}
 		properties["createTime"] = es.Property{Type: "date", Format: es.DefaultDateFormat}
@@ -56,16 +56,16 @@ func (t *EsTimeSeries) PublishModel(product *core.Product, model tsl.TslData) er
 			var properties map[string]any = map[string]any{}
 			if object, ok := e.IsObject(); ok {
 				for _, p1 := range object.Properties {
-					properties[p1.Id] = t.createElasticProperty(p1)
+					properties[p1.GetId()] = t.createElasticProperty(p1)
 				}
 			} else {
-				(properties)[e.Id] = t.createElasticProperty(e)
+				(properties)[e.GetId()] = t.createElasticProperty(e)
 			}
 			properties["deviceId"] = es.Property{Type: "keyword"}
 			properties["createTime"] = es.Property{Type: "date", Format: es.DefaultDateFormat}
 
-			indexPattern := fmt.Sprintf("%s-%s-%s-*", event_const, product.GetId(), e.Id) // event-{productId}-{eventId}-*
-			templateName := fmt.Sprintf("%s-%s-%s-template", event_const, product.GetId(), e.Id)
+			indexPattern := fmt.Sprintf("%s-%s-%s-*", event_const, product.GetId(), e.GetId()) // event-{productId}-{eventId}-*
+			templateName := fmt.Sprintf("%s-%s-%s-template", event_const, product.GetId(), e.GetId())
 			err := es.CreateEsTemplate(properties, indexPattern, templateName, "")
 			if err != nil {
 				return err
@@ -332,8 +332,8 @@ func (t *EsTimeSeries) getQueryIndexs(index string, param core.TimeDataSearchReq
 	return indexs, nil
 }
 
-func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) any {
-	valType := strings.TrimSpace(p.Type)
+func (t *EsTimeSeries) createElasticProperty(p tsl.Property) any {
+	valType := strings.TrimSpace(p.GetType())
 	switch valType {
 	case tsl.TypeInt:
 		return es.Property{Type: "integer"}
@@ -357,17 +357,17 @@ func (t *EsTimeSeries) createElasticProperty(p tsl.TslProperty) any {
 	// 	array := p.ValueType.(tsl.ValueTypeArray)
 	// 	return t.createElasticProperty(array.ElementType)
 	case tsl.TypeObject:
-		object := p.ValueType.(tsl.ValueTypeObject)
+		object := p.(*tsl.PropertyObject)
 		var mapping map[string]any = map[string]any{}
 		for _, p1 := range object.Properties {
-			mapping[p1.Id] = t.createElasticProperty(p1)
+			mapping[p1.GetId()] = t.createElasticProperty(p1)
 		}
 		return map[string]any{
 			"type":       "object",
 			"properties": mapping,
 		}
 	default:
-		if len(p.Id) > 0 {
+		if len(p.GetId()) > 0 {
 			return es.Property{Type: "keyword", IgnoreAbove: "256"}
 		}
 	}
