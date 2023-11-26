@@ -317,6 +317,7 @@ func (a *productApi) saveTsl(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
+	update.Metadata = tslData.Text
 	err = product.UpdateProduct(&update)
 	if err != nil {
 		ctl.RespError(err)
