@@ -2,6 +2,7 @@ package notify
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 )
 
@@ -33,6 +34,9 @@ func GetAllNotify() []Notify {
 	for _, value := range factory {
 		all = append(all, value())
 	}
+	sort.Slice(all, func(i, j int) bool {
+		return all[i].Kind() < all[j].Kind()
+	})
 	return all
 }
 
@@ -69,4 +73,16 @@ func GetNotify(id int64) Notify {
 		return notify
 	}
 	return nil
+}
+
+func TestNotify(kind string, config NotifyConfig) error {
+	if fn, ok := factory[kind]; ok {
+		n := fn()
+		err := n.FromJson(config)
+		if err != nil {
+			return err
+		}
+		return n.Notify(n.ParseTemplate(map[string]interface{}{}))
+	}
+	return fmt.Errorf("kind of %s notify not found", kind)
 }

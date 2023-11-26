@@ -136,6 +136,7 @@ func (s *RuleExecutor) evaluate(msg eventbus.Message) {
 				return
 			}
 			pass = evalPass
+			data["deviceId"] = deviceId
 		} else {
 			logs.Debugf("device %s skip", deviceId)
 		}
