@@ -21,7 +21,7 @@ const (
 	OFFLINE  = "offline"  // 离线
 	NoActive = "noActive" // 未启用
 
-	DEVICE    = "device"    // 直连设备
+	DEVICE    = "device"    // 设备
 	GATEWAY   = "gateway"   // 网关
 	SUBDEVICE = "subdevice" // 子设备
 )

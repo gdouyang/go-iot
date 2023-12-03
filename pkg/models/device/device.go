@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"go-iot/pkg/core"
 	"go-iot/pkg/models"
@@ -72,8 +73,26 @@ func AddDevice(ob *models.DeviceModel) error {
 	if !DeviceIdValid(ob.Id) {
 		return errors.New("设备ID格式错误")
 	}
-	if ob.DeviceType == core.SUBDEVICE && len(ob.ParentId) == 0 {
-		return errors.New("子设备需要指定父级")
+	ob.DeviceType = strings.TrimSpace(ob.DeviceType)
+	if len(ob.DeviceType) == 0 {
+		ob.DeviceType = core.DEVICE
+	}
+	if ob.DeviceType == core.SUBDEVICE {
+		if len(ob.ParentId) == 0 {
+			return errors.New("子设备需要指定parentId")
+		}
+		gw, err := GetDevice(ob.ParentId)
+		if err != nil {
+			return err
+		}
+		if gw == nil {
+			return errors.New("网关不存在")
+		}
+		if gw.DeviceType != core.GATEWAY {
+			return errors.New("父级设备不是网关")
+		}
+	} else {
+		ob.ParentId = ""
 	}
 	rs, err := GetDevice(ob.Id)
 	if err != nil {
