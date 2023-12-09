@@ -41,6 +41,27 @@ const (
 	TriggerTypeTimer  TriggerType = "timer"
 	TypeAlarm                     = "alarm"
 	TypeScene                     = "scene"
+	// 动作执行类型
+
+	ActionExecutorNotifier = "notifier"
+	ActionExecutorDevice   = "device-message-sender"
+	// FilterType
+
+	FilterTypeOnline     = "online"
+	FilterTypeOffline    = "offline"
+	FilterTypeProperties = "properties"
+	FilterTypeEvent      = "event"
+	// 比较运算符
+
+	OperatorEq  = "eq"  // 等于
+	OperatorNeq = "neq" // 不等于
+	OperatorGt  = "gt"  // 大于(>)
+	OperatorLt  = "lt"  // 小于
+	OperatorGte = "gte" // 大于等于
+	OperatorLte = "lte" // 小于等于
+
+	// 事件、功能本身（事件可以是本身触发，也可以是事件的子属性触发）
+	This = "this"
 )
 
 type Trigger struct {
@@ -51,13 +72,13 @@ type Trigger struct {
 }
 
 func (t *Trigger) GetTopic(productId string) string {
-	if t.FilterType == "properties" {
+	if t.FilterType == FilterTypeProperties {
 		return eventbus.GetMesssageTopic(productId, "*")
-	} else if t.FilterType == "online" {
+	} else if t.FilterType == FilterTypeOnline {
 		return eventbus.GetOnlineTopic(productId, "*")
-	} else if t.FilterType == "offline" {
+	} else if t.FilterType == FilterTypeOffline {
 		return eventbus.GetOfflineTopic(productId, "*")
-	} else if t.FilterType == "event" {
+	} else if t.FilterType == FilterTypeEvent {
 		return eventbus.GetEventTopic(productId, "*")
 	}
 	logs.Errorf("filterType[%s] is illegal, must be [properties, online, offline, event]", t.FilterType)
@@ -119,25 +140,25 @@ func (c *Trigger) Evaluate(data map[string]interface{}) (bool, error) {
 type ConditionFilter struct {
 	Key      string `json:"key"`
 	Value    string `json:"value"`
-	Operator string `json:"operator"`
-	Logic    string `json:"logic,omitempty"`
+	Operator string `json:"operator"`        // eq, neq, gt, lt, gte, lte
+	Logic    string `json:"logic,omitempty"` // and, or
 	DataType string `json:"dataType"`
 }
 
 func (c *ConditionFilter) getExpression() string {
 	var oper string
 	switch c.Operator {
-	case "eq":
+	case OperatorEq:
 		oper = "=="
-	case "not":
+	case OperatorNeq:
 		oper = "!="
-	case "qt":
+	case OperatorGt:
 		oper = ">"
-	case "lt":
+	case OperatorLt:
 		oper = "<"
-	case "qte":
+	case OperatorGte:
 		oper = ">="
-	case "lte":
+	case OperatorLte:
 		oper = "<="
 	default:
 		oper = "=="
@@ -159,7 +180,7 @@ func (c *ConditionFilter) getExpression() string {
 		return stringTypeFunc(c, oper)
 	case tsl.TypePassword:
 		return stringTypeFunc(c, oper)
-	case "this":
+	case This:
 		return "true" // event self is happen
 	default:
 		return fmt.Sprintf("this.%s %s %s", c.Key, oper, c.Value)

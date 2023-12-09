@@ -1,6 +1,7 @@
 package ruleengine
 
 import (
+	"errors"
 	"fmt"
 	"go-iot/pkg/core"
 	"go-iot/pkg/eventbus"
@@ -71,6 +72,68 @@ type RuleExecutor struct {
 	deviceIdMap map[string]bool
 }
 
+// 校验
+func (s *RuleExecutor) Valid() error {
+	if s.TriggerType != TriggerTypeDevice && s.TriggerType != TriggerTypeTimer {
+		return errors.New("triggerType must be [device, timer]")
+	}
+	if s.Type != TypeAlarm && s.Type != TypeScene {
+		return errors.New("type must be [scene, alarm]")
+	}
+	if s.TriggerType == TriggerTypeDevice && len(s.ProductId) == 0 {
+		return errors.New("productId must persent")
+	}
+	if s.TriggerType == TriggerTypeTimer && len(s.Cron) == 0 {
+		return errors.New("cron must persent")
+	}
+	if s.TriggerType == TriggerTypeDevice {
+		if s.Trigger.FilterType != FilterTypeOnline &&
+			s.Trigger.FilterType != FilterTypeOffline &&
+			s.Trigger.FilterType != FilterTypeProperties &&
+			s.Trigger.FilterType != FilterTypeEvent {
+			return errors.New("trigger.filterType must be [online, offline, properties, event]")
+		}
+		if s.Trigger.FilterType == FilterTypeProperties ||
+			s.Trigger.FilterType == FilterTypeEvent {
+			if len(s.Trigger.Filters) == 0 {
+				return errors.New("trigger.filters must not empty")
+			}
+			for i, v := range s.Trigger.Filters {
+				if i > 0 && v.Logic != "and" && v.Logic != "or" {
+					return fmt.Errorf("trigger.filters[%d].logic must be [and, or]", i)
+				}
+				if len(v.Key) == 0 {
+					return fmt.Errorf("trigger.filters[%d].key must persent", i)
+				}
+				// 事件本身(可以不填写值)
+				if v.DataType == This {
+					continue
+				}
+				if len(v.Operator) == 0 {
+					return fmt.Errorf("trigger.filters[%d].operator must persent", i)
+				}
+				if v.Operator != OperatorEq && v.Operator != OperatorNeq &&
+					v.Operator != OperatorGt && v.Operator != OperatorLt &&
+					v.Operator != OperatorGte && v.Operator != OperatorLte {
+					return fmt.Errorf("trigger.filters[%d].operator must be [eq, neq, gt, lt, gte, lte]", i)
+				}
+				if len(v.Value) == 0 {
+					return fmt.Errorf("trigger.filters[%d].value must persent", i)
+				}
+			}
+		}
+	}
+	if len(s.Actions) == 0 {
+		return errors.New("actions must not empty")
+	}
+	for _, v := range s.Actions {
+		if v.Executor != ActionExecutorDevice && v.Executor != ActionExecutorNotifier {
+			return errors.New("action executor must be [notifier, device-message-sender]")
+		}
+	}
+	return nil
+}
+
 func (s *RuleExecutor) deviceIdsToMap() {
 	if s.deviceIdMap == nil {
 		s.deviceIdMap = map[string]bool{}
@@ -88,7 +151,7 @@ func (s *RuleExecutor) start() error {
 	} else if s.TriggerType == TriggerTypeTimer {
 		entryID, err := cronManager.AddFunc(s.Cron, s.cronRun)
 		if err != nil {
-			return err
+			return fmt.Errorf("cron表达式错误: %s", err.Error())
 		}
 		s.cronId = entryID
 	} else {

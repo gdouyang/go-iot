@@ -101,6 +101,9 @@ func UpdateRule(ob *models.RuleModel) error {
 	if len(ob.Type) > 0 {
 		columns = append(columns, "Type")
 	}
+	if len(ob.Cron) > 0 {
+		columns = append(columns, "Cron")
+	}
 	if len(ob.Desc) > 0 {
 		columns = append(columns, "Desc")
 	}
