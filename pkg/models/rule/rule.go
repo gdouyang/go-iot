@@ -51,7 +51,7 @@ func AddRule(ob *models.RuleModel) error {
 		return err
 	}
 	if rs != nil {
-		return errors.New("scene is exist")
+		return errors.New("规则已经存在")
 	}
 	if len(ob.DeviceIds) > maxDeviceIdsLength {
 		return fmt.Errorf("设备数不能超过%v", maxDeviceIdsLength)
@@ -198,7 +198,7 @@ func GetRuleMust(id int64) (*models.RuleModel, error) {
 		return nil, err
 	}
 	if p == nil {
-		return nil, errors.New("scene not exist")
+		return nil, errors.New("rule not exist")
 	}
 	return p, nil
 }

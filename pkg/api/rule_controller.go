@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-var sceneResource = Resource{
+var ruleResource = Resource{
 	Id:   "rule-mgr",
 	Name: "规则引擎",
 	Action: []ResourceAction{
@@ -23,7 +23,7 @@ var sceneResource = Resource{
 }
 
 func init() {
-	RegResource(sceneResource)
+	RegResource(ruleResource)
 
 	var api *ruleApi
 
@@ -32,6 +32,9 @@ func init() {
 	web.RegisterAPI("/rule", "POST", api.add)
 	// 修改规则
 	web.RegisterAPI("/rule/{id}", "PUT", api.update)
+	// 复制
+	web.RegisterAPI("/rule/{id}/copy", "POST", api.copy)
+	// 根据id查询
 	web.RegisterAPI("/rule/{id}", "GET", api.get)
 	// 删除规则
 	web.RegisterAPI("/rule/{id}", "DELETE", api.delete)
@@ -48,7 +51,7 @@ type ruleApi struct {
 
 func (a *ruleApi) page(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(sceneResource, QueryAction) {
+	if ctl.isForbidden(ruleResource, QueryAction) {
 		return
 	}
 	var ob models.PageQuery
@@ -67,7 +70,7 @@ func (a *ruleApi) page(w http.ResponseWriter, r *http.Request) {
 }
 func (a *ruleApi) add(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(sceneResource, CretaeAction) {
+	if ctl.isForbidden(ruleResource, CretaeAction) {
 		return
 	}
 	var ob models.RuleModel
@@ -92,7 +95,7 @@ func (a *ruleApi) add(w http.ResponseWriter, r *http.Request) {
 }
 func (a *ruleApi) update(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(sceneResource, SaveAction) {
+	if ctl.isForbidden(ruleResource, SaveAction) {
 		return
 	}
 	var ob models.RuleModel
@@ -119,9 +122,44 @@ func (a *ruleApi) update(w http.ResponseWriter, r *http.Request) {
 	}
 	ctl.RespOk()
 }
+
+func (a *ruleApi) copy(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(ruleResource, CretaeAction) {
+		return
+	}
+	id := ctl.Param("id")
+	_id, err := strconv.Atoi(id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = ruleApi1.getRuleAndCheckCreateId(ctl, int64(_id))
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	data, err := rule.GetRule(int64(_id))
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	if data == nil {
+		ctl.RespError(errors.New("数据不存在"))
+		return
+	}
+	data.Id = 0
+	data.CreateId = ctl.GetCurrentUser().Id
+	err = rule.AddRule(data)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	ctl.RespOk()
+}
 func (a *ruleApi) get(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(sceneResource, QueryAction) {
+	if ctl.isForbidden(ruleResource, QueryAction) {
 		return
 	}
 	id := ctl.Param("id")
@@ -139,7 +177,7 @@ func (a *ruleApi) get(w http.ResponseWriter, r *http.Request) {
 }
 func (a *ruleApi) delete(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(sceneResource, DeleteAction) {
+	if ctl.isForbidden(ruleResource, DeleteAction) {
 		return
 	}
 	id := ctl.Param("id")
@@ -165,14 +203,14 @@ func (a *ruleApi) delete(w http.ResponseWriter, r *http.Request) {
 }
 func (a *ruleApi) start(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(sceneResource, SaveAction) {
+	if ctl.isForbidden(ruleResource, SaveAction) {
 		return
 	}
 	ruleApi1.enable(ctl, true)
 }
 func (a *ruleApi) stop(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(sceneResource, SaveAction) {
+	if ctl.isForbidden(ruleResource, SaveAction) {
 		return
 	}
 	ruleApi1.enable(ctl, false)

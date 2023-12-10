@@ -223,7 +223,7 @@ func (a *notifyApi) copy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if data == nil {
-		ctl.RespError(errors.New("data not found"))
+		ctl.RespError(errors.New("数据不存在"))
 		return
 	}
 	data.Id = 0

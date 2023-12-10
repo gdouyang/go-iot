@@ -52,11 +52,9 @@ java -jar device-simulator.jar mqtt.address=192.168.31.197 mqtt.port=9010 mqtt.l
         "readOnly": null
       },
       "description": null,
-      "valueType": {
-        "scale": 2,
-        "unit": null,
-        "type": "float"
-      }
+      "scale": 2,
+      "unit": null,
+      "type": "float"
     },
     {
       "id": "light",
@@ -65,10 +63,8 @@ java -jar device-simulator.jar mqtt.address=192.168.31.197 mqtt.port=9010 mqtt.l
         "readOnly": null
       },
       "description": null,
-      "valueType": {
-        "unit": null,
-        "type": "int"
-      }
+      "unit": null,
+      "type": "int"
     },
     {
       "id": "humidity",
@@ -77,10 +73,8 @@ java -jar device-simulator.jar mqtt.address=192.168.31.197 mqtt.port=9010 mqtt.l
         "readOnly": null
       },
       "description": null,
-      "valueType": {
-        "unit": null,
-        "type": "long"
-      }
+      "unit": null,
+      "type": "long"
     },
     {
       "id": "current",
@@ -89,10 +83,8 @@ java -jar device-simulator.jar mqtt.address=192.168.31.197 mqtt.port=9010 mqtt.l
         "readOnly": null
       },
       "description": null,
-      "valueType": {
-        "unit": null,
-        "type": "int"
-      }
+      "unit": null,
+      "type": "int"
     },
     {
       "id": "voltage",
@@ -101,11 +93,9 @@ java -jar device-simulator.jar mqtt.address=192.168.31.197 mqtt.port=9010 mqtt.l
         "readOnly": null
       },
       "description": null,
-      "valueType": {
-        "scale": 2,
-        "unit": null,
-        "type": "double"
-      }
+      "scale": 2,
+      "unit": null,
+      "type": "double"
     }
   ],
   "functions": []
