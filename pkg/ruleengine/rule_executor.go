@@ -184,6 +184,9 @@ func (s *RuleExecutor) evaluate(msg eventbus.Message) {
 			data = p.Data
 		} else if p, ok := msg.(*eventbus.EventMessage); ok {
 			data = p.Data
+		} else {
+			logs.Infof("unsupported msg type: %s", msg.Type())
+			return
 		}
 		// 指定了设备
 		if len(s.deviceIdMap) > 0 {
@@ -244,8 +247,10 @@ func (s *RuleExecutor) runAction(data map[string]interface{}) {
 			} else {
 				a.Do()
 			}
+		} else if action.Executor == "console" {
+			logs.Infof("exec name: [%s], type: [%s], triggerType: [%s], executor: [%s], data: %v", s.Name, s.Type, s.TriggerType, action.Executor, data)
 		} else {
-			logs.Warnf("%s %s %s %s Executor not support", s.Name, s.Type, s.TriggerType, action.Executor)
+			logs.Warnf("unsupported executor [%s], name: [%s], type: [%s], triggerType: [%s], ", action.Executor, s.Name, s.Type, s.TriggerType)
 		}
 	}
 }

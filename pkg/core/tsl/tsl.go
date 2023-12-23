@@ -2,6 +2,7 @@ package tsl
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -40,17 +41,17 @@ func NewTslData() *TslData {
 func (tsl *TslData) FromJson(text string) error {
 	functions, err := parseFunctions(text)
 	if err != nil {
-		return fmt.Errorf("tsl parse error: %v", err)
+		return fmt.Errorf("tsl parse functions error: %v", err)
 	}
 	tsl.Functions = functions
 	list, err := parsePropertys(text, "properties")
 	if err != nil {
-		return fmt.Errorf("tsl parse error: %v", err)
+		return fmt.Errorf("tsl parse properties error: %v", err)
 	}
 	tsl.Properties = list
 	list, err = parsePropertys(text, "events")
 	if err != nil {
-		return fmt.Errorf("tsl parse error: %v", err)
+		return fmt.Errorf("tsl parse events error: %v", err)
 	}
 	tsl.Events = list
 	data, err := json.Marshal(tsl)
@@ -107,7 +108,7 @@ type Property interface {
 	setType(string)
 }
 
-type TslProperty struct {
+type tslProperty struct {
 	Id          string            `json:"id"`
 	Name        string            `json:"name"`
 	Type        string            `json:"type"`
@@ -115,53 +116,58 @@ type TslProperty struct {
 	Description string            `json:"description,omitempty"`
 }
 
-func (p *TslProperty) GetId() string {
+func (p *tslProperty) GetId() string {
 	return p.Id
 }
-func (p *TslProperty) GetName() string {
+func (p *tslProperty) GetName() string {
 	return p.Name
 }
 
-func (p TslProperty) GetExpands() map[string]string {
+func (p tslProperty) GetExpands() map[string]string {
 	return p.Expands
 }
 
 // is ValueTypeObject
-func (p *TslProperty) IsObject() (*PropertyObject, bool) {
+func (p *tslProperty) IsObject() (*PropertyObject, bool) {
 	return nil, false
 }
 
-func (p *TslProperty) setId(t string) {
+func (p *tslProperty) setId(t string) {
 	p.Id = t
 }
-func (p *TslProperty) setType(t string) {
+func (p *tslProperty) setType(t string) {
 	p.Type = t
 }
 
 type PropertyEnum struct {
-	TslProperty
+	tslProperty
 	Elements []EnumElement `json:"elements"`
 }
 
+func NewPropertyEnum(id, name string, elements []EnumElement) *PropertyEnum {
+	p := &PropertyEnum{tslProperty: tslProperty{Id: id, Name: name}, Elements: elements}
+	p.setType(p.GetType())
+	return p
+}
 func (p *PropertyEnum) GetType() string {
 	return TypeEnum
 }
 
-// func (v *ValueTypeEnum) Valid() error {
-// 	if len(v.Elements) == 0 {
-// 		return errors.New("enum elements is empty")
-// 	}
-// 	for _, v := range v.Elements {
-// 		if len(v.Value) == 0 {
-// 			return errors.New("enum elements value is empty")
-// 		}
-// 		err := idCheck(v.Value)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return nil
-// }
+func (v *PropertyEnum) Valid() error {
+	if len(v.Elements) == 0 {
+		return errors.New("enum elements is empty")
+	}
+	for _, v := range v.Elements {
+		if len(v.Value) == 0 {
+			return errors.New("enum elements value is empty")
+		}
+		err := idCheck(v.Value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 type EnumElement struct {
 	Text  string `json:"text"`
@@ -169,8 +175,14 @@ type EnumElement struct {
 }
 
 type PropertyInt struct {
-	TslProperty
+	tslProperty
 	Unit string `json:"unit"`
+}
+
+func NewPropertyInt(id, name string) *PropertyInt {
+	p := &PropertyInt{tslProperty: tslProperty{Id: id, Name: name}}
+	p.setType(p.GetType())
+	return p
 }
 
 func (p *PropertyInt) GetType() string {
@@ -181,25 +193,42 @@ type PropertyLong struct {
 	PropertyInt
 }
 
+func NewPropertyLong(id, name string) *PropertyLong {
+	p := &PropertyLong{PropertyInt: *NewPropertyInt(id, name)}
+	p.setType(p.GetType())
+	return p
+}
+
 func (p *PropertyLong) GetType() string {
 	return TypeLong
 }
 
 type PropertyBool struct {
-	TslProperty
+	tslProperty
 	TrueText   string `json:"trueText"`
 	TrueValue  string `json:"trueValue"`
 	FalseText  string `json:"falseText"`
 	FalseValue string `json:"falseValue"`
 }
 
+func NewPropertyBool(id, name string) *PropertyBool {
+	p := &PropertyBool{tslProperty: tslProperty{Id: id, Name: name}}
+	p.setType(p.GetType())
+	return p
+}
 func (p *PropertyBool) GetType() string {
 	return TypeBool
 }
 
 type PropertyString struct {
-	TslProperty
+	tslProperty
 	Max int32 `json:"max"`
+}
+
+func NewPropertyString(id, name string) *PropertyString {
+	p := &PropertyString{tslProperty: tslProperty{Id: id, Name: name}}
+	p.setType(p.GetType())
+	return p
 }
 
 func (p *PropertyString) GetType() string {
@@ -207,8 +236,14 @@ func (p *PropertyString) GetType() string {
 }
 
 type PropertyDate struct {
-	TslProperty
+	tslProperty
 	Format string `json:"format"`
+}
+
+func NewPropertyDate(id, name string) *PropertyDate {
+	p := &PropertyDate{tslProperty: tslProperty{Id: id, Name: name}}
+	p.setType(p.GetType())
+	return p
 }
 
 func (p *PropertyDate) GetType() string {
@@ -219,25 +254,41 @@ type PropertyPassword struct {
 	PropertyString
 }
 
+func NewPropertyPassword(id, name string) *PropertyPassword {
+	p := &PropertyPassword{PropertyString: *NewPropertyString(id, name)}
+	p.setType(p.GetType())
+	return p
+}
+
 func (p *PropertyPassword) GetType() string {
 	return TypePassword
 }
 
 type PropertyFile struct {
-	TslProperty
+	tslProperty
 	BodyType string `json:"bodyType"` // url, base64
 }
 
+func NewPropertyFile(id, name string) *PropertyFile {
+	p := &PropertyFile{tslProperty: tslProperty{Id: id, Name: name}}
+	p.setType(p.GetType())
+	return p
+}
 func (p *PropertyFile) GetType() string {
 	return TypeFile
 }
 
 type PropertyFloat struct {
-	TslProperty
+	tslProperty
 	Scale int32  `json:"scale"`
 	Unit  string `json:"unit"`
 }
 
+func NewPropertyFloat(id, name string) *PropertyFloat {
+	p := &PropertyFloat{tslProperty: tslProperty{Id: id, Name: name}}
+	p.setType(p.GetType())
+	return p
+}
 func (p *PropertyFloat) GetType() string {
 	return TypeFloat
 }
@@ -246,15 +297,25 @@ type PropertyDouble struct {
 	PropertyFloat
 }
 
+func NewPropertyDouble(id, name string) *PropertyDouble {
+	p := &PropertyDouble{PropertyFloat: *NewPropertyFloat(id, name)}
+	p.setType(p.GetType())
+	return p
+}
 func (p *PropertyDouble) GetType() string {
 	return TypeDouble
 }
 
 type PropertyObject struct {
-	TslProperty
+	tslProperty
 	Properties []Property `json:"properties"`
 }
 
+func NewPropertyObject(id, name string, properties []Property) *PropertyObject {
+	p := &PropertyObject{tslProperty: tslProperty{Id: id, Name: name}, Properties: properties}
+	p.setType(p.GetType())
+	return p
+}
 func (p *PropertyObject) GetType() string {
 	return TypeObject
 }
@@ -282,8 +343,12 @@ func (p *PropertyObject) PropertiesMap() map[string]Property {
 
 func parseFunctions(d string) ([]Function, error) {
 	list := []Function{}
+	functions := gjson.Get(d, "functions")
+	if !functions.Exists() || functions.Value() == nil {
+		return list, nil
+	}
 	var err1 error
-	gjson.Get(d, "functions").ForEach(func(key, value gjson.Result) bool {
+	functions.ForEach(func(key, value gjson.Result) bool {
 		p := Function{}
 		inputs, err := parsePropertys(value.Raw, "inputs")
 		if err != nil {
@@ -341,6 +406,9 @@ func parseFunctions(d string) ([]Function, error) {
 func parsePropertys(d string, key string) ([]Property, error) {
 	res := gjson.Get(d, key)
 	var list []Property
+	if !res.Exists() || res.Value() == nil {
+		return list, nil
+	}
 	var err error
 	res.ForEach(func(key, value gjson.Result) bool {
 		var property Property
@@ -370,7 +438,7 @@ func parsePropertys(d string, key string) ([]Property, error) {
 	return list, err
 }
 
-func parseProperty(value gjson.Result, idNotNull bool) (Property, error) {
+func parseProperty(value gjson.Result, idMustNotNull bool) (Property, error) {
 	var err error
 	ptype := gjson.Get(value.Raw, "type")
 	var property Property
@@ -426,7 +494,7 @@ func parseProperty(value gjson.Result, idNotNull bool) (Property, error) {
 		})
 		var properties []Property
 		value.Get("properties").ForEach(func(key, value gjson.Result) bool {
-			p, e := parseProperty(value, idNotNull)
+			p, e := parseProperty(value, idMustNotNull)
 			if e != nil {
 				err = e
 				return false
@@ -441,7 +509,7 @@ func parseProperty(value gjson.Result, idNotNull bool) (Property, error) {
 	if err != nil {
 		return nil, err
 	}
-	if idNotNull {
+	if idMustNotNull {
 		if len(strings.TrimSpace(property.GetId())) == 0 {
 			err = fmt.Errorf("id of tslProperty must be persent")
 			return nil, err

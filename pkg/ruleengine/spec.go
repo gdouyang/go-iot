@@ -6,6 +6,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/tsl"
 	"go-iot/pkg/eventbus"
+	"strings"
 	"sync"
 
 	logs "go-iot/pkg/logger"
@@ -14,12 +15,12 @@ import (
 )
 
 type AlarmEvent struct {
-	ProductId string
-	DeviceId  string
-	RuleId    int64
-	AlarmName string
-	CreateId  int64
-	Data      map[string]interface{}
+	ProductId string                 `json:"productId"`
+	DeviceId  string                 `json:"deviceId"`
+	RuleId    int64                  `json:"ruleId"`
+	AlarmName string                 `json:"alarmName"`
+	CreateId  int64                  `json:"createId"`
+	Data      map[string]interface{} `json:"data"`
 }
 
 func (e *AlarmEvent) Type() eventbus.MessageType {
@@ -147,7 +148,7 @@ type ConditionFilter struct {
 
 func (c *ConditionFilter) getExpression() string {
 	var oper string
-	switch c.Operator {
+	switch strings.ToLower(c.Operator) {
 	case OperatorEq:
 		oper = "=="
 	case OperatorNeq:
@@ -163,23 +164,12 @@ func (c *ConditionFilter) getExpression() string {
 	default:
 		oper = "=="
 	}
-	stringTypeFunc := func(c *ConditionFilter, oper string) string {
+	switch c.DataType {
+	case tsl.TypeString, tsl.TypeEnum, tsl.TypeDate, tsl.TypeBool, tsl.TypePassword:
 		if oper == "==" || oper == "!=" {
 			oper = oper + "="
 		}
 		return fmt.Sprintf("this.%s %s \"%s\"", c.Key, oper, c.Value)
-	}
-	switch c.DataType {
-	case tsl.TypeString:
-		return stringTypeFunc(c, oper)
-	case tsl.TypeEnum:
-		return stringTypeFunc(c, oper)
-	case tsl.TypeDate:
-		return stringTypeFunc(c, oper)
-	case tsl.TypeBool:
-		return stringTypeFunc(c, oper)
-	case tsl.TypePassword:
-		return stringTypeFunc(c, oper)
 	case This:
 		return "true" // event self is happen
 	default:
@@ -187,12 +177,12 @@ func (c *ConditionFilter) getExpression() string {
 	}
 }
 
-// 抖动限制
+// 抖动限制，x秒内发生x次及以上时,处理(第一次或最后一次)
 type ShakeLimit struct {
-	Enabled    bool  `json:"enabled"`
-	Time       int32 `json:"time"`
-	Threshold  int32 `json:"threshold"`
-	AlarmFirst bool  `json:"alarmFirst"`
+	Enabled    bool `json:"enabled"`    // 是否启用
+	Time       int  `json:"time"`       // 秒内发生
+	Threshold  int  `json:"threshold"`  // 次及以上时，处理
+	AlarmFirst bool `json:"alarmFirst"` // 第一次或最后一次
 }
 
 // 执行
