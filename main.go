@@ -14,6 +14,7 @@ import (
 	"go-iot/pkg/option"
 	"go-iot/pkg/redis"
 	_ "go-iot/pkg/registry"
+	"go-iot/pkg/ruleengine"
 	"os"
 )
 
@@ -36,6 +37,7 @@ func main() {
 	cluster.Config(opt)
 	es.Config(opt)
 	redis.Config(opt)
+	ruleengine.Config(opt)
 	// init db
 	models.InitDb()
 

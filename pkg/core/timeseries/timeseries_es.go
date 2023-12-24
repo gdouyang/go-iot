@@ -164,7 +164,6 @@ func (t *EsTimeSeries) SaveProperties(product *core.Product, d1 map[string]any) 
 	if validProperty == nil {
 		return errors.New("not have tsl property, dont save timeseries data")
 	}
-	busMsgData := map[string]any{}
 	for key := range d1 {
 		if key == tsl.PropertyDeviceId {
 			continue
@@ -172,8 +171,6 @@ func (t *EsTimeSeries) SaveProperties(product *core.Product, d1 map[string]any) 
 		_, ok := validProperty[key]
 		if !ok {
 			delete(d1, key)
-		} else {
-			busMsgData[key] = d1[key]
 		}
 	}
 	if len(d1) == 0 {
@@ -192,7 +189,7 @@ func (t *EsTimeSeries) SaveProperties(product *core.Product, d1 map[string]any) 
 	index := t.getMonthIndex(product, properties_const, time.Now())
 	es.Commit(index, string(data))
 	// 发送事件总线
-	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), busMsgData)
+	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
 	eventbus.PublishProperties(&event)
 	return nil
 }
@@ -206,29 +203,18 @@ func (t *EsTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[
 	if !ok {
 		return fmt.Errorf("eventId [%s] not found", eventId)
 	}
-	busMsgData := map[string]any{}
-	columns := []string{}
 	if obj, ok := property.IsObject(); ok {
 		validProperty := obj.PropertiesMap()
 		for key := range d1 {
 			if key == tsl.PropertyDeviceId {
 				continue
 			}
-			if _, ok := validProperty[key]; ok {
-				columns = append(columns, key)
-				busMsgData[key] = d1[key]
+			if _, ok := validProperty[key]; !ok {
+				delete(d1, key)
 			}
-		}
-	} else {
-		for key := range d1 {
-			if key == tsl.PropertyDeviceId {
-				continue
-			}
-			columns = append(columns, key)
-			busMsgData[key] = d1[key]
 		}
 	}
-	if len(columns) == 0 {
+	if len(d1) == 0 {
 		return errors.New("data is empty, don't save event timeseries data")
 	}
 	deviceId := d1[tsl.PropertyDeviceId]
@@ -244,7 +230,7 @@ func (t *EsTimeSeries) SaveEvents(product *core.Product, eventId string, d1 map[
 	index := t.getMonthEventIndex(product, event_const, eventId, time.Now())
 	es.Commit(index, string(data))
 	// 发送事件总线
-	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), eventId, busMsgData)
+	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), eventId, d1)
 	eventbus.PublishEvent(&evt)
 	return nil
 }

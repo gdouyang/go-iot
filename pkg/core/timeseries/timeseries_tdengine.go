@@ -168,7 +168,6 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 	if validProperty == nil {
 		return errors.New("not have tsl property, don't save timeseries data")
 	}
-	busMsgData := map[string]any{}
 	columns := []string{}
 	for key := range d1 {
 		if key == tsl.PropertyDeviceId {
@@ -176,7 +175,6 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 		}
 		if _, ok := validProperty[key]; ok {
 			columns = append(columns, key)
-			busMsgData[key] = d1[key]
 		}
 	}
 	if len(columns) == 0 {
@@ -186,16 +184,17 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 	if deviceId == nil {
 		return errors.New("not have deviceId, don't save timeseries data")
 	}
-
 	sTableName := t.getStableName(product, core.TIME_TYPE_PROP)
 	// INSERT INTO d1001 USING meters TAGS('Beijing.Chaoyang', 2) VALUES('a');
-	sql := t.insertSql(sTableName, core.TIME_TYPE_PROP, columns, d1, time.Now().Format(timeformt))
+	createTime := time.Now().Format(timeformt)
+	sql := t.insertSql(sTableName, core.TIME_TYPE_PROP, columns, d1, createTime)
 	err := t.insert(sql)
 	if err != nil {
 		logs.Errorf("exec: %v", err)
 	}
 	// 发送事件总线
-	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), busMsgData)
+	d1["createTime"] = createTime
+	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
 	eventbus.PublishProperties(&event)
 	return nil
 }
@@ -209,7 +208,6 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 	if !ok {
 		return fmt.Errorf("eventId [%s] not found", eventId)
 	}
-	busMsgData := map[string]any{}
 	columns := []string{}
 	if obj, ok := property.IsObject(); ok {
 		validProperty := obj.PropertiesMap()
@@ -219,7 +217,6 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 			}
 			if _, ok := validProperty[key]; ok {
 				columns = append(columns, key)
-				busMsgData[key] = d1[key]
 			}
 		}
 	} else {
@@ -228,7 +225,6 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 				continue
 			}
 			columns = append(columns, key)
-			busMsgData[key] = d1[key]
 		}
 	}
 	if len(columns) == 0 {
@@ -239,14 +235,16 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 		return errors.New("not have deviceId, don't save event timeseries data")
 	}
 	sTableName := t.getEventStableName(product, core.TIME_TYPE_EVENT, eventId)
-	// // INSERT INTO d1001 USING meters TAGS('Beijing.Chaoyang', 2) VALUES('a');
-	sql := t.insertSql(sTableName, core.TIME_TYPE_EVENT, columns, d1, time.Now().Format(timeformt))
+	// INSERT INTO d1001 USING meters TAGS('Beijing.Chaoyang', 2) VALUES('a');
+	createTime := time.Now().Format(timeformt)
+	sql := t.insertSql(sTableName, core.TIME_TYPE_EVENT, columns, d1, createTime)
 	err := t.insert(sql)
 	if err != nil {
 		logs.Errorf("exec: %v", err)
 	}
+	d1["createTime"] = createTime
 	// 发送事件总线
-	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), eventId, busMsgData)
+	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), eventId, d1)
 	eventbus.PublishEvent(&evt)
 	return nil
 }

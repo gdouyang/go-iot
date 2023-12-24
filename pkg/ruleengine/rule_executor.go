@@ -93,6 +93,14 @@ func (s *RuleExecutor) Valid() error {
 			s.Trigger.FilterType != FilterTypeEvent {
 			return errors.New("trigger.filterType must be [online, offline, properties, event]")
 		}
+		if s.Trigger.ShakeLimit.Enabled {
+			if s.Trigger.ShakeLimit.Time > maxShakeLimitTime {
+				return errors.New("trigger.shakeLimit.time must less than or equal to 3600")
+			}
+			if s.Trigger.ShakeLimit.Threshold < 1 {
+				return errors.New("trigger.shakeLimit.threshold must great than or equal to 1")
+			}
+		}
 		if s.Trigger.FilterType == FilterTypeProperties ||
 			s.Trigger.FilterType == FilterTypeEvent {
 			if len(s.Trigger.Filters) == 0 {
@@ -147,6 +155,12 @@ func (s *RuleExecutor) start() error {
 	if s.TriggerType == TriggerTypeDevice {
 		topic := s.Trigger.GetTopic(s.ProductId)
 		eventbus.Subscribe(topic, s.subscribeEvent)
+		// 防抖
+		if s.Trigger.ShakeLimit.Enabled {
+			s.Trigger.ShakeLimit.init(func(deviceId string, data map[string]any) {
+				s.runAction(deviceId, data)
+			})
+		}
 		return nil
 	} else if s.TriggerType == TriggerTypeTimer {
 		entryID, err := cronManager.AddFunc(s.Cron, s.cronRun)
@@ -163,6 +177,9 @@ func (s *RuleExecutor) start() error {
 func (s *RuleExecutor) stop() {
 	if s.TriggerType == TriggerTypeDevice {
 		eventbus.UnSubscribe(s.Trigger.GetTopic(s.ProductId), s.subscribeEvent)
+		if s.Trigger.ShakeLimit.Enabled {
+			s.Trigger.ShakeLimit.close()
+		}
 	} else if s.TriggerType == TriggerTypeTimer {
 		cronManager.Remove(s.cronId)
 	}
@@ -170,10 +187,6 @@ func (s *RuleExecutor) stop() {
 
 // 事件触发
 func (s *RuleExecutor) subscribeEvent(msg eventbus.Message) {
-	s.evaluate(msg)
-}
-
-func (s *RuleExecutor) evaluate(msg eventbus.Message) {
 	pass := true
 	var data map[string]interface{}
 	deviceId := msg.GetDeviceId()
@@ -208,17 +221,21 @@ func (s *RuleExecutor) evaluate(msg eventbus.Message) {
 		}
 	}
 	if pass {
-		s.createAlarm(deviceId, data)
-		s.runAction(data)
+		if s.Trigger.ShakeLimit.Enabled {
+			s.Trigger.ShakeLimit.add(deviceId, data)
+		} else {
+			s.runAction(deviceId, data)
+		}
 	}
 }
 
 // 定时任务触发
 func (s *RuleExecutor) cronRun() {
-	s.runAction(nil)
+	s.runAction("", map[string]interface{}{})
 }
 
-func (s *RuleExecutor) createAlarm(deviceId string, data map[string]interface{}) {
+func (s *RuleExecutor) runAction(deviceId string, data map[string]any) {
+	// 告警类型生成告警
 	if s.Type == TypeAlarm {
 		event := AlarmEvent{
 			ProductId: s.ProductId,
@@ -229,9 +246,6 @@ func (s *RuleExecutor) createAlarm(deviceId string, data map[string]interface{})
 		}
 		eventbus.Publish(eventbus.GetAlarmTopic(s.ProductId, deviceId), &event)
 	}
-}
-
-func (s *RuleExecutor) runAction(data map[string]interface{}) {
 	for _, action := range s.Actions {
 		if action.Executor == "device-message-sender" {
 			a, err := NewDeviceCmdAction(action.Configuration)

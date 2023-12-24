@@ -5,14 +5,29 @@ import (
 	"fmt"
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/tsl"
+	"go-iot/pkg/core/util"
 	"go-iot/pkg/eventbus"
+	"go-iot/pkg/option"
 	"strings"
 	"sync"
+	"time"
 
 	logs "go-iot/pkg/logger"
 
 	"github.com/dop251/goja"
 )
+
+// 这里我们创建了一个timingwheel，精度是1s，最大的超时等待时间为3600s
+var maxShakeLimitTime = 3600
+var timeingwhell = util.NewTimingWheel(1*time.Second, maxShakeLimitTime)
+
+func Config(opt *option.Options) {
+	if timeingwhell != nil {
+		timeingwhell.Stop()
+	}
+	maxShakeLimitTime = opt.MaxShakeLimitTime
+	timeingwhell = util.NewTimingWheel(1*time.Second, opt.MaxShakeLimitTime)
+}
 
 type AlarmEvent struct {
 	ProductId string                 `json:"productId"`
@@ -179,10 +194,70 @@ func (c *ConditionFilter) getExpression() string {
 
 // 抖动限制，x秒内发生x次及以上时,处理(第一次或最后一次)
 type ShakeLimit struct {
-	Enabled    bool `json:"enabled"`    // 是否启用
-	Time       int  `json:"time"`       // 秒内发生
-	Threshold  int  `json:"threshold"`  // 次及以上时，处理
-	AlarmFirst bool `json:"alarmFirst"` // 第一次或最后一次
+	Enabled    bool          `json:"enabled"`    // 是否启用
+	Time       int           `json:"time"`       // x秒内发生
+	Threshold  int           `json:"threshold"`  // x次及以上时，处理
+	AlarmFirst bool          `json:"alarmFirst"` // 第一次或最后一次
+	group      *sync.Map     `json:"-"`          // 按设备分组, 每个设备有自己的防抖
+	quit       chan struct{} `json:"-"`
+}
+
+type shakeLimitGroup struct {
+	total int
+	first map[string]any
+	last  map[string]any
+}
+
+func (s *ShakeLimit) init(handler func(deviceId string, data map[string]any)) {
+	s.group = &sync.Map{}
+	s.quit = make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-timeingwhell.After(time.Duration(s.Time) * time.Second):
+				// 循环处理所有设备的数据
+				s.group.Range(func(key, v any) bool {
+					deviceId := key.(string)
+					v1 := v.(*shakeLimitGroup)
+					if v1.total > 0 {
+						if v1.total >= s.Threshold {
+							if s.AlarmFirst {
+								handler(deviceId, v1.first)
+							} else {
+								handler(deviceId, v1.last)
+							}
+						}
+						v1.first = nil
+						v1.last = nil
+						v1.total = 0
+					}
+					return true
+				})
+			case <-s.quit:
+				logs.Infof("rule close")
+				return
+			}
+		}
+	}()
+}
+func (s *ShakeLimit) close() {
+	s.quit <- struct{}{}
+}
+
+// 添加数据
+func (s *ShakeLimit) add(deviceId string, data map[string]any) {
+	v, ok := s.group.Load(deviceId)
+	if !ok {
+		v = &shakeLimitGroup{}
+		s.group.Store(deviceId, v)
+	}
+	v1 := v.(*shakeLimitGroup)
+	if !s.AlarmFirst {
+		v1.last = data
+	} else if v1.total == 0 {
+		v1.first = data
+	}
+	v1.total += 1
 }
 
 // 执行

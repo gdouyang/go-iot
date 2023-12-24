@@ -67,6 +67,8 @@ type Options struct {
 
 	// Path.
 	Log Log `yaml:"logs"`
+	// 抖动限制最大秒默认3600
+	MaxShakeLimitTime int `yaml:"max-shake-limit-time"`
 }
 
 // New creates a default Options.
@@ -103,6 +105,7 @@ func New() *Options {
 	opt.flags.StringVar(&opt.Cluster.Url, "cluster.url", "", "本机url")
 	opt.flags.StringVar(&opt.Cluster.Hosts, "cluster.hosts", "", "集群内主机列表")
 
+	opt.flags.IntVar(&opt.MaxShakeLimitTime, "max-shake-limit-time", 3600, "抖动限制最大秒")
 	opt.viper.BindPFlags(opt.flags)
 
 	return opt
