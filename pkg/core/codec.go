@@ -58,9 +58,7 @@ func GetDeviceLifeCycle(productId string) DeviceLifecycle {
 	return nil
 }
 
-// get the device state,
-// if device have session return online
-// else invoke OnStateChecker method
+// 获取设备状态，当设备有session时返回online, 否则调用OnStateChecker方法来查询
 func GetDeviceState(deviceId, productId string) string {
 	sess := GetSession(deviceId)
 	if sess != nil {
@@ -68,20 +66,44 @@ func GetDeviceState(deviceId, productId string) string {
 	} else {
 		liefcycle := GetDeviceLifeCycle(productId)
 		if liefcycle != nil {
-			deviceOper := GetDevice(deviceId)
-			if deviceOper.DeviceType == GATEWAY {
-				deviceId = deviceOper.ParentId
-			}
 			state, err := liefcycle.OnStateChecker(&BaseContext{
 				ProductId: productId,
 				DeviceId:  deviceId,
 			})
-			if err == nil {
-				if state == ONLINE {
-					return ONLINE
-				}
+			if err == nil && state == ONLINE {
+				return ONLINE
 			}
 		}
 	}
 	return OFFLINE
+}
+
+// 设备发布
+func OnDeviceDeploy(device *Device) error {
+	liefcycle := GetDeviceLifeCycle(device.ProductId)
+	if liefcycle != nil {
+		var deviceId = device.Id
+		err := liefcycle.OnDeviceDeploy(&BaseContext{
+			ProductId: device.ProductId,
+			DeviceId:  deviceId,
+			device:    device,
+		})
+		return err
+	}
+	return nil
+}
+
+// 设备取消发布
+func OnDeviceUnDeploy(device *Device) error {
+	liefcycle := GetDeviceLifeCycle(device.ProductId)
+	if liefcycle != nil {
+		var deviceId = device.Id
+		err := liefcycle.OnDeviceUnDeploy(&BaseContext{
+			ProductId: device.ProductId,
+			DeviceId:  deviceId,
+			device:    device,
+		})
+		return err
+	}
+	return nil
 }

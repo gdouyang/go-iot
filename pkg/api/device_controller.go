@@ -8,8 +8,9 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/core/common"
 	"go-iot/pkg/models"
-	device "go-iot/pkg/models/device"
-	"go-iot/pkg/models/network"
+	deviceDao "go-iot/pkg/models/device"
+	networkDao "go-iot/pkg/models/network"
+	"go-iot/pkg/network"
 	"net/http"
 	"time"
 
@@ -68,7 +69,7 @@ func (d *deviceApi) Page(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := device.PageDevice(&ob, &ctl.GetCurrentUser().Id)
+	res, err := deviceDao.PageDevice(&ob, &ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -102,12 +103,12 @@ func (d *deviceApi) GetDetail(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	product, err := device.GetProductMust(ob.ProductId)
+	product, err := deviceDao.GetProductMust(ob.ProductId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	nw, err := network.GetByProductId(ob.ProductId)
+	nw, err := networkDao.GetByProductId(ob.ProductId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -137,7 +138,7 @@ func (d *deviceApi) GetDetail(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			alins.State = core.GetDeviceState(ob.Id, ob.ProductId)
-			device.UpdateOnlineStatus(ob.Id, alins.State)
+			deviceDao.UpdateOnlineStatus(ob.Id, alins.State)
 		}
 	}
 	ctl.RespOkData(alins)
@@ -156,7 +157,7 @@ func (d *deviceApi) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ob.CreateId = ctl.GetCurrentUser().Id
-	err = device.AddDevice(&ob)
+	err = deviceDao.AddDevice(&ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -182,7 +183,13 @@ func (d *deviceApi) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	en := ob.ToEnitty()
-	err = device.UpdateDevice(&en)
+	deviceOper := ob.ToDeviceOper()
+	err = core.OnDeviceUnDeploy(deviceOper)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	err = deviceDao.UpdateDevice(&en)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -202,7 +209,7 @@ func (d *deviceApi) Delete(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	err = device.DeleteDevice(deviceId)
+	err = deviceDao.DeleteDevice(deviceId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -282,7 +289,6 @@ func (d *deviceApi) Deploy(w http.ResponseWriter, r *http.Request) {
 	}
 	deviceId := ctl.Param("id")
 	enableDevice(ctl, deviceId, true)
-	ctl.RespOk()
 }
 
 // undeploy device
@@ -293,7 +299,6 @@ func (d *deviceApi) Undeploy(w http.ResponseWriter, r *http.Request) {
 	}
 	deviceId := ctl.Param("id")
 	enableDevice(ctl, deviceId, false)
-	ctl.RespOk()
 }
 
 // batch deploy device
@@ -338,10 +343,10 @@ func (d *deviceApi) CmdInvoke(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	device := core.GetDevice(deviceId)
-	if cluster.Enabled() && device != nil && device.ClusterId != cluster.GetClusterId() {
+	deviceOper := core.GetDevice(deviceId)
+	if cluster.Enabled() && deviceOper != nil && deviceOper.ClusterId != cluster.GetClusterId() {
 		ctl.Request.Header.Add(cluster.X_Cluster_Timeout, "13")
-		resp, err := cluster.SingleInvoke(device.ClusterId, ctl.Request)
+		resp, err := cluster.SingleInvoke(deviceOper.ClusterId, ctl.Request)
 		if err != nil {
 			ctl.RespError(err)
 			return
@@ -349,6 +354,15 @@ func (d *deviceApi) CmdInvoke(w http.ResponseWriter, r *http.Request) {
 		ctl.Resp(*resp)
 		return
 	} else {
+		product, err := deviceDao.GetProductMust(deviceOper.ProductId)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+		if !network.IsStateless(product.NetworkType) && deviceOper.GetSession() == nil {
+			ctl.RespErr(common.NewErr400("设备已离线"))
+			return
+		}
 		err1 := core.DoCmdInvoke(ob)
 		if err1 != nil {
 			ctl.RespErr(err1)
@@ -399,7 +413,7 @@ func batchEnableDevice(ctl *AuthController, deviceIds []string, term core.Search
 			condition = append(condition, term)
 			for {
 				var page *models.PageQuery = &models.PageQuery{PageSize: 500, PageNum: 1, Condition: condition}
-				result, err := device.PageDevice(page, &ctl.GetCurrentUser().Id)
+				result, err := deviceDao.PageDevice(page, &ctl.GetCurrentUser().Id)
 				if err != nil {
 					logs.Errorf("batch enable error: %v", err)
 					break
@@ -420,7 +434,7 @@ func batchEnableDevice(ctl *AuthController, deviceIds []string, term core.Search
 					devopr.Config = model.Metaconfig
 					core.PutDevice(devopr)
 				}
-				err = device.UpdateOnlineStatusList(ids, tagertState)
+				err = deviceDao.UpdateOnlineStatusList(ids, tagertState)
 				if err != nil {
 					logs.Errorf("update device state error: %v", err)
 				} else {
@@ -452,16 +466,28 @@ func enableDevice(ctl *AuthController, deviceId string, isDeploy bool) {
 		if devopr == nil {
 			devopr = dev.ToDeviceOper()
 		}
+		err = core.OnDeviceDeploy(devopr)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
 		devopr.Config = dev.Metaconfig
 		core.PutDevice(devopr)
 	} else {
+		devopr := dev.ToDeviceOper()
+		err = core.OnDeviceUnDeploy(devopr)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
 		state = core.NoActive
 		core.DeleteDevice(deviceId)
 	}
 	if ctl.IsNotClusterRequest() {
-		device.UpdateOnlineStatus(deviceId, state)
+		deviceDao.UpdateOnlineStatus(deviceId, state)
 		cluster.BroadcastInvoke(ctl.Request)
 	}
+	ctl.RespOk()
 }
 
 // 查询设备时序数据
@@ -505,5 +531,5 @@ func queryDeviceTimeseriesData(ctl *AuthController, typ string) {
 }
 
 func getDeviceAndCheckCreateId(ctl *AuthController, deviceId string) (*models.DeviceModel, error) {
-	return device.GetDeviceAndCheckCreateId(deviceId, ctl.GetCurrentUser().Id)
+	return deviceDao.GetDeviceAndCheckCreateId(deviceId, ctl.GetCurrentUser().Id)
 }

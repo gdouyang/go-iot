@@ -68,7 +68,7 @@ func (s *HttpSession) ResponseHeader(key string, value string) {
 
 func (s *HttpSession) readData() error {
 	sc := core.GetCodec(s.productId)
-	message := s.getBody(s.r, 1024)
+	message := s.getBody(s.r, int64(10<<20)) // 10 MB is a lot of text.
 	sc.OnMessage(&httpContext{
 		BaseContext: core.BaseContext{
 			DeviceId:  s.GetDeviceId(),

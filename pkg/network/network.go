@@ -30,6 +30,11 @@ func IsNetClientType(str string) bool {
 	return TCP_CLIENT == NetType(str) || MQTT_CLIENT == NetType(str) || MODBUS == NetType(str)
 }
 
+// 是否为无状态协议, HTTP协议为无状态
+func IsStateless(str string) bool {
+	return HTTP_SERVER == NetType(str)
+}
+
 type (
 	// Certificate describes TLS certifications.
 	Certificate struct {

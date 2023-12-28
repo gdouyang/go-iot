@@ -49,9 +49,6 @@ func DoCmdInvokeCluster(message common.FuncInvoke) {
 // 进行功能调用
 func DoCmdInvoke(message common.FuncInvoke) *common.Err {
 	session := GetSession(message.DeviceId)
-	if session == nil {
-		return common.NewErr400("设备已离线")
-	}
 	device := GetDevice(message.DeviceId)
 	productId := device.ProductId
 	product := GetProduct(productId)

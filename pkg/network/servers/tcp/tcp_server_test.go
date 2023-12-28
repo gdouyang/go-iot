@@ -24,13 +24,10 @@ function OnMessage(context) {
 function OnInvoke(context) {
 	console.log("OnInvoke: " + JSON.stringify(context))
 }
-function OnDeviceCreate(context) {
+function OnDeviceDeploy(context) {
 	console.log(JSON.stringify(context))
 }
-function OnDeviceDelete(context) {
-	console.log(JSON.stringify(context))
-}
-function OnDeviceUpdate(context) {
+function OnDeviceUnDeploy(context) {
 	console.log(JSON.stringify(context))
 }
 function OnStateChecker(context) {

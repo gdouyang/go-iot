@@ -121,6 +121,7 @@ func (dev Device) ToDeviceOper() *core.Device {
 	devopr := core.NewDevice(dev.Id, dev.ProductId, dev.CreateId)
 	devopr.ParentId = dev.ParentId
 	devopr.DeviceType = dev.DeviceType
+	devopr.Name = dev.Name
 	return devopr
 }
 

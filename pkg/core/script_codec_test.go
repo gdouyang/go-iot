@@ -33,13 +33,10 @@ function OnMessage(context) {
 function OnInvoke(context) {
 	console.log(JSON.stringify(context))
 }
-function OnDeviceCreate(context) {
+function OnDeviceDeploy(context) {
 	console.log(JSON.stringify(context))
 }
-function OnDeviceDelete(context) {
-	console.log(JSON.stringify(context))
-}
-function OnDeviceUpdate(context) {
+function OnDeviceUnDeploy(context) {
 	console.log(JSON.stringify(context))
 }
 function OnStateChecker(context) {
@@ -55,7 +52,7 @@ function OnStateChecker(context) {
 	c.OnMessage(&core.BaseContext{DeviceId: "fff"})
 	switch m := c.(type) {
 	case core.DeviceLifecycle:
-		m.OnCreate(&core.BaseContext{DeviceId: "2222"})
+		m.OnDeviceDeploy(&core.BaseContext{DeviceId: "2222"})
 	default:
 	}
 }

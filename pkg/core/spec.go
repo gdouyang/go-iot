@@ -41,12 +41,10 @@ type (
 		OnClose(ctx MessageContext) error
 	}
 	DeviceLifecycle interface {
-		// 设备新增
-		OnCreate(ctx DeviceLifecycleContext) error
-		// 设备删除
-		OnDelete(ctx DeviceLifecycleContext) error
-		// 设备修改
-		OnUpdate(ctx DeviceLifecycleContext) error
+		// 设备发布
+		OnDeviceDeploy(ctx DeviceLifecycleContext) error
+		// 设备取消发布
+		OnDeviceUnDeploy(ctx DeviceLifecycleContext) error
 		// 设备状态检查
 		OnStateChecker(ctx DeviceLifecycleContext) (string, error)
 	}
@@ -95,10 +93,10 @@ type MetaConfig struct {
 
 // default product impl
 type Product struct {
-	Id          string
-	Config      map[string]string
-	StorePolicy string
-	TslData     *tsl.TslData
+	Id          string            `json:"id"`
+	Config      map[string]string `json:"config"`
+	StorePolicy string            `json:"storePolicy"`
+	TslData     *tsl.TslData      `json:"-"`
 }
 
 func NewProduct(id string, config map[string]string, storePolicy string, tsltext string) (*Product, error) {
@@ -155,6 +153,7 @@ type Device struct {
 	CreateId   int64             `json:"createId"`
 	Data       sync.Map          `json:"-"`
 	Config     map[string]string `json:"config"`
+	Name       string            `json:"name"`
 }
 
 func (d *Device) GetId() string {
@@ -194,11 +193,17 @@ func (d *Device) GetConfig(key string) string {
 	return ""
 }
 
+// 是否子设备
+func (d *Device) IsSubDevice() bool {
+	return d.DeviceType == SUBDEVICE
+}
+
 // base context
 type BaseContext struct {
-	DeviceId  string
-	ProductId string
-	Session   Session
+	DeviceId  string  `json:"deviceId"`
+	ProductId string  `json:"productId"`
+	Session   Session `json:"-"`
+	device    *Device `json:"-"`
 }
 
 func (ctx *BaseContext) DeviceOnline(deviceId string) {
@@ -224,6 +229,9 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 }
 
 func (ctx *BaseContext) GetDevice() *Device {
+	if ctx.device != nil {
+		return ctx.device
+	}
 	return ctx.GetDeviceById(ctx.DeviceId)
 }
 
@@ -264,11 +272,9 @@ func (ctx *BaseContext) SaveProperties(data map[string]interface{}) {
 		logs.Warnf("product [%s] not exist or noActive", ctx.ProductId)
 		return
 	}
-	if ctx.GetDevice() == nil {
-		logs.Warnf("device [%s] is offline", ctx.DeviceId)
-		return
+	if ctx.GetDevice() != nil {
+		data["deviceId"] = ctx.DeviceId
 	}
-	data["deviceId"] = ctx.DeviceId
 	p.GetTimeSeries().SaveProperties(p, data)
 }
 
@@ -278,10 +284,6 @@ func (ctx *BaseContext) SaveEvents(eventId string, data any) {
 		logs.Warnf("product [%s] not exist or noActive", ctx.ProductId)
 		return
 	}
-	if ctx.GetDevice() == nil {
-		logs.Warnf("device [%s] is offline", ctx.DeviceId)
-		return
-	}
 	saveData := map[string]any{}
 	switch d := data.(type) {
 	case map[string]any:
@@ -289,7 +291,9 @@ func (ctx *BaseContext) SaveEvents(eventId string, data any) {
 	default:
 		saveData[eventId] = data
 	}
-	saveData["deviceId"] = ctx.DeviceId
+	if ctx.GetDevice() != nil {
+		saveData["deviceId"] = ctx.DeviceId
+	}
 	p.GetTimeSeries().SaveEvents(p, eventId, saveData)
 }
 
@@ -340,10 +344,10 @@ func HttpRequest(config map[string]interface{}) map[string]interface{} {
 		URL:    u,
 		Header: map[string][]string{},
 	}
-	if v, ok := config["header"]; ok {
+	if v, ok := config["headers"]; ok {
 		h, ok := v.(map[string]interface{})
 		if !ok {
-			logs.Warnf("header is not object: %v", v)
+			logs.Warnf("headers is not object: %v", v)
 			h = map[string]interface{}{}
 		}
 		for key, value := range h {
@@ -370,7 +374,7 @@ func HttpRequest(config map[string]interface{}) map[string]interface{} {
 	resp, err := client.Do(req)
 	if err != nil {
 		logs.Errorf(err.Error())
-		result["status"] = resp.StatusCode
+		result["status"] = 0
 		result["message"] = err.Error()
 		return result
 	}
@@ -390,5 +394,8 @@ func HttpRequest(config map[string]interface{}) map[string]interface{} {
 	result["data"] = string(b)
 	result["status"] = resp.StatusCode
 	result["header"] = header
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		result["message"] = string(b)
+	}
 	return result
 }

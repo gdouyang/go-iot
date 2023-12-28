@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-func externalIP() (net.IP, error) {
+func ExternalIP() (net.IP, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
@@ -22,7 +22,7 @@ func externalIP() (net.IP, error) {
 			return nil, err
 		}
 		for _, addr := range addrs {
-			ip := getIpFromAddr(addr)
+			ip := GetIpFromAddr(addr)
 			if ip == nil {
 				continue
 			}
@@ -32,7 +32,7 @@ func externalIP() (net.IP, error) {
 	return nil, errors.New("connected to the network?")
 }
 
-func getIpFromAddr(addr net.Addr) net.IP {
+func GetIpFromAddr(addr net.Addr) net.IP {
 	var ip net.IP
 	switch v := addr.(type) {
 	case *net.IPNet:
