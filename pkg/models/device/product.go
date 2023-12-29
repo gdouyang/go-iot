@@ -87,7 +87,9 @@ func AddProduct(ob *models.ProductModel) error {
 		ob.CodecId = mc.CodecId
 	}
 	entity := ob.ToEnitty()
-	entity.Metaconfig = mc.ToJson()
+	if len(ob.Metaconfig) == 0 {
+		entity.Metaconfig = mc.ToJson()
+	}
 	_, err = o.Insert(entity)
 	if err != nil {
 		return err
