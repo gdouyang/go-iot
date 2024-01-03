@@ -193,6 +193,11 @@ func (d *Device) GetConfig(key string) string {
 	return ""
 }
 
+// 设置设备配置
+func (d *Device) SetConfig(key string, value string) {
+	d.Config[key] = value
+}
+
 // 是否子设备
 func (d *Device) IsSubDevice() bool {
 	return d.DeviceType == SUBDEVICE

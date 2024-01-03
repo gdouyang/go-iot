@@ -10,7 +10,6 @@ import (
 	"go-iot/pkg/models"
 	deviceDao "go-iot/pkg/models/device"
 	networkDao "go-iot/pkg/models/network"
-	"go-iot/pkg/network"
 	"net/http"
 	"time"
 
@@ -354,15 +353,6 @@ func (d *deviceApi) CmdInvoke(w http.ResponseWriter, r *http.Request) {
 		ctl.Resp(*resp)
 		return
 	} else {
-		product, err := deviceDao.GetProductMust(deviceOper.ProductId)
-		if err != nil {
-			ctl.RespError(err)
-			return
-		}
-		if !network.IsStateless(product.NetworkType) && deviceOper.GetSession() == nil {
-			ctl.RespErr(common.NewErr400("设备已离线"))
-			return
-		}
 		err1 := core.DoCmdInvoke(ob)
 		if err1 != nil {
 			ctl.RespErr(err1)
@@ -471,10 +461,25 @@ func enableDevice(ctl *AuthController, deviceId string, isDeploy bool) {
 			ctl.RespError(err)
 			return
 		}
+		// OnDeviceDeploy可以设置Config
+		if len(devopr.Config) > 0 {
+			if dev.Metaconfig == nil {
+				dev.Metaconfig = map[string]string{}
+			}
+			for key, v := range devopr.Config {
+				dev.Metaconfig[key] = v
+			}
+			entity := dev.ToEnitty()
+			deviceDao.UpdateDevice(&entity)
+		}
 		devopr.Config = dev.Metaconfig
 		core.PutDevice(devopr)
 	} else {
-		devopr := dev.ToDeviceOper()
+		devopr := core.GetDevice(deviceId)
+		if devopr == nil {
+			ctl.RespError(errors.New("设备未激活"))
+			return
+		}
 		err = core.OnDeviceUnDeploy(devopr)
 		if err != nil {
 			ctl.RespError(err)

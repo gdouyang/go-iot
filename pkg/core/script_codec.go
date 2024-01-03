@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"go-iot/pkg/core/util"
 	logs "go-iot/pkg/logger"
 
 	"github.com/dop251/goja"
@@ -28,15 +27,6 @@ const (
 	Script_Codec       = "script_codec"
 )
 
-type globe struct {
-}
-
-// crc16
-func (g globe) ToCrc16Str(str string) string {
-	d := util.ToCrc16Str(str)
-	return d
-}
-
 // javascript vm pool
 type VmPool struct {
 	chVM chan *goja.Runtime
@@ -52,6 +42,7 @@ func NewVmPool(src string, size int) (*VmPool, error) {
 		return nil, err
 	}
 	p := VmPool{chVM: make(chan *goja.Runtime, size)}
+	globeIns := globe{}
 	for i := 0; i < size; i++ {
 		vm := goja.New()
 		_, err := vm.RunProgram(program)
@@ -63,7 +54,7 @@ func NewVmPool(src string, size int) (*VmPool, error) {
 			logs.Debugf("%v", v...)
 		})
 		vm.Set("console", console)
-		vm.Set("globe", globe{})
+		vm.Set("globe", globeIns)
 		p.Put(vm)
 	}
 	return &p, nil

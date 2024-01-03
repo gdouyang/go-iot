@@ -48,9 +48,13 @@ func DoCmdInvokeCluster(message common.FuncInvoke) {
 
 // 进行功能调用
 func DoCmdInvoke(message common.FuncInvoke) *common.Err {
-	session := GetSession(message.DeviceId)
 	device := GetDevice(message.DeviceId)
 	productId := device.ProductId
+	state := GetDeviceState(message.DeviceId, productId)
+	if OFFLINE == state {
+		return common.NewErr400("设备已离线")
+	}
+	session := GetSession(message.DeviceId)
 	product := GetProduct(productId)
 	if product == nil {
 		return common.NewErr400(fmt.Sprintf("产品[%s]不存在，请确产品已发布", productId))
