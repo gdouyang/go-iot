@@ -43,6 +43,18 @@ type ProductModel struct {
 	Metaconfig []core.MetaConfig `json:"metaconfig,omitempty"`
 }
 
+func (p *ProductModel) ToProeuctOper() (*core.Product, error) {
+	config := map[string]string{}
+	for _, v := range p.Metaconfig {
+		config[v.Property] = v.Value
+	}
+	productOpr, err := core.NewProduct(p.Id, config, p.StorePolicy, p.Metadata)
+	if productOpr != nil {
+		productOpr.NetworkType = p.NetworkType
+	}
+	return productOpr, err
+}
+
 func (d *ProductModel) FromEnitty(en Product) {
 	d.Product = en
 	if len(en.Metaconfig) > 0 {

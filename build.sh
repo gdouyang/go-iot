@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 ##### build.sh
 
-RELEASE=1.0
+RELEASE="1.1.1"
 REPO=$(git config --get remote.origin.url)
 GIT_COMMIT=$(git rev-parse --short HEAD)
 # Build Flags

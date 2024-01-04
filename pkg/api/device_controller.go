@@ -10,6 +10,7 @@ import (
 	"go-iot/pkg/models"
 	deviceDao "go-iot/pkg/models/device"
 	networkDao "go-iot/pkg/models/network"
+	"go-iot/pkg/network"
 	"net/http"
 	"time"
 
@@ -343,7 +344,21 @@ func (d *deviceApi) CmdInvoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	deviceOper := core.GetDevice(deviceId)
-	if cluster.Enabled() && deviceOper != nil && deviceOper.ClusterId != cluster.GetClusterId() {
+	if deviceOper == nil {
+		ctl.RespError(errors.New("设备未激活"))
+		return
+	}
+	sendCluster := cluster.Enabled() && deviceOper.ClusterId != cluster.GetClusterId()
+	productOper := core.GetProduct(deviceOper.ProductId)
+	if productOper == nil {
+		ctl.RespError(fmt.Errorf("产品'%s'不存在或未发布", deviceOper.ProductId))
+		return
+	}
+	// 无状态网络不用走集群
+	if network.IsStateless(productOper.NetworkType) {
+		sendCluster = false
+	}
+	if sendCluster {
 		ctl.Request.Header.Add(cluster.X_Cluster_Timeout, "13")
 		resp, err := cluster.SingleInvoke(deviceOper.ClusterId, ctl.Request)
 		if err != nil {
@@ -514,19 +529,19 @@ func queryDeviceTimeseriesData(ctl *AuthController, typ string) {
 		ctl.RespError(err)
 		return
 	}
-	product := core.GetProduct(device.ProductId)
-	if product == nil {
-		ctl.RespError(fmt.Errorf("产品'%s'不存在, 请确保产品已发布", device.ProductId))
+	productOper := core.GetProduct(device.ProductId)
+	if productOper == nil {
+		ctl.RespError(fmt.Errorf("产品'%s'不存在或未发布", device.ProductId))
 		return
 	}
 	var res map[string]interface{}
 	if typ == core.TIME_TYPE_LOGS {
-		res, err = product.GetTimeSeries().QueryLogs(product, param)
+		res, err = productOper.GetTimeSeries().QueryLogs(productOper, param)
 	} else if typ == core.TIME_TYPE_PROP {
-		res, err = product.GetTimeSeries().QueryProperty(product, param)
+		res, err = productOper.GetTimeSeries().QueryProperty(productOper, param)
 	} else {
 		eventId := ctl.Param("eventId")
-		res, err = product.GetTimeSeries().QueryEvent(product, eventId, param)
+		res, err = productOper.GetTimeSeries().QueryEvent(productOper, eventId, param)
 	}
 	if err != nil {
 		ctl.RespError(err)

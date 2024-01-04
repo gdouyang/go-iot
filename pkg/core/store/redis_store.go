@@ -189,17 +189,19 @@ func (m *redisDeviceStore) GetProduct(productId string) *core.Product {
 				logs.Errorf("device config parse error: %v", err)
 			}
 		}
-		produ, err := core.NewProduct(data["id"], config, data["storePolicy"], data["tslData"])
+		productOper, err := core.NewProduct(data["id"], config, data["storePolicy"], data["tslData"])
+		productOper.NetworkType = data["networkType"]
 		if err != nil {
 			logs.Errorf("new product error: %v", err)
 		} else {
-			m.cache.Store(m.getProductKey(productId), produ)
-			return produ
+			m.cache.Store(m.getProductKey(productId), productOper)
+			return productOper
 		}
 	}
 	return nil
 }
 
+// 保存产品
 func (m *redisDeviceStore) PutProduct(product *core.Product) {
 	if product == nil {
 		panic("product not be nil")
@@ -214,6 +216,7 @@ func (m *redisDeviceStore) PutProduct(product *core.Product) {
 		"storePolicy": p.StorePolicy,
 		"config":      string(byt),
 		"tslData":     p.TslData.Text,
+		"networkType": p.NetworkType,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()

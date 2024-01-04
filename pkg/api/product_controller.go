@@ -207,6 +207,7 @@ func (a *productApi) delete(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(errors.New("产品下已存在设备, 请先删除设备"))
 		return
 	}
+	// 删除时序数据
 	productoper, _ := core.NewProduct(productId, map[string]string{}, ob.StorePolicy, "")
 	err = productoper.GetTimeSeries().Del(productoper)
 	if err != nil {
@@ -248,11 +249,7 @@ func (a *productApi) deploy(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(errors.New("物模型属性为空，请先添加属性"))
 		return
 	}
-	config := map[string]string{}
-	for _, v := range ob.Metaconfig {
-		config[v.Property] = v.Value
-	}
-	p1, err := core.NewProduct(ob.Id, config, ob.StorePolicy, ob.Metadata)
+	p1, err := ob.ToProeuctOper()
 	if err != nil {
 		ctl.RespError(err)
 		return

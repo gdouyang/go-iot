@@ -96,6 +96,7 @@ type Product struct {
 	Id          string            `json:"id"`
 	Config      map[string]string `json:"config"`
 	StorePolicy string            `json:"storePolicy"`
+	NetworkType string            `json:"networkType"`
 	TslData     *tsl.TslData      `json:"-"`
 }
 

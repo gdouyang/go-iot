@@ -28,10 +28,7 @@ func main() {
 	// log config
 	logger.Init(opt)
 	defer logger.Sync()
-	logger.Infof("RELEASE: %s", option.RELEASE)
-	logger.Infof("BUILD_TIME: %s", option.BUILD_TIME)
-	logger.Infof("COMMIT: %s", option.COMMIT)
-	logger.Infof("REPO: %s", option.REPO)
+	logger.Infof("release: %s, build_time: %s, commit: %s, repo: %s", option.RELEASE, option.BUILD_TIME, option.COMMIT, option.REPO)
 	// configs
 	core.RegDeviceStore(store.NewRedisStore())
 	cluster.Config(opt)
