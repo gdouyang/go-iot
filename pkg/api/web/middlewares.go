@@ -8,7 +8,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"go-iot/pkg/core/common"
+	"go-iot/pkg/common"
 	"go-iot/pkg/logger"
 
 	"github.com/go-chi/chi/v5/middleware"

@@ -11,10 +11,6 @@ var (
 	apis = []*Entry{}
 )
 
-func init() {
-
-}
-
 // registers global admin APIs.
 func RegisterAPIs(api []*Entry) {
 	apis = append(apis, api...)

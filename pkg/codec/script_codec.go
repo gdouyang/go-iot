@@ -1,17 +1,19 @@
-package core
+// 编解码
+package codec
 
 import (
 	"errors"
 	"fmt"
 	"runtime/debug"
 
+	"go-iot/pkg/core"
 	logs "go-iot/pkg/logger"
 
 	"github.com/dop251/goja"
 )
 
 func init() {
-	RegCodecCreator(Script_Codec, func(productId, script string) (Codec, error) {
+	core.RegCodecCreator(core.Script_Codec, func(productId, script string) (core.Codec, error) {
 		core, err := NewScriptCodec(productId, script)
 		return core, err
 	})
@@ -24,7 +26,6 @@ const (
 	On_Device_Deploy   = "OnDeviceDeploy"
 	On_Device_UnDeploy = "OnDeviceUnDeploy"
 	On_State_Checker   = "OnStateChecker"
-	Script_Codec       = "script_codec"
 )
 
 // javascript vm pool
@@ -76,7 +77,7 @@ type ScriptCodec struct {
 	pool      *VmPool
 }
 
-func NewScriptCodec(productId, script string) (Codec, error) {
+func NewScriptCodec(productId, script string) (core.Codec, error) {
 	pool, err := NewVmPool(script, 20)
 	if err != nil {
 		return nil, err
@@ -87,49 +88,49 @@ func NewScriptCodec(productId, script string) (Codec, error) {
 		pool:      pool,
 	}
 
-	RegCodec(productId, sc)
-	RegDeviceLifeCycle(productId, sc)
+	core.RegCodec(productId, sc)
+	core.RegDeviceLifeCycle(productId, sc)
 
 	return sc, nil
 }
 
 // 设备连接时
-func (c *ScriptCodec) OnConnect(ctx MessageContext) error {
+func (c *ScriptCodec) OnConnect(ctx core.MessageContext) error {
 	_, err := c.FuncInvoke(OnConnect, ctx)
 	return err
 }
 
 // 接收消息
-func (c *ScriptCodec) OnMessage(ctx MessageContext) error {
+func (c *ScriptCodec) OnMessage(ctx core.MessageContext) error {
 	_, err := c.FuncInvoke(OnMessage, ctx)
 	return err
 }
 
 // 命令调用
-func (c *ScriptCodec) OnInvoke(ctx FuncInvokeContext) error {
+func (c *ScriptCodec) OnInvoke(ctx core.FuncInvokeContext) error {
 	_, err := c.FuncInvoke(OnInvoke, ctx)
 	return err
 }
 
 // 连接关闭
-func (c *ScriptCodec) OnClose(ctx MessageContext) error {
+func (c *ScriptCodec) OnClose(ctx core.MessageContext) error {
 	return nil
 }
 
 // 设备新增
-func (c *ScriptCodec) OnDeviceDeploy(ctx DeviceLifecycleContext) error {
+func (c *ScriptCodec) OnDeviceDeploy(ctx core.DeviceLifecycleContext) error {
 	_, err := c.FuncInvoke(On_Device_Deploy, ctx)
 	return err
 }
 
 // 设备修改
-func (c *ScriptCodec) OnDeviceUnDeploy(ctx DeviceLifecycleContext) error {
+func (c *ScriptCodec) OnDeviceUnDeploy(ctx core.DeviceLifecycleContext) error {
 	_, err := c.FuncInvoke(On_Device_UnDeploy, ctx)
 	return err
 }
 
 // 状态检查
-func (c *ScriptCodec) OnStateChecker(ctx DeviceLifecycleContext) (string, error) {
+func (c *ScriptCodec) OnStateChecker(ctx core.DeviceLifecycleContext) (string, error) {
 	resp, err := c.FuncInvoke(On_State_Checker, ctx)
 	if resp != nil {
 		return resp.String(), nil
@@ -156,5 +157,5 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Valu
 		}
 		return resp, err
 	}
-	return nil, ErrNotImpl
+	return nil, core.ErrFunctionNotImpl
 }

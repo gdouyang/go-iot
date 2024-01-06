@@ -1,4 +1,4 @@
-package core
+package codec
 
 import (
 	"crypto/hmac"
@@ -6,7 +6,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
-	"go-iot/pkg/core/util"
+	"go-iot/pkg/util"
 	"hash"
 )
 

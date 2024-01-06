@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/tsl"
-	"go-iot/pkg/core/util"
 	"go-iot/pkg/eventbus"
+	"go-iot/pkg/tsl"
+	"go-iot/pkg/util"
 	"io"
 	"net/http"
 	"reflect"
@@ -19,12 +19,16 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// es时序保存
+func init() {
+	core.RegisterTimeSeries(&TdengineTimeSeries{})
+}
+
+// Tdengine时序数据保存
 type TdengineTimeSeries struct {
 }
 
 func (t *TdengineTimeSeries) Id() string {
-	return "tdengine"
+	return core.TIME_SERISE_TDENGINE
 }
 
 func (t *TdengineTimeSeries) PublishModel(product *core.Product, model tsl.TslData) error {

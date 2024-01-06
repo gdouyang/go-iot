@@ -1,3 +1,4 @@
+// redis相关配置与方法
 package redis
 
 import (
@@ -39,6 +40,8 @@ func Config(opt *option.Options) {
 }
 
 var rdb *redis.Client
+
+const Nil = redis.Nil
 
 // init redis client, panic can't connect to the server
 func InitRedis() {

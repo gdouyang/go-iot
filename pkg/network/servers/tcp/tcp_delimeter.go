@@ -2,6 +2,7 @@ package tcpserver
 
 import (
 	"bufio"
+	"go-iot/pkg/logger"
 	"log"
 	"math"
 	"net"
@@ -202,13 +203,13 @@ func (p *payloadParser) handle() {
 			buf := make([]byte, 100)
 			count, err := p.reader.Read(buf)
 			if err != nil {
-				log.Println(err)
+				logger.Errorf("payloadParser read error: %v", err)
 			}
 			data := buf[0:count]
 			p.buff = append(p.buff, data...)
 			p.handleParsing()
 			if p.buff != nil && p.maxRecordSize > 0 && len(p.buff) > p.maxRecordSize {
-				log.Fatalln("The current record is too long")
+				logger.Errorf("payloadParser the current record is too long: %v", len(p.buff))
 			}
 		}
 	}()

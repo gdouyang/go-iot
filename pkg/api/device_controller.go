@@ -6,7 +6,6 @@ import (
 	"go-iot/pkg/api/web"
 	"go-iot/pkg/cluster"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/common"
 	"go-iot/pkg/models"
 	deviceDao "go-iot/pkg/models/device"
 	networkDao "go-iot/pkg/models/network"
@@ -331,7 +330,7 @@ func (d *deviceApi) CmdInvoke(w http.ResponseWriter, r *http.Request) {
 	}
 	deviceId := ctl.Param("id")
 
-	var ob common.FuncInvoke
+	var ob core.FuncInvoke
 	err := ctl.BindJSON(&ob)
 	if err != nil {
 		ctl.RespError(err)

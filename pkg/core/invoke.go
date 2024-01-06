@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"go-iot/pkg/boot"
 	"go-iot/pkg/cluster"
-	"go-iot/pkg/core/common"
+	"go-iot/pkg/common"
 	"go-iot/pkg/redis"
 	"sync"
 	"time"
@@ -24,7 +24,7 @@ func listenerCluster() {
 	if cluster.Enabled() {
 		for redisMsg := range redis.Sub("go:cluster:cmdinvoke") {
 			payload := redisMsg.Payload
-			var message common.FuncInvoke
+			var message FuncInvoke
 			json.Unmarshal([]byte(payload), &message)
 			if message.ClusterId == cluster.GetClusterId() {
 				go DoCmdInvoke(message)
@@ -33,7 +33,7 @@ func listenerCluster() {
 	}
 }
 
-func DoCmdInvokeCluster(message common.FuncInvoke) {
+func DoCmdInvokeCluster(message FuncInvoke) {
 	if cluster.Enabled() {
 		device := GetDevice(message.DeviceId)
 		if device.ClusterId != cluster.GetClusterId() {
@@ -47,7 +47,7 @@ func DoCmdInvokeCluster(message common.FuncInvoke) {
 }
 
 // 进行功能调用
-func DoCmdInvoke(message common.FuncInvoke) *common.Err {
+func DoCmdInvoke(message FuncInvoke) *common.Err {
 	device := GetDevice(message.DeviceId)
 	productId := device.ProductId
 	state := GetDeviceState(message.DeviceId, productId)
@@ -110,20 +110,21 @@ func DoCmdInvoke(message common.FuncInvoke) *common.Err {
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		message.Replay = make(chan *common.FuncInvokeReply)
+		message.Replay = make(chan *FuncInvokeReply)
 		go func(ctx context.Context) {
 			err := codec.OnInvoke(invokeContext)
 			if nil != err {
-				message.Replay <- &common.FuncInvokeReply{Success: false, Msg: err.Error()}
+				message.Replay <- &FuncInvokeReply{Success: false, Msg: err.Error()}
 			}
 		}(ctx)
 		select {
 		case <-ctx.Done():
 			err = fmt.Errorf("功能[%s]调用超时", message.FunctionId)
-			replyLogSync(product, message, &common.FuncInvokeReply{Success: false, Msg: err.Error()})
+			replyLogSync(product, message, &FuncInvokeReply{Success: false, Msg: err.Error()})
 			return common.NewErr504(err.Error())
 		case resp := <-message.Replay:
 			if resp != nil && !resp.Success {
+				replyMap.deleteReply(message.DeviceId)
 				// 失败
 				replyLogSync(product, message, resp)
 				if len(resp.Msg) > 0 {
@@ -132,14 +133,14 @@ func DoCmdInvoke(message common.FuncInvoke) *common.Err {
 				return common.NewErr504("请求失败")
 			}
 			// 成功
-			replyLogSync(product, message, &common.FuncInvokeReply{Success: true})
+			replyLogSync(product, message, &FuncInvokeReply{Success: true})
 			return nil
 		}
 	}
 }
 
 // 同步命令回复
-func replyLogSync(product *Product, message common.FuncInvoke, reply *common.FuncInvokeReply) {
+func replyLogSync(product *Product, message FuncInvoke, reply *FuncInvokeReply) {
 	if product != nil {
 		b, _ := json.Marshal(reply)
 		product.GetTimeSeries().SaveLogs(product,
@@ -154,7 +155,7 @@ func replyLogSync(product *Product, message common.FuncInvoke, reply *common.Fun
 }
 
 // 异步命令回复
-func replyLogAsync(product *Product, deviceId string, reply *common.FuncInvokeReply) {
+func replyLogAsync(product *Product, deviceId string, reply *FuncInvokeReply) {
 	if product != nil && reply != nil {
 		b, _ := json.Marshal(reply)
 		product.GetTimeSeries().SaveLogs(product,
@@ -171,7 +172,7 @@ func replyLogAsync(product *Product, deviceId string, reply *common.FuncInvokeRe
 // 功能调用
 type FuncInvokeContext struct {
 	BaseContext
-	message common.FuncInvoke
+	message FuncInvoke
 }
 
 func (ctx *FuncInvokeContext) DeviceOnline(deviceId string) {
@@ -191,10 +192,10 @@ type funcInvokeReplyManager struct {
 type reply struct {
 	time   int64
 	expire int64
-	cmd    *common.FuncInvoke
+	cmd    *FuncInvoke
 }
 
-func (r *funcInvokeReplyManager) addReply(i *common.FuncInvoke, exprie time.Duration) error {
+func (r *funcInvokeReplyManager) addReply(i *FuncInvoke, exprie time.Duration) error {
 	val, ok := r.m.Load(i.DeviceId)
 	now := time.Now().UnixMilli()
 	if ok {
@@ -211,11 +212,15 @@ func (r *funcInvokeReplyManager) addReply(i *common.FuncInvoke, exprie time.Dura
 	return nil
 }
 
-func (r *funcInvokeReplyManager) reply(deviceId string, resp *common.FuncInvokeReply) {
+func (r *funcInvokeReplyManager) reply(deviceId string, resp *FuncInvokeReply) {
 	val, ok := r.m.Load(deviceId)
 	if ok {
 		v := val.(*reply)
 		v.cmd.Replay <- resp
 	}
+	r.m.Delete(deviceId)
+}
+
+func (r *funcInvokeReplyManager) deleteReply(deviceId string) {
 	r.m.Delete(deviceId)
 }

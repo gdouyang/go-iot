@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go-iot/pkg/core/common"
-	"go-iot/pkg/core/tsl"
+	"go-iot/pkg/tsl"
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	logs "go-iot/pkg/logger"
@@ -26,12 +25,13 @@ const (
 	SUBDEVICE = "subdevice" // 子设备
 )
 
-var ErrNotImpl = errors.New("function not impl")
+// 函数没有实现
+var ErrFunctionNotImpl = errors.New("function not impl")
 
 type (
 	// 编解码接口
 	Codec interface {
-		// 设备连接时
+		// 设备连接
 		OnConnect(ctx MessageContext) error
 		// 接收消息
 		OnMessage(ctx MessageContext) error
@@ -52,7 +52,9 @@ type (
 	Session interface {
 		// 断开连接并使离线
 		Disconnect() error
+		// 获取设备id
 		GetDeviceId() string
+		// 设置设备id，对于无法重连接中得到设备id的场景需要手动调用
 		SetDeviceId(deviceId string)
 		// 关闭会话
 		Close() error
@@ -72,6 +74,7 @@ type (
 	}
 )
 
+// 编辑码器配置，有些编辑码需要提供一些默认的配置这样产品添加时就不需要手动加配置
 type CodecMetaConfig struct {
 	MetaConfigs []MetaConfig
 	CodecId     string
@@ -82,7 +85,7 @@ func (p CodecMetaConfig) ToJson() string {
 	return string(b)
 }
 
-// the meta config
+// 元数据配置结构
 type MetaConfig struct {
 	Property string `json:"property,omitempty"`
 	Type     string `json:"type,omitempty"`
@@ -91,7 +94,7 @@ type MetaConfig struct {
 	Desc     string `json:"desc,omitempty"`
 }
 
-// default product impl
+// 产品
 type Product struct {
 	Id          string            `json:"id"`
 	Config      map[string]string `json:"config"`
@@ -140,20 +143,19 @@ func NewDevice(devieId string, productId string, createId int64) *Device {
 		Id:        devieId,
 		ProductId: productId,
 		CreateId:  createId,
-		Data:      sync.Map{},
 		Config:    make(map[string]string),
 	}
 }
 
+// 设备
 type Device struct {
 	Id         string            `json:"id"`
 	ProductId  string            `json:"productId"`
 	ParentId   string            `json:"parentId"`
-	DeviceType string            `json:"deviceType"`
+	DeviceType string            `json:"devType"`
 	ClusterId  string            `json:"clusterId"` // 所在集群id
-	CreateId   int64             `json:"createId"`
-	Data       sync.Map          `json:"-"`
-	Config     map[string]string `json:"config"`
+	CreateId   int64             `json:"-"`
+	Config     map[string]string `json:"-"`
 	Name       string            `json:"name"`
 }
 
@@ -172,14 +174,22 @@ func (d *Device) GetSession() Session {
 }
 
 // 获取临时数据
-func (d *Device) GetData(key string) any {
-	v, _ := d.Data.Load(key)
-	return v
+func (d *Device) GetData(key string) string {
+	return GetDeviceData(d.Id, key)
+}
+
+// 获取设备临时数据int
+func (d *Device) GetDataInt(key string) int {
+	i, err := strconv.ParseInt(GetDeviceData(d.Id, key), 10, 64)
+	if err != nil {
+		logs.Errorf("device [%s] GetDataInt error: %v", d.Id, err)
+	}
+	return int(i)
 }
 
 // 设置临时数据
-func (d *Device) SetData(key string, val any) {
-	d.Data.Store(key, val)
+func (d *Device) SetData(key string, val string) {
+	SetDeviceData(d.Id, key, val)
 }
 
 func (d *Device) GetConfig(key string) string {
@@ -212,6 +222,7 @@ type BaseContext struct {
 	device    *Device `json:"-"`
 }
 
+// 设备上线，调用后设备状态改为上线
 func (ctx *BaseContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
@@ -263,6 +274,7 @@ func (ctx *BaseContext) GetMessage() interface{} {
 	return nil
 }
 
+// 获取产品配置
 func (ctx *BaseContext) GetConfig(key string) string {
 	device := ctx.GetDevice()
 	if device == nil {
@@ -271,7 +283,7 @@ func (ctx *BaseContext) GetConfig(key string) string {
 	return device.GetConfig(key)
 }
 
-// save time series data
+// 保存设备属性的时序数据
 func (ctx *BaseContext) SaveProperties(data map[string]interface{}) {
 	p := ctx.GetProduct()
 	if p == nil {
@@ -284,6 +296,7 @@ func (ctx *BaseContext) SaveProperties(data map[string]interface{}) {
 	p.GetTimeSeries().SaveProperties(p, data)
 }
 
+// 保存设备事件的时序数据
 func (ctx *BaseContext) SaveEvents(eventId string, data any) {
 	p := ctx.GetProduct()
 	if p == nil {
@@ -304,16 +317,16 @@ func (ctx *BaseContext) SaveEvents(eventId string, data any) {
 }
 
 func (ctx *BaseContext) ReplyOk() {
-	replyMap.reply(ctx.DeviceId, &common.FuncInvokeReply{Success: true})
+	replyMap.reply(ctx.DeviceId, &FuncInvokeReply{Success: true})
 }
 
 func (ctx *BaseContext) ReplyFail(resp string) {
-	replyMap.reply(ctx.DeviceId, &common.FuncInvokeReply{Success: false, Msg: resp})
+	replyMap.reply(ctx.DeviceId, &FuncInvokeReply{Success: false, Msg: resp})
 }
 
 // 异步消息的回复
 func (ctx *BaseContext) ReplyAsync(resp map[string]any) {
-	reply := &common.FuncInvokeReply{Success: true}
+	reply := &FuncInvokeReply{Success: true}
 	msg, ok := resp["msg"]
 	if ok {
 		reply.Msg = fmt.Sprintf("%v", msg)
@@ -332,7 +345,7 @@ func (ctx *BaseContext) HttpRequest(config map[string]interface{}) map[string]in
 	return HttpRequest(config)
 }
 
-// http request func for http network
+// http请求，使编解码脚本有发送http的能力
 func HttpRequest(config map[string]interface{}) map[string]interface{} {
 	result := map[string]interface{}{}
 	path := config["url"]

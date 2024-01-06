@@ -195,7 +195,7 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 		return nil, nil, false
 	}
 	if err != nil {
-		if err != core.ErrNotImpl {
+		if err != core.ErrFunctionNotImpl {
 			logs.Errorf(err.Error())
 			return nil, nil, false
 		}

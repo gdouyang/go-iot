@@ -1,4 +1,5 @@
-package websocketsocker
+// websocket服务
+package websocketserver
 
 import (
 	"crypto/tls"

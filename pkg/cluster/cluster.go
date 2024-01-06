@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"go-iot/pkg/core/common"
+	"go-iot/pkg/common"
 	"go-iot/pkg/option"
 	"hash/crc32"
 	"io"

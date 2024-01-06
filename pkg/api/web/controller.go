@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"go-iot/pkg/api/web/session"
 	"go-iot/pkg/cluster"
-	"go-iot/pkg/core/common"
+	"go-iot/pkg/common"
 	"mime/multipart"
 	"net/http"
 	"net/url"

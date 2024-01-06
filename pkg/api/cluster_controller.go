@@ -3,7 +3,7 @@ package api
 import (
 	"go-iot/pkg/api/web"
 	"go-iot/pkg/cluster"
-	"go-iot/pkg/core/common"
+	"go-iot/pkg/common"
 	"net/http"
 )
 

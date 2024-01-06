@@ -1,12 +1,13 @@
 package httpserver_test
 
 import (
+	_ "go-iot/pkg/codec"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/store"
-	_ "go-iot/pkg/core/timeseries"
-	"go-iot/pkg/core/tsl"
 	"go-iot/pkg/network"
 	httpserver "go-iot/pkg/network/servers/http"
+	"go-iot/pkg/store"
+	_ "go-iot/pkg/timeseries"
+	"go-iot/pkg/tsl"
 	"io"
 	"log"
 	"net/http"
@@ -48,7 +49,8 @@ func init() {
 		StorePolicy: "mock",
 	}
 	tslData := &tsl.TslData{}
-	err := tslData.FromJson(`{"properties":[{"id":"temperature","valueType":{"type":"float"}}],"functions":[{"id":"func1","inputs":[{"id":"name", "valueType":{"type":"string"}}]}]}`)
+	err := tslData.FromJson(`{"properties":[{"id":"temperature","type":"float"}],
+	"functions":[{"id":"func1","inputs":[{"id":"name", "type":"string"}]}]}`)
 	if err != nil {
 		logs.Errorf(err.Error())
 	}

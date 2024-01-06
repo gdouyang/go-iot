@@ -6,6 +6,9 @@ import (
 	logs "go-iot/pkg/logger"
 )
 
+// 脚本编解码
+const Script_Codec = "script_codec"
+
 // codec reg
 var codecMap sync.Map
 var deviceLifeCycleMap sync.Map
@@ -21,6 +24,7 @@ func GetCodec(productId string) Codec {
 	return nil
 }
 
+// 注册编解码器
 func RegCodec(productId string, c Codec) {
 	codecMap.Store(productId, c)
 }
@@ -88,7 +92,9 @@ func OnDeviceDeploy(device *Device) error {
 			DeviceId:  deviceId,
 			device:    device,
 		})
-		return err
+		if err != ErrFunctionNotImpl {
+			return err
+		}
 	}
 	return nil
 }
@@ -103,7 +109,9 @@ func OnDeviceUnDeploy(device *Device) error {
 			DeviceId:  deviceId,
 			device:    device,
 		})
-		return err
+		if err != ErrFunctionNotImpl {
+			return err
+		}
 	}
 	return nil
 }

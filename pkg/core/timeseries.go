@@ -1,17 +1,18 @@
 package core
 
 import (
-	"go-iot/pkg/core/tsl"
+	"go-iot/pkg/tsl"
 	"log"
 	"sync"
 )
 
 const (
-	TIME_SERISE_ES   = "es"   // 时序数据存储策略es
-	TIME_SERISE_MOCK = "mock" // 时序数据存储策略mock
-	TIME_TYPE_PROP   = "properties"
-	TIME_TYPE_LOGS   = "devicelogs"
-	TIME_TYPE_EVENT  = "event"
+	TIME_SERISE_ES       = "es"         // 时序数据存储策略es
+	TIME_SERISE_TDENGINE = "tdengine"   // 时序数据存储策略Tdengine
+	TIME_SERISE_MOCK     = "mock"       // 时序数据存储策略mock
+	TIME_TYPE_PROP       = "properties" // 物模型-属性
+	TIME_TYPE_LOGS       = "devicelogs" // 物模型-日志
+	TIME_TYPE_EVENT      = "event"      // 物模型-事件
 )
 const (
 	IN      = "IN"
@@ -28,18 +29,19 @@ const (
 
 var timeSeriseMap sync.Map
 
+// 注册时序数据存储策略
 func RegisterTimeSeries(ts TimeSeriesSave) {
 	log.Printf("Register timeseries [%s]", ts.Id())
 	timeSeriseMap.Store(ts.Id(), ts)
 }
 
-// 获取时序
+// 获取时序数据存储策略
 func GetTimeSeries(id string) TimeSeriesSave {
 	val, _ := timeSeriseMap.Load(id)
 	return val.(TimeSeriesSave)
 }
 
-// 时序保存
+// 时序数据存储策略
 type TimeSeriesSave interface {
 	Id() string
 	// 发布模型
@@ -63,6 +65,7 @@ type LogData struct {
 	CreateTime string `json:"createTime"`
 }
 
+// 时序数据查询结构
 type TimeDataSearchRequest struct {
 	DeviceId    string       `json:"deviceId"`
 	PageNum     int          `json:"pageNum"`

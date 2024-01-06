@@ -2,12 +2,9 @@ package main
 
 import (
 	"fmt"
-	_ "go-iot/pkg/api"
 	"go-iot/pkg/api/web"
 	"go-iot/pkg/cluster"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/store"
-	_ "go-iot/pkg/core/timeseries"
 	"go-iot/pkg/es"
 	"go-iot/pkg/logger"
 	"go-iot/pkg/models"
@@ -15,6 +12,7 @@ import (
 	"go-iot/pkg/redis"
 	_ "go-iot/pkg/registry"
 	"go-iot/pkg/ruleengine"
+	"go-iot/pkg/store"
 	"os"
 )
 
@@ -25,18 +23,22 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%s\n", msg)
 		os.Exit(1)
 	}
-	// log config
+	// 日志初始化
 	logger.Init(opt)
 	defer logger.Sync()
 	logger.Infof("release: %s, build_time: %s, commit: %s, repo: %s", option.RELEASE, option.BUILD_TIME, option.COMMIT, option.REPO)
-	// configs
+	// 配置设备存储策略
 	core.RegDeviceStore(store.NewRedisStore())
+	// 集群配置
 	cluster.Config(opt)
+	// es配置
 	es.Config(opt)
+	// redis配置
 	redis.Config(opt)
+	// 规则引擎配置
 	ruleengine.Config(opt)
-	// init db
+	// 初始化数据库
 	models.InitDb()
-
+	// 启动web服务
 	web.MustNewServer(opt.APIAddr)
 }

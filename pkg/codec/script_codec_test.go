@@ -1,6 +1,7 @@
-package core_test
+package codec_test
 
 import (
+	_ "go-iot/pkg/codec"
 	"go-iot/pkg/core"
 	"go-iot/pkg/logger"
 	"testing"
@@ -8,6 +9,10 @@ import (
 	"github.com/dop251/goja"
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	logger.InitNop()
+}
 
 func TestOtto(t *testing.T) {
 	vm := goja.New()

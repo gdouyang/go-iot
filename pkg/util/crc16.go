@@ -2,7 +2,7 @@ package util
 
 import (
 	"encoding/hex"
-	"log"
+	"go-iot/pkg/logger"
 )
 
 var MbTable = []uint16{
@@ -49,6 +49,7 @@ func CheckSum(data []byte) (back []byte) {
 	}
 	return []byte{byte(crc16), byte(crc16 >> 8)}
 }
+
 // CRC16校验，低位在前高位在后
 func ToCrc16Str(str string) string {
 	s := msgFormat(str)
@@ -56,7 +57,8 @@ func ToCrc16Str(str string) string {
 	for _, s := range s {
 		x, err := hex.DecodeString(s)
 		if err != nil {
-			log.Fatal(err)
+			logger.Errorf("ToCrc16Str error: %v", err)
+			return ""
 		}
 		n := x[0]
 		buffer := make([]byte, len(data)+1)

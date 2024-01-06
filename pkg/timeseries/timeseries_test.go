@@ -3,9 +3,9 @@ package timeseries_test
 import (
 	"encoding/json"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/store"
-	"go-iot/pkg/core/timeseries"
-	"go-iot/pkg/core/tsl"
+	"go-iot/pkg/store"
+	"go-iot/pkg/timeseries"
+	"go-iot/pkg/tsl"
 	"testing"
 
 	logs "go-iot/pkg/logger"

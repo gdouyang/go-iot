@@ -1,3 +1,4 @@
+// 时间总线，发布订阅设备消息、上下线、事件、告警
 package eventbus
 
 import (

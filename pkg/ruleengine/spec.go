@@ -3,11 +3,11 @@ package ruleengine
 import (
 	"errors"
 	"fmt"
-	"go-iot/pkg/core"
-	"go-iot/pkg/core/tsl"
-	"go-iot/pkg/core/util"
+	"go-iot/pkg/codec"
 	"go-iot/pkg/eventbus"
 	"go-iot/pkg/option"
+	"go-iot/pkg/tsl"
+	"go-iot/pkg/util"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +15,36 @@ import (
 	logs "go-iot/pkg/logger"
 
 	"github.com/dop251/goja"
+)
+
+type TriggerType string
+
+const (
+	TriggerTypeDevice TriggerType = "device"
+	TriggerTypeTimer  TriggerType = "timer"
+	TypeAlarm                     = "alarm"
+	TypeScene                     = "scene"
+	// 动作执行类型
+
+	ActionExecutorNotifier = "notifier"
+	ActionExecutorDevice   = "device-message-sender"
+	// FilterType
+
+	FilterTypeOnline     = "online"
+	FilterTypeOffline    = "offline"
+	FilterTypeProperties = "properties"
+	FilterTypeEvent      = "event"
+	// 比较运算符
+
+	OperatorEq  = "eq"  // 等于
+	OperatorNeq = "neq" // 不等于
+	OperatorGt  = "gt"  // 大于(>)
+	OperatorLt  = "lt"  // 小于
+	OperatorGte = "gte" // 大于等于
+	OperatorLte = "lte" // 小于等于
+
+	// 事件、功能本身（事件可以是本身触发，也可以是事件的子属性触发）
+	This = "this"
 )
 
 // 这里我们创建了一个timingwheel，精度是1s，最大的超时等待时间为3600s
@@ -50,41 +80,11 @@ func (e *AlarmEvent) GetProductId() string {
 	return e.DeviceId
 }
 
-type TriggerType string
-
-const (
-	TriggerTypeDevice TriggerType = "device"
-	TriggerTypeTimer  TriggerType = "timer"
-	TypeAlarm                     = "alarm"
-	TypeScene                     = "scene"
-	// 动作执行类型
-
-	ActionExecutorNotifier = "notifier"
-	ActionExecutorDevice   = "device-message-sender"
-	// FilterType
-
-	FilterTypeOnline     = "online"
-	FilterTypeOffline    = "offline"
-	FilterTypeProperties = "properties"
-	FilterTypeEvent      = "event"
-	// 比较运算符
-
-	OperatorEq  = "eq"  // 等于
-	OperatorNeq = "neq" // 不等于
-	OperatorGt  = "gt"  // 大于(>)
-	OperatorLt  = "lt"  // 小于
-	OperatorGte = "gte" // 大于等于
-	OperatorLte = "lte" // 小于等于
-
-	// 事件、功能本身（事件可以是本身触发，也可以是事件的子属性触发）
-	This = "this"
-)
-
 type Trigger struct {
 	FilterType string            `json:"filterType"` // 触发消息类型 online,offline,properties,event
 	Filters    []ConditionFilter `json:"filters"`    // 条件
 	ShakeLimit ShakeLimit        `json:"shakeLimit"` // 防抖限制
-	pool       *core.VmPool      `json:"-"`
+	pool       *codec.VmPool     `json:"-"`
 }
 
 func (t *Trigger) GetTopic(productId string) string {
@@ -131,7 +131,7 @@ func (c *Trigger) Evaluate(data map[string]interface{}) (bool, error) {
 		var mutex sync.Mutex
 		mutex.Lock()
 		defer mutex.Unlock()
-		pool, err := core.NewVmPool("function test() { return "+c.GetExpression()+";}", 5)
+		pool, err := codec.NewVmPool("function test() { return "+c.GetExpression()+";}", 5)
 		if err != nil {
 			return false, err
 		}

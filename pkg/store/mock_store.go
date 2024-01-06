@@ -1,17 +1,19 @@
 package store
 
 import (
+	"fmt"
 	"go-iot/pkg/core"
 	"sync"
 )
 
 func NewMockDeviceStore() core.DeviceStore {
-	return &mockDeviceStore{}
+	return &mockDeviceStore{cache: sync.Map{}, deviceData: map[string]map[string]any{}}
 }
 
 // mem device store
 type mockDeviceStore struct {
-	cache sync.Map
+	cache      sync.Map
+	deviceData map[string]map[string]any
 }
 
 func (p *mockDeviceStore) Id() string {
@@ -35,6 +37,21 @@ func (m *mockDeviceStore) PutDevice(device *core.Device) {
 
 func (m *mockDeviceStore) DelDevice(deviceId string) {
 	m.cache.Delete(deviceId)
+}
+
+func (m *mockDeviceStore) GetDeviceData(deviceId, key string) string {
+	if v, ok := m.deviceData[deviceId]; ok {
+		return fmt.Sprintf("%v", v[key])
+	}
+	return ""
+}
+
+func (m *mockDeviceStore) SetDeviceData(deviceId, key string, val any) {
+	if v, ok := m.deviceData[deviceId]; ok {
+		v[key] = val
+	} else {
+		m.deviceData[deviceId] = map[string]any{key: val}
+	}
 }
 
 func (m *mockDeviceStore) GetProduct(productId string) *core.Product {

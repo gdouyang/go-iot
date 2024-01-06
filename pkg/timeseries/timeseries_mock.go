@@ -2,7 +2,7 @@ package timeseries
 
 import (
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/tsl"
+	"go-iot/pkg/tsl"
 
 	logs "go-iot/pkg/logger"
 )

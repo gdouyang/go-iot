@@ -1,13 +1,14 @@
-package websocketsocker_test
+package websocketserver_test
 
 import (
 	"fmt"
+	_ "go-iot/pkg/codec"
 	"go-iot/pkg/core"
-	"go-iot/pkg/core/store"
-	_ "go-iot/pkg/core/timeseries"
-	"go-iot/pkg/core/tsl"
 	"go-iot/pkg/network"
-	websocketsocker "go-iot/pkg/network/servers/websocket"
+	websocketserver "go-iot/pkg/network/servers/websocket"
+	"go-iot/pkg/store"
+	_ "go-iot/pkg/timeseries"
+	"go-iot/pkg/tsl"
 	"log"
 	"os"
 	"os/signal"
@@ -54,7 +55,7 @@ func init() {
 		StorePolicy: "mock",
 	}
 	tslData := &tsl.TslData{}
-	err := tslData.FromJson(`{"properties":[{"id":"temperature","valueType":{"type":"float"}}],"functions":[{"id":"func1","inputs":[{"id":"name", "valueType":{"type":"string"}}]}]}`)
+	err := tslData.FromJson(`{"properties":[{"id":"temperature","type":"float"}],"functions":[{"id":"func1","inputs":[{"id":"name", "type":"string"}]}]}`)
 	if err != nil {
 		logs.Errorf(err.Error())
 	}
@@ -74,7 +75,7 @@ func TestServer(t *testing.T) {
 	network := network1
 	network.Configuration = `{"host": "localhost", "useTLS": false, "paths":["/socket"]}`
 
-	websocketsocker.NewServer().Start(network)
+	websocketserver.NewServer().Start(network)
 	core.NewCodec(network1.CodecId, network1.ProductId, network1.Script)
 
 	c := &client{}

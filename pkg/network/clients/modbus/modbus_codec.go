@@ -1,6 +1,7 @@
 package modbus
 
 import (
+	"go-iot/pkg/codec"
 	"go-iot/pkg/core"
 )
 
@@ -14,16 +15,16 @@ func init() {
 }
 
 type ModbusScriptCodec struct {
-	*core.ScriptCodec
+	*codec.ScriptCodec
 }
 
 func NewModbusScriptCodec(productId string, script string) (core.Codec, error) {
-	c, err := core.NewScriptCodec(productId, script)
+	c, err := codec.NewScriptCodec(productId, script)
 	if err != nil {
 		return nil, err
 	}
 	sc := &ModbusScriptCodec{
-		ScriptCodec: c.(*core.ScriptCodec),
+		ScriptCodec: c.(*codec.ScriptCodec),
 	}
 	core.RegCodec(productId, sc)
 	core.RegDeviceLifeCycle(productId, sc)
@@ -49,7 +50,7 @@ func (c *ModbusScriptCodec) OnInvoke(ctx core.FuncInvokeContext) error {
 		FuncInvokeContext: ctx,
 	}
 	s.connection(func() {
-		c.ScriptCodec.FuncInvoke(core.OnInvoke, modbusInvokeContext)
+		c.ScriptCodec.FuncInvoke(codec.OnInvoke, modbusInvokeContext)
 	})
 	return nil
 }
