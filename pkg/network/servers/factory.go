@@ -20,6 +20,15 @@ func RegServer(f CreateFun) {
 	log.Printf("Register Server [%s]", s.Type())
 }
 
+func GetServer(productId string) network.NetServer {
+	s, ok := instances.Load(productId)
+	if ok {
+		return s.(network.NetServer)
+	}
+	return nil
+}
+
+// 启动网络服务
 func StartServer(conf network.NetworkConf) error {
 	if _, ok := instances.Load(conf.ProductId); ok {
 		return errors.New("network is runing")
@@ -42,14 +51,7 @@ func StartServer(conf network.NetworkConf) error {
 	}
 }
 
-func GetServer(productId string) network.NetServer {
-	s, ok := instances.Load(productId)
-	if ok {
-		return s.(network.NetServer)
-	}
-	return nil
-}
-
+// 关闭网络服务
 func StopServer(productId string) error {
 	server := GetServer(productId)
 	if server == nil {

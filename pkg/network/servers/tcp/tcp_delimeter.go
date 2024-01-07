@@ -204,6 +204,7 @@ func (p *payloadParser) handle() {
 			count, err := p.reader.Read(buf)
 			if err != nil {
 				logger.Errorf("payloadParser read error: %v", err)
+				continue
 			}
 			data := buf[0:count]
 			p.buff = append(p.buff, data...)

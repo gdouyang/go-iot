@@ -81,7 +81,7 @@ func initClient() {
 	data, err := io.ReadAll(res.Body)
 	res.Body.Close() //一定要记得关闭连接
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	log.Printf("client Received: %d %s \n", res.StatusCode, data)
 	// time.Sleep(time.Second * 11)

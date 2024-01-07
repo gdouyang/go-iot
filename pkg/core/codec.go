@@ -16,7 +16,7 @@ var deviceLifeCycleMap sync.Map
 func GetCodec(productId string) Codec {
 	val, ok := codecMap.Load(productId)
 	if val == nil || !ok {
-		logs.Errorf("%s not found core", productId)
+		logs.Infof("%s not found codec", productId)
 	} else {
 		core := val.(Codec)
 		return core

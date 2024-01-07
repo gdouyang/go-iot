@@ -24,6 +24,10 @@ func TestOtto(t *testing.T) {
 	assert.Equal(t, int64(1), val.ToInteger())
 	_, success = goja.AssertFunction(vm.Get("test1"))
 	assert.False(t, success)
+	stacks := vm.CaptureCallStack(0, nil)
+	for _, v := range stacks {
+		logger.Errorf("%s %v", v.FuncName(), v.Position())
+	}
 }
 
 func TestDecode(t *testing.T) {

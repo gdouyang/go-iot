@@ -454,6 +454,7 @@ func (a *productApi) startNetwork(w http.ResponseWriter, r *http.Request) {
 			ctl.RespError(err)
 			return
 		}
+		// 尝试分配一个端口给产品
 		err = networkmd.UpdateNetwork(&models.Network{
 			Id:        nw.Id,
 			ProductId: productId,

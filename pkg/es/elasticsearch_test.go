@@ -78,23 +78,23 @@ func TestEs(t *testing.T) {
 		// Password:  "password",
 	})
 	if err != nil {
-		log.Fatalf("Error creating the client: %s", err)
+		panic(fmt.Errorf("Error creating the client: %s", err))
 	}
 
 	// 1. Get cluster info
 	//
 	res, err := es.Info()
 	if err != nil {
-		log.Fatalf("Error getting response: %s", err)
+		panic(fmt.Errorf("Error getting response: %s", err))
 	}
 	defer res.Body.Close()
 	// Check response status
 	if res.IsError() {
-		log.Fatalf("Error: %s", res.String())
+		panic(fmt.Errorf("Error: %s", res.String()))
 	}
 	// Deserialize the response into a map.
 	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
-		log.Fatalf("Error parsing the response body: %s", err)
+		panic(fmt.Errorf("Error parsing the response body: %s", err))
 	}
 	// Print client and server version numbers.
 	log.Printf("Client: %s", elasticsearch.Version)
@@ -112,7 +112,7 @@ func TestEs(t *testing.T) {
 			// Build the request body.
 			data, err := json.Marshal(struct{ Title string }{Title: title})
 			if err != nil {
-				log.Fatalf("Error marshaling document: %s", err)
+				panic(fmt.Errorf("Error marshaling document: %s", err))
 			}
 
 			// Set up the request object.
@@ -126,7 +126,7 @@ func TestEs(t *testing.T) {
 			// Perform the request with the client.
 			res, err := req.Do(context.Background(), es)
 			if err != nil {
-				log.Fatalf("Error getting response: %s", err)
+				panic(fmt.Errorf("Error getting response: %s", err))
 			}
 			defer res.Body.Close()
 
@@ -160,7 +160,7 @@ func TestEs(t *testing.T) {
 		},
 	}
 	if err := json.NewEncoder(&buf).Encode(query); err != nil {
-		log.Fatalf("Error encoding query: %s", err)
+		panic(fmt.Errorf("Error encoding query: %s", err))
 	}
 
 	// Perform the search request.
@@ -172,26 +172,26 @@ func TestEs(t *testing.T) {
 		es.Search.WithPretty(),
 	)
 	if err != nil {
-		log.Fatalf("Error getting response: %s", err)
+		panic(fmt.Errorf("Error getting response: %s", err))
 	}
 	defer res.Body.Close()
 
 	if res.IsError() {
 		var e map[string]interface{}
 		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-			log.Fatalf("Error parsing the response body: %s", err)
+			panic(fmt.Errorf("Error parsing the response body: %s", err))
 		} else {
 			// Print the response status and error information.
-			log.Fatalf("[%s] %s: %s",
+			panic(fmt.Errorf("[%s] %s: %s",
 				res.Status(),
 				e["error"].(map[string]interface{})["type"],
 				e["error"].(map[string]interface{})["reason"],
-			)
+			))
 		}
 	}
 
 	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
-		log.Fatalf("Error parsing the response body: %s", err)
+		panic(fmt.Errorf("Error parsing the response body: %s", err))
 	}
 	// Print the response status, number of results, and request duration.
 	log.Printf(

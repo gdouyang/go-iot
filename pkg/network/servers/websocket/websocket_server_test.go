@@ -110,7 +110,7 @@ func (c *client) initClient(deviceId string) {
 	socketUrl := "ws://localhost:" + fmt.Sprint(network1.Port) + "/socket?deviceId=" + deviceId
 	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
 	if err != nil {
-		log.Fatal("Error connecting to Websocket Server:", err)
+		panic(fmt.Errorf("Error connecting to Websocket Server:", err))
 	}
 	defer conn.Close()
 	go c.receiveHandler(conn)

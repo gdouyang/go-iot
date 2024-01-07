@@ -2,7 +2,6 @@
 package codec
 
 import (
-	"errors"
 	"fmt"
 	"runtime/debug"
 
@@ -28,48 +27,6 @@ const (
 	On_State_Checker   = "OnStateChecker"
 )
 
-// javascript vm pool
-type VmPool struct {
-	chVM chan *goja.Runtime
-}
-
-// new a vm pool
-func NewVmPool(src string, size int) (*VmPool, error) {
-	if len(src) == 0 {
-		return nil, errors.New("script must be present")
-	}
-	program, err := goja.Compile("", src, false)
-	if err != nil {
-		return nil, err
-	}
-	p := VmPool{chVM: make(chan *goja.Runtime, size)}
-	globeIns := globe{}
-	for i := 0; i < size; i++ {
-		vm := goja.New()
-		_, err := vm.RunProgram(program)
-		if err != nil {
-			return nil, err
-		}
-		console := vm.NewObject()
-		console.Set("log", func(v ...interface{}) {
-			logs.Debugf("%v", v...)
-		})
-		vm.Set("console", console)
-		vm.Set("globe", globeIns)
-		p.Put(vm)
-	}
-	return &p, nil
-}
-
-func (p *VmPool) Get() *goja.Runtime {
-	vm := <-p.chVM
-	return vm
-}
-
-func (p *VmPool) Put(vm *goja.Runtime) {
-	p.chVM <- vm
-}
-
 // js脚本编解码
 type ScriptCodec struct {
 	script    string
@@ -78,6 +35,12 @@ type ScriptCodec struct {
 }
 
 func NewScriptCodec(productId, script string) (core.Codec, error) {
+	// 关闭旧VmPool
+	oldCodec := core.GetCodec(productId)
+	if c, ok := oldCodec.(*ScriptCodec); ok {
+		c.pool.Close()
+	}
+	// 创建新的VmPool
 	pool, err := NewVmPool(script, 20)
 	if err != nil {
 		return nil, err
@@ -145,7 +108,7 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Valu
 	if success {
 		defer func() {
 			if rec := recover(); rec != nil {
-				logs.Errorf("productId: [%s], error: %v", c.productId, rec)
+				logs.Errorf("productId: [%s] error: %v", c.productId, rec)
 				logs.Errorf(string(debug.Stack()))
 				err = fmt.Errorf("%v", rec)
 				resp = goja.Undefined()
