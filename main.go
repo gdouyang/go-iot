@@ -26,7 +26,7 @@ func main() {
 	// 日志初始化
 	logger.Init(opt)
 	defer logger.Sync()
-	logger.Infof("release: %s, build_time: %s, commit: %s, repo: %s", option.RELEASE, option.BUILD_TIME, option.COMMIT, option.REPO)
+	logger.Infof(opt.Banner, option.RELEASE, option.BUILD_TIME, option.COMMIT, option.REPO)
 	// 配置设备存储策略
 	core.RegDeviceStore(store.NewRedisStore())
 	// 集群配置

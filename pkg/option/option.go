@@ -59,17 +59,33 @@ type Options struct {
 	// cluster options
 	Cluster Cluster `yaml:"cluster"`
 
-	// es options
+	// es配置
 	Es Es `yaml:"es"`
 
-	// redis options
+	// redis配置
 	Redis Redis `yaml:"redis"`
 
-	// Path.
+	// 日志配置
 	Log Log `yaml:"logs"`
 	// 抖动限制最大秒默认3600
 	MaxShakeLimitTime int `yaml:"max-shake-limit-time"`
+	// 控制台输出的banner
+	Banner string `yaml:"banner"`
 }
+
+const banner string = `
+               ╔══╗     ╔╗   
+               ╚╣╠╝    ╔╝╚╗ 
+  ╔══╗╔══╗      ║║ ╔══╗╚╗╔╝ 
+  ║╔╗║║╔╗║╔═══╗ ║║ ║╔╗║ ║║  
+  ║╚╝║║╚╝║╚═══╝╔╣╠╗║╚╝║ ║╚╗ 
+  ╚═╗║╚══╝     ╚══╝╚══╝ ╚═╝ 
+  ╔═╝║                      
+  ╚══╝                      
+═════════════════════════════
+release: %s, build_time: %s, commit: %s, repo: %s
+═════════════════════════════
+`
 
 // New creates a default Options.
 func New() *Options {
@@ -106,6 +122,7 @@ func New() *Options {
 	opt.flags.StringVar(&opt.Cluster.Hosts, "cluster.hosts", "", "集群内主机列表")
 
 	opt.flags.IntVar(&opt.MaxShakeLimitTime, "max-shake-limit-time", 3600, "抖动限制最大秒")
+	opt.flags.StringVar(&opt.Banner, "banner", banner, "")
 	opt.viper.BindPFlags(opt.flags)
 
 	return opt
