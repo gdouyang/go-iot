@@ -45,6 +45,7 @@ func (s *HttpSession) Close() error {
 	return s.Disconnect()
 }
 
+// 响应普通文本
 func (s *HttpSession) Response(msg string) error {
 	_, err := s.w.Write([]byte(msg))
 	if err != nil {
@@ -53,6 +54,7 @@ func (s *HttpSession) Response(msg string) error {
 	return err
 }
 
+// 响应json
 func (s *HttpSession) ResponseJSON(msg string) error {
 	s.ResponseHeader("Content-Type", "application/json; charset=utf-8")
 	_, err := s.w.Write([]byte(msg))
@@ -62,8 +64,14 @@ func (s *HttpSession) ResponseJSON(msg string) error {
 	return err
 }
 
+// 设置响应头
 func (s *HttpSession) ResponseHeader(key string, value string) {
-	s.w.Header().Add("Content-Type", "application/json; charset=utf-8")
+	s.w.Header().Add(key, value)
+}
+
+// 设置http响应states code
+func (s *HttpSession) SetStatesCode(code int) {
+	s.w.WriteHeader(code)
 }
 
 func (s *HttpSession) readData() error {

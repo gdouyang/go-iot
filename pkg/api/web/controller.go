@@ -142,6 +142,7 @@ func (c *RespController) IsNotClusterRequest() bool {
 	return !cluster.Enabled() || header != cluster.Token()
 }
 
+// 设置http响应states code
 func (c *RespController) WriteHeader(statusCode int) {
 	c.ResponseWriter.WriteHeader(statusCode)
 }
