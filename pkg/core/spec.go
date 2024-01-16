@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-iot/pkg/eventbus"
 	"go-iot/pkg/tsl"
 	"io"
 	"net/http"
@@ -212,6 +213,15 @@ func (d *Device) SetConfig(key string, value string) {
 // 是否子设备
 func (d *Device) IsSubDevice() bool {
 	return d.DeviceType == SUBDEVICE
+}
+
+// debug输出日志
+func (d *Device) Debug(v ...any) {
+	deviceId := "null"
+	if d.Id != "" {
+		deviceId = d.Id
+	}
+	eventbus.PublishDebug(eventbus.NewDebugMessage(deviceId, d.ProductId, fmt.Sprintf("%v", v...)))
 }
 
 // base context

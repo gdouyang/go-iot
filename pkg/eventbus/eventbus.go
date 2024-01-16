@@ -14,6 +14,7 @@ const (
 	ALARM     MessageType = "alarm"
 	ONLINE    MessageType = "online"
 	OFFLINE   MessageType = "offline"
+	DEBUG     MessageType = "debug"
 	timeformt             = "2006-01-02 15:04:05.000"
 )
 
@@ -40,6 +41,11 @@ func GetEventTopic(productId string, deviceId string) string {
 // /device/{productId}/{deviceId}/alarm
 func GetAlarmTopic(productId string, deviceId string) string {
 	return fmt.Sprintf("/device/%s/%s/alarm", productId, deviceId)
+}
+
+// /device/{productId}/{deviceId}/debug
+func GetDebugTopic(productId string, deviceId string) string {
+	return fmt.Sprintf("/device/%s/%s/%s", productId, deviceId, DEBUG)
 }
 
 var bus = newEventBus()
@@ -77,6 +83,10 @@ func PublishOnline(data *OnlineMessage) {
 }
 func PublishOffline(data *OfflineMessage) {
 	Publish(GetOfflineTopic(data.ProductId, data.DeviceId), data)
+}
+
+func PublishDebug(data *DebugMessage) {
+	Publish(GetDebugTopic(data.ProductId, data.DeviceId), data)
 }
 
 type Message interface {
@@ -195,5 +205,34 @@ func (m *OfflineMessage) GetDeviceId() string {
 	return m.DeviceId
 }
 func (m *OfflineMessage) GetProductId() string {
+	return m.ProductId
+}
+
+// DebugMessage
+type DebugMessage struct {
+	Typ        string `json:"type"`
+	DeviceId   string `json:"deviceId"`
+	ProductId  string `json:"productId"`
+	CreateTime string `json:"createTime"`
+	Data       string `json:"data"`
+}
+
+func NewDebugMessage(deviceId string, productId string, data string) *DebugMessage {
+	return &DebugMessage{
+		Typ:        string(DEBUG),
+		DeviceId:   deviceId,
+		ProductId:  productId,
+		CreateTime: time.Now().Format(timeformt),
+		Data:       data,
+	}
+}
+
+func (m *DebugMessage) Type() MessageType {
+	return DEBUG
+}
+func (m *DebugMessage) GetDeviceId() string {
+	return m.DeviceId
+}
+func (m *DebugMessage) GetProductId() string {
 	return m.ProductId
 }

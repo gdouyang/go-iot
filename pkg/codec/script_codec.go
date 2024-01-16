@@ -45,6 +45,7 @@ func NewScriptCodec(productId, script string) (core.Codec, error) {
 	if err != nil {
 		return nil, err
 	}
+	pool.SetProductId(productId)
 	sc := &ScriptCodec{
 		script:    script,
 		productId: productId,
@@ -108,7 +109,13 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Valu
 	if success {
 		defer func() {
 			if rec := recover(); rec != nil {
-				logs.Errorf("productId: [%s] error: %v", c.productId, rec)
+				l := fmt.Sprintf("productId: [%s] error: %v", c.productId, rec)
+				logs.Errorf(l)
+				deviceId := "null"
+				if ctx, ok := param.(core.DeviceLifecycleContext); ok && ctx.GetDevice() != nil {
+					deviceId = ctx.GetDevice().Id
+				}
+				PublishDebugMsg(c.productId, deviceId, fmt.Sprintf("%v", l))
 				logs.Errorf(string(debug.Stack()))
 				err = fmt.Errorf("%v", rec)
 				resp = goja.Undefined()
