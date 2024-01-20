@@ -6,12 +6,8 @@ import (
 	"fmt"
 	"go-iot/pkg/eventbus"
 	"go-iot/pkg/tsl"
-	"io"
-	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	logs "go-iot/pkg/logger"
 )
@@ -216,12 +212,16 @@ func (d *Device) IsSubDevice() bool {
 }
 
 // debug输出日志
-func (d *Device) Debug(v ...any) {
-	deviceId := "null"
-	if d.Id != "" {
-		deviceId = d.Id
+func (d *Device) Debug(v any) {
+	DebugLog(d.Id, d.ProductId, fmt.Sprintf("%v", v))
+}
+
+// 调试日志
+func DebugLog(deviceId, productId string, v string) {
+	if deviceId == "" {
+		deviceId = "-"
 	}
-	eventbus.PublishDebug(eventbus.NewDebugMessage(deviceId, d.ProductId, fmt.Sprintf("%v", v...)))
+	eventbus.PublishDebug(eventbus.NewDebugMessage(deviceId, productId, v))
 }
 
 // base context
@@ -263,10 +263,11 @@ func (ctx *BaseContext) GetDevice() *Device {
 }
 
 func (ctx *BaseContext) GetDeviceById(deviceId string) *Device {
-	if len(ctx.DeviceId) == 0 {
-		return nil
+	d := GetDevice(deviceId)
+	if d != nil {
+		ctx.device = d
 	}
-	return GetDevice(deviceId)
+	return d
 }
 
 func (ctx *BaseContext) GetProduct() *Product {
@@ -349,82 +350,4 @@ func (ctx *BaseContext) ReplyAsync(resp map[string]any) {
 		reply.TraceId = fmt.Sprintf("%v", traceId)
 	}
 	replyLogAsync(ctx.GetProduct(), ctx.DeviceId, reply)
-}
-
-func (ctx *BaseContext) HttpRequest(config map[string]interface{}) map[string]interface{} {
-	return HttpRequest(config)
-}
-
-// http请求，使编解码脚本有发送http的能力
-func HttpRequest(config map[string]interface{}) map[string]interface{} {
-	result := map[string]interface{}{}
-	path := config["url"]
-	u, err := url.ParseRequestURI(fmt.Sprintf("%v", path))
-	if err != nil {
-		logs.Errorf(err.Error())
-		result["status"] = 400
-		result["message"] = err.Error()
-		return result
-	}
-	method := fmt.Sprintf("%v", config["method"])
-	client := http.Client{Timeout: time.Second * 3}
-	var req *http.Request = &http.Request{
-		Method: strings.ToUpper(method),
-		URL:    u,
-		Header: map[string][]string{},
-	}
-	if v, ok := config["headers"]; ok {
-		h, ok := v.(map[string]interface{})
-		if !ok {
-			logs.Warnf("headers is not object: %v", v)
-			h = map[string]interface{}{}
-		}
-		for key, value := range h {
-			req.Header.Add(key, fmt.Sprintf("%v", value))
-		}
-	}
-	if strings.ToLower(method) == "post" && (len(req.Header.Get("Content-Type")) == 0 || len(req.Header.Get("content-type")) == 0) {
-		req.Header.Add("Content-Type", "application/json; charset=utf-8")
-	}
-	if data, ok := config["data"]; ok {
-		if body, ok := data.(map[string]interface{}); ok {
-			b, err := json.Marshal(body)
-			if err != nil {
-				logs.Errorf("http data parse error: %v", err)
-				result["status"] = 400
-				result["message"] = err.Error()
-				return result
-			}
-			req.Body = io.NopCloser(strings.NewReader(string(b)))
-		} else {
-			req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf("%v", data)))
-		}
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		logs.Errorf(err.Error())
-		result["status"] = 0
-		result["message"] = err.Error()
-		return result
-	}
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logs.Errorf(err.Error())
-		result["status"] = 400
-		result["message"] = err.Error()
-		return result
-	}
-	header := map[string]string{}
-	if resp.Header != nil {
-		for key := range resp.Header {
-			header[key] = resp.Header.Get(key)
-		}
-	}
-	result["data"] = string(b)
-	result["status"] = resp.StatusCode
-	result["header"] = header
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		result["message"] = string(b)
-	}
-	return result
 }

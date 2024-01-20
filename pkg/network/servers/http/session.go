@@ -34,15 +34,12 @@ func (s *HttpSession) GetDeviceId() string {
 }
 
 func (s *HttpSession) Disconnect() error {
-	_, err := s.w.Write([]byte(""))
-	if err != nil {
-		logs.Warnf("http Disconnect error: %v", err)
-	}
-	return err
+	core.DelSession(s.deviceId)
+	return nil
 }
 
 func (s *HttpSession) Close() error {
-	return s.Disconnect()
+	return nil
 }
 
 // 响应普通文本

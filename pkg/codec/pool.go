@@ -3,7 +3,7 @@ package codec
 import (
 	"errors"
 	"fmt"
-	"go-iot/pkg/eventbus"
+	"go-iot/pkg/core"
 	logs "go-iot/pkg/logger"
 
 	"github.com/dop251/goja"
@@ -15,8 +15,13 @@ type VmPool struct {
 	productId string
 }
 
-// new a vm pool
+// 创建js引擎池
 func NewVmPool(src string, size int) (*VmPool, error) {
+	return NewVmPool1(src, size, "")
+}
+
+// 创建js引擎池
+func NewVmPool1(src string, size int, productId string) (*VmPool, error) {
 	if len(src) == 0 {
 		return nil, errors.New("script must be present")
 	}
@@ -24,7 +29,7 @@ func NewVmPool(src string, size int) (*VmPool, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := VmPool{chVM: make(chan *goja.Runtime, size)}
+	p := VmPool{chVM: make(chan *goja.Runtime, size), productId: productId}
 	for i := 0; i < size; i++ {
 		vm := goja.New()
 		_, err := vm.RunProgram(program)
@@ -33,13 +38,15 @@ func NewVmPool(src string, size int) (*VmPool, error) {
 		}
 		console := vm.NewObject()
 		console.Set("log", func(v ...interface{}) {
-			logs.Debugf("%v", v...)
-			if p.productId != "" {
-				PublishDebugMsg(p.productId, "", fmt.Sprintf("%v", v...))
+			if len(v) > 0 {
+				logs.Debugf("%v", v[0])
+				if p.productId != "" {
+					core.DebugLog("", p.productId, fmt.Sprintf("%v", v[0]))
+				}
 			}
 		})
 		vm.Set("console", console)
-		vm.Set("globe", &globe{vm: vm})
+		vm.Set("globe", &globe{vm: vm, productId: productId})
 		p.Put(vm)
 	}
 	return &p, nil
@@ -60,12 +67,4 @@ func (p *VmPool) Put(vm *goja.Runtime) {
 
 func (p *VmPool) Close() {
 	close(p.chVM)
-}
-
-// 发布debug消息给事件总线
-func PublishDebugMsg(productId, deviceId, data string) {
-	if deviceId == "" {
-		deviceId = "null"
-	}
-	eventbus.PublishDebug(eventbus.NewDebugMessage(deviceId, productId, data))
 }

@@ -6,17 +6,26 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"go-iot/pkg/core"
+	"go-iot/pkg/logger"
 	"go-iot/pkg/util"
 	"hash"
+	"io"
+	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dop251/goja"
 )
 
 // js 全局对象，包含常用工具方法
 type globe struct {
-	vm *goja.Runtime `json:"-"`
+	vm        *goja.Runtime `json:"-"`
+	productId string        `json:"-"`
 }
 
 func (g *globe) getCallStack() string {
@@ -24,9 +33,11 @@ func (g *globe) getCallStack() string {
 	sb := strings.Builder{}
 
 	for _, v := range stacks {
-		sb.WriteString(v.FuncName())
-		sb.WriteString(v.Position().String())
-		sb.WriteString("\n")
+		if v.Position().Line > 0 {
+			sb.WriteString(v.FuncName())
+			sb.WriteString(v.Position().String())
+			sb.WriteString("\n")
+		}
 	}
 	return sb.String()
 }
@@ -75,4 +86,109 @@ func (g *globe) HmacEncrypt(data, key, signatureMethod string) []byte {
 	hmacInstance.Write([]byte(data))
 	// 返回加密结果的字节数组
 	return hmacInstance.Sum(nil)
+}
+
+// http请求，使编解码脚本有发送http的能力
+func (g *globe) HttpRequest(config map[string]interface{}) map[string]interface{} {
+	result := map[string]interface{}{}
+	path := config["url"]
+	u, err := url.ParseRequestURI(fmt.Sprintf("%v", path))
+	if err != nil {
+		logger.Errorf(err.Error())
+		result["status"] = 400
+		result["message"] = err.Error()
+		return result
+	}
+	method := fmt.Sprintf("%v", config["method"])
+	timeout := time.Second * 3
+	if v, ok := config["timeout"]; ok {
+		seconds, err := strconv.Atoi(fmt.Sprintf("%v", v))
+		if err != nil {
+
+		} else {
+			timeout = time.Second * time.Duration(seconds)
+		}
+	}
+	client := http.Client{Timeout: timeout}
+	var req *http.Request = &http.Request{
+		Method: strings.ToUpper(method),
+		URL:    u,
+		Header: map[string][]string{},
+	}
+	if v, ok := config["headers"]; ok {
+		h, ok := v.(map[string]interface{})
+		if !ok {
+			logger.Warnf("headers is not object: %v", v)
+			h = map[string]interface{}{}
+		}
+		for key, value := range h {
+			req.Header.Add(key, fmt.Sprintf("%v", value))
+		}
+	}
+	if strings.ToLower(method) == "post" && (len(req.Header.Get("Content-Type")) == 0 || len(req.Header.Get("content-type")) == 0) {
+		req.Header.Add("Content-Type", "application/json; charset=utf-8")
+	}
+	if data, ok := config["data"]; ok {
+		if body, ok := data.(map[string]interface{}); ok {
+			b, err := json.Marshal(body)
+			if err != nil {
+				logger.Errorf("http data parse error: %v", err)
+				result["status"] = 400
+				result["message"] = err.Error()
+				return result
+			}
+			req.Body = io.NopCloser(strings.NewReader(string(b)))
+		} else {
+			req.Body = io.NopCloser(strings.NewReader(fmt.Sprintf("%v", data)))
+		}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Errorf(err.Error())
+		result["status"] = 0
+		result["message"] = err.Error()
+		return result
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.Errorf(err.Error())
+		result["status"] = 400
+		result["message"] = err.Error()
+		return result
+	}
+	header := map[string]string{}
+	if resp.Header != nil {
+		for key := range resp.Header {
+			header[key] = resp.Header.Get(key)
+		}
+	}
+	result["data"] = string(b)
+	result["status"] = resp.StatusCode
+	result["header"] = header
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		result["message"] = string(b)
+	}
+	return result
+}
+
+// http请求异步
+func (g *globe) HttpRequestAsync(config map[string]interface{}) {
+	go func() {
+		defer func() {
+			if rec := recover(); rec != nil {
+				l := fmt.Sprintf("productId: [%s] error: %v", g.productId, rec)
+				logger.Errorf(l)
+				core.DebugLog("", g.productId, l)
+			}
+		}()
+		resp := g.HttpRequest(config)
+		if v, ok := config["complete"]; ok {
+			fn, success := goja.AssertFunction(g.vm.ToValue(v))
+			if success {
+				fn(goja.Undefined(), g.vm.ToValue(resp))
+			} else {
+				core.DebugLog("", g.productId, "HttpRequestAsync complete is not a function")
+			}
+		}
+	}()
 }

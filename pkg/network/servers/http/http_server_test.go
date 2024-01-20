@@ -111,11 +111,3 @@ func TestHttp(t *testing.T) {
 	}
 	logs.Infof(string(b))
 }
-
-func TestHttp1(t *testing.T) {
-	resp := core.HttpRequest(map[string]interface{}{
-		"method": "get",
-		"url":    "http://www.baidu.com",
-	})
-	logs.Infof("%v", resp)
-}

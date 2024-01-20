@@ -19,7 +19,7 @@ func Init(opt *option.Options) {
 
 // InitNop initializes all logger as nop, mainly for unit testing
 func InitNop() {
-	initDefault(&option.Options{}, false)
+	initDefault(&option.Options{Log: option.Log{Level: "debug"}}, false)
 }
 
 const (

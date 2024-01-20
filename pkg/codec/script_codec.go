@@ -41,11 +41,10 @@ func NewScriptCodec(productId, script string) (core.Codec, error) {
 		c.pool.Close()
 	}
 	// 创建新的VmPool
-	pool, err := NewVmPool(script, 20)
+	pool, err := NewVmPool1(script, 20, productId)
 	if err != nil {
 		return nil, err
 	}
-	pool.SetProductId(productId)
 	sc := &ScriptCodec{
 		script:    script,
 		productId: productId,
@@ -111,11 +110,11 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Valu
 			if rec := recover(); rec != nil {
 				l := fmt.Sprintf("productId: [%s] error: %v", c.productId, rec)
 				logs.Errorf(l)
-				deviceId := "null"
+				deviceId := ""
 				if ctx, ok := param.(core.DeviceLifecycleContext); ok && ctx.GetDevice() != nil {
 					deviceId = ctx.GetDevice().Id
 				}
-				PublishDebugMsg(c.productId, deviceId, fmt.Sprintf("%v", l))
+				core.DebugLog(deviceId, c.productId, l)
 				logs.Errorf(string(debug.Stack()))
 				err = fmt.Errorf("%v", rec)
 				resp = goja.Undefined()
@@ -124,6 +123,11 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Valu
 		resp, err = fn(goja.Undefined(), vm.ToValue(param))
 		if err != nil {
 			logs.Errorf("productId: [%s], error: %v", c.productId, err)
+			deviceId := ""
+			if ctx, ok := param.(core.DeviceLifecycleContext); ok && ctx.GetDevice() != nil {
+				deviceId = ctx.GetDevice().Id
+			}
+			core.DebugLog(deviceId, c.productId, err.Error())
 		}
 		return resp, err
 	}

@@ -75,11 +75,24 @@ function OnConnect(context) {
 }
 `
 	c, err := core.NewCodec("script_codec", "test", script)
-	if err != nil {
-		logger.Errorf(err.Error())
-	}
+	assert.Nil(t, err)
+	core.RegCodec("test", c)
 	err = c.OnMessage(&core.BaseContext{DeviceId: "fff"})
-	if err != nil {
-		logger.Errorf(err.Error())
-	}
+	assert.Equal(t, core.ErrFunctionNotImpl, err)
+}
+func TestHttp1(t *testing.T) {
+	logger.InitNop()
+	script := `
+function OnConnect(context) {
+	var resp = globe.HttpRequest({
+		"method": "get",
+		"url": "http://www.baidu.com"
+	})
+	console.log(resp)
+}
+`
+	c, err := core.NewCodec("script_codec", "test", script)
+	assert.Nil(t, err)
+	err = c.OnConnect(&core.BaseContext{DeviceId: "fff"})
+	assert.Nil(t, err)
 }
