@@ -240,7 +240,7 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 		replace := false
 		if oldSession != nil && oldSession != ctx.GetSession() {
 			replace = true
-			logs.Infof("device [%s] a new connection come in, old session close", deviceId)
+			logs.Infof("device [%s] a new connection come in, close old session", deviceId)
 			oldSession.Close()
 		}
 		device := GetDevice(deviceId)
@@ -255,18 +255,24 @@ func (ctx *BaseContext) DeviceOnline(deviceId string) {
 	}
 }
 
+// 获取Device，需要在DeviceOnline后才会有值
 func (ctx *BaseContext) GetDevice() *Device {
 	if ctx.device != nil {
 		return ctx.device
 	}
-	return ctx.GetDeviceById(ctx.DeviceId)
+	ctx.device = ctx.GetDeviceById(ctx.DeviceId)
+	return ctx.device
 }
 
+// 设置Context中的Device，对于无状态连接可以先使用GetDeviceById，然后调用SetDevice来设置
+func (ctx *BaseContext) SetDevice(d *Device) {
+	ctx.device = d
+	ctx.DeviceId = d.Id
+}
+
+// 通过deviceId获取Device,在无状态连接时有帮助
 func (ctx *BaseContext) GetDeviceById(deviceId string) *Device {
 	d := GetDevice(deviceId)
-	if d != nil {
-		ctx.device = d
-	}
 	return d
 }
 
@@ -281,7 +287,7 @@ func (ctx *BaseContext) GetSession() Session {
 	return ctx.Session
 }
 
-func (ctx *BaseContext) GetMessage() interface{} {
+func (ctx *BaseContext) GetMessage() any {
 	return nil
 }
 
@@ -295,16 +301,23 @@ func (ctx *BaseContext) GetConfig(key string) string {
 }
 
 // 保存设备属性的时序数据
-func (ctx *BaseContext) SaveProperties(data map[string]interface{}) {
+func (ctx *BaseContext) SaveProperties(data map[string]any) {
 	p := ctx.GetProduct()
 	if p == nil {
 		logs.Warnf("product [%s] not exist or noActive", ctx.ProductId)
 		return
 	}
-	if ctx.GetDevice() != nil {
-		data["deviceId"] = ctx.DeviceId
+	if _, ok := data[tsl.PropertyDeviceId]; !ok {
+		data[tsl.PropertyDeviceId] = ctx.DeviceId
 	}
-	p.GetTimeSeries().SaveProperties(p, data)
+	if data[tsl.PropertyDeviceId] == "" {
+		panic(errors.New("SaveProperties error: deviceId is empty"))
+	}
+	err := p.GetTimeSeries().SaveProperties(p, data)
+	if err != nil {
+		logs.Errorf("SaveProperties error: %v", err)
+		DebugLog(fmt.Sprintf("%v", data[tsl.PropertyDeviceId]), ctx.ProductId, "SaveProperties error: "+err.Error())
+	}
 }
 
 // 保存设备事件的时序数据
@@ -314,17 +327,24 @@ func (ctx *BaseContext) SaveEvents(eventId string, data any) {
 		logs.Warnf("product [%s] not exist or noActive", ctx.ProductId)
 		return
 	}
-	saveData := map[string]any{}
+	data1 := map[string]any{}
 	switch d := data.(type) {
 	case map[string]any:
-		saveData = d
+		data1 = d
 	default:
-		saveData[eventId] = data
+		data1[eventId] = data
 	}
-	if ctx.GetDevice() != nil {
-		saveData["deviceId"] = ctx.DeviceId
+	if _, ok := data1[tsl.PropertyDeviceId]; !ok {
+		data1[tsl.PropertyDeviceId] = ctx.DeviceId
 	}
-	p.GetTimeSeries().SaveEvents(p, eventId, saveData)
+	if data1[tsl.PropertyDeviceId] == "" {
+		panic(errors.New("SaveEvents error: deviceId is empty"))
+	}
+	err := p.GetTimeSeries().SaveEvents(p, eventId, data1)
+	if err != nil {
+		logs.Errorf("SaveEvents error: %v", err)
+		DebugLog(fmt.Sprintf("%v", data1[tsl.PropertyDeviceId]), ctx.ProductId, "SaveEvents error: "+err.Error())
+	}
 }
 
 func (ctx *BaseContext) ReplyOk() {

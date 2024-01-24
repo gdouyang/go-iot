@@ -21,8 +21,7 @@ func PutSession(deviceId string, session Session, replace bool) {
 	sessionManager.Store(deviceId, session)
 	device := GetDevice(deviceId)
 	if device != nil && !replace {
-		evt := eventbus.NewOnlineMessage(deviceId, device.GetProductId())
-		eventbus.PublishOnline(&evt)
+		DeviceOnlineEvent(deviceId, device.GetProductId())
 	}
 }
 
@@ -31,10 +30,21 @@ func DelSession(deviceId string) {
 	if _, ok := sessionManager.LoadAndDelete(deviceId); ok {
 		device := GetDevice(deviceId)
 		if device != nil {
-			evt := eventbus.NewOfflineMessage(deviceId, device.GetProductId())
-			eventbus.PublishOffline(&evt)
+			DeviceOfflineEvent(deviceId, device.GetProductId())
 		}
 	}
+}
+
+// 设备上线事件
+func DeviceOnlineEvent(deviceId, productId string) {
+	evt := eventbus.NewOnlineMessage(deviceId, productId)
+	eventbus.PublishOnline(&evt)
+}
+
+// 设备离线事件
+func DeviceOfflineEvent(deviceId, productId string) {
+	evt := eventbus.NewOfflineMessage(deviceId, productId)
+	eventbus.PublishOffline(&evt)
 }
 
 // 设备存储器，保存已发布的设备、产品，mem, redis
