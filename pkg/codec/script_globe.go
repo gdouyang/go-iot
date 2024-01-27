@@ -89,8 +89,8 @@ func (g *globe) HmacEncrypt(data, key, signatureMethod string) []byte {
 }
 
 // http请求，使编解码脚本有发送http的能力
-func (g *globe) HttpRequest(config map[string]interface{}) map[string]interface{} {
-	result := map[string]interface{}{}
+func (g *globe) HttpRequest(config map[string]any) map[string]any {
+	result := map[string]any{}
 	path := config["url"]
 	u, err := url.ParseRequestURI(fmt.Sprintf("%v", path))
 	if err != nil {
@@ -99,40 +99,45 @@ func (g *globe) HttpRequest(config map[string]interface{}) map[string]interface{
 		result["message"] = err.Error()
 		return result
 	}
-	method := fmt.Sprintf("%v", config["method"])
+	method := strings.ToUpper(fmt.Sprintf("%v", config["method"]))
 	timeout := time.Second * 3
 	if v, ok := config["timeout"]; ok {
 		seconds, err := strconv.Atoi(fmt.Sprintf("%v", v))
-		if err != nil {
-
-		} else {
+		if err == nil {
 			timeout = time.Second * time.Duration(seconds)
 		}
 	}
-	client := http.Client{Timeout: timeout}
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.DisableKeepAlives = true
+	client := http.Client{
+		Transport: t,
+		Timeout:   timeout,
+	}
 	var req *http.Request = &http.Request{
-		Method: strings.ToUpper(method),
+		Method: method,
 		URL:    u,
 		Header: map[string][]string{},
 	}
+	if method == "POST" || method == "PUT" {
+		req.Header.Add("Content-Type", "application/json; charset=utf-8")
+	}
 	if v, ok := config["headers"]; ok {
-		h, ok := v.(map[string]interface{})
+		h, ok := v.(map[string]any)
 		if !ok {
 			logger.Warnf("headers is not object: %v", v)
-			h = map[string]interface{}{}
+			core.DebugLog("", g.productId, fmt.Sprintf("headers is not object: %v", v))
+			h = map[string]any{}
 		}
 		for key, value := range h {
 			req.Header.Add(key, fmt.Sprintf("%v", value))
 		}
 	}
-	if strings.ToLower(method) == "post" && (len(req.Header.Get("Content-Type")) == 0 || len(req.Header.Get("content-type")) == 0) {
-		req.Header.Add("Content-Type", "application/json; charset=utf-8")
-	}
 	if data, ok := config["data"]; ok {
-		if body, ok := data.(map[string]interface{}); ok {
+		if body, ok := data.(map[string]any); ok {
 			b, err := json.Marshal(body)
 			if err != nil {
 				logger.Errorf("http data parse error: %v", err)
+				core.DebugLog("", g.productId, fmt.Sprintf("http data parse error: %v", err))
 				result["status"] = 400
 				result["message"] = err.Error()
 				return result
@@ -144,14 +149,15 @@ func (g *globe) HttpRequest(config map[string]interface{}) map[string]interface{
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		logger.Errorf(err.Error())
+		logger.Warnf(err.Error())
 		result["status"] = 0
 		result["message"] = err.Error()
 		return result
 	}
+	defer resp.Body.Close()
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logger.Errorf(err.Error())
+		logger.Warnf(err.Error())
 		result["status"] = 400
 		result["message"] = err.Error()
 		return result

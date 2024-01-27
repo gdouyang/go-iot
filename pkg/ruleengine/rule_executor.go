@@ -169,7 +169,7 @@ func (s *RuleExecutor) start() error {
 		}
 		s.cronId = entryID
 	} else {
-		logs.Errorf("triggerType not found [%s]", s.TriggerType)
+		return fmt.Errorf("triggerType not found [%s]", s.TriggerType)
 	}
 	return nil
 }
@@ -236,7 +236,7 @@ func (s *RuleExecutor) cronRun() {
 
 func (s *RuleExecutor) runAction(deviceId string, data map[string]any) {
 	// 告警类型生成告警
-	if s.Type == TypeAlarm {
+	if s.Type == TypeAlarm && deviceId != "" {
 		event := AlarmEvent{
 			ProductId: s.ProductId,
 			DeviceId:  deviceId,

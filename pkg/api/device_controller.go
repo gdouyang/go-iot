@@ -88,7 +88,20 @@ func (d *deviceApi) GetOne(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	ctl.RespOkData(ob)
+	product, err := deviceDao.GetProductMust(ob.ProductId)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	var alins = struct {
+		models.DeviceModel
+		Metadata    string `json:"metadata"`
+		ProductName string `json:"productName"`
+	}{}
+	alins.Metadata = product.Metadata
+	alins.ProductName = product.Name
+	alins.DeviceModel = *ob
+	ctl.RespOkData(alins)
 }
 
 // get device detail info
