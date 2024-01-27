@@ -86,9 +86,18 @@ func TestHttp1(t *testing.T) {
 function OnConnect(context) {
 	var resp = globe.HttpRequest({
 		"method": "get",
-		"url": "http://www.baidu.com"
+		"url": "https://www.baidu.com",
+		headers: {
+			"content-type": "text/html"
+		},
+		// data: {
+		// 	username: "abc"
+		// }
 	})
-	console.log(resp)
+	console.log("status: " + resp.status)
+	console.log("message: " + resp.message)
+	console.log("header: " + JSON.stringify(resp.header))
+	console.log("data: " + resp.data)
 }
 `
 	c, err := core.NewCodec("script_codec", "test", script)

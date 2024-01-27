@@ -88,15 +88,33 @@ func (g *globe) HmacEncrypt(data, key, signatureMethod string) []byte {
 	return hmacInstance.Sum(nil)
 }
 
+type httpResp map[string]any
+
+func (h httpResp) setStatus(code int) {
+	h["status"] = code
+}
+
+func (h httpResp) setMessage(msg string) {
+	h["message"] = msg
+}
+
+func (h httpResp) setData(msg string) {
+	h["data"] = msg
+}
+
+func (h httpResp) setHeader(header map[string]string) {
+	h["header"] = header
+}
+
 // http请求，使编解码脚本有发送http的能力
 func (g *globe) HttpRequest(config map[string]any) map[string]any {
-	result := map[string]any{}
+	result := httpResp{}
+	result.setStatus(400)
 	path := config["url"]
 	u, err := url.ParseRequestURI(fmt.Sprintf("%v", path))
 	if err != nil {
 		logger.Errorf(err.Error())
-		result["status"] = 400
-		result["message"] = err.Error()
+		result.setMessage(err.Error())
 		return result
 	}
 	method := strings.ToUpper(fmt.Sprintf("%v", config["method"]))
@@ -136,10 +154,9 @@ func (g *globe) HttpRequest(config map[string]any) map[string]any {
 		if body, ok := data.(map[string]any); ok {
 			b, err := json.Marshal(body)
 			if err != nil {
-				logger.Errorf("http data parse error: %v", err)
-				core.DebugLog("", g.productId, fmt.Sprintf("http data parse error: %v", err))
-				result["status"] = 400
-				result["message"] = err.Error()
+				logger.Errorf("data parse error: %v", err)
+				core.DebugLog("", g.productId, fmt.Sprintf("data parse error: %v", err))
+				result.setMessage(err.Error())
 				return result
 			}
 			req.Body = io.NopCloser(strings.NewReader(string(b)))
@@ -150,16 +167,14 @@ func (g *globe) HttpRequest(config map[string]any) map[string]any {
 	resp, err := client.Do(req)
 	if err != nil {
 		logger.Warnf(err.Error())
-		result["status"] = 0
-		result["message"] = err.Error()
+		result.setMessage(err.Error())
 		return result
 	}
 	defer resp.Body.Close()
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Warnf(err.Error())
-		result["status"] = 400
-		result["message"] = err.Error()
+		result.setMessage(err.Error())
 		return result
 	}
 	header := map[string]string{}
@@ -168,11 +183,11 @@ func (g *globe) HttpRequest(config map[string]any) map[string]any {
 			header[key] = resp.Header.Get(key)
 		}
 	}
-	result["data"] = string(b)
-	result["status"] = resp.StatusCode
-	result["header"] = header
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		result["message"] = string(b)
+	result.setStatus(resp.StatusCode)
+	result.setData(string(b))
+	result.setHeader(header)
+	if resp.StatusCode >= 300 {
+		result.setMessage(string(b))
 	}
 	return result
 }
