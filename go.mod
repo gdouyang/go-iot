@@ -1,6 +1,6 @@
 module go-iot
 
-go 1.19
+go 1.21
 
 require (
 	github.com/dop251/goja v0.0.0-20230111111035-473251c96b4c

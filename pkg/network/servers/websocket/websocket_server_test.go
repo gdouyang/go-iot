@@ -22,9 +22,10 @@ import (
 
 const script = `
 function OnConnect(context) {
-  console.log("OnConnect: ", context.GetQuery("deviceId"))
-	context.DeviceOnline(context.GetQuery("deviceId"))
-	console.log("DeviceOnline")
+	var deviceId = context.GetQuery("deviceId")
+  console.log("OnConnect: " + deviceId)
+	context.DeviceOnline(deviceId)
+	console.log("DeviceOnline:" + deviceId)
 }
 function OnMessage(context) {
 	var msg = context.MsgToString()
@@ -110,7 +111,7 @@ func (c *client) initClient(deviceId string) {
 	socketUrl := "ws://localhost:" + fmt.Sprint(network1.Port) + "/socket?deviceId=" + deviceId
 	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
 	if err != nil {
-		panic(fmt.Errorf("Error connecting to Websocket Server:", err))
+		panic(fmt.Errorf("Error connecting to Websocket Server: %v", err))
 	}
 	defer conn.Close()
 	go c.receiveHandler(conn)

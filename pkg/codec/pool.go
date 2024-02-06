@@ -38,11 +38,9 @@ func NewVmPool1(src string, size int, productId string) (*VmPool, error) {
 		}
 		console := vm.NewObject()
 		console.Set("log", func(v ...interface{}) {
-			if len(v) > 0 {
-				logs.Debugf("%v", v[0])
-				if p.productId != "" {
-					core.DebugLog("", p.productId, fmt.Sprintf("%v", v[0]))
-				}
+			logs.Debugf("%v", v...)
+			if p.productId != "" {
+				core.DebugLog("", p.productId, fmt.Sprintf("%v", v...))
 			}
 		})
 		vm.Set("console", console)

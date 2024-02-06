@@ -163,7 +163,7 @@ func newClient1(network network.NetworkConf, call func() string) {
 		}
 	}()
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 		str := call()
 		conn.Write([]byte(str))
 		fmt.Println("client> " + str)
