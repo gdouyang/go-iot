@@ -29,12 +29,10 @@
 #### 使用说明
 
 1. ide使用vs code
-2. go版本1.19.1
+2. go版本1.20
 3. go mod tidy
 
 ```
-docker run --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:8
-
 docker run -d --name elasticsearchv7 -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "ES_JAVA_OPTS=-Xms1024m -Xmx1024m" elasticsearch:7.17.7
 
 docker run --name redis6 -d -it -p 6379:6379 redis:6
