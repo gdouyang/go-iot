@@ -29,7 +29,7 @@
 #### 使用说明
 
 1. ide使用vs code
-2. go版本1.20
+2. go版本1.21
 3. go mod tidy
 
 ```
@@ -37,6 +37,9 @@ docker run -d --name elasticsearchv7 -p 9200:9200 -p 9300:9300 -e "discovery.typ
 
 docker run --name redis6 -d -it -p 6379:6379 redis:6
 ```
+
+#### 默认账号
+> admin 123456
 
 #### 压力测试
 - [压力测试](./doc/benchmark.md)
