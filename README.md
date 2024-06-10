@@ -7,6 +7,9 @@
 
 前端工程：`gdouyang/go-iot-fe`
 
+#### 架构图
+![IOT架构](./doc/img/IOT架构.png "IOT架构")
+
 #### 功能目录
 - 产品管理
 - 设备管理
