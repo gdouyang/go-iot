@@ -16,6 +16,9 @@ if [[ "$OS" == Windows* ]];then
   elif [[ "$1" == mac || "$2" == mac ]];then
     echo CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -v -trimpath -ldflags "${GO_LD_FLAGS}" -o go-iot-mac main.go
     CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -v -trimpath -ldflags "${GO_LD_FLAGS}" -o go-iot-mac main.go
+  elif [[ "$1" == macm || "$2" == macm ]];then
+    echo CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -v -trimpath -ldflags "${GO_LD_FLAGS}" -o go-iot-mac_arm main.go
+    CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -v -trimpath -ldflags "${GO_LD_FLAGS}" -o go-iot-mac_arm main.go
   else
     echo go build -v -trimpath -ldflags \"${GO_LD_FLAGS}\" -o go-iot.exe main.go
     go build -v -trimpath -ldflags "${GO_LD_FLAGS}" -o go-iot.exe main.go
