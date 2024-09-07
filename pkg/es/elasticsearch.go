@@ -41,10 +41,14 @@ func getEsClient() (*elasticsearch.Client, error) {
 	return es, err
 }
 
+/**
+ * 创建索引模板
+ */
 func CreateEsTemplate(properties map[string]any, indexPattern string, templateName string, refresh_interval string) error {
 	settings := map[string]any{
-		"number_of_shards":   DefaultEsConfig.NumberOfShards,
-		"number_of_replicas": DefaultEsConfig.NumberOfReplicas,
+		"number_of_shards":               DefaultEsConfig.NumberOfShards,
+		"number_of_replicas":             DefaultEsConfig.NumberOfReplicas,
+		"index.mapping.ignore_malformed": true, // 忽略类型值错误
 	}
 	if len(refresh_interval) > 0 {
 		settings["refresh_interval"] = refresh_interval
@@ -52,8 +56,7 @@ func CreateEsTemplate(properties map[string]any, indexPattern string, templateNa
 	var payload map[string]any = map[string]any{
 		"index_patterns": []string{indexPattern},
 		"order":          0,
-		// "template": map[string]any{
-		"settings": settings,
+		"settings":       settings,
 		"mappings": map[string]any{
 			// "dynamic":    false,
 			"properties": properties,
@@ -61,7 +64,6 @@ func CreateEsTemplate(properties map[string]any, indexPattern string, templateNa
 				{"strings": map[string]any{"match_mapping_type": "string", "match": "*", "mapping": map[string]any{"type": "keyword"}}},
 			},
 		},
-		// },
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -83,6 +85,9 @@ func CreateEsTemplate(properties map[string]any, indexPattern string, templateNa
 	return nil
 }
 
+/**
+ * 创建索引
+ */
 func CreateEsIndex(properties map[string]any, indexName string) error {
 	var payload map[string]any = map[string]any{
 		// "template": map[string]any{
@@ -119,7 +124,9 @@ func CreateEsIndex(properties map[string]any, indexName string) error {
 	return nil
 }
 
-// 删除索引
+/**
+ * 删除索引
+ */
 func DeleteIndex(index ...string) error {
 	var IgnoreUnavailable bool = true
 	req := esapi.IndicesDeleteRequest{
@@ -136,6 +143,9 @@ func DeleteIndex(index ...string) error {
 	return nil
 }
 
+/**
+ * 创建文档
+ */
 func CreateDoc(index string, docId string, ob any) error {
 	b, err := json.Marshal(ob)
 	if err != nil {
@@ -162,6 +172,9 @@ func CreateDoc(index string, docId string, ob any) error {
 	return nil
 }
 
+/**
+ * 更新文档
+ */
 func UpdateDoc(index string, docId string, data any) error {
 	b, err := json.Marshal(data)
 	if err != nil {
@@ -186,6 +199,9 @@ func UpdateDoc(index string, docId string, data any) error {
 	return nil
 }
 
+/**
+ * 批量创建文档
+ */
 func BulkDoc(data []byte) error {
 	req := esapi.BulkRequest{
 		Body: bytes.NewReader([]byte(data)),
@@ -201,6 +217,9 @@ func BulkDoc(data []byte) error {
 	return nil
 }
 
+/**
+ * 更新文档
+ */
 func UpdateDocByQuery(index string, filter []map[string]any, script map[string]any) error {
 	body := map[string]any{
 		"query": map[string]any{
@@ -234,7 +253,9 @@ func UpdateDocByQuery(index string, filter []map[string]any, script map[string]a
 	return nil
 }
 
-// 删除文档
+/**
+ * 删除文档
+ */
 func DeleteDoc(index string, docId string) error {
 	req := esapi.DeleteRequest{
 		Index:      index,
@@ -251,7 +272,9 @@ func DeleteDoc(index string, docId string) error {
 	return nil
 }
 
-// 删除文档
+/**
+ * 删除文档
+ */
 func DeleteByQuery(index string, filter []map[string]any) error {
 	body := map[string]any{
 		"query": map[string]any{
@@ -284,6 +307,9 @@ func DeleteByQuery(index string, filter []map[string]any) error {
 	return nil
 }
 
+/**
+ * 统计
+ */
 func FilterCount(q Query, indexs ...string) (int64, error) {
 	body := map[string]any{
 		"query": map[string]any{
@@ -324,7 +350,9 @@ func FilterCount(q Query, indexs ...string) (int64, error) {
 	return total.Int(), nil
 }
 
-// 使用filter查询, indexs必填
+/**
+ * 搜索, 使用filter查询, indexs必填
+ */
 func FilterSearch(q Query, indexs ...string) (*SearchResponse, error) {
 	if len(indexs) == 0 {
 		return nil, errors.New("indexs must be persent")
@@ -359,7 +387,7 @@ func FilterSearch(q Query, indexs ...string) (*SearchResponse, error) {
 	req := esapi.SearchRequest{
 		Index:             indexs,
 		Body:              bytes.NewReader(data),
-		IgnoreUnavailable: &ignoreUnavailable,
+		IgnoreUnavailable: &ignoreUnavailable, // 不存在的索引不报错
 	}
 	res, eserr := DoRequest(req)
 	if eserr != nil {
@@ -411,6 +439,9 @@ func FilterSearch(q Query, indexs ...string) (*SearchResponse, error) {
 	return &resp, nil
 }
 
+/**
+ * 搜索, 追加条件
+ */
 func AppendFilter(condition []core.SearchTerm) []map[string]any {
 	filter := []map[string]any{}
 	for _, _term := range condition {
@@ -460,6 +491,10 @@ func AppendFilter(condition []core.SearchTerm) []map[string]any {
 	}
 	return filter
 }
+
+/**
+ * 执行es请求
+ */
 func DoRequest(s esDoFunc) (EsResponse, error) {
 	es, err := getEsClient()
 	if err != nil {
