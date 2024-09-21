@@ -58,9 +58,6 @@ type deviceApi struct {
 func (d *deviceApi) Page(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
 
-	if ctl.isForbidden(deviceResource, QueryAction) {
-		return
-	}
 	var ob models.PageQuery
 	err := ctl.BindJSON(&ob)
 	if err != nil {
@@ -79,9 +76,6 @@ func (d *deviceApi) Page(w http.ResponseWriter, r *http.Request) {
 // 查询单个设备
 func (d *deviceApi) GetOne(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(deviceResource, QueryAction) {
-		return
-	}
 	deviceId := ctl.Param("id")
 	ob, err := getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
@@ -107,9 +101,6 @@ func (d *deviceApi) GetOne(w http.ResponseWriter, r *http.Request) {
 // get device detail info
 func (d *deviceApi) GetDetail(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(deviceResource, QueryAction) {
-		return
-	}
 	ob, err := getDeviceAndCheckCreateId(ctl, ctl.Param("id"))
 	if err != nil {
 		ctl.RespError(err)

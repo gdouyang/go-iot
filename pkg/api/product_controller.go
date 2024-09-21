@@ -72,9 +72,6 @@ type productApi struct {
 // 分页查询
 func (a *productApi) page(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(productResource, QueryAction) {
-		return
-	}
 	var ob models.PageQuery
 	err := ctl.BindJSON(&ob)
 	if err != nil {
@@ -92,9 +89,6 @@ func (a *productApi) page(w http.ResponseWriter, r *http.Request) {
 // 查询型号列表
 func (a *productApi) list(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(productResource, QueryAction) {
-		return
-	}
 	res, err := product.ListAllProduct(ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
@@ -159,9 +153,6 @@ func (a *productApi) update(w http.ResponseWriter, r *http.Request) {
 
 func (a *productApi) get(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(productResource, QueryAction) {
-		return
-	}
 
 	id := ctl.Param("id")
 	p, err := getProductAndCheckCreate(ctl, id)
