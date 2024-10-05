@@ -37,6 +37,7 @@ func init() {
 	web.RegisterAPI("/device/{id}", "DELETE", d.Delete)
 	web.RegisterAPI("/device/{id}", "GET", d.GetOne)
 	web.RegisterAPI("/device/{id}/detail", "GET", d.GetDetail)
+	web.RegisterAPI("/device/{id}/connection-info", "GET", d.GetConnectionInfo)
 	web.RegisterAPI("/device/{id}/connect", "POST", d.Connect)
 	web.RegisterAPI("/device/{id}/disconnect", "POST", d.Disconnect)
 	web.RegisterAPI("/device/{id}/deploy", "POST", d.Deploy)
@@ -218,6 +219,35 @@ func (d *deviceApi) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctl.RespOk()
+}
+
+// 查看设备连接信息
+func (d *deviceApi) GetConnectionInfo(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	deviceId := ctl.Param("id")
+	_, err := getDeviceAndCheckCreateId(ctl, deviceId)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	dev := core.GetDevice(deviceId)
+	// 设备在其它节点时转发给其它节点执行
+	if cluster.Enabled() && dev != nil && len(dev.ClusterId) > 0 && dev.ClusterId != cluster.GetClusterId() {
+		resp, err := cluster.SingleInvoke(dev.ClusterId, ctl.Request)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+		ctl.Resp(*resp)
+		return
+	}
+	session := core.GetSession(deviceId)
+	if session != nil {
+		info := session.GetInfo()
+		ctl.RespOkData(info)
+	} else {
+		ctl.RespOk()
+	}
 }
 
 // client设备连接

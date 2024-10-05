@@ -55,6 +55,10 @@ func (s *ModbusSession) GetDeviceId() string {
 	return s.deviceId
 }
 
+func (s *ModbusSession) GetInfo() map[string]any {
+	return map[string]any{}
+}
+
 func (s *ModbusSession) ReadDiscreteInputs(startingAddress uint16, length uint16) *context {
 	return s.getValue(DISCRETES_INPUT, startingAddress, length)
 }

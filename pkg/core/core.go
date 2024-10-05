@@ -55,6 +55,8 @@ type (
 		SetDeviceId(deviceId string)
 		// 关闭会话
 		Close() error
+		// 连接信息
+		GetInfo() map[string]any
 	}
 	// 消息上下文
 	MessageContext interface {

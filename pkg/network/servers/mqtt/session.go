@@ -3,6 +3,7 @@ package mqttserver
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"go-iot/pkg/core"
 	"sync"
 
@@ -15,11 +16,12 @@ type (
 	// SessionInfo is info about session that will be put into etcd for persistency
 	SessionInfo struct {
 		// map subscribe topic to qos
-		Name      string         `yaml:"name"`
-		Topics    map[string]int `yaml:"topics"`
-		ClientID  string         `yaml:"clientID"`
-		CleanFlag bool           `yaml:"cleanFlag"`
-		deviceId  string
+		Username     string         `yaml:"name"` // 用户名
+		Topics       map[string]int `yaml:"topics"`
+		ClientID     string         `yaml:"clientID"`
+		CleanFlag    bool           `yaml:"cleanFlag"`    // CleanSession
+		ProtocolInfo string         `yaml:"protocolInfo"` //协议信息
+		deviceId     string
 	}
 
 	// MqttSession includes the information about the connect between client and broker,
@@ -59,9 +61,10 @@ func (s *MqttSession) init(b *Broker, connect *packets.ConnectPacket) error {
 	s.pendingQueue = []uint16{}
 
 	s.info = &SessionInfo{}
-	s.info.Name = connect.Username
+	s.info.Username = connect.Username
 	s.info.ClientID = connect.ClientIdentifier
 	s.info.CleanFlag = true //connect.CleanSession not supported currently
+	s.info.ProtocolInfo = fmt.Sprintf("%s %v", connect.ProtocolName, connect.ProtocolVersion)
 	s.info.Topics = make(map[string]int)
 
 	go s.backgroundResendPending()
@@ -190,4 +193,12 @@ func (s *MqttSession) SetDeviceId(deviceId string) {
 }
 func (s *MqttSession) GetDeviceId() string {
 	return s.info.deviceId
+}
+func (s *MqttSession) GetInfo() map[string]any {
+	return map[string]any{
+		"username":     s.info.Username,
+		"clientID":     s.info.ClientID,
+		"cleanSession": s.info.CleanFlag,
+		"protocol":     s.info.ProtocolInfo,
+	}
 }

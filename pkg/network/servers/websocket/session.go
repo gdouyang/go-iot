@@ -73,6 +73,25 @@ func (s *WebsocketSession) SetDeviceId(deviceId string) {
 func (s *WebsocketSession) GetDeviceId() string {
 	return s.deviceId
 }
+func (s *WebsocketSession) GetInfo() map[string]any {
+	return map[string]any{
+		"requestURI": s.requestURI,
+		"header":     s.header,
+		"form":       s.form,
+		"localAddr": func() string {
+			if s.conn != nil {
+				return s.conn.LocalAddr().String()
+			}
+			return "unknown" // 或者返回其他适当的默认值
+		}(),
+		"remoteAddr": func() string {
+			if s.conn != nil {
+				return s.conn.RemoteAddr().String()
+			}
+			return "unknown" // 或者返回其他适当的默认值
+		}(),
+	}
+}
 
 func (s *WebsocketSession) Disconnect() error {
 	if s.disconnected() {

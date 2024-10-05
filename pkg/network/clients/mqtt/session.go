@@ -136,6 +136,9 @@ func (s *MqttClientSession) SetDeviceId(deviceId string) {
 func (s *MqttClientSession) GetDeviceId() string {
 	return s.deviceId
 }
+func (s *MqttClientSession) GetInfo() map[string]any {
+	return map[string]any{}
+}
 
 func (s *MqttClientSession) deviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)

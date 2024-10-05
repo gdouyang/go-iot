@@ -33,6 +33,10 @@ func (s *HttpSession) GetDeviceId() string {
 	return s.deviceId
 }
 
+func (s *HttpSession) GetInfo() map[string]any {
+	return map[string]any{}
+}
+
 func (s *HttpSession) Disconnect() error {
 	core.DelSession(s.deviceId)
 	return nil
