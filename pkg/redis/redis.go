@@ -49,18 +49,21 @@ func InitRedis() {
 		var mutex sync.Mutex
 		mutex.Lock()
 		defer mutex.Unlock()
-		rdb = redis.NewClient(&redis.Options{
-			Addr:     DefaultRedisConfig.Addr,
-			Password: DefaultRedisConfig.Password,
-			DB:       DefaultRedisConfig.DB,
-			PoolSize: DefaultRedisConfig.PoolSize,
-		})
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
-		err := rdb.Ping(ctx).Err()
-		if err != nil {
-			logs.Errorf(fmt.Sprintf("redis connect error: %v", err))
-			panic(fmt.Sprintf("redis connect error: %v", err))
+		for {
+			rdb = redis.NewClient(&redis.Options{
+				Addr:     DefaultRedisConfig.Addr,
+				Password: DefaultRedisConfig.Password,
+				DB:       DefaultRedisConfig.DB,
+				PoolSize: DefaultRedisConfig.PoolSize,
+			})
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+			defer cancel()
+			err := rdb.Ping(ctx).Err()
+			if err == nil {
+				break // 连接成功，退出循环
+			}
+			logs.Errorf("redis error: %v", err)
+			time.Sleep(5 * time.Second) // 等待5秒后重试
 		}
 	}
 }

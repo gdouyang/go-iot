@@ -2,9 +2,12 @@ package es
 
 import (
 	"fmt"
+	"time"
 
 	logs "go-iot/pkg/logger"
 	"go-iot/pkg/option"
+
+	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
 // the config of elasticsearch
@@ -42,5 +45,18 @@ func Config(opt *option.Options) {
 	DefaultEsConfig.NumberOfReplicas = opt.Es.NumberOfReplicas
 	DefaultEsConfig.BufferSize = opt.Es.BufferSize
 	DefaultEsConfig.WarnTime = opt.Es.WarnTime
-	logs.Infof("es config: %v", DefaultEsConfig)
+	logs.Infof("elasticsearch config: %v", DefaultEsConfig)
+	for {
+		var client, err = getEsClient()
+		if err == nil {
+			var resp *esapi.Response
+			resp, err = client.Cat.Health()
+			if err == nil {
+				logs.Infof("%s", resp.String())
+				break
+			}
+		}
+		logs.Errorf("elasticsearch error: %v", err)
+		time.Sleep(5 * time.Second) // 等待5秒后重试
+	}
 }
