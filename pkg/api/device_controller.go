@@ -10,7 +10,9 @@ import (
 	deviceDao "go-iot/pkg/models/device"
 	networkDao "go-iot/pkg/models/network"
 	"go-iot/pkg/network"
+	"go-iot/pkg/network/servers"
 	"net/http"
+	"strings"
 	"time"
 
 	logs "go-iot/pkg/logger"
@@ -38,6 +40,7 @@ func init() {
 	web.RegisterAPI("/device/{id}", "GET", d.GetOne)
 	web.RegisterAPI("/device/{id}/detail", "GET", d.GetDetail)
 	web.RegisterAPI("/device/{id}/connection-info", "GET", d.GetConnectionInfo)
+	web.RegisterAPI("/device/{id}/connection-check", "GET", d.ConnectionCheck)
 	web.RegisterAPI("/device/{id}/connect", "POST", d.Connect)
 	web.RegisterAPI("/device/{id}/disconnect", "POST", d.Disconnect)
 	web.RegisterAPI("/device/{id}/deploy", "POST", d.Deploy)
@@ -248,6 +251,49 @@ func (d *deviceApi) GetConnectionInfo(w http.ResponseWriter, r *http.Request) {
 	} else {
 		ctl.RespOk()
 	}
+}
+
+// 设备诊断
+func (d *deviceApi) ConnectionCheck(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	deviceId := ctl.Param("id")
+	deviceModel, err := getDeviceAndCheckCreateId(ctl, deviceId)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	var resp map[string]bool = map[string]bool{
+		"deviceActive":  true,
+		"productActive": true,
+	}
+	dev := core.GetDevice(deviceId)
+	if dev == nil {
+		resp["deviceActive"] = false
+	}
+	product := core.GetProduct(deviceModel.ProductId)
+	if product == nil {
+		resp["productActive"] = false
+	} else {
+		productModel, err := deviceDao.GetProductMust(deviceModel.ProductId)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+		if len(strings.TrimSpace(productModel.Script)) == 0 {
+			resp["scriptActive"] = false
+		} else {
+			resp["scriptActive"] = true
+		}
+		if !network.IsNetClientType(productModel.NetworkType) {
+			server := servers.GetServer(deviceModel.ProductId)
+			if server == nil {
+				resp["serverActive"] = false
+			} else {
+				resp["serverActive"] = true
+			}
+		}
+	}
+	ctl.RespOkData(resp)
 }
 
 // client设备连接
