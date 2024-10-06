@@ -266,8 +266,7 @@ func (d *deviceApi) ConnectionCheck(w http.ResponseWriter, r *http.Request) {
 		"deviceActive":  true,
 		"productActive": true,
 	}
-	dev := core.GetDevice(deviceId)
-	if dev == nil {
+	if deviceModel.State == core.NoActive {
 		resp["deviceActive"] = false
 	}
 	product := core.GetProduct(deviceModel.ProductId)
