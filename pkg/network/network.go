@@ -17,6 +17,8 @@ const (
 	HTTP_SERVER NetType = "HTTP_SERVER"
 	// WebSocket服务端
 	WEBSOCKET_SERVER NetType = "WEBSOCKET_SERVER"
+	// CoAP服务端
+	COAP_SERVER NetType = "COAP_SERVER"
 
 	// MQTT客户端
 	MQTT_CLIENT NetType = "MQTT_CLIENT"

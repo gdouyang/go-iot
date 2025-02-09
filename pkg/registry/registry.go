@@ -11,8 +11,9 @@ import (
 	_ "go-iot/pkg/timeseries"
 
 	// servers
+	_ "go-iot/pkg/network/servers/coap"
 	_ "go-iot/pkg/network/servers/http"
-	_ "go-iot/pkg/network/servers/mqtt"
+	_ "go-iot/pkg/network/servers/mqtt5"
 	_ "go-iot/pkg/network/servers/tcp"
 	_ "go-iot/pkg/network/servers/websocket"
 
