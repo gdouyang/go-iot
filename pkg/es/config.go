@@ -15,8 +15,8 @@ type EsConfig struct {
 	Url              string // es url默认http://localhost:9200
 	Username         string
 	Password         string
-	BufferSize       int    // 缓冲大小 10000
-	BulkSize         int    // 每次批量提交数 1000
+	BufferSize       int    // 缓冲大小 默认10000
+	BulkSize         int    // 每次批量提交数 默认2000
 	WarnTime         int    // warn日志时间当保存时间操作指定时间时输出日志，默认1000ms
 	NumberOfShards   string // 分片数，默认1
 	NumberOfReplicas string // 副本数，默认0
@@ -31,7 +31,7 @@ func (r EsConfig) String() string {
 var DefaultEsConfig EsConfig = EsConfig{
 	Url:              "http://localhost:9200",
 	BufferSize:       10000,
-	BulkSize:         1000,
+	BulkSize:         2000,
 	WarnTime:         1000,
 	NumberOfShards:   "1",
 	NumberOfReplicas: "0",

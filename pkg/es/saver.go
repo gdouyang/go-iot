@@ -31,10 +31,11 @@ func Commit(index string, text string) {
 
 func (t *EsDataSaveHelper) commit(index string, text string) {
 	o := `{ "index" : { "_index" : "` + index + `" } }` + "\n" + text + "\n"
-	t.dataCh <- o
-	if len(t.dataCh) > (DefaultEsConfig.BufferSize / 2) {
-		logs.Infof("commit data to es, chan length: %v", len(t.dataCh))
+	if len(t.dataCh) >= DefaultEsConfig.BufferSize {
+		logs.Warnf("es data chan is full, drop data, chan length: %v data: %s", len(t.dataCh), o)
+		return
 	}
+	t.dataCh <- o
 }
 
 func (t *EsDataSaveHelper) batchSave() {

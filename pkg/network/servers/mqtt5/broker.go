@@ -7,6 +7,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
+	"runtime/debug"
 	"sync"
 
 	logs "go-iot/pkg/logger"
@@ -102,6 +103,10 @@ func (s *Broker) Start(network network.NetworkConf) error {
 
 	// Start the server
 	go func() {
+		if rec := recover(); rec != nil {
+			l := fmt.Sprintf("mqtt broker panic: %v \n %s", rec, string(debug.Stack()))
+			logs.Errorf(l)
+		}
 		err := server.Serve()
 		if err != nil {
 			logs.Errorf("MQTT server error: %v", err)
@@ -168,6 +173,8 @@ func (h *BrokerHook) Init(config any) error {
 // 如果允许访问，则返回 true。
 func (h *BrokerHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packet) bool {
 	logs.Debugf("client connected %s", cl.ID)
+	h.broker.Lock()
+	defer h.broker.Unlock()
 	client := NewClient(cl, h.broker)
 	// check auth
 	ctx := &authContext{
@@ -208,6 +215,8 @@ func (h *BrokerHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
 	} else {
 		logs.Debugf("client disconnected %s expire: %v", cl.ID, expire)
 	}
+	h.broker.Lock()
+	defer h.broker.Unlock()
 	var client = h.broker.clients[cl.ID]
 	if client != nil {
 		client.Close()
