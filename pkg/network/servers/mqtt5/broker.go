@@ -7,6 +7,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
+	"log/slog"
 	"runtime/debug"
 	"sync"
 
@@ -73,7 +74,9 @@ func (s *Broker) Start(network network.NetworkConf) error {
 	s.done = make(chan struct{})
 
 	// Create the new MQTT Server.
-	server := mqtt.New(nil)
+	server := mqtt.New(&mqtt.Options{
+		Logger: slog.New(logs.NewSugaredHandler()),
+	})
 
 	// Configure TLS if enabled
 	if s.spec.UseTLS {
@@ -94,9 +97,8 @@ func (s *Broker) Start(network network.NetworkConf) error {
 	if err != nil {
 		return err
 	}
-
 	// 给broker增加Hook
-	err = server.AddHook(new(BrokerHook), &BrokerHookOptions{broker: s})
+	err = server.AddHook(&BrokerHook{productId: s.productId}, &BrokerHookOptions{broker: s})
 	if err != nil {
 		return err
 	}

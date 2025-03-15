@@ -149,7 +149,7 @@ func (t *EsTimeSeries) query(indexName string, param core.TimeDataSearchRequest)
 		"list":        []map[string]any{},
 		"searchAfter": []any{},
 	}
-	if err == nil && resp.Total > 0 {
+	if resp.Total > 0 {
 		// convert each hit to result.
 		var list []map[string]any = []map[string]any{}
 		resp.ConvertSource(&list)

@@ -44,14 +44,13 @@ func (t *EsDataSaveHelper) batchSave() {
 
 	for {
 		select {
-		case <-ticker.C: // 5秒内没有消息时保存
+		case <-ticker.C: // 每隔5秒保存
 			t.save()
 		case d := <-t.dataCh:
 			t.bufferData = append(t.bufferData, d)
-			if len(t.bufferData) >= DefaultEsConfig.BulkSize {
-				t.save()
-			} else if t.lastCommitTime > 0 && time.Now().UnixMilli()-t.lastCommitTime >= 5000 { // 有消息但不够buff的
-				t.lastCommitTime = time.Now().UnixMilli()
+			milli := time.Now().UnixMilli()
+			if len(t.bufferData) >= DefaultEsConfig.BulkSize || milli-t.lastCommitTime >= 5000 {
+				t.lastCommitTime = milli
 				t.save()
 			}
 		}
