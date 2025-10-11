@@ -36,8 +36,6 @@ type (
 		server    *mqtt.Server
 		tlsCfg    *tls.Config
 		clients   map[string]*ClientAndSession
-
-		done chan struct{}
 	}
 	// 事件钩子
 	BrokerHook struct {
@@ -71,11 +69,17 @@ func (s *Broker) Start(network network.NetworkConf) error {
 	s.name = spec.Name
 	s.spec = spec
 	s.clients = make(map[string]*ClientAndSession)
-	s.done = make(chan struct{})
 
 	// Create the new MQTT Server.
+	var capabilities = mqtt.NewDefaultServerCapabilities()
+	capabilities.MaximumClientWritesPending = 1024
+	capabilities.MaximumInflight = 1024
 	server := mqtt.New(&mqtt.Options{
-		Logger: slog.New(logs.NewSugaredHandler()),
+		Logger:       slog.New(logs.NewSugaredHandler()),
+		Capabilities: capabilities,
+		// ClientNetWriteBufferSize: 4096,
+		// ClientNetReadBufferSize:  4096,
+		// SysTopicResendInterval: 10,
 	})
 
 	// Configure TLS if enabled
@@ -122,7 +126,6 @@ func (s *Broker) Start(network network.NetworkConf) error {
 
 func (b *Broker) Stop() error {
 
-	close(b.done)
 	b.Lock()
 	defer b.Unlock()
 	if b.server != nil {
@@ -178,6 +181,7 @@ func (h *BrokerHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packet) b
 	h.broker.Lock()
 	defer h.broker.Unlock()
 	client := NewClient(cl, h.broker)
+	client.info.password = string(pk.Connect.Password)
 	// check auth
 	ctx := &authContext{
 		BaseContext: core.BaseContext{
