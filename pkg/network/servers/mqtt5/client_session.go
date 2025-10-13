@@ -112,11 +112,7 @@ func (s *ClientAndSession) PublishHex(topic string, payload string) {
 
 func (s *ClientAndSession) Disconnect() error {
 	if s.client.Properties.Clean {
-		if s.isClose {
-			return nil
-		}
 		s.Close()
-		core.DelSession(s.info.deviceId)
 	}
 	return nil
 }
@@ -132,6 +128,9 @@ func (s *ClientAndSession) Close() error {
 	s.isClose = true
 	close(s.done)
 	core.DelSession(s.info.deviceId)
+	if !s.client.Closed() {
+		s.broker.server.DisconnectClient(s.client, packets.CodeDisconnect)
+	}
 	return nil
 }
 

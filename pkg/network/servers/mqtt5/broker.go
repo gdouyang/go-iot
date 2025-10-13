@@ -221,8 +221,14 @@ func (h *BrokerHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
 	} else {
 		logs.Debugf("client disconnected %s expire: %v", cl.ID, expire)
 	}
-	h.broker.Lock()
-	defer h.broker.Unlock()
+	var getLock = h.broker.TryLock()
+	var unlock = func() {
+		if getLock {
+			h.broker.Unlock()
+		}
+	}
+	defer unlock()
+	logs.Debugf("delete client: %s", cl.ID)
 	var client = h.broker.clients[cl.ID]
 	if client != nil {
 		client.Close()
