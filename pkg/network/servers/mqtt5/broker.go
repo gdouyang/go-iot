@@ -128,13 +128,13 @@ func (b *Broker) Stop() error {
 
 	b.Lock()
 	defer b.Unlock()
-	if b.server != nil {
-		b.server.Close()
-	}
 	for _, v := range b.clients {
 		go v.Close()
 	}
 	b.clients = nil
+	if b.server != nil {
+		b.server.Close()
+	}
 	return nil
 }
 
