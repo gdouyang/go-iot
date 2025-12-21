@@ -8,6 +8,7 @@ import (
 	"go-iot/pkg/cluster"
 	"go-iot/pkg/common"
 	"go-iot/pkg/redis"
+	"go-iot/pkg/tsl"
 	"sync"
 	"time"
 
@@ -20,9 +21,15 @@ func init() {
 	})
 }
 
+const (
+	cmdInvokeChannel = "go:cluster:cmdinvoke"
+	// OTA升级
+	OTA_UPDATE = "ota-update"
+)
+
 func listenerCluster() {
 	if cluster.Enabled() {
-		for redisMsg := range redis.Sub("go:cluster:cmdinvoke") {
+		for redisMsg := range redis.Sub(cmdInvokeChannel) {
 			payload := redisMsg.Payload
 			var message FuncInvoke
 			json.Unmarshal([]byte(payload), &message)
@@ -39,7 +46,7 @@ func DoCmdInvokeCluster(message FuncInvoke) {
 		if device.ClusterId != cluster.GetClusterId() {
 			message.ClusterId = device.ClusterId
 			data, _ := json.Marshal(message)
-			redis.Pub("go:cluster:cmdinvoke", data)
+			redis.Pub(cmdInvokeChannel, data)
 		}
 	} else {
 		DoCmdInvoke(message)
@@ -49,6 +56,9 @@ func DoCmdInvokeCluster(message FuncInvoke) {
 // 进行功能调用
 func DoCmdInvoke(message FuncInvoke) *common.Err {
 	device := GetDevice(message.DeviceId)
+	if device == nil {
+		return common.NewErr400(fmt.Sprintf("设备[%s]不存在，请确认设备已注册并激活", message.DeviceId))
+	}
 	productId := device.ProductId
 	state := GetDeviceState(message.DeviceId, productId)
 	if OFFLINE == state {
@@ -63,13 +73,23 @@ func DoCmdInvoke(message FuncInvoke) *common.Err {
 	if codec == nil {
 		return common.NewErr400(fmt.Sprintf("产品[%s]没有配置编解码", productId))
 	}
-	tslF := product.GetTsl().FunctionsMap()
-	if len(tslF) == 0 {
-		return common.NewErr400(fmt.Sprintf("产品[%s]没有配置功能", productId))
-	}
-	function, ok := tslF[message.FunctionId]
-	if !ok {
-		return common.NewErr400(fmt.Sprintf("功能[%s]不存在", message.FunctionId))
+	var function tsl.Function
+	var ok bool
+	if message.FunctionId == OTA_UPDATE {
+		function = tsl.Function{
+			Id:    OTA_UPDATE,
+			Name:  "OTA升级",
+			Async: false,
+		}
+	} else {
+		tslF := product.GetTsl().FunctionsMap()
+		if len(tslF) == 0 {
+			return common.NewErr400(fmt.Sprintf("产品[%s]没有配置功能", productId))
+		}
+		function, ok = tslF[message.FunctionId]
+		if !ok {
+			return common.NewErr400(fmt.Sprintf("功能[%s]不存在", message.FunctionId))
+		}
 	}
 	if len(message.TraceId) == 0 {
 		message.TraceId = uuid.NewString()
