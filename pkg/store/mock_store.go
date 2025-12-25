@@ -54,6 +54,11 @@ func (m *mockDeviceStore) SetDeviceData(deviceId, key string, val any) {
 	}
 }
 
+// RefreshOfflineTimeout 刷新设备过期时间
+func (m *mockDeviceStore) RefreshOfflineTimeout(deviceId string) {
+	// 模拟刷新设备过期时间
+}
+
 func (m *mockDeviceStore) GetProduct(productId string) *core.Product {
 	product, ok := m.cache.Load(productId)
 	if ok {

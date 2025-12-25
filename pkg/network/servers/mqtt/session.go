@@ -35,6 +35,7 @@ type (
 		pendingQueue []uint16
 		nextID       uint16
 		isClose      bool
+		info1        map[string]any
 	}
 
 	// Message is the message send from broker to client
@@ -66,6 +67,7 @@ func (s *MqttSession) init(b *Broker, connect *packets.ConnectPacket) error {
 	s.info.CleanFlag = true //connect.CleanSession not supported currently
 	s.info.ProtocolInfo = fmt.Sprintf("%s %v", connect.ProtocolName, connect.ProtocolVersion)
 	s.info.Topics = make(map[string]int)
+	s.info1 = map[string]any{}
 
 	go s.backgroundResendPending()
 
@@ -195,10 +197,9 @@ func (s *MqttSession) GetDeviceId() string {
 	return s.info.deviceId
 }
 func (s *MqttSession) GetInfo() map[string]any {
-	return map[string]any{
-		"username":     s.info.Username,
-		"clientID":     s.info.ClientID,
-		"cleanSession": s.info.CleanFlag,
-		"protocol":     s.info.ProtocolInfo,
-	}
+	s.info1["username"] = s.info.Username
+	s.info1["clientID"] = s.info.ClientID
+	s.info1["cleanSession"] = s.info.CleanFlag
+	s.info1["protocol"] = s.info.ProtocolInfo
+	return s.info1
 }

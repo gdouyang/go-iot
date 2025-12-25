@@ -30,6 +30,7 @@ func newTcpSession(server *TcpServer, conn net.Conn, productId string) *TcpSessi
 		delimeter:  delimeter,
 		send:       make(chan []byte, 256),
 		statusFlag: Connected,
+		info:       map[string]any{},
 	}
 	return session
 }
@@ -46,6 +47,7 @@ type TcpSession struct {
 	// Buffered channel of outbound messages.
 	send       chan []byte
 	statusFlag int32
+	info       map[string]any
 }
 
 func (s *TcpSession) SetDeviceId(deviceId string) {
@@ -56,20 +58,19 @@ func (s *TcpSession) GetDeviceId() string {
 	return s.deviceId
 }
 func (s *TcpSession) GetInfo() map[string]any {
-	return map[string]any{
-		"localAddr": func() string {
-			if s.conn != nil {
-				return s.conn.LocalAddr().String()
-			}
-			return "unknown" // 或者返回其他适当的默认值
-		}(),
-		"remoteAddr": func() string {
-			if s.conn != nil {
-				return s.conn.RemoteAddr().String()
-			}
-			return "unknown" // 或者返回其他适当的默认值
-		}(),
-	}
+	s.info["localAddr"] = func() string {
+		if s.conn != nil {
+			return s.conn.LocalAddr().String()
+		}
+		return "unknown"
+	}()
+	s.info["remoteAddr"] = func() string {
+		if s.conn != nil {
+			return s.conn.RemoteAddr().String()
+		}
+		return "unknown"
+	}()
+	return s.info
 }
 
 func (s *TcpSession) Disconnect() error {

@@ -2,6 +2,7 @@ package core
 
 import (
 	"go-iot/pkg/eventbus"
+	"strconv"
 	"sync"
 )
 
@@ -25,13 +26,30 @@ func PutSession(deviceId string, session Session, replace bool) {
 	}
 }
 
-// 从Session管理器中删除设备Session
+// 从Session管理器中删除设备Session, 并触发离线事件, 如果配置了离线超时时间，且超时时间大于0，则不触发离线事件
 func DelSession(deviceId string) {
-	if _, ok := sessionManager.LoadAndDelete(deviceId); ok {
-		device := GetDevice(deviceId)
-		if device != nil {
-			DeviceOfflineEvent(deviceId, device.GetProductId())
+	device := GetDevice(deviceId)
+	if device != nil {
+		timeoutStr := device.GetConfig(DEVICE_TIMEOUT_KEY)
+		// 如果配置了离线超时时间，且超时时间大于0，则不触发离线事件
+		if len(timeoutStr) > 0 {
+			timeout, err := strconv.Atoi(timeoutStr)
+			if err == nil && timeout > 0 {
+				session := GetSession(deviceId)
+				if session != nil && session.GetInfo() != nil {
+					session.GetInfo()[deviceIsDisconnect] = true
+				}
+				return
+			}
 		}
+		DelSessionByTimeout(device, "disconnect")
+	}
+}
+
+// 删除会话并触发离线事件
+func DelSessionByTimeout(device *Device, message string) {
+	if _, ok := sessionManager.LoadAndDelete(device.Id); ok {
+		DeviceOfflineEvent(device.Id, device.GetProductId(), message)
 	}
 }
 
@@ -42,8 +60,8 @@ func DeviceOnlineEvent(deviceId, productId string) {
 }
 
 // 设备离线事件
-func DeviceOfflineEvent(deviceId, productId string) {
-	evt := eventbus.NewOfflineMessage(deviceId, productId)
+func DeviceOfflineEvent(deviceId, productId string, message string) {
+	evt := eventbus.NewOfflineMessage(deviceId, productId, message)
 	eventbus.PublishOffline(&evt)
 }
 
@@ -97,10 +115,16 @@ func DeleteProduct(productId string) {
 
 // DeviceStore 设备存储器，保存已发布的设备、产品，mem, redis
 type DeviceStore interface {
+	// 设备存储器ID
 	Id() string
+	// 获取设备
 	GetDevice(deviceId string) *Device
+	// 保存设备
 	PutDevice(device *Device)
+	// 删除设备
 	DelDevice(deviceId string)
+	// 刷新设备过期时间
+	RefreshOfflineTimeout(deviceId string)
 	// 获取设备数据
 	GetDeviceData(deviceId, key string) string
 	// 设置设备数据

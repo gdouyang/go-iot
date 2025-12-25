@@ -38,6 +38,7 @@ type (
 		info    ClientInfo
 		isClose bool
 		done    chan struct{}
+		info1   map[string]any
 	}
 
 	// Message represents a message in the session
@@ -59,6 +60,7 @@ func NewClient(cl *mqtt.Client, broker *Broker) *ClientAndSession {
 		client: cl,
 		info:   info,
 		done:   make(chan struct{}),
+		info1:  map[string]any{},
 	}
 
 	return client
@@ -152,14 +154,14 @@ func (s *ClientAndSession) GetInfo() map[string]any {
 			protocolInfo = "MQTT 3.1"
 		}
 	}
-	return map[string]any{
-		"clientId":     s.info.cid,
-		"username":     s.info.username,
-		"cleanStart":   s.client.State.Keepalive,
-		"protocolInfo": protocolInfo,
-		"deviceId":     s.info.deviceId,
-		"topics":       s.info.Topics,
-	}
+	s.info1["clientId"] = s.info.cid
+	s.info1["username"] = s.info.username
+	s.info1["cleanStart"] = s.client.State.Keepalive
+	s.info1["protocolInfo"] = protocolInfo
+	s.info1["deviceId"] = s.info.deviceId
+	s.info1["topics"] = s.info.Topics
+
+	return s.info1
 }
 
 func (s *ClientAndSession) sendMessage(msg *Message) {

@@ -16,6 +16,7 @@ func newSession(w mux.ResponseWriter, r *mux.Message, productId string) *CoapSes
 		w:         w,
 		r:         r,
 		productId: productId,
+		info:      map[string]any{},
 	}
 	return session
 }
@@ -25,6 +26,7 @@ type CoapSession struct {
 	r         *mux.Message
 	productId string
 	deviceId  string
+	info      map[string]any
 }
 
 func (s *CoapSession) SetDeviceId(deviceId string) {
@@ -36,7 +38,7 @@ func (s *CoapSession) GetDeviceId() string {
 }
 
 func (s *CoapSession) GetInfo() map[string]any {
-	return map[string]any{}
+	return s.info
 }
 
 func (s *CoapSession) Disconnect() error {

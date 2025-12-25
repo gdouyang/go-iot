@@ -42,7 +42,7 @@ func (ctx *coapContext) DeviceOffline(deviceId string) {
 		if device.GetProductId() != ctx.ProductId {
 			panic(fmt.Errorf("device [%s] product error: %s != %s", deviceId, ctx.ProductId, device.GetProductId()))
 		}
-		core.DeviceOfflineEvent(deviceId, ctx.ProductId)
+		core.DeviceOfflineEvent(deviceId, ctx.ProductId, "disconnect")
 	}
 }
 

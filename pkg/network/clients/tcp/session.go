@@ -19,6 +19,7 @@ func newTcpSession(deviceId string, s *TcpClientSpec, productId string, conn net
 		productId: productId,
 		conn:      conn, delimeter: delimeter,
 		done: make(chan struct{}),
+		info: map[string]any{},
 	}
 	session.deviceOnline(deviceId)
 	return session
@@ -32,6 +33,7 @@ type TcpSession struct {
 	delimeter tcpserver.Delimeter
 	done      chan struct{}
 	isClose   bool
+	info      map[string]any
 }
 
 func (s *TcpSession) Send(msg string) error {
@@ -79,21 +81,21 @@ func (s *TcpSession) GetDeviceId() string {
 }
 
 func (s *TcpSession) GetInfo() map[string]any {
-	return map[string]any{
-		"localAddr": func() string {
-			if s.conn != nil {
-				return s.conn.LocalAddr().String()
-			}
-			return "unknown" // 或者返回其他适当的默认值
-		}(),
-		"remoteAddr": func() string {
-			if s.conn != nil {
-				return s.conn.RemoteAddr().String()
-			}
-			return "unknown" // 或者返回其他适当的默认值
-		}(),
-	}
+	s.info["localAddr"] = func() string {
+		if s.conn != nil {
+			return s.conn.LocalAddr().String()
+		}
+		return "unknown" // 或者返回其他适当的默认值
+	}()
+	s.info["remoteAddr"] = func() string {
+		if s.conn != nil {
+			return s.conn.RemoteAddr().String()
+		}
+		return "unknown" // 或者返回其他适当的默认值
+	}()
+	return s.info
 }
+
 func (s *TcpSession) deviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {

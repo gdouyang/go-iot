@@ -21,6 +21,9 @@ type RedisConfig struct {
 	PoolSize int
 }
 
+type ZRangeBy = redis.ZRangeBy
+type Z = redis.Z
+
 func (r RedisConfig) String() string {
 	return fmt.Sprintf("[addr=%s, db=%v, poolSize=%v]", r.Addr, r.DB, r.PoolSize)
 }

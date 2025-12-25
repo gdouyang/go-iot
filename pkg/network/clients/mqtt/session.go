@@ -38,6 +38,7 @@ type MqttClientSession struct {
 	done      chan struct{}
 	isClose   bool
 	core      core.Codec
+	info      map[string]any
 }
 
 func newClientSession(deviceId string, network network.NetworkConf, spec *MQTTClientSpec) (*MqttClientSession, error) {
@@ -57,6 +58,7 @@ func newClientSession(deviceId string, network network.NetworkConf, spec *MQTTCl
 		productId: network.ProductId,
 		choke:     make(chan MQTT.Message),
 		done:      make(chan struct{}),
+		info:      map[string]any{},
 	}
 	if len(spec.Topics) == 0 {
 		opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
@@ -137,7 +139,7 @@ func (s *MqttClientSession) GetDeviceId() string {
 	return s.deviceId
 }
 func (s *MqttClientSession) GetInfo() map[string]any {
-	return map[string]any{}
+	return s.info
 }
 
 func (s *MqttClientSession) deviceOnline(deviceId string) {

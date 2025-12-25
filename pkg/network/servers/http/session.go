@@ -14,6 +14,7 @@ func newSession(w http.ResponseWriter, r *http.Request, productId string) *HttpS
 		w:         w,
 		r:         r,
 		productId: productId,
+		info:      map[string]any{},
 	}
 	return session
 }
@@ -23,6 +24,7 @@ type HttpSession struct {
 	r         *http.Request
 	productId string
 	deviceId  string
+	info      map[string]any
 }
 
 func (s *HttpSession) SetDeviceId(deviceId string) {
@@ -34,7 +36,7 @@ func (s *HttpSession) GetDeviceId() string {
 }
 
 func (s *HttpSession) GetInfo() map[string]any {
-	return map[string]any{}
+	return s.info
 }
 
 func (s *HttpSession) Disconnect() error {

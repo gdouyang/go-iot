@@ -42,6 +42,7 @@ func newWebsocketSession(conn *websocket.Conn, r *http.Request, wsServer *WebSoc
 		productId:  productId,
 		send:       make(chan *wsMsg, 256),
 		statusFlag: Connected,
+		info:       map[string]any{},
 	}
 	return session
 }
@@ -64,6 +65,7 @@ type WebsocketSession struct {
 	// Buffered channel of outbound messages.
 	send       chan *wsMsg
 	statusFlag int32
+	info       map[string]any
 }
 
 func (s *WebsocketSession) SetDeviceId(deviceId string) {
@@ -74,23 +76,22 @@ func (s *WebsocketSession) GetDeviceId() string {
 	return s.deviceId
 }
 func (s *WebsocketSession) GetInfo() map[string]any {
-	return map[string]any{
-		"requestURI": s.requestURI,
-		"header":     s.header,
-		"form":       s.form,
-		"localAddr": func() string {
-			if s.conn != nil {
-				return s.conn.LocalAddr().String()
-			}
-			return "unknown" // 或者返回其他适当的默认值
-		}(),
-		"remoteAddr": func() string {
-			if s.conn != nil {
-				return s.conn.RemoteAddr().String()
-			}
-			return "unknown" // 或者返回其他适当的默认值
-		}(),
-	}
+	s.info["requestURI"] = s.requestURI
+	s.info["header"] = s.header
+	s.info["form"] = s.form
+	s.info["localAddr"] = func() string {
+		if s.conn != nil {
+			return s.conn.LocalAddr().String()
+		}
+		return "unknown"
+	}()
+	s.info["remoteAddr"] = func() string {
+		if s.conn != nil {
+			return s.conn.RemoteAddr().String()
+		}
+		return "unknown"
+	}()
+	return s.info
 }
 
 func (s *WebsocketSession) Disconnect() error {

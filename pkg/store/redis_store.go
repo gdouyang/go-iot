@@ -9,6 +9,7 @@ import (
 	"go-iot/pkg/eventbus"
 	"go-iot/pkg/redis"
 	"go-iot/pkg/util"
+	"strconv"
 	"sync"
 	"time"
 
@@ -34,8 +35,10 @@ func (store *redisDeviceStore) init() {
 	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OnlineMessage); ok {
 			store.updateClusterId(m.DeviceId)
+			store.RefreshOfflineTimeout(m.DeviceId)
 		}
 	})
+	go store.startOfflineScanner()
 }
 
 func (store *redisDeviceStore) getDeviceKey(deviceId string) string {
@@ -164,6 +167,75 @@ func (m *redisDeviceStore) updateClusterId(deviceId string) {
 	device, ok := m.getDevice(deviceId)
 	if ok {
 		device.ClusterId = cluster.GetClusterId()
+	}
+}
+func (m *redisDeviceStore) getZKey() string {
+	return "goiot:cluster" + cluster.GetClusterId() + "device:offline:check"
+}
+
+// RefreshOfflineTimeout 刷新设备过期时间
+func (m *redisDeviceStore) RefreshOfflineTimeout(deviceId string) {
+	device := m.GetDevice(deviceId)
+	if device == nil {
+		return
+	}
+	timeoutStr := device.GetConfig(core.DEVICE_TIMEOUT_KEY)
+	if len(timeoutStr) > 0 {
+		timeout, err := strconv.Atoi(timeoutStr)
+		if err == nil && timeout > 0 {
+			rdb := redis.GetRedisClient()
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+			defer cancel()
+			// 使用 ZSet 存储过期时间，score 为过期时间戳
+			expireTime := time.Now().Add(time.Duration(timeout) * time.Second).Unix()
+			zKey := m.getZKey()
+			err = rdb.ZAdd(ctx, zKey, &redis.Z{
+				Score:  float64(expireTime),
+				Member: deviceId,
+			}).Err()
+			if err != nil {
+				logs.Errorf("refreshOfflineTimeout ZAdd error: %v", err)
+			}
+		}
+	} else {
+		logs.Warnf("device [%s] offlineTimeout is empty", deviceId)
+	}
+}
+
+func (m *redisDeviceStore) startOfflineScanner() {
+	ticker := time.NewTicker(30 * time.Second)
+	for range ticker.C {
+		m.scanOfflineDevices()
+	}
+}
+
+func (m *redisDeviceStore) scanOfflineDevices() {
+	rdb := redis.GetRedisClient()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	now := time.Now().Unix()
+	// 获取所有过期设备
+	zKey := m.getZKey()
+	vals, err := rdb.ZRangeByScore(ctx, zKey, &redis.ZRangeBy{
+		Min: "-inf",
+		Max: fmt.Sprintf("%d", now),
+	}).Result()
+
+	if err != nil {
+		logs.Errorf("scanOfflineDevices ZRangeByScore error: %v", err)
+		return
+	}
+
+	if len(vals) > 0 {
+		for _, deviceId := range vals {
+			device := m.GetDevice(deviceId)
+			if device != nil {
+				core.DelSessionByTimeout(device, "keepalive timeout")
+			}
+			// 移除已处理的设备
+			rdb.ZRem(ctx, zKey, deviceId)
+		}
 	}
 }
 

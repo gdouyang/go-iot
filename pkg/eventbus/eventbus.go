@@ -45,7 +45,7 @@ func GetAlarmTopic(productId string, deviceId string) string {
 
 // /device/{productId}/{deviceId}/debug
 func GetDebugTopic(productId string, deviceId string) string {
-	return fmt.Sprintf("/device/%s/%s/%s", productId, deviceId, DEBUG)
+	return fmt.Sprintf("/device/%s/%s/debug", productId, deviceId)
 }
 
 var bus = newEventBus()
@@ -188,13 +188,15 @@ type OfflineMessage struct {
 	Typ       string `json:"type"`
 	DeviceId  string `json:"deviceId"`
 	ProductId string `json:"productId"`
+	Message   string `json:"message"`
 }
 
-func NewOfflineMessage(deviceId string, productId string) OfflineMessage {
+func NewOfflineMessage(deviceId string, productId string, message string) OfflineMessage {
 	return OfflineMessage{
 		Typ:       string(OFFLINE),
 		DeviceId:  deviceId,
 		ProductId: productId,
+		Message:   message,
 	}
 }
 

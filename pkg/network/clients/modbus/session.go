@@ -25,12 +25,14 @@ type ModbusSession struct {
 	tcpInfo      *TcpInfo
 	rtuInfo      *RtuInfo
 	done         chan struct{}
+	info         map[string]any
 }
 
 func newSession() *ModbusSession {
 	return &ModbusSession{
 		lock: make(chan bool, 1),
 		done: make(chan struct{}),
+		info: map[string]any{},
 	}
 }
 
@@ -56,7 +58,7 @@ func (s *ModbusSession) GetDeviceId() string {
 }
 
 func (s *ModbusSession) GetInfo() map[string]any {
-	return map[string]any{}
+	return s.info
 }
 
 func (s *ModbusSession) ReadDiscreteInputs(startingAddress uint16, length uint16) *context {

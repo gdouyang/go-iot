@@ -20,6 +20,9 @@ const (
 	DEVICE    = "device"    // 设备
 	GATEWAY   = "gateway"   // 网关
 	SUBDEVICE = "subdevice" // 子设备
+
+	DEVICE_TIMEOUT_KEY = "offlineTimeout" // 设备离线超时时间，单位秒
+	deviceIsDisconnect = "isDisconnect"   // 设备连接是否断开
 )
 
 // 函数没有实现
@@ -300,6 +303,14 @@ func (ctx *BaseContext) GetConfig(key string) string {
 		return ""
 	}
 	return device.GetConfig(key)
+}
+
+// 保持设备在线状态
+func (ctx *BaseContext) KeepAlive(deviceId string) {
+	// 刷新设备过期时间
+	if defaultStore != nil {
+		defaultStore.RefreshOfflineTimeout(deviceId)
+	}
 }
 
 // 保存设备属性的时序数据
