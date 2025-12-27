@@ -200,8 +200,6 @@ func (m *redisDeviceStore) RefreshOfflineTimeout(deviceId string) {
 				logs.Errorf("refreshOfflineTimeout ZAdd error: %v", err)
 			}
 		}
-	} else {
-		logs.Warnf("device [%s] offlineTimeout is empty", deviceId)
 	}
 }
 
