@@ -73,7 +73,7 @@ func (c *RespController) Param(key string) string {
 	return chi.URLParam(c.Request, key)
 }
 
-// request param
+// request param from form
 func (c *RespController) Query(key string) string {
 	return c.Request.Form.Get(key)
 }

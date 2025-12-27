@@ -446,14 +446,22 @@ func (d *deviceApi) CmdInvoke(w http.ResponseWriter, r *http.Request) {
 		ctl.Resp(*resp)
 		return
 	} else {
-		success, err1 := core.DoCmdInvokeOffline(ob)
-		if err1 != nil {
-			if success {
-				ctl.RespOkMsg(err1.Message)
-			} else {
-				ctl.RespErr(err1)
+		if ob.OfflineCache {
+			success, err1 := core.DoCmdInvokeOffline(ob)
+			if err1 != nil {
+				if success {
+					ctl.RespOkMsg(err1.Message)
+				} else {
+					ctl.RespErr(err1)
+				}
+				return
 			}
-			return
+		} else {
+			err1 := core.DoCmdInvoke(ob)
+			if err1 != nil {
+				ctl.RespErr(err1)
+				return
+			}
 		}
 	}
 	ctl.RespOk()
