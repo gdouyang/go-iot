@@ -12,16 +12,20 @@ import (
 )
 
 func newTcpSession(deviceId string, s *TcpClientSpec, productId string, conn net.Conn) *TcpSession {
+	deviceId = strings.TrimSpace(deviceId)
 	//2.网络数据流分隔器
 	delimeter := tcpserver.NewDelimeter(s.Delimeter, conn)
 	session := &TcpSession{
 		deviceId:  deviceId,
 		productId: productId,
-		conn:      conn, delimeter: delimeter,
-		done: make(chan struct{}),
-		info: map[string]any{},
+		conn:      conn,
+		delimeter: delimeter,
+		done:      make(chan struct{}),
+		info:      map[string]any{},
 	}
-	session.deviceOnline(deviceId)
+	if len(deviceId) > 0 {
+		core.PutSession(deviceId, session, true)
+	}
 	return session
 }
 
@@ -64,7 +68,7 @@ func (s *TcpSession) Disconnect() error {
 	close(s.done)
 	s.isClose = true
 	err := s.conn.Close()
-	core.DelSession(s.deviceId)
+	core.DelSessionByUserDisconnect(s.deviceId)
 	return err
 }
 
@@ -80,7 +84,7 @@ func (s *TcpSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *TcpSession) GetInfo() map[string]any {
+func (s *TcpSession) GetConInfo() map[string]any {
 	s.info["localAddr"] = func() string {
 		if s.conn != nil {
 			return s.conn.LocalAddr().String()
@@ -94,13 +98,6 @@ func (s *TcpSession) GetInfo() map[string]any {
 		return "unknown" // 或者返回其他适当的默认值
 	}()
 	return s.info
-}
-
-func (s *TcpSession) deviceOnline(deviceId string) {
-	deviceId = strings.TrimSpace(deviceId)
-	if len(deviceId) > 0 {
-		core.PutSession(deviceId, s, false)
-	}
 }
 
 func (s *TcpSession) readLoop() {

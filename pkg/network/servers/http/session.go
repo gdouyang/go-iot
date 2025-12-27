@@ -35,12 +35,12 @@ func (s *HttpSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *HttpSession) GetInfo() map[string]any {
+func (s *HttpSession) GetConInfo() map[string]any {
 	return s.info
 }
 
 func (s *HttpSession) Disconnect() error {
-	core.DelSession(s.deviceId)
+	core.DelSessionByUserDisconnect(s.deviceId)
 	return nil
 }
 

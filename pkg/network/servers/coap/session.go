@@ -37,12 +37,12 @@ func (s *CoapSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *CoapSession) GetInfo() map[string]any {
+func (s *CoapSession) GetConInfo() map[string]any {
 	return s.info
 }
 
 func (s *CoapSession) Disconnect() error {
-	core.DelSession(s.deviceId)
+	core.DelSessionByUserDisconnect(s.deviceId)
 	return nil
 }
 

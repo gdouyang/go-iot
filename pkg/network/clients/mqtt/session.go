@@ -42,6 +42,8 @@ type MqttClientSession struct {
 }
 
 func newClientSession(deviceId string, network network.NetworkConf, spec *MQTTClientSpec) (*MqttClientSession, error) {
+	deviceId = strings.TrimSpace(deviceId)
+
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker("tcp://" + spec.Host + ":" + fmt.Sprint(spec.Port))
 	opts.SetClientID(spec.ClientId)
@@ -85,7 +87,9 @@ func newClientSession(deviceId string, network network.NetworkConf, spec *MQTTCl
 	}
 	session.client = client
 	session.core = core.GetCodec(network.ProductId)
-	session.deviceOnline(deviceId)
+	if len(deviceId) > 0 {
+		core.PutSession(deviceId, session, true)
+	}
 
 	session.core.OnConnect(&mqttClientContext{
 		BaseContext: core.BaseContext{
@@ -123,7 +127,7 @@ func (s *MqttClientSession) Disconnect() error {
 	}
 	s.isClose = true
 	s.client.Disconnect(250)
-	core.DelSession(s.deviceId)
+	core.DelSessionByUserDisconnect(s.deviceId)
 	return nil
 }
 
@@ -138,15 +142,8 @@ func (s *MqttClientSession) SetDeviceId(deviceId string) {
 func (s *MqttClientSession) GetDeviceId() string {
 	return s.deviceId
 }
-func (s *MqttClientSession) GetInfo() map[string]any {
+func (s *MqttClientSession) GetConInfo() map[string]any {
 	return s.info
-}
-
-func (s *MqttClientSession) deviceOnline(deviceId string) {
-	deviceId = strings.TrimSpace(deviceId)
-	if len(deviceId) > 0 {
-		core.PutSession(deviceId, s, false)
-	}
 }
 
 func (s *MqttClientSession) readLoop() {

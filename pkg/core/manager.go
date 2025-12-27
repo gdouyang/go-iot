@@ -18,16 +18,31 @@ func GetSession(deviceId string) Session {
 }
 
 // 将设备Session放入到Session管理器中
-func PutSession(deviceId string, session Session, replace bool) {
+func PutSession(deviceId string, session Session, sendOnlineEvent bool) {
 	sessionManager.Store(deviceId, session)
 	device := GetDevice(deviceId)
-	if device != nil && !replace {
+	if device != nil && sendOnlineEvent {
 		DeviceOnlineEvent(deviceId, device.GetProductId())
 	}
 }
 
-// 从Session管理器中删除设备Session, 并触发离线事件, 如果配置了离线超时时间，且超时时间大于0，则不触发离线事件
-func DelSession(deviceId string) {
+// 从Session管理器中删除设备Session, 并触发离线事件
+func DelSessionByUserDisconnect(deviceId string) {
+	DelSessionWithOfflineReason(deviceId, "disconnect")
+}
+
+func DelSessionWithOfflineReason(deviceId string, msg string) {
+	device := GetDevice(deviceId)
+	if device != nil {
+		if _, ok := sessionManager.LoadAndDelete(device.Id); ok {
+			DeviceOfflineEvent(device.Id, device.GetProductId(), msg)
+		}
+	}
+}
+
+// 判断设备是否配置了离线时间, 如果配置了离线超时时间，且超时时间大于0，则不触发离线事件,
+// 否则从Session管理器中删除设备Session, 并触发离线事件
+func DelSessionWithTimeoutCheck(deviceId string) {
 	device := GetDevice(deviceId)
 	if device != nil {
 		timeoutStr := device.GetConfig(DEVICE_TIMEOUT_KEY)
@@ -35,21 +50,16 @@ func DelSession(deviceId string) {
 		if len(timeoutStr) > 0 {
 			timeout, err := strconv.Atoi(timeoutStr)
 			if err == nil && timeout > 0 {
-				session := GetSession(deviceId)
-				if session != nil && session.GetInfo() != nil {
-					session.GetInfo()[deviceIsDisconnect] = true
+				session := GetSession(device.Id)
+				if session != nil && session.GetConInfo() != nil {
+					session.GetConInfo()[deviceIsDisconnect] = true
+				} else {
+					DelSessionByUserDisconnect(deviceId)
 				}
-				return
 			}
+		} else {
+			DelSessionByUserDisconnect(deviceId)
 		}
-		DelSessionByTimeout(device, "disconnect")
-	}
-}
-
-// 删除会话并触发离线事件
-func DelSessionByTimeout(device *Device, message string) {
-	if _, ok := sessionManager.LoadAndDelete(device.Id); ok {
-		DeviceOfflineEvent(device.Id, device.GetProductId(), message)
 	}
 }
 

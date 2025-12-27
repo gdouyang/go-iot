@@ -12,25 +12,28 @@ type deviceState struct {
 	productId  string
 	state      string
 	createTime string
+	message    string
 }
 
 func init() {
 	stateSaver := &deviceStateSaver{stateCh: make(chan deviceState, 1000)}
 
-	var newDeviceState = func(deviceId, productId, state string) deviceState {
+	var newDeviceState = func(deviceId, productId, state string, message string) deviceState {
 		return deviceState{deviceId: deviceId,
 			productId:  productId,
 			state:      state,
-			createTime: time.Now().Format("2006-01-02 15:04:05.000")}
+			createTime: time.Now().Format("2006-01-02 15:04:05.000"),
+			message:    message,
+		}
 	}
 	eventbus.Subscribe(eventbus.GetOfflineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OfflineMessage); ok {
-			stateSaver.stateCh <- newDeviceState(m.DeviceId, m.ProductId, core.OFFLINE)
+			stateSaver.stateCh <- newDeviceState(m.DeviceId, m.ProductId, core.OFFLINE, m.Message)
 		}
 	})
 	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OnlineMessage); ok {
-			stateSaver.stateCh <- newDeviceState(m.DeviceId, m.ProductId, core.ONLINE)
+			stateSaver.stateCh <- newDeviceState(m.DeviceId, m.ProductId, core.ONLINE, "")
 		}
 	})
 	go stateSaver.saveState()
@@ -93,7 +96,7 @@ func updateOnlineStatus(list []deviceState, state string) {
 					DeviceId:   m.deviceId,
 					Type:       state,
 					CreateTime: m.createTime,
-					Content:    `{"deviceId": "` + m.deviceId + `", "state": "` + state + `"}`,
+					Content:    `{"deviceId": "` + m.deviceId + `", "state": "` + state + `", "msg":"` + m.message + `"}`,
 				}
 				product.GetTimeSeries().SaveLogs(product, data)
 			}

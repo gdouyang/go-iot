@@ -33,12 +33,12 @@ type (
 	ClientAndSession struct {
 		sync.Mutex
 
-		broker  *Broker
-		client  *mqtt.Client
-		info    ClientInfo
-		isClose bool
-		done    chan struct{}
-		info1   map[string]any
+		broker      *Broker
+		client      *mqtt.Client
+		info        ClientInfo
+		isClose     bool
+		done        chan struct{}
+		connectInfo map[string]any
 	}
 
 	// Message represents a message in the session
@@ -55,15 +55,25 @@ func NewClient(cl *mqtt.Client, broker *Broker) *ClientAndSession {
 		username: string(cl.Properties.Username),
 	}
 
-	client := &ClientAndSession{
-		broker: broker,
-		client: cl,
-		info:   info,
-		done:   make(chan struct{}),
-		info1:  map[string]any{},
+	var newSession *ClientAndSession
+	oldSession := core.GetSession(cl.ID)
+	if oldSession != nil {
+		newSession = oldSession.(*ClientAndSession)
+		newSession.client = cl
+		newSession.info = info
+		newSession.done = make(chan struct{})
+		newSession.isClose = false
+	} else {
+		newSession = &ClientAndSession{
+			broker:      broker,
+			client:      cl,
+			info:        info,
+			done:        make(chan struct{}),
+			connectInfo: map[string]any{},
+		}
 	}
 
-	return client
+	return newSession
 }
 
 func (c *ClientAndSession) ClientID() string {
@@ -113,9 +123,8 @@ func (s *ClientAndSession) PublishHex(topic string, payload string) {
 }
 
 func (s *ClientAndSession) Disconnect() error {
-	if s.client.Properties.Clean {
-		s.Close()
-	}
+	core.DelSessionByUserDisconnect(s.info.deviceId)
+	s.Close()
 	return nil
 }
 
@@ -129,7 +138,6 @@ func (s *ClientAndSession) Close() error {
 
 	s.isClose = true
 	close(s.done)
-	core.DelSession(s.info.deviceId)
 	if !s.client.Closed() {
 		s.broker.server.DisconnectClient(s.client, packets.CodeDisconnect)
 	}
@@ -144,7 +152,7 @@ func (s *ClientAndSession) GetDeviceId() string {
 	return s.info.deviceId
 }
 
-func (s *ClientAndSession) GetInfo() map[string]any {
+func (s *ClientAndSession) GetConInfo() map[string]any {
 	var protocolVersion = s.client.Properties.ProtocolVersion
 	var protocolInfo = "MQTT 5.0"
 	if protocolVersion < 5 {
@@ -154,14 +162,14 @@ func (s *ClientAndSession) GetInfo() map[string]any {
 			protocolInfo = "MQTT 3.1"
 		}
 	}
-	s.info1["clientId"] = s.info.cid
-	s.info1["username"] = s.info.username
-	s.info1["cleanStart"] = s.client.State.Keepalive
-	s.info1["protocolInfo"] = protocolInfo
-	s.info1["deviceId"] = s.info.deviceId
-	s.info1["topics"] = s.info.Topics
+	s.connectInfo["clientId"] = s.info.cid
+	s.connectInfo["username"] = s.info.username
+	s.connectInfo["cleanStart"] = s.client.State.Keepalive
+	s.connectInfo["protocolInfo"] = protocolInfo
+	s.connectInfo["deviceId"] = s.info.deviceId
+	s.connectInfo["topics"] = s.info.Topics
 
-	return s.info1
+	return s.connectInfo
 }
 
 func (s *ClientAndSession) sendMessage(msg *Message) {
@@ -174,5 +182,8 @@ func (s *ClientAndSession) sendMessage(msg *Message) {
 		Payload:   msg.payload,
 	}
 
-	s.client.WritePacket(packet)
+	err := s.client.WritePacket(packet)
+	if err != nil {
+		logs.Warnf("sendMessage error: %s", err.Error())
+	}
 }

@@ -246,7 +246,7 @@ func (d *deviceApi) GetConnectionInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	session := core.GetSession(deviceId)
 	if session != nil {
-		info := session.GetInfo()
+		info := session.GetConInfo()
 		ctl.RespOkData(info)
 	} else {
 		ctl.RespOk()

@@ -57,7 +57,7 @@ func (s *TcpSession) SetDeviceId(deviceId string) {
 func (s *TcpSession) GetDeviceId() string {
 	return s.deviceId
 }
-func (s *TcpSession) GetInfo() map[string]any {
+func (s *TcpSession) GetConInfo() map[string]any {
 	s.info["localAddr"] = func() string {
 		if s.conn != nil {
 			return s.conn.LocalAddr().String()
@@ -77,22 +77,21 @@ func (s *TcpSession) Disconnect() error {
 	if s.disconnected() {
 		return nil
 	}
-	core.DelSession(s.deviceId)
+	core.DelSessionByUserDisconnect(s.deviceId)
 	err := s.Close()
 	return err
 }
 
 func (s *TcpSession) Close() error {
 	s.Lock()
+	defer s.Unlock()
 	if s.disconnected() {
-		s.Unlock()
 		return nil
 	}
 	atomic.StoreInt32(&s.statusFlag, Disconnected)
 	s.tcpServer.removeClient(s.id)
 	close(s.send)
 	err := s.conn.Close()
-	s.Unlock()
 	return err
 }
 

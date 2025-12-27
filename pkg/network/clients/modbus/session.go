@@ -38,7 +38,7 @@ func newSession() *ModbusSession {
 
 func (s *ModbusSession) Disconnect() error {
 	if !s.stopped {
-		core.DelSession(s.deviceId)
+		core.DelSessionByUserDisconnect(s.deviceId)
 		s.stopped = true
 		close(s.done)
 		close(s.lock)
@@ -57,7 +57,7 @@ func (s *ModbusSession) GetDeviceId() string {
 	return s.deviceId
 }
 
-func (s *ModbusSession) GetInfo() map[string]any {
+func (s *ModbusSession) GetConInfo() map[string]any {
 	return s.info
 }
 

@@ -75,7 +75,7 @@ func (s *WebsocketSession) SetDeviceId(deviceId string) {
 func (s *WebsocketSession) GetDeviceId() string {
 	return s.deviceId
 }
-func (s *WebsocketSession) GetInfo() map[string]any {
+func (s *WebsocketSession) GetConInfo() map[string]any {
 	s.info["requestURI"] = s.requestURI
 	s.info["header"] = s.header
 	s.info["form"] = s.form
@@ -98,22 +98,21 @@ func (s *WebsocketSession) Disconnect() error {
 	if s.disconnected() {
 		return nil
 	}
-	core.DelSession(s.deviceId)
+	core.DelSessionByUserDisconnect(s.deviceId)
 	err := s.Close()
 	return err
 }
 
 func (s *WebsocketSession) Close() error {
 	s.Lock()
+	defer s.Unlock()
 	if s.disconnected() {
-		s.Unlock()
 		return nil
 	}
 	atomic.StoreInt32(&s.statusFlag, Disconnected)
 	s.wsServer.removeClient(s.id)
 	close(s.send)
 	err := s.conn.Close()
-	s.Unlock()
 	return err
 }
 

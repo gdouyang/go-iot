@@ -54,12 +54,10 @@ type (
 		Disconnect() error
 		// 获取设备id
 		GetDeviceId() string
-		// 设置设备id，对于无法重连接中得到设备id的场景需要手动调用
+		// 设置设备id，对于无法从连接中得到设备id的场景需要手动调用
 		SetDeviceId(deviceId string)
-		// 关闭会话
-		Close() error
 		// 连接信息
-		GetInfo() map[string]any
+		GetConInfo() map[string]any
 	}
 	// 消息上下文
 	MessageContext interface {
@@ -241,22 +239,20 @@ type BaseContext struct {
 func (ctx *BaseContext) DeviceOnline(deviceId string) {
 	deviceId = strings.TrimSpace(deviceId)
 	if len(deviceId) > 0 {
+		sendOnlineEvent := true
 		oldSession := GetSession(deviceId)
-		replace := false
-		if oldSession != nil && oldSession != ctx.GetSession() {
-			replace = true
-			logs.Infof("device [%s] a new connection come in, close old session", deviceId)
-			oldSession.Close()
+		if oldSession != nil {
+			sendOnlineEvent = false
 		}
 		device := GetDevice(deviceId)
 		if device == nil {
 			logs.Warnf("device [%s] not exist or noActive, close session", deviceId)
-			ctx.GetSession().Close()
+			ctx.GetSession().Disconnect()
 			return
 		}
 		ctx.DeviceId = deviceId
 		ctx.GetSession().SetDeviceId(deviceId)
-		PutSession(deviceId, ctx.GetSession(), replace)
+		PutSession(deviceId, ctx.GetSession(), sendOnlineEvent)
 	}
 }
 

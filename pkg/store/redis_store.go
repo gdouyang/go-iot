@@ -32,9 +32,12 @@ func (store *redisDeviceStore) Id() string {
 }
 
 func (store *redisDeviceStore) init() {
-	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
+	eventbus.Subscribe("/device/*/*/*", func(msg eventbus.Message) {
 		if m, ok := msg.(*eventbus.OnlineMessage); ok {
 			store.updateClusterId(m.DeviceId)
+			store.RefreshOfflineTimeout(m.DeviceId)
+		}
+		if m, ok := msg.(*eventbus.PropertiesMessage); ok {
 			store.RefreshOfflineTimeout(m.DeviceId)
 		}
 	})
@@ -170,7 +173,7 @@ func (m *redisDeviceStore) updateClusterId(deviceId string) {
 	}
 }
 func (m *redisDeviceStore) getZKey() string {
-	return "goiot:cluster" + cluster.GetClusterId() + "device:offline:check"
+	return "goiot:cluster" + cluster.GetClusterId() + ":device_offline_check"
 }
 
 // RefreshOfflineTimeout 刷新设备过期时间
@@ -231,7 +234,7 @@ func (m *redisDeviceStore) scanOfflineDevices() {
 		for _, deviceId := range vals {
 			device := m.GetDevice(deviceId)
 			if device != nil {
-				core.DelSessionByTimeout(device, "keepalive timeout")
+				core.DelSessionWithOfflineReason(deviceId, "heartbeat_timeout")
 			}
 			// 移除已处理的设备
 			rdb.ZRem(ctx, zKey, deviceId)

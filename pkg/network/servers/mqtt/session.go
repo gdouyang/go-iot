@@ -169,7 +169,7 @@ func (s *MqttSession) Disconnect() error {
 			return nil
 		}
 		s.Close()
-		core.DelSession(s.info.deviceId)
+		core.DelSessionByUserDisconnect(s.info.deviceId)
 	}
 	return nil
 }
@@ -196,7 +196,7 @@ func (s *MqttSession) SetDeviceId(deviceId string) {
 func (s *MqttSession) GetDeviceId() string {
 	return s.info.deviceId
 }
-func (s *MqttSession) GetInfo() map[string]any {
+func (s *MqttSession) GetConInfo() map[string]any {
 	s.info1["username"] = s.info.Username
 	s.info1["clientID"] = s.info.ClientID
 	s.info1["cleanSession"] = s.info.CleanFlag
