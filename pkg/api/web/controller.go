@@ -113,6 +113,12 @@ func (c *RespController) RespOk() error {
 	return c.JSON(data)
 }
 
+func (c *RespController) RespOkMsg(msg string) error {
+	data := common.JsonRespOk()
+	data.Msg = msg
+	return c.JSON(data)
+}
+
 func (c *RespController) RespOkData(data interface{}) error {
 	return c.JSON(common.JsonRespOkData(data))
 }

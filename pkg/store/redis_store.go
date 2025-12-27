@@ -173,7 +173,7 @@ func (m *redisDeviceStore) updateClusterId(deviceId string) {
 	}
 }
 func (m *redisDeviceStore) getZKey() string {
-	return "goiot:cluster" + cluster.GetClusterId() + ":device_offline_check"
+	return "goiot:device_offline_check"
 }
 
 // RefreshOfflineTimeout 刷新设备过期时间

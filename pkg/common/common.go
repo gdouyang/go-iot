@@ -8,7 +8,7 @@ type JsonResp struct {
 	Msg     string      `json:"message"`
 	Success bool        `json:"success"`
 	Result  interface{} `json:"result,omitempty"`
-	Code    int         `json:"-"` // 20x, 30x, 40x, 50x
+	Code    int         `json:"code"` // 20x, 30x, 40x, 50x
 }
 
 func JsonRespOk() JsonResp {

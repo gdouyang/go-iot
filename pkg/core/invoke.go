@@ -27,6 +27,7 @@ const (
 	OTA_UPDATE = "ota-update"
 )
 
+// 监听集群功能调用
 func listenerCluster() {
 	if cluster.Enabled() {
 		for redisMsg := range redis.Sub(cmdInvokeChannel) {
@@ -40,6 +41,7 @@ func listenerCluster() {
 	}
 }
 
+// 进行功能调用，集群调用时，需要判断设备是否在当前集群
 func DoCmdInvokeCluster(message FuncInvoke) {
 	if cluster.Enabled() {
 		device := GetDevice(message.DeviceId)
@@ -47,6 +49,8 @@ func DoCmdInvokeCluster(message FuncInvoke) {
 			message.ClusterId = device.ClusterId
 			data, _ := json.Marshal(message)
 			redis.Pub(cmdInvokeChannel, data)
+		} else {
+			DoCmdInvoke(message)
 		}
 	} else {
 		DoCmdInvoke(message)
@@ -55,16 +59,25 @@ func DoCmdInvokeCluster(message FuncInvoke) {
 
 // 进行功能调用
 func DoCmdInvoke(message FuncInvoke) *common.Err {
+	return doCmdInvoke(message, false)
+}
+
+// 进行功能调用，缓存离线命令, 成功返回true, 失败返回false
+func DoCmdInvokeOffline(message FuncInvoke) (bool, *common.Err) {
+	err := doCmdInvoke(message, true)
+	if err != nil && err.Code != 200 {
+		return false, err
+	}
+	return true, err
+}
+
+// 进行功能调用，cache为true时，缓存离线命令
+func doCmdInvoke(message FuncInvoke, cache bool) *common.Err {
 	device := GetDevice(message.DeviceId)
 	if device == nil {
 		return common.NewErr400(fmt.Sprintf("设备[%s]不存在，请确认设备已注册并激活", message.DeviceId))
 	}
 	productId := device.ProductId
-	state := GetDeviceState(message.DeviceId, productId)
-	if OFFLINE == state {
-		return common.NewErr400("设备已离线")
-	}
-	session := GetSession(message.DeviceId)
 	product := GetProduct(productId)
 	if product == nil {
 		return common.NewErr400(fmt.Sprintf("产品[%s]不存在，请确产品已发布", productId))
@@ -94,6 +107,30 @@ func DoCmdInvoke(message FuncInvoke) *common.Err {
 	if len(message.TraceId) == 0 {
 		message.TraceId = uuid.NewString()
 	}
+	timeout := (time.Second * 10)
+	if message.Timeout > 0 {
+		timeout = time.Duration(time.Second * 10)
+	}
+	message.Timeout = int(timeout.Seconds())
+	state := GetDeviceState(message.DeviceId, productId)
+	session := GetSession(message.DeviceId)
+	// 缓存离线命令
+	if cache {
+		isDisconnect := false
+		if session != nil {
+			if v, ok := session.GetConInfo()[deviceIsDisconnect]; ok {
+				isDisconnect = v.(bool)
+			}
+		}
+		if OFFLINE == state || session == nil || isDisconnect {
+			return cacheOfflineCommand(message)
+		}
+	}
+	// 设备已离线，且缓存策略为false时，返回错误
+	if OFFLINE == state || session == nil {
+		return common.NewErr400("设备已离线")
+	}
+	// 设备已连接，发送命令
 	b, _ := json.Marshal(message)
 	product.GetTimeSeries().SaveLogs(product,
 		LogData{
@@ -118,10 +155,6 @@ func DoCmdInvoke(message FuncInvoke) *common.Err {
 		}()
 		return nil
 	} else {
-		timeout := (time.Second * 10)
-		if message.Timeout > 0 {
-			timeout = time.Duration(time.Second * 10)
-		}
 		err := replyMap.addReply(&message, timeout)
 		if err != nil {
 			return common.NewErr500(err.Error())
@@ -129,10 +162,9 @@ func DoCmdInvoke(message FuncInvoke) *common.Err {
 		// timeout of invoke
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
-
 		message.Replay = make(chan *FuncInvokeReply)
 		go func(ctx context.Context) {
-			err := codec.OnInvoke(invokeContext)
+			err = codec.OnInvoke(invokeContext)
 			if nil != err {
 				message.Replay <- &FuncInvokeReply{Success: false, Msg: err.Error()}
 			}
@@ -243,4 +275,55 @@ func (r *funcInvokeReplyManager) reply(deviceId string, resp *FuncInvokeReply) {
 
 func (r *funcInvokeReplyManager) deleteReply(deviceId string) {
 	r.m.Delete(deviceId)
+}
+
+// 获取离线命令缓存key
+func getOfflineRedisKey(deviceId string) string {
+	return fmt.Sprintf("goiot:device_offline_cmd:%s", deviceId)
+}
+
+// 缓存离线命令
+func cacheOfflineCommand(message FuncInvoke) *common.Err {
+	if message.FunctionId == OTA_UPDATE {
+		return common.NewErr400("设备离线，不支持OTA升级")
+	}
+	// 离线命令缓存
+	key := getOfflineRedisKey(message.DeviceId)
+	b, _ := json.Marshal(message)
+	client := redis.GetRedisClient()
+	ctx := context.Background()
+	// 最多20条缓存
+	if client.LLen(ctx, key).Val() >= 20 {
+		return common.NewErr400("设备离线，命令缓存队列已满，请稍后再试")
+	}
+	client.RPush(ctx, key, string(b))
+	// 缓存48小时
+	client.Expire(ctx, key, time.Duration(time.Hour*48))
+	return common.NewErr(200, "设备离线，命令已缓存")
+}
+
+// 发送离线命令
+func sendOfflineCommands(deviceId string) {
+	key := getOfflineRedisKey(deviceId)
+	client := redis.GetRedisClient()
+	ctx := context.Background()
+
+	// 获取所有缓存命令
+	cmds, err := client.LRange(ctx, key, 0, -1).Result()
+	if err != nil || len(cmds) == 0 {
+		return
+	}
+
+	// 清除缓存
+	client.Del(ctx, key)
+
+	go func() {
+		for _, cmdStr := range cmds {
+			var message FuncInvoke
+			if err := json.Unmarshal([]byte(cmdStr), &message); err == nil {
+				// 异步执行，避免阻塞
+				DoCmdInvoke(message)
+			}
+		}
+	}()
 }

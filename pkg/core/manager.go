@@ -24,6 +24,8 @@ func PutSession(deviceId string, session Session, sendOnlineEvent bool) {
 	if device != nil && sendOnlineEvent {
 		DeviceOnlineEvent(deviceId, device.GetProductId())
 	}
+	// 发送离线命令
+	sendOfflineCommands(deviceId)
 }
 
 // 从Session管理器中删除设备Session, 并触发离线事件
