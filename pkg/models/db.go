@@ -14,7 +14,6 @@ func InitDb() {
 		new(Product), new(Device), new(Network),
 		new(Rule), new(RuleRelDevice), new(AlarmLog),
 		new(Notify), new(DeviceOtaLog),
-		new(DeviceOtaPackage),
 	)
 
 	// create table

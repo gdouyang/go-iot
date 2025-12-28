@@ -55,3 +55,22 @@ func DeleteOtaLog(id int64) error {
 	}
 	return err
 }
+
+func GetPendingOtaLog(deviceId string) ([]models.DeviceOtaLog, error) {
+	o := orm.NewOrm()
+	var result []models.DeviceOtaLog
+	_, err := o.QueryTable(models.DeviceOtaLog{}).Filter("DeviceId", deviceId).Filter("Status", "pending").All(&result)
+	return result, err
+}
+
+func UpdateOtaLogStatus(id int64, oldStatus string, newStatus string) (bool, error) {
+	o := orm.NewOrm()
+	num, err := o.QueryTable(models.DeviceOtaLog{}).Filter("Id", id).Filter("Status", oldStatus).Update(orm.Params{
+		"Status":     newStatus,
+		"UpdateTime": models.NewDateTime(),
+	})
+	if err != nil {
+		return false, err
+	}
+	return num > 0, nil
+}

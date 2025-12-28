@@ -188,27 +188,18 @@ type AlarmLog struct {
 	CreateTime DateTime `json:"createTime" orm:"column(create_time_)"`
 }
 
-type DeviceOtaPackage struct {
-	Id         int64    `json:"id" orm:"pk;column(id_);auto"`
-	ProductId  string   `json:"productId" orm:"column(product_id_);size(64);description(产品ID)"`
-	FileName   string   `json:"fileName" orm:"column(file_name_);size(255);description(文件名)"`
-	FilePath   string   `json:"filePath" orm:"column(file_path_);size(255);description(文件路径)"`
-	Size       int      `json:"size" orm:"column(size_);size(255);description(文件大小)"`
-	Version    string   `json:"version" orm:"column(version_);size(255);description(版本)"`
-	CreateTime DateTime `json:"createTime" orm:"column(create_time_)"`
-	UpdateTime DateTime `json:"updateTime" orm:"column(update_time_)"`
-}
-
 // OTA升级日志
 type DeviceOtaLog struct {
 	Id           int64    `json:"id" orm:"pk;column(id_);auto"`
 	DeviceId     string   `json:"deviceId" orm:"column(device_id_);size(64);description(设备ID)"`
 	ProductId    string   `json:"productId" orm:"column(product_id_);size(64);description(产品ID)"`
 	FileName     string   `json:"fileName" orm:"column(file_name_);size(255);description(文件名)"`
+	FilePath     string   `json:"filePath" orm:"column(file_path_);size(255);description(文件路径)"`
 	FileSize     int64    `json:"fileSize" orm:"column(file_size_);description(文件大小)"`
 	ChunkSize    int      `json:"chunkSize" orm:"column(chunk_size_);description(分片大小)"`
 	TotalChunks  int      `json:"totalChunks" orm:"column(total_chunks_);description(总分片数)"`
 	CurrentChunk int      `json:"currentChunk" orm:"column(current_chunk_);description(当前分片)"`
+	Timeout      int      `json:"timeout" orm:"column(timeout_);description(超时时间)"`
 	Status       string   `json:"status" orm:"column(status_);size(20);description(状态)"` // pending, in_progress, success, fail
 	Message      string   `json:"message" orm:"column(message_);description(消息)"`
 	CreateTime   DateTime `json:"createTime" orm:"column(create_time_)"`

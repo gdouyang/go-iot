@@ -2,19 +2,19 @@ package api
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"go-iot/pkg/api/web"
-	"go-iot/pkg/cluster"
 	"go-iot/pkg/common"
 	"go-iot/pkg/core"
+	"go-iot/pkg/eventbus"
+	"go-iot/pkg/logger"
 	"go-iot/pkg/models"
 	product "go-iot/pkg/models/device"
 	"io"
 	"net/http"
 	"os"
-	"strconv"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -35,12 +35,28 @@ func init() {
 	api := &otaApi{}
 
 	web.RegisterAPI("/device-ota/page", "POST", api.page)
-	web.RegisterAPI("/device-ota/package/page", "POST", api.package_page)
-	web.RegisterAPI("/device-ota/update", "POST", api.otaUpdateDevices)
-	web.RegisterAPI("/device-ota/upload", "POST", api.otaPackageUpload)
-	web.RegisterAPI("/device-ota/save", "POST", api.otaPackageSave)
-	web.RegisterAPI("/device-ota/{id}", "DELETE", api.Delete)
-	web.RegisterAPI("/device-ota/package/{id}", "DELETE", api.package_delete)
+	web.RegisterAPI("/device-ota/add", "POST", api.otaUpdate)
+	web.RegisterAPI("/device-ota/delete", "DELETE", api.delete)
+
+	// Subscribe to device online events
+	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
+		m, ok := msg.(*eventbus.OnlineMessage)
+		if !ok {
+			return
+		}
+		// Check for pending OTA logs
+		logs, err := product.GetPendingOtaLog(m.DeviceId)
+		if err != nil {
+			logger.Errorf("Failed to get pending ota logs: %v", err)
+			return
+		}
+		if len(logs) > 0 {
+			for _, log := range logs {
+				// Execute OTA
+				go api.executeOta(&log)
+			}
+		}
+	})
 }
 
 type otaApi struct {
@@ -61,210 +77,32 @@ func (a *otaApi) page(w http.ResponseWriter, r *http.Request) {
 	res, err := product.PageOtaLog(&ob)
 	if err != nil {
 		ctl.RespError(err)
-	} else {
-		ctl.RespOkData(res)
+		return
 	}
+	ctl.RespOkData(res)
 }
 
 // 删除OTA日志
-func (d *otaApi) Delete(w http.ResponseWriter, r *http.Request) {
+func (a *otaApi) delete(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
 	if ctl.isForbidden(otaResource, DeleteAction) {
 		return
 	}
-	otaLogId := ctl.Param("id")
-	_id, err := strconv.Atoi(otaLogId)
+	var ids []int64
+	err := ctl.BindJSON(&ids)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	err = product.DeleteOtaLog(int64(_id))
-	if err != nil {
-		ctl.RespError(err)
+	if len(ids) == 0 {
+		ctl.RespError(errors.New("ids is empty"))
 		return
 	}
-	ctl.RespOk()
-}
-
-// 版本包上传
-func (a *otaApi) otaPackageUpload(w http.ResponseWriter, r *http.Request) {
-	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(otaResource, SaveAction) {
-		return
-	}
-	// 上传文件之后保存
-	f, h, err := ctl.FormFile("file")
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	defer f.Close()
-	fileName := h.Filename
-	index := strings.LastIndex(fileName, ".")
-	if index != -1 {
-		fileName = fileName[:index] + strconv.Itoa(int(time.Now().Unix())) + fileName[index:]
-	}
-	os.Mkdir("./files", os.ModePerm)
-
-	dst, err := os.OpenFile("./files/"+fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	defer dst.Close()
-
-	_, err = io.CopyBuffer(dst, f, make([]byte, 1024*32))
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	ctl.RespOkData(fileName)
-}
-
-type packageUpload struct {
-	FileId    int      `json:"file"`
-	Devices   []string `json:"devices"`
-	ChunkSize int      `json:"chunkSize"`
-	Timeout   int      `json:"timeout"`
-}
-
-// 指定设备升级
-func (a *otaApi) otaUpdateDevices(w http.ResponseWriter, r *http.Request) {
-	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(otaResource, SaveAction) {
-		return
-	}
-	var fileDevices packageUpload
-	err := ctl.BindJSON(&fileDevices)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	// 开始对所有指定设备下发升级指令
-	if len(fileDevices.Devices) == 0 {
-		ctl.RespError(errors.New("deviceIds is required"))
-		return
-	}
-	deviceIds := fileDevices.Devices
-	chunkSize := fileDevices.ChunkSize
-
-	// 判断设备存在
-	if fileOta, err := product.GetOta(fileDevices.FileId); err != nil {
-		ctl.RespError(errors.New("文件不存在"))
-		return
-	} else {
-		filePath := fileOta.FilePath
-		fileSize := fileOta.Size
-		totalChunk := (fileOta.Size / chunkSize) + 1
-		fileName := fileOta.FileName
-		fmt.Println("开始升级 %s 对设备 %d 分片大小 %d", filePath, fileSize, chunkSize)
-		ffile := "./files/" + filePath
-		if content, err := os.ReadFile(ffile); err != nil {
+	for _, id := range ids {
+		err = product.DeleteOtaLog(id)
+		if err != nil {
 			ctl.RespError(err)
 			return
-		} else {
-			for _, devId := range deviceIds {
-				devId = strings.TrimSpace(devId)
-				if len(devId) == 0 {
-					continue
-				}
-
-				// Get device to find product ID
-				dev, err := product.GetDevice(devId)
-				if err != nil || dev == nil {
-					continue
-				}
-
-				// Create Log
-				logEntry := &models.DeviceOtaLog{
-					DeviceId:     devId,
-					ProductId:    dev.ProductId,
-					FileName:     fileName,
-					FileSize:     int64(fileSize),
-					ChunkSize:    chunkSize,
-					TotalChunks:  totalChunk,
-					CurrentChunk: 0,
-					Status:       "in_progress",
-				}
-				product.AddOtaLog(logEntry)
-
-				go func() {
-					// Send chunks
-					var sendErr *common.Err
-					for i := 0; i < totalChunk; i++ {
-						start := i * chunkSize
-						end := start + chunkSize
-						if end > fileSize {
-							end = fileSize
-						}
-						chunkData := content[start:end]
-						encodedData := hex.EncodeToString(chunkData)
-
-						// Command payload
-						cmdData := map[string]any{
-							"fileName":    fileName,
-							"fileSize":    fileSize,
-							"chunkSize":   chunkSize,
-							"chunkIndex":  i,
-							"totalChunks": totalChunk,
-							"data":        encodedData, // 十六进制编码
-						}
-
-						invokeMsg := core.FuncInvoke{
-							DeviceId:   devId,
-							FunctionId: core.OTA_UPDATE,
-							Data:       cmdData,
-							Timeout:    10,
-						}
-
-						// Check if we can just invoke
-						if cluster.Enabled() {
-							deviceOper := core.GetDevice(devId)
-							if deviceOper == nil {
-								continue
-							}
-							if deviceOper.ClusterId != cluster.GetClusterId() {
-								ctl.Request.Header.Add(cluster.X_Cluster_Timeout, fmt.Sprintf("%d", 11))
-								data, _ := json.Marshal(invokeMsg)
-								ctl.Request.Body = io.NopCloser(strings.NewReader(string(data)))
-								resp, err := cluster.SingleInvoke(deviceOper.ClusterId, ctl.Request)
-								if err != nil {
-									sendErr = common.NewErr500(err.Error())
-									continue
-								}
-								if !resp.Success {
-									sendErr = common.NewErr500(resp.Msg)
-									continue
-								}
-							} else {
-								err := core.DoCmdInvoke(invokeMsg)
-								if err != nil {
-									sendErr = err
-									continue
-								}
-							}
-						} else {
-							err := core.DoCmdInvoke(invokeMsg)
-							if err != nil {
-								sendErr = err
-								continue
-							}
-						}
-
-						// Update progress
-						logEntry.CurrentChunk = i + 1
-						product.UpdateOtaLog(logEntry)
-					}
-
-					if sendErr != nil {
-						logEntry.Status = "fail"
-						logEntry.Message = sendErr.Message
-					} else {
-						logEntry.Status = "success"
-					}
-					product.UpdateOtaLog(logEntry)
-				}()
-			}
 		}
 	}
 	ctl.RespOk()
@@ -290,10 +128,26 @@ func (a *otaApi) otaUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Read file
-	fileBytes, err := io.ReadAll(file)
+	// Save file to ./files/ota
+	otaDir := "./files/ota"
+	if err = os.MkdirAll(otaDir, 0755); err != nil {
+		ctl.RespError(fmt.Errorf("create ota dir error: %v", err))
+		return
+	}
+	timestamp := time.Now().Unix()
+	saveFilename := fmt.Sprintf("%d_%s", timestamp, handler.Filename)
+	savePath := filepath.Join(otaDir, saveFilename)
+
+	destFile, err := os.Create(savePath)
 	if err != nil {
-		ctl.RespError(err)
+		ctl.RespError(fmt.Errorf("create file error: %v", err))
+		return
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, file)
+	if err != nil {
+		ctl.RespError(fmt.Errorf("save file error: %v", err))
 		return
 	}
 
@@ -322,12 +176,15 @@ func (a *otaApi) otaUpdate(w http.ResponseWriter, r *http.Request) {
 		chunkSize = 1024
 	}
 
-	// Total chunks
-	totalSize := len(fileBytes)
-	totalChunks := (totalSize + chunkSize - 1) / chunkSize
+	// Get file size
+	fileInfo, _ := destFile.Stat()
+	totalSize := fileInfo.Size()
+	totalChunks := int((totalSize + int64(chunkSize) - 1) / int64(chunkSize))
 
 	// Start background process
 	go func() {
+		sem := make(chan struct{}, 10) // Limit to 10 concurrent goroutines
+
 		for _, devId := range deviceIds {
 			devId = strings.TrimSpace(devId)
 			if len(devId) == 0 {
@@ -340,193 +197,107 @@ func (a *otaApi) otaUpdate(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
+			// Check online status
+			state := core.GetDeviceState(devId, dev.ProductId)
+			isDisconnect := core.IsDeviceDisconnect(devId)
+			status := "pending"
+			if state == core.ONLINE && !isDisconnect {
+				status = "in_progress"
+			}
+
 			// Create Log
 			logEntry := &models.DeviceOtaLog{
 				DeviceId:     devId,
 				ProductId:    dev.ProductId,
 				FileName:     handler.Filename,
-				FileSize:     int64(totalSize),
+				FilePath:     savePath, // Save path
+				FileSize:     totalSize,
 				ChunkSize:    chunkSize,
 				TotalChunks:  totalChunks,
 				CurrentChunk: 0,
-				Status:       "in_progress",
+				Status:       status,
+				Timeout:      timeout,
 			}
 			product.AddOtaLog(logEntry)
-
-			// Send chunks
-			var sendErr *common.Err
-			for i := 0; i < totalChunks; i++ {
-				start := i * chunkSize
-				end := start + chunkSize
-				if end > totalSize {
-					end = totalSize
-				}
-				chunkData := fileBytes[start:end]
-				encodedData := hex.EncodeToString(chunkData)
-
-				// Command payload
-				cmdData := map[string]any{
-					"fileName":    handler.Filename,
-					"fileSize":    totalSize,
-					"chunkSize":   chunkSize,
-					"chunkIndex":  i,
-					"totalChunks": totalChunks,
-					"data":        encodedData, // 十六进制编码
-				}
-
-				invokeMsg := core.FuncInvoke{
-					DeviceId:   devId,
-					FunctionId: core.OTA_UPDATE,
-					Data:       cmdData,
-					Timeout:    timeout,
-				}
-
-				// Check if we can just invoke
-				if cluster.Enabled() {
-					deviceOper := core.GetDevice(devId)
-					if deviceOper == nil {
-						continue
-					}
-					if deviceOper.ClusterId != cluster.GetClusterId() {
-						ctl.Request.Header.Add(cluster.X_Cluster_Timeout, fmt.Sprintf("%d", timeout+1))
-						data, _ := json.Marshal(invokeMsg)
-						ctl.Request.Body = io.NopCloser(strings.NewReader(string(data)))
-						resp, err := cluster.SingleInvoke(deviceOper.ClusterId, ctl.Request)
-						if err != nil {
-							sendErr = common.NewErr500(err.Error())
-							continue
-						}
-						if !resp.Success {
-							sendErr = common.NewErr500(resp.Msg)
-							continue
-						}
-					} else {
-						err := core.DoCmdInvoke(invokeMsg)
-						if err != nil {
-							sendErr = err
-							continue
-						}
-					}
-				} else {
-					err := core.DoCmdInvoke(invokeMsg)
-					if err != nil {
-						sendErr = err
-						continue
-					}
-				}
-
-				// Update progress
-				logEntry.CurrentChunk = i + 1
-				product.UpdateOtaLog(logEntry)
+			if state == core.ONLINE && !isDisconnect {
+				sem <- struct{}{} // Acquire token
+				go func(log *models.DeviceOtaLog) {
+					defer func() { <-sem }() // Release token
+					a.executeOta(log)
+				}(logEntry)
 			}
-
-			if sendErr != nil {
-				logEntry.Status = "fail"
-				logEntry.Message = sendErr.Message
-			} else {
-				logEntry.Status = "success"
-			}
-			product.UpdateOtaLog(logEntry)
 		}
 	}()
 
 	ctl.RespOk()
 }
 
-type otaPackage struct {
-	File     string `json:"file"`
-	FileName string `json:"file_name"`
-	Size     int    `json:"size"`
-	Version  string `json:"version"`
-	Product  string `json:"product"`
-}
-
-func (a *otaApi) otaPackageSave(w http.ResponseWriter, r *http.Request) {
-	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(otaResource, SaveAction) {
-		return
+func (a *otaApi) executeOta(logEntry *models.DeviceOtaLog) {
+	// If it was pending, update to in_progress
+	if logEntry.Status == "pending" {
+		product.UpdateOtaLogStatus(logEntry.Id, "pending", "in_progress")
+		logEntry.Status = "in_progress"
 	}
 
-	var ota otaPackage
-	err := ctl.BindJSON(&ota)
+	// Read file
+	fileBytes, err := os.ReadFile(logEntry.FilePath)
 	if err != nil {
-		ctl.RespError(err)
+		logEntry.Status = "fail"
+		logEntry.Message = fmt.Sprintf("read file error: %v", err)
+		product.UpdateOtaLog(logEntry)
 		return
 	}
 
-	// Parameters
-	if len(ota.File) == 0 {
-		ctl.RespError(errors.New("请指定文件"))
-		return
+	totalSize := len(fileBytes)
+	chunkSize := logEntry.ChunkSize
+	totalChunks := logEntry.TotalChunks
+	timeout := logEntry.Timeout
+
+	var sendErr *common.Err
+	for i := logEntry.CurrentChunk; i < totalChunks; i++ {
+		start := i * chunkSize
+		end := start + chunkSize
+		if end > totalSize {
+			end = totalSize
+		}
+		chunkData := fileBytes[start:end]
+		encodedData := hex.EncodeToString(chunkData)
+
+		// Command payload
+		cmdData := map[string]any{
+			"fileName":    logEntry.FileName,
+			"fileSize":    totalSize,
+			"chunkSize":   chunkSize,
+			"chunkIndex":  i + 1,
+			"totalChunks": totalChunks,
+			"data":        encodedData,
+		}
+
+		invokeMsg := core.FuncInvoke{
+			DeviceId:   logEntry.DeviceId,
+			FunctionId: core.OTA_UPDATE,
+			Data:       cmdData,
+			Timeout:    timeout,
+		}
+
+		// Invoke
+		err := core.DoCmdInvoke(invokeMsg)
+		if err != nil {
+			sendErr = err
+			break
+		}
+
+		// Update progress
+		logEntry.CurrentChunk = i + 1
+		product.UpdateOtaLog(logEntry)
 	}
 
-	if len(ota.FileName) == 0 {
-		ctl.RespError(errors.New("请指定文件"))
-		return
-	}
-
-	if len(ota.Product) == 0 {
-		ctl.RespError(errors.New(("请指定产品")))
-		return
-	}
-
-	if ota.Size == 0 {
-		ctl.RespError(errors.New("文件大小不能为0"))
-		return
-	}
-
-	if len(ota.Version) == 0 {
-		ctl.RespError(errors.New(("请指定版本")))
-		return
-	}
-
-	packageEntry := &models.DeviceOtaPackage{
-		ProductId: ota.Product,
-		FileName:  ota.FileName,
-		Size:      ota.Size,
-		FilePath:  ota.File,
-		Version:   ota.Version,
-	}
-	product.AddOtaPackage(packageEntry)
-	ctl.RespOk()
-}
-
-// 分页查询OTA版本
-func (a *otaApi) package_page(w http.ResponseWriter, r *http.Request) {
-	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(otaResource, QueryAction) {
-		return
-	}
-	var ob models.PageQuery
-	err := ctl.BindJSON(&ob)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	res, err := product.PageOtaPackage(&ob)
-	if err != nil {
-		ctl.RespError(err)
+	if sendErr != nil {
+		logEntry.Status = "fail"
+		logEntry.Message = sendErr.Message
 	} else {
-		ctl.RespOkData(res)
+		logEntry.Status = "success"
+		logEntry.Message = "done"
 	}
-}
-
-// 删除OTA包
-func (d *otaApi) package_delete(w http.ResponseWriter, r *http.Request) {
-	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(otaResource, DeleteAction) {
-		return
-	}
-	otaLogId := ctl.Param("id")
-	_id, err := strconv.Atoi(otaLogId)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	err = product.DeleteOtaPackage(int64(_id))
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	ctl.RespOk()
+	product.UpdateOtaLog(logEntry)
 }

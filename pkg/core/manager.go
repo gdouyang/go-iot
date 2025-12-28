@@ -17,6 +17,20 @@ func GetSession(deviceId string) Session {
 	return nil
 }
 
+// 判断设备是否连接断开, session存在也不意味着设备已连接
+func IsDeviceDisconnect(deviceId string) bool {
+	session := GetSession(deviceId)
+	if session == nil {
+		return true
+	}
+	if session.GetConInfo() != nil {
+		if v, ok := session.GetConInfo()[deviceIsDisconnect]; ok {
+			return v.(bool)
+		}
+	}
+	return false
+}
+
 // 将设备Session放入到Session管理器中
 func PutSession(deviceId string, session Session, sendOnlineEvent bool) {
 	sessionManager.Store(deviceId, session)

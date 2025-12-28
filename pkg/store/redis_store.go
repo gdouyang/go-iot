@@ -232,6 +232,10 @@ func (m *redisDeviceStore) scanOfflineDevices() {
 		for _, deviceId := range vals {
 			device := m.GetDevice(deviceId)
 			if device != nil {
+				session := core.GetSession(deviceId)
+				if session != nil {
+					session.Close()
+				}
 				core.DelSessionWithOfflineReason(deviceId, "heartbeat_timeout")
 			}
 			// 移除已处理的设备

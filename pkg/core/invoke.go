@@ -113,21 +113,17 @@ func doCmdInvoke(message FuncInvoke, cache bool) *common.Err {
 	}
 	message.Timeout = int(timeout.Seconds())
 	state := GetDeviceState(message.DeviceId, productId)
+	// 对于http协议来说，设备离线时，也可以调用功能
 	session := GetSession(message.DeviceId)
 	// 缓存离线命令
 	if cache {
-		isDisconnect := false
-		if session != nil {
-			if v, ok := session.GetConInfo()[deviceIsDisconnect]; ok {
-				isDisconnect = v.(bool)
-			}
-		}
-		if OFFLINE == state || session == nil || isDisconnect {
+		isDisconnect := IsDeviceDisconnect(message.DeviceId)
+		if OFFLINE == state || isDisconnect {
 			return cacheOfflineCommand(message)
 		}
 	}
-	// 设备已离线，且缓存策略为false时，返回错误
-	if OFFLINE == state || session == nil {
+	// 设备已离线，返回错误
+	if OFFLINE == state {
 		return common.NewErr400("设备已离线")
 	}
 	// 设备已连接，发送命令

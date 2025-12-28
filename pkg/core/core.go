@@ -57,6 +57,8 @@ type (
 		GetDeviceId() string
 		// 设置设备id，对于无法从连接中得到设备id的场景需要手动调用
 		SetDeviceId(deviceId string)
+		// 关闭连接(不离线)
+		Close() error
 		// 连接信息
 		GetConInfo() map[string]any
 	}
