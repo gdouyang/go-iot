@@ -134,8 +134,8 @@ func (a *otaApi) otaUpdate(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(fmt.Errorf("create ota dir error: %v", err))
 		return
 	}
-	timestamp := time.Now().Unix()
-	saveFilename := fmt.Sprintf("%d_%s", timestamp, handler.Filename)
+	timestamp := time.Now().Format("20060102150405")
+	saveFilename := fmt.Sprintf("%s_%s", timestamp, handler.Filename)
 	savePath := filepath.Join(otaDir, saveFilename)
 
 	destFile, err := os.Create(savePath)
