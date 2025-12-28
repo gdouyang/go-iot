@@ -188,6 +188,17 @@ type AlarmLog struct {
 	CreateTime DateTime `json:"createTime" orm:"column(create_time_)"`
 }
 
+type DeviceOtaPackage struct {
+	Id         int64    `json:"id" orm:"pk;column(id_);auto"`
+	ProductId  string   `json:"productId" orm:"column(product_id_);size(64);description(产品ID)"`
+	FileName   string   `json:"fileName" orm:"column(file_name_);size(255);description(文件名)"`
+	FilePath   string   `json:"filePath" orm:"column(file_path_);size(255);description(文件路径)"`
+	Size       int      `json:"size" orm:"column(size_);size(255);description(文件大小)"`
+	Version    string   `json:"version" orm:"column(version_);size(255);description(版本)"`
+	CreateTime DateTime `json:"createTime" orm:"column(create_time_)"`
+	UpdateTime DateTime `json:"updateTime" orm:"column(update_time_)"`
+}
+
 // OTA升级日志
 type DeviceOtaLog struct {
 	Id           int64    `json:"id" orm:"pk;column(id_);auto"`
