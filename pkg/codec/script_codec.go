@@ -108,7 +108,7 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Valu
 	if success {
 		defer func() {
 			if rec := recover(); rec != nil {
-				l := fmt.Sprintf("productId: [%s] error: %v", c.productId, rec)
+				l := fmt.Sprintf("productId: [%s] script error: %v", c.productId, rec)
 				logs.Errorf(l)
 				deviceId := ""
 				if ctx, ok := param.(core.DeviceLifecycleContext); ok && ctx.GetDevice() != nil {
@@ -122,7 +122,7 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Valu
 		}()
 		resp, err = fn(goja.Undefined(), vm.ToValue(param))
 		if err != nil {
-			logs.Errorf("productId: [%s], error: %v", c.productId, err)
+			logs.Errorf("productId: [%s] script error: %v", c.productId, err)
 			deviceId := ""
 			if ctx, ok := param.(core.DeviceLifecycleContext); ok && ctx.GetDevice() != nil {
 				deviceId = ctx.GetDevice().Id

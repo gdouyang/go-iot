@@ -8,6 +8,7 @@ import (
 	"go-iot/pkg/tsl"
 	"strconv"
 	"strings"
+	"sync"
 
 	logs "go-iot/pkg/logger"
 )
@@ -149,6 +150,7 @@ func NewDevice(devieId string, productId string, createId int64) *Device {
 
 // 设备
 type Device struct {
+	sync.RWMutex
 	Id         string            `json:"id"`
 	ProductId  string            `json:"productId"`
 	ParentId   string            `json:"parentId"`
@@ -206,6 +208,11 @@ func (d *Device) GetConfig(key string) string {
 
 // 设置设备配置
 func (d *Device) SetConfig(key string, value string) {
+	d.Lock()
+	defer d.Unlock()
+	if d.Config == nil {
+		d.Config = make(map[string]string)
+	}
 	d.Config[key] = value
 }
 

@@ -1,6 +1,8 @@
 package core
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 
 	logs "go-iot/pkg/logger"
@@ -29,7 +31,10 @@ func RegCodec(productId string, c Codec) {
 
 func NewCodec(codecId, productId, script string) (Codec, error) {
 	c, err := codecFactory[codecId](productId, script)
-	return c, err
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("productId: [%s] script error: %v", productId, err))
+	}
+	return c, nil
 }
 
 var codecFactory = map[string]func(productId, script string) (Codec, error){}
@@ -37,7 +42,7 @@ var codecFactory = map[string]func(productId, script string) (Codec, error){}
 func RegCodecCreator(codecId string, creator func(productId, script string) (Codec, error)) {
 	_, ok := codecFactory[codecId]
 	if ok {
-		logs.Errorf("core %s is exist", codecId)
+		logs.Errorf("codecId %s is exist", codecId)
 		return
 	}
 	codecFactory[codecId] = creator

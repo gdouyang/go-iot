@@ -114,18 +114,23 @@ func (c *TcpSession) disconnected() bool {
 	return atomic.LoadInt32(&c.statusFlag) == Disconnected
 }
 
+func (s *TcpSession) close1() {
+	s.Close()
+	core.DelSessionWithTimeoutCheck(s.deviceId)
+}
+
 func (s *TcpSession) readLoop() {
-	defer s.Disconnect()
+	defer s.close1()
 
 	// 处理OnConnect步骤
 	sc := core.GetCodec(s.productId)
-	sc.OnConnect(&tcpContext{
+	err := sc.OnConnect(&tcpContext{
 		BaseContext: core.BaseContext{
 			ProductId: s.productId,
 			Session:   s,
 		},
 	})
-	if s.disconnected() {
+	if s.disconnected() || err != nil {
 		return
 	}
 
@@ -159,7 +164,7 @@ func (s *TcpSession) readLoop() {
 
 func (c *TcpSession) writeLoop() {
 	defer func() {
-		c.Disconnect()
+		c.close1()
 	}()
 	for {
 		message, ok := <-c.send

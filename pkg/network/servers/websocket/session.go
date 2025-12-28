@@ -135,6 +135,12 @@ func (c *WebsocketSession) disconnected() bool {
 	return atomic.LoadInt32(&c.statusFlag) == Disconnected
 }
 
+// close1 closes the websocket connection and removes the session from the hub.
+func (s *WebsocketSession) close1() {
+	s.Close()
+	core.DelSessionWithTimeoutCheck(s.deviceId)
+}
+
 // readLoop pumps messages from the websocket connection to the hub.
 //
 // The application runs readPump in a per-connection goroutine. The application
@@ -142,11 +148,11 @@ func (c *WebsocketSession) disconnected() bool {
 // reads from this goroutine.
 func (s *WebsocketSession) readLoop() {
 	defer func() {
-		s.Disconnect()
+		s.close1()
 	}()
 	// 处理OnConnect步骤
 	sc := core.GetCodec(s.productId)
-	sc.OnConnect(&websocketContext{
+	err := sc.OnConnect(&websocketContext{
 		BaseContext: core.BaseContext{
 			ProductId: s.productId,
 			Session:   s,
@@ -155,7 +161,7 @@ func (s *WebsocketSession) readLoop() {
 		form:       s.form,
 		requestURI: s.requestURI,
 	})
-	if s.disconnected() {
+	if s.disconnected() || err != nil {
 		return
 	}
 	s.conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -193,7 +199,7 @@ func (c *WebsocketSession) writeLoop() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.Disconnect()
+		c.close1()
 	}()
 	for {
 		select {
