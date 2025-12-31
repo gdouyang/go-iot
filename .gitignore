@@ -2,7 +2,7 @@
 db/
 go-iot
 files/
-__debug_bin
+__debug_bin.exe*
 mqtt-assemblyscript-sdk/tests/output/
 *.log
 static/
