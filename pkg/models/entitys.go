@@ -205,3 +205,14 @@ type DeviceOtaLog struct {
 	CreateTime   DateTime `json:"createTime" orm:"column(create_time_)"`
 	UpdateTime   DateTime `json:"updateTime" orm:"column(update_time_)"`
 }
+
+// OTA文件
+type OtaFile struct {
+	Id         int64    `json:"id" orm:"pk;column(id_);auto"`
+	Name       string   `json:"name" orm:"column(name_);size(255);description(文件名)"`
+	ProductId  string   `json:"productId" orm:"column(product_id_);size(64);description(产品ID)"`
+	Path       string   `json:"path" orm:"column(path_);size(255);description(文件路径)"`
+	Size       int64    `json:"size" orm:"column(size_);description(文件大小)"`
+	CreateId   int64    `json:"createId" orm:"column(create_id_);null"`
+	CreateTime DateTime `json:"createTime" orm:"column(create_time_)"`
+}

@@ -13,7 +13,7 @@ func InitDb() {
 		new(MenuResource), new(AuthResource), new(SystemConfig),
 		new(Product), new(Device), new(Network),
 		new(Rule), new(RuleRelDevice), new(AlarmLog),
-		new(Notify), new(DeviceOtaLog),
+		new(Notify), new(DeviceOtaLog), new(OtaFile),
 	)
 
 	// create table

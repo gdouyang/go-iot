@@ -10,11 +10,12 @@ import (
 	"go-iot/pkg/eventbus"
 	"go-iot/pkg/logger"
 	"go-iot/pkg/models"
-	product "go-iot/pkg/models/device"
+	ota "go-iot/pkg/models/device"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -37,15 +38,20 @@ func init() {
 	web.RegisterAPI("/device-ota/page", "POST", api.page)
 	web.RegisterAPI("/device-ota/add", "POST", api.otaUpdate)
 	web.RegisterAPI("/device-ota/delete", "DELETE", api.delete)
+	web.RegisterAPI("/device-ota/file/page", "POST", api.filePage)
+	web.RegisterAPI("/device-ota/file/add", "POST", api.fileSave)
+	web.RegisterAPI("/device-ota/file/update", "PUT", api.fileSave)
+	web.RegisterAPI("/device-ota/file/delete", "DELETE", api.fileDelete)
 
 	// Subscribe to device online events
+	otaQueue := make(chan struct{}, 10)
 	eventbus.Subscribe(eventbus.GetOnlineTopic("*", "*"), func(msg eventbus.Message) {
 		m, ok := msg.(*eventbus.OnlineMessage)
 		if !ok {
 			return
 		}
 		// Check for pending OTA logs
-		logs, err := product.GetPendingOtaLog(m.DeviceId)
+		logs, err := ota.GetPendingOtaLog(m.DeviceId)
 		if err != nil {
 			logger.Errorf("Failed to get pending ota logs: %v", err)
 			return
@@ -53,7 +59,15 @@ func init() {
 		if len(logs) > 0 {
 			for _, log := range logs {
 				// Execute OTA
-				go api.executeOta(&log)
+				select {
+				case otaQueue <- struct{}{}:
+					go func(l models.DeviceOtaLog) {
+						defer func() { <-otaQueue }()
+						api.executeOta(&l)
+					}(log)
+				default:
+					logger.Warnf("OTA queue is full, discard task for device: %s", log.DeviceId)
+				}
 			}
 		}
 	})
@@ -74,7 +88,7 @@ func (a *otaApi) page(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	res, err := product.PageOtaLog(&ob)
+	res, err := ota.PageOtaLog(&ob)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -99,10 +113,172 @@ func (a *otaApi) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, id := range ids {
-		err = product.DeleteOtaLog(id)
+		err = ota.DeleteOtaLog(id)
 		if err != nil {
 			ctl.RespError(err)
 			return
+		}
+	}
+	ctl.RespOk()
+}
+
+// OTA文件列表
+func (a *otaApi) filePage(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	var page models.PageQuery
+	err := ctl.BindJSON(&page)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	res, err := ota.PageOtaFile(&page)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	ctl.RespOkData(res)
+}
+
+// 保存OTA文件
+func (a *otaApi) fileSave(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(otaResource, SaveAction) {
+		return
+	}
+	err := r.ParseMultipartForm(100 << 20)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+
+	idStr := r.FormValue("id")
+	var id int
+	isUpdate := false
+	if len(idStr) > 0 {
+		id, err = strconv.Atoi(idStr)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+		if id > 0 {
+			isUpdate = true
+		}
+	}
+
+	var otaFile *models.OtaFile
+	if isUpdate {
+		otaFile, err = ota.GetOtaFile(int64(id))
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+		if otaFile == nil {
+			ctl.RespError(errors.New("file not found"))
+			return
+		}
+	} else {
+		otaFile = &models.OtaFile{
+			CreateId: ctl.GetCurrentUser().Id,
+		}
+	}
+
+	file, handler, err := r.FormFile("file")
+	if err == nil {
+		defer file.Close()
+
+		if isUpdate && len(otaFile.Path) > 0 {
+			os.Remove(otaFile.Path)
+		}
+
+		otaDir := "./files/ota"
+		if err = os.MkdirAll(otaDir, 0755); err != nil {
+			ctl.RespError(fmt.Errorf("create ota dir error: %v", err))
+			return
+		}
+		timestamp := time.Now().Format("20060102150405")
+		saveFilename := fmt.Sprintf("%s_%s", timestamp, handler.Filename)
+		savePath := filepath.Join(otaDir, saveFilename)
+
+		destFile, err := os.Create(savePath)
+		if err != nil {
+			ctl.RespError(fmt.Errorf("create file error: %v", err))
+			return
+		}
+		defer destFile.Close()
+
+		_, err = io.Copy(destFile, file)
+		if err != nil {
+			ctl.RespError(fmt.Errorf("save file error: %v", err))
+			return
+		}
+
+		otaFile.Path = savePath
+		otaFile.Size = handler.Size
+		otaFile.Name = handler.Filename
+	} else {
+		if !isUpdate {
+			ctl.RespError(errors.New("file is required"))
+			return
+		}
+	}
+
+	name := r.FormValue("name")
+	if len(name) > 0 {
+		otaFile.Name = name
+	}
+
+	productId := r.FormValue("productId")
+	if len(productId) > 0 {
+		otaFile.ProductId = productId
+	}
+
+	if isUpdate {
+		err = ota.UpdateOtaFile(otaFile)
+		if err != nil {
+			ctl.RespError(fmt.Errorf("update file error: %v", err))
+			return
+		}
+	} else {
+		err = ota.AddOtaFile(otaFile)
+		if err != nil {
+			ctl.RespError(fmt.Errorf("save file error: %v", err))
+			return
+		}
+	}
+
+	ctl.RespOk()
+}
+
+// 删除OTA文件
+func (a *otaApi) fileDelete(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(otaResource, DeleteAction) {
+		return
+	}
+	var ids []int64
+	err := ctl.BindJSON(&ids)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	if len(ids) == 0 {
+		ctl.RespError(errors.New("ids is empty"))
+		return
+	}
+
+	for _, id := range ids {
+		otaFile, err := ota.GetOtaFile(id)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+		if otaFile != nil {
+			os.Remove(otaFile.Path)
+			err = ota.DeleteOtaFile(id)
+			if err != nil {
+				ctl.RespError(err)
+				return
+			}
 		}
 	}
 	ctl.RespOk()
@@ -121,34 +297,87 @@ func (a *otaApi) otaUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var savePath string
+	var fileName string
+	var totalSize int64
+
+	// Check if file is uploaded
 	file, handler, err := r.FormFile("file")
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	defer file.Close()
+	if err == nil {
+		defer file.Close()
+		// Save file to ./files/ota
+		otaDir := "./files/ota"
+		if err = os.MkdirAll(otaDir, 0755); err != nil {
+			ctl.RespError(fmt.Errorf("create ota dir error: %v", err))
+			return
+		}
+		timestamp := time.Now().Format("20060102150405")
+		fileName = handler.Filename
+		saveFilename := fmt.Sprintf("%s_%s", timestamp, handler.Filename)
+		savePath = filepath.Join(otaDir, saveFilename)
 
-	// Save file to ./files/ota
-	otaDir := "./files/ota"
-	if err = os.MkdirAll(otaDir, 0755); err != nil {
-		ctl.RespError(fmt.Errorf("create ota dir error: %v", err))
-		return
-	}
-	timestamp := time.Now().Format("20060102150405")
-	saveFilename := fmt.Sprintf("%s_%s", timestamp, handler.Filename)
-	savePath := filepath.Join(otaDir, saveFilename)
+		destFile, err := os.Create(savePath)
+		if err != nil {
+			ctl.RespError(fmt.Errorf("create file error: %v", err))
+			return
+		}
+		defer destFile.Close()
 
-	destFile, err := os.Create(savePath)
-	if err != nil {
-		ctl.RespError(fmt.Errorf("create file error: %v", err))
-		return
-	}
-	defer destFile.Close()
+		_, err = io.Copy(destFile, file)
+		if err != nil {
+			ctl.RespError(fmt.Errorf("save file error: %v", err))
+			return
+		}
+		info, _ := destFile.Stat()
+		totalSize = info.Size()
 
-	_, err = io.Copy(destFile, file)
-	if err != nil {
-		ctl.RespError(fmt.Errorf("save file error: %v", err))
-		return
+		// 保存到数据库
+		otaFile := &models.OtaFile{
+			Name:     handler.Filename,
+			Path:     savePath,
+			Size:     handler.Size,
+			CreateId: ctl.GetCurrentUser().Id,
+		}
+		productId := r.FormValue("productId")
+		if len(productId) > 0 {
+			otaFile.ProductId = productId
+		}
+		ota.AddOtaFile(otaFile)
+
+	} else {
+		otaFileId := r.FormValue("otaFileId")
+		if len(otaFileId) > 0 {
+			id, err := strconv.ParseInt(otaFileId, 10, 64)
+			if err != nil {
+				ctl.RespError(errors.New("invalid otaFileId"))
+				return
+			}
+			otaFile, err := ota.GetOtaFile(id)
+			if err != nil {
+				ctl.RespError(err)
+				return
+			}
+			if otaFile == nil {
+				ctl.RespError(errors.New("ota file not found"))
+				return
+			}
+			savePath = otaFile.Path
+			fileName = otaFile.Name
+		}
+		// Check if filePath is provided
+		if len(savePath) == 0 {
+			ctl.RespError(errors.New("file or filePath or otaFileId is required"))
+			return
+		}
+		info, err := os.Stat(savePath)
+		if err != nil {
+			ctl.RespError(fmt.Errorf("file not found: %v", err))
+			return
+		}
+		totalSize = info.Size()
+		if len(fileName) == 0 {
+			fileName = filepath.Base(savePath)
+		}
 	}
 
 	// Parameters
@@ -176,56 +405,57 @@ func (a *otaApi) otaUpdate(w http.ResponseWriter, r *http.Request) {
 		chunkSize = 1024
 	}
 
-	// Get file size
-	fileInfo, _ := destFile.Stat()
-	totalSize := fileInfo.Size()
 	totalChunks := int((totalSize + int64(chunkSize) - 1) / int64(chunkSize))
 
 	// Start background process
+	var logs []*models.DeviceOtaLog
+	for _, devId := range deviceIds {
+		devId = strings.TrimSpace(devId)
+		if len(devId) == 0 {
+			continue
+		}
+
+		// Get device to find product ID
+		dev, err := ota.GetDevice(devId)
+		if err != nil || dev == nil {
+			continue
+		}
+
+		// Check online status
+		state := core.GetDeviceState(devId, dev.ProductId)
+		isDisconnect := core.IsDeviceDisconnect(devId)
+		status := "pending"
+		if state == core.ONLINE && !isDisconnect {
+			status = "in_progress"
+		}
+
+		// Create Log
+		logEntry := &models.DeviceOtaLog{
+			DeviceId:     devId,
+			ProductId:    dev.ProductId,
+			FileName:     fileName,
+			FilePath:     savePath, // Save path
+			FileSize:     totalSize,
+			ChunkSize:    chunkSize,
+			TotalChunks:  totalChunks,
+			CurrentChunk: 0,
+			Status:       status,
+			Timeout:      timeout,
+		}
+		ota.AddOtaLog(logEntry)
+		if state == core.ONLINE && !isDisconnect {
+			logs = append(logs, logEntry)
+		}
+	}
+
 	go func() {
 		sem := make(chan struct{}, 10) // Limit to 10 concurrent goroutines
-
-		for _, devId := range deviceIds {
-			devId = strings.TrimSpace(devId)
-			if len(devId) == 0 {
-				continue
-			}
-
-			// Get device to find product ID
-			dev, err := product.GetDevice(devId)
-			if err != nil || dev == nil {
-				continue
-			}
-
-			// Check online status
-			state := core.GetDeviceState(devId, dev.ProductId)
-			isDisconnect := core.IsDeviceDisconnect(devId)
-			status := "pending"
-			if state == core.ONLINE && !isDisconnect {
-				status = "in_progress"
-			}
-
-			// Create Log
-			logEntry := &models.DeviceOtaLog{
-				DeviceId:     devId,
-				ProductId:    dev.ProductId,
-				FileName:     handler.Filename,
-				FilePath:     savePath, // Save path
-				FileSize:     totalSize,
-				ChunkSize:    chunkSize,
-				TotalChunks:  totalChunks,
-				CurrentChunk: 0,
-				Status:       status,
-				Timeout:      timeout,
-			}
-			product.AddOtaLog(logEntry)
-			if state == core.ONLINE && !isDisconnect {
-				sem <- struct{}{} // Acquire token
-				go func(log *models.DeviceOtaLog) {
-					defer func() { <-sem }() // Release token
-					a.executeOta(log)
-				}(logEntry)
-			}
+		for _, log := range logs {
+			sem <- struct{}{} // Acquire token
+			go func(l *models.DeviceOtaLog) {
+				defer func() { <-sem }() // Release token
+				a.executeOta(l)
+			}(log)
 		}
 	}()
 
@@ -235,7 +465,7 @@ func (a *otaApi) otaUpdate(w http.ResponseWriter, r *http.Request) {
 func (a *otaApi) executeOta(logEntry *models.DeviceOtaLog) {
 	// If it was pending, update to in_progress
 	if logEntry.Status == "pending" {
-		product.UpdateOtaLogStatus(logEntry.Id, "pending", "in_progress")
+		ota.UpdateOtaLogStatus(logEntry.Id, "pending", "in_progress")
 		logEntry.Status = "in_progress"
 	}
 
@@ -244,7 +474,7 @@ func (a *otaApi) executeOta(logEntry *models.DeviceOtaLog) {
 	if err != nil {
 		logEntry.Status = "fail"
 		logEntry.Message = fmt.Sprintf("read file error: %v", err)
-		product.UpdateOtaLog(logEntry)
+		ota.UpdateOtaLog(logEntry)
 		return
 	}
 
@@ -252,6 +482,28 @@ func (a *otaApi) executeOta(logEntry *models.DeviceOtaLog) {
 	chunkSize := logEntry.ChunkSize
 	totalChunks := logEntry.TotalChunks
 	timeout := logEntry.Timeout
+
+	// 1. Send Start Flag
+	startCmd := map[string]any{
+		"step":        "start",
+		"fileName":    logEntry.FileName,
+		"fileSize":    totalSize,
+		"chunkSize":   chunkSize,
+		"totalChunks": totalChunks,
+	}
+	invokeMsg := core.FuncInvoke{
+		DeviceId:   logEntry.DeviceId,
+		FunctionId: core.OTA_UPDATE,
+		Data:       startCmd,
+		Timeout:    timeout,
+	}
+	commonErr := core.DoCmdInvoke(invokeMsg)
+	if commonErr != nil {
+		logEntry.Status = "fail"
+		logEntry.Message = fmt.Sprintf("start error: %v", commonErr.Message)
+		ota.UpdateOtaLog(logEntry)
+		return
+	}
 
 	var sendErr *common.Err
 	for i := logEntry.CurrentChunk; i < totalChunks; i++ {
@@ -265,6 +517,7 @@ func (a *otaApi) executeOta(logEntry *models.DeviceOtaLog) {
 
 		// Command payload
 		cmdData := map[string]any{
+			"step":        "update",
 			"fileName":    logEntry.FileName,
 			"fileSize":    totalSize,
 			"chunkSize":   chunkSize,
@@ -289,7 +542,7 @@ func (a *otaApi) executeOta(logEntry *models.DeviceOtaLog) {
 
 		// Update progress
 		logEntry.CurrentChunk = i + 1
-		product.UpdateOtaLog(logEntry)
+		ota.UpdateOtaLog(logEntry)
 	}
 
 	if sendErr != nil {
@@ -299,5 +552,5 @@ func (a *otaApi) executeOta(logEntry *models.DeviceOtaLog) {
 		logEntry.Status = "success"
 		logEntry.Message = "done"
 	}
-	product.UpdateOtaLog(logEntry)
+	ota.UpdateOtaLog(logEntry)
 }
