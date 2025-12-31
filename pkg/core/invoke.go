@@ -9,6 +9,7 @@ import (
 	"go-iot/pkg/common"
 	"go-iot/pkg/redis"
 	"go-iot/pkg/tsl"
+	"strings"
 	"sync"
 	"time"
 
@@ -105,13 +106,12 @@ func doCmdInvoke(message FuncInvoke, cache bool) *common.Err {
 		}
 	}
 	if len(message.TraceId) == 0 {
-		message.TraceId = uuid.NewString()
+		message.TraceId = strings.ReplaceAll(uuid.NewString(), "-", "")
 	}
-	timeout := (time.Second * 10)
+	timeout := time.Duration(time.Second * 10)
 	if message.Timeout > 0 {
-		timeout = time.Duration(time.Second * 10)
+		timeout = time.Duration(message.Timeout) * time.Second
 	}
-	message.Timeout = int(timeout.Seconds())
 	state := GetDeviceState(message.DeviceId, productId)
 	// 对于http协议来说，设备离线时，也可以调用功能
 	session := GetSession(message.DeviceId)
