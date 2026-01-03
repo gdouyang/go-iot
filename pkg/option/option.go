@@ -43,6 +43,19 @@ type Log struct {
 	Level  string `yaml:"level"`
 }
 
+type Certificate struct {
+	Name string `yaml:"name"`
+	Cert string `yaml:"cert"`
+	Key  string `yaml:"key"`
+}
+type Mqtt struct {
+	Host        string        `yaml:"host"`
+	Name        string        `yaml:"name"`
+	Port        int           `yaml:"port"`
+	UseTLS      bool          `yaml:"useTLS"`
+	Certificate []Certificate `yaml:"certificate"`
+}
+
 // Options is the start-up options.
 type Options struct {
 	flags   *pflag.FlagSet
@@ -67,6 +80,10 @@ type Options struct {
 
 	// 日志配置
 	Log Log `yaml:"logs"`
+
+	// Mqtt配置
+	Mqtt Mqtt `yaml:"mqtt"`
+
 	// 抖动限制最大秒默认3600
 	MaxShakeLimitTime int `yaml:"max-shake-limit-time"`
 	// 控制台输出的banner
@@ -87,6 +104,8 @@ release: %s, build_time: %s, commit: %s, repo: %s
 ═════════════════════════════
 `
 
+var Global *Options
+
 // New creates a default Options.
 func New() *Options {
 	opt := &Options{
@@ -100,6 +119,8 @@ func New() *Options {
 	opt.flags.StringVar(&opt.Log.Dir, "logs.filename", "logs/goiot.log", "日志存放位置")
 	opt.flags.StringVar(&opt.Log.Format, "logs.format", "text", "日志格式(text, json)")
 	opt.flags.StringVar(&opt.Log.Level, "logs.level", "info", "日志级别(debug,info,warn,error)")
+	// Mqtt配置
+	opt.flags.IntVar(&opt.Mqtt.Port, "mqtt.port", 1883, "mqtt服务端口")
 	// Redis配置
 	opt.flags.StringVar(&opt.Redis.Addr, "redis.addr", "localhost:6379", "redis地址(localhost:6379)")
 	opt.flags.StringVar(&opt.Redis.Password, "redis.password", "", "redis密码")
@@ -177,6 +198,8 @@ func (opt *Options) Parse() (string, error) {
 	if opt.ShowConfig {
 		fmt.Printf("%s", opt.yamlStr)
 	}
+
+	Global = opt
 
 	return "", nil
 }

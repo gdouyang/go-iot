@@ -11,6 +11,8 @@ type NetType string
 const (
 	// MQTT服务端
 	MQTT_BROKER NetType = "MQTT_BROKER"
+	// GOIOT_MQTT_BROKER服务端
+	GOIOT_MQTT_BROKER NetType = "GOIOT_MQTT_BROKER"
 	// TCP服务端
 	TCP_SERVER NetType = "TCP_SERVER"
 	// HTTP服务端

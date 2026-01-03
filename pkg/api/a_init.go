@@ -7,10 +7,11 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/models"
 	"go-iot/pkg/models/base"
-	device "go-iot/pkg/models/device"
-	"go-iot/pkg/models/network"
+	modelDevice "go-iot/pkg/models/device"
+	modelNetWork "go-iot/pkg/models/network"
 	"go-iot/pkg/models/notify"
 	"go-iot/pkg/models/rule"
+	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
 	notify1 "go-iot/pkg/notify"
 	"go-iot/pkg/ruleengine"
@@ -23,6 +24,7 @@ func init() {
 		start := &start{}
 		start.initResources()
 		go start.startRuningNetServer()
+		go start.startRuningGoiotMqttBroker()
 		go start.startRuningRule()
 		go start.startRuningNotify()
 		go start.startRuningNetClient()
@@ -126,7 +128,7 @@ func (i *start) startRuningNetServer() {
 	page.PageSize = 300
 	page.Condition = []core.SearchTerm{{Key: "state", Value: models.Runing}}
 	for {
-		result, err := network.PageNetwork(&page)
+		result, err := modelNetWork.PageNetwork(&page)
 		if err != nil {
 			logs.Errorf("start network error: %v", err)
 			return
@@ -150,13 +152,39 @@ func (i *start) startRuningNetServer() {
 	logs.Infof("start runing network done")
 }
 
+func (i *start) startRuningGoiotMqttBroker() {
+	logs.Infof("start runing GOIOT_MQTT_BROKER codec")
+	var page models.PageQuery
+	page.PageSize = 300
+	page.Condition = []core.SearchTerm{{Key: "networkType", Value: string(network.GOIOT_MQTT_BROKER)}}
+	for {
+		result, err := modelDevice.PageProductAll(&page)
+		if err != nil {
+			logs.Errorf("start network error: %v", err)
+			return
+		}
+		page.SearchAfter = result.SearchAfter
+		list := result.List
+		if len(list) == 0 {
+			break
+		}
+		for _, nw := range list {
+			_, err := core.NewCodec(nw.CodecId, nw.Id, nw.Script)
+			if err != nil {
+				logs.Errorf("start GOIOT_MQTT_BROKER error: %v", err)
+			}
+		}
+	}
+	logs.Infof("start GOIOT_MQTT_BROKER codec done")
+}
+
 func (i *start) startRuningNetClient() {
 	logs.Infof("start runing netclient")
 	var page models.PageQuery
 	page.PageSize = 300
 	page.Condition = []core.SearchTerm{{Key: "port", Value: 0}, {Key: "productId", Value: "", Oper: core.NEQ}}
 	for {
-		result, err := network.PageNetwork(&page)
+		result, err := modelNetWork.PageNetwork(&page)
 		if err != nil {
 			logs.Errorf("start netclient error: %v", err)
 			return
@@ -171,7 +199,7 @@ func (i *start) startRuningNetClient() {
 				var devicePage models.PageQuery
 				devicePage.PageSize = 300
 				devicePage.Condition = []core.SearchTerm{{Key: "State", Value: core.OFFLINE}, {Key: "productId", Value: nw.ProductId}}
-				r1, err := device.PageDevice(&devicePage, nil)
+				r1, err := modelDevice.PageDevice(&devicePage, nil)
 				if err != nil {
 					logs.Errorf("start netclient error: %v", err)
 					continue

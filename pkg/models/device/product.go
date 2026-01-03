@@ -43,6 +43,32 @@ func PageProduct(page *models.PageQuery, createId int64) (*models.PageResult[mod
 	return pr, nil
 }
 
+func PageProductAll(page *models.PageQuery) (*models.PageResult[models.Product], error) {
+	var pr *models.PageResult[models.Product]
+
+	//查询数据
+	o := orm.NewOrm()
+	qs := o.QueryTable(models.Product{})
+	qs = qs.FilterTerm(page.Condition...)
+	qs.SearchAfter = page.SearchAfter
+	var result []models.Product
+	var cols = []string{"Id", "Name", "NetworkType", "State", "StorePolicy", "Script", "CodecId", "CreateId", "CreateTime"}
+	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime", "-id").All(&result, cols...)
+	if err != nil {
+		return nil, err
+	}
+	count, err := qs.Count()
+	if err != nil {
+		return nil, err
+	}
+
+	p := models.PageUtil(count, page.PageNum, page.PageSize, result)
+	p.SearchAfter = qs.LastSort
+	pr = &p
+
+	return pr, nil
+}
+
 func ListAllProduct(createId int64) ([]models.Product, error) {
 	//查询数据
 	o := orm.NewOrm()

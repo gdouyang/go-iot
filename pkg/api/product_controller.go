@@ -327,7 +327,7 @@ func (a *productApi) saveScript(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	productId := ctl.Param("id")
-	_, err = getProductAndCheckCreate(ctl, productId)
+	oldProduct, err := getProductAndCheckCreate(ctl, productId)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -336,6 +336,11 @@ func (a *productApi) saveScript(w http.ResponseWriter, r *http.Request) {
 	update.Id = productId
 	update.Script = ob.Script
 	if err = product.UpdateProduct(&update); err != nil {
+		ctl.RespError(err)
+		return
+	}
+	_, err = core.NewCodec(oldProduct.CodecId, oldProduct.Id, update.Script)
+	if err != nil {
 		ctl.RespError(err)
 		return
 	}
@@ -468,7 +473,8 @@ func (a *productApi) startNetwork(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(errors.New("客户端类型产品不能启动网络服务"))
 		return
 	}
-	if state == "start" {
+	switch state {
+	case "start":
 		nw.State = models.Runing
 		config, err := convertCodecNetwork(*nw)
 		if err != nil {
@@ -480,14 +486,14 @@ func (a *productApi) startNetwork(w http.ResponseWriter, r *http.Request) {
 			ctl.RespError(err)
 			return
 		}
-	} else if state == "stop" {
+	case "stop":
 		nw.State = models.Stop
 		err := servers.StopServer(productId)
 		if err != nil {
 			ctl.RespError(err)
 			return
 		}
-	} else {
+	default:
 		ctl.RespError(errors.New("state must be start or stop"))
 		return
 	}

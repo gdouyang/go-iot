@@ -8,6 +8,7 @@ import (
 	"go-iot/pkg/es"
 	"go-iot/pkg/logger"
 	"go-iot/pkg/models"
+	"go-iot/pkg/network/servers/goiot_mqtt5"
 	"go-iot/pkg/option"
 	"go-iot/pkg/redis"
 	_ "go-iot/pkg/registry"
@@ -39,6 +40,12 @@ func main() {
 	ruleengine.Config(opt)
 	// 初始化数据库
 	models.InitDb()
+	// 启动mqtt5服务器
+	err = goiot_mqtt5.Start()
+	if err != nil {
+		logger.Errorf("mqtt5 server start error: %v", err)
+		panic(err)
+	}
 	// 启动web服务
 	web.MustNewServer(opt.APIAddr)
 }
