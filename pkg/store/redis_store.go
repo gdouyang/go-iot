@@ -212,7 +212,7 @@ func (m *redisDeviceStore) startOfflineScanner() {
 
 func (m *redisDeviceStore) scanOfflineDevices() {
 	rdb := redis.GetRedisClient()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	now := time.Now().Unix()
@@ -239,7 +239,10 @@ func (m *redisDeviceStore) scanOfflineDevices() {
 				core.DelSessionWithOfflineReason(deviceId, "heartbeat_timeout")
 			}
 			// 移除已处理的设备
-			rdb.ZRem(ctx, zKey, deviceId)
+			_, err := rdb.ZRem(ctx, zKey, deviceId).Result()
+			if err != nil {
+				logs.Errorf("%v", err)
+			}
 		}
 	}
 }
