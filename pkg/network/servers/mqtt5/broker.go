@@ -263,5 +263,6 @@ func (h *BrokerHook) OnPublished(cl *mqtt.Client, pk packets.Packet) {
 		Data:      pk.Payload,
 		topic:     pk.TopicName,
 		messageID: pk.PacketID,
+		client:    c,
 	})
 }

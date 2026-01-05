@@ -145,6 +145,9 @@ func doCmdInvoke(message FuncInvoke, cache bool) *common.Err {
 		message: message,
 	}
 	async := message.Async == "true" || function.Async
+	if message.Async == "false" {
+		async = false
+	}
 	if async {
 		go func() {
 			codec.OnInvoke(invokeContext)
@@ -313,11 +316,12 @@ func sendOfflineCommands(deviceId string) {
 	// 清除缓存
 	client.Del(ctx, key)
 
+	// 异步执行，避免阻塞
 	go func() {
 		for _, cmdStr := range cmds {
 			var message FuncInvoke
 			if err := json.Unmarshal([]byte(cmdStr), &message); err == nil {
-				// 异步执行，避免阻塞
+				message.Async = "false"
 				DoCmdInvoke(message)
 			}
 		}

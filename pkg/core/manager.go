@@ -38,6 +38,7 @@ func PutSession(deviceId string, session Session, sendOnlineEvent bool) {
 	if device != nil && sendOnlineEvent {
 		DeviceOnlineEvent(deviceId, device.GetProductId())
 	}
+	session.GetConInfo()[deviceIsDisconnect] = false
 	// 发送离线命令
 	sendOfflineCommands(deviceId)
 }
