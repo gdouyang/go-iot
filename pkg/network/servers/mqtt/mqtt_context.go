@@ -2,6 +2,7 @@ package mqttserver
 
 import (
 	"encoding/hex"
+	"fmt"
 	"go-iot/pkg/core"
 	"net"
 	"strings"
@@ -40,19 +41,21 @@ func (ctx *authContext) GetPassword() string {
 	return ctx.client.info.password
 }
 
-func (ctx *authContext) DeviceOnline(deviceId string) {
+func (ctx *authContext) DeviceOnline(deviceId string) error {
 	deviceId = strings.TrimSpace(deviceId)
-	if len(deviceId) > 0 {
-		device := core.GetDevice(deviceId)
-		if device == nil {
-			ctx._authFail(packets.ErrRefusedIDRejected)
-			return
-		}
-		ctx.DeviceId = deviceId
-		ctx.client.info.deviceId = deviceId
-		ctx.authFail = false
-		// after auth success, when set session will call DeviceOnline
+	if len(deviceId) == 0 {
+		return nil
 	}
+	device := core.GetDevice(deviceId)
+	if device == nil {
+		ctx._authFail(packets.ErrRefusedIDRejected)
+		return fmt.Errorf("device [%s] not exist or noActive", deviceId)
+	}
+	ctx.DeviceId = deviceId
+	ctx.client.info.deviceId = deviceId
+	ctx.authFail = false
+	// after auth success, when set session will call DeviceOnline
+	return nil
 }
 
 func (ctx *authContext) AuthFail() {

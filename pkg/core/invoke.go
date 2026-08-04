@@ -226,7 +226,9 @@ type FuncInvokeContext struct {
 	message FuncInvoke
 }
 
-func (ctx *FuncInvokeContext) DeviceOnline(deviceId string) {
+// DeviceOnline 功能调用上下文不允许通过此方法上线设备。
+func (ctx *FuncInvokeContext) DeviceOnline(deviceId string) error {
+	return nil
 }
 
 func (ctx *FuncInvokeContext) GetMessage() interface{} {
@@ -305,6 +307,9 @@ func cacheOfflineCommand(message FuncInvoke) *common.Err {
 func sendOfflineCommands(deviceId string) {
 	key := getOfflineRedisKey(deviceId)
 	client := redis.GetRedisClient()
+	if client == nil {
+		return
+	}
 	ctx := context.Background()
 
 	// 获取所有缓存命令

@@ -2,88 +2,83 @@ package coapserver_test
 
 import (
 	"context"
-	_ "go-iot/pkg/codec"
-	"go-iot/pkg/core"
-	"go-iot/pkg/network"
-	coapserver "go-iot/pkg/network/servers/coap"
-	"go-iot/pkg/store"
-	_ "go-iot/pkg/timeseries"
-	"go-iot/pkg/tsl"
-	"log"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
+	_ "go-iot/pkg/codec"
+	"go-iot/pkg/core"
+	"go-iot/pkg/network"
+	coapserver "go-iot/pkg/network/servers/coap"
+	"go-iot/pkg/network/testhelper"
+	"go-iot/pkg/timeseries"
+
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/udp"
-
-	logs "go-iot/pkg/logger"
+	"github.com/stretchr/testify/require"
 )
 
 const script = `
 function OnMessage(context) {
-	console.log("OnMessage: " + context.MsgToString())
 	context.DeviceOnline(context.GetQuery("deviceId"))
-  var data = JSON.parse(context.MsgToString())
-  context.SaveProperties(data)
-	context.GetSession().Response(data)
+	var data = JSON.parse(context.MsgToString())
+	context.SaveProperties(data)
+	context.GetSession().Response(JSON.stringify({ok:true}))
 }
-function OnInvoke(context) {
-	console.log("OnInvoke: " + JSON.stringify(context))
-}
+function OnInvoke(context) {}
 `
 
-var network1 network.NetworkConf = network.NetworkConf{
-	Name:      "test server",
-	ProductId: "test-product",
-	CodecId:   "script_codec",
-	Port:      5688,
-	Script:    script,
-}
+func TestCoapServer_DeviceOnlineAndSaveProperties(t *testing.T) {
+	timeseries.MockReset()
+	port := testhelper.FreeUDPPort(t)
+	productId := fmt.Sprintf("coap-p-%d", port)
+	deviceId := "dev-coap-1"
+	testhelper.SetupProductDevice(t, productId, deviceId)
 
-func init() {
-	logs.InitNop()
-	core.RegDeviceStore(store.NewMockDeviceStore())
-	var product *core.Product = &core.Product{
-		Id:          "test-product",
-		Config:      make(map[string]string),
-		StorePolicy: "mock",
+	conf := network.NetworkConf{
+		Name:          "coap-it",
+		ProductId:     productId,
+		CodecId:       "script_codec",
+		Port:          port,
+		Script:        script,
+		Configuration: `{"host":"127.0.0.1","useTLS":false,"routers":[{"url":"/test"}]}`,
 	}
-	tslData := &tsl.TslData{}
-	err := tslData.FromJson(`{"properties":[{"id":"temperature","type":"float"}],
-	"functions":[{"id":"func1","inputs":[{"id":"name", "type":"string"}]}]}`)
-	if err != nil {
-		logs.Errorf(err.Error())
-	}
-	product.TslData = tslData
-	core.PutProduct(product)
-	{
-		device := core.NewDevice("1234", product.Id, 0)
-		core.PutDevice(device)
-	}
-}
+	srv := coapserver.NewServer()
+	require.NoError(t, srv.Start(conf))
+	t.Cleanup(func() {
+		// Coap Stop 可能在 server 未赋值时 panic，做保护
+		defer func() { _ = recover() }()
+		_ = srv.Stop()
+	})
+	_, err := core.NewCodec(conf.CodecId, conf.ProductId, conf.Script)
+	require.NoError(t, err)
+	time.Sleep(100 * time.Millisecond)
 
-func TestServer(t *testing.T) {
-	network := network1
-	network.Configuration = `{"host": "", "useTLS": false, "paths":["/test"]}`
-	coapserver.NewServer().Start(network)
-	core.NewCodec(network1.CodecId, network1.ProductId, network1.Script)
-	initClient()
-}
-
-func initClient() {
-	co, err := udp.Dial("localhost:5688")
-	if err != nil {
-		log.Fatalf("Error dialing: %v", err)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	before := timeseries.MockPropertiesCount()
+	co, err := udp.Dial(fmt.Sprintf("127.0.0.1:%d", port))
+	require.NoError(t, err)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	res, err := co.Post(ctx, "/test?deviceId=1234", message.AppJSON, strings.NewReader(`{"deviceId": "1234", "temperature": 16.1}`))
-	//Get请求
-	// res, err := http.Get("http://www.baidu.com")
-	if err != nil {
-		panic(err)
-	}
-	log.Printf("client Received: %s %s \n", res.Code().String(), res.String())
-	// time.Sleep(time.Second * 11)
+	body := fmt.Sprintf(`{"deviceId":"%s","temperature":16.1}`, deviceId)
+	res, err := co.Post(ctx, "/test?deviceId="+deviceId, message.AppJSON, strings.NewReader(body))
+	require.NoError(t, err)
+	t.Logf("coap response: %s %s", res.Code().String(), res.String())
+
+	require.Greater(t, timeseries.MockPropertiesCount(), before)
+	saved := timeseries.MockLastProperties()
+	require.NotNil(t, saved)
+	require.Equal(t, deviceId, fmt.Sprint(saved["deviceId"]))
+	require.EqualValues(t, 16.1, saved["temperature"])
+}
+
+func TestCoapServerSpec_FromJson(t *testing.T) {
+	// 使用 package 外无法访问 unexported，通过 Start 错误配置覆盖
+	srv := coapserver.NewServer()
+	err := srv.Start(network.NetworkConf{
+		ProductId:     "coap-bad",
+		Port:          1,
+		Configuration: `{bad`,
+	})
+	require.Error(t, err)
 }

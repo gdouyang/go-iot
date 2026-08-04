@@ -42,11 +42,20 @@ func (g *globe) getCallStack() string {
 	return sb.String()
 }
 
+// throw 将 Go error 转为 JS 异常（goja 约定：宿主 panic NewGoError ≈ JS throw）。
+// 仅用于脚本可调用的宿主 API，不要用于业务/IO 主路径。
+func (g *globe) throw(err error) {
+	if err == nil {
+		return
+	}
+	panic(g.vm.NewGoError(fmt.Errorf("%w\n%s", err, g.getCallStack())))
+}
+
 // crc16
 func (g *globe) ToCrc16Str(str string) string {
 	d, err := util.ToCrc16Str(str)
 	if err != nil {
-		panic(fmt.Errorf("%v %s", err, g.getCallStack()))
+		g.throw(err)
 	}
 	return d
 }
@@ -67,7 +76,7 @@ func (g *globe) HmacEncrypt(data, key, signatureMethod string) []byte {
 	// 解码 Base64 编码的密钥
 	signinKey, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
-		panic(g.vm.ToValue(err))
+		g.throw(err)
 	}
 
 	// 创建 Hmac 实例，指定签名算法和密钥
@@ -79,7 +88,7 @@ func (g *globe) HmacEncrypt(data, key, signatureMethod string) []byte {
 	} else if signatureMethod == "md5" {
 		hmacInstance = hmac.New(md5.New, signinKey)
 	} else {
-		panic(g.vm.ToValue(fmt.Errorf("unsupported signatureMethod: %s %s", signatureMethod, g.getCallStack())))
+		g.throw(fmt.Errorf("unsupported signatureMethod: %s", signatureMethod))
 	}
 
 	// 更新 Hmac 实例的数据

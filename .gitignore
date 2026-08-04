@@ -1,8 +1,16 @@
 *.exe
 db/
 go-iot
+bin/
 files/
 __debug_bin.exe*
+__debug_bin*
 mqtt-assemblyscript-sdk/tests/output/
 *.log
+logs/
 static/
+.idea/
+*.swp
+tmp_crc.go
+docs/
+.reasonix/

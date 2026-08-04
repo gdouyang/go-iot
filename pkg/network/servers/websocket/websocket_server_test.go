@@ -2,158 +2,106 @@ package websocketserver_test
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	_ "go-iot/pkg/codec"
 	"go-iot/pkg/core"
 	"go-iot/pkg/network"
 	websocketserver "go-iot/pkg/network/servers/websocket"
-	"go-iot/pkg/store"
-	_ "go-iot/pkg/timeseries"
-	"go-iot/pkg/tsl"
-	"log"
-	"os"
-	"os/signal"
-	"testing"
-	"time"
-
-	logs "go-iot/pkg/logger"
+	"go-iot/pkg/network/testhelper"
+	"go-iot/pkg/timeseries"
 
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/require"
 )
 
 const script = `
 function OnConnect(context) {
 	var deviceId = context.GetQuery("deviceId")
-  console.log("OnConnect: " + deviceId)
 	context.DeviceOnline(deviceId)
-	console.log("DeviceOnline:" + deviceId)
 }
 function OnMessage(context) {
-	var msg = context.MsgToString()
-  console.log("OnMessage: " + msg)
-  var data = JSON.parse(msg)
-  context.SaveProperties(data)
-	context.GetSession().SendText(msg)
+	var data = JSON.parse(context.MsgToString())
+	context.SaveProperties(data)
+	context.GetSession().SendText(JSON.stringify({ok:true}))
 }
-function OnInvoke(context) {
-	console.log("OnInvoke: " + JSON.stringify(context))
-}
+function OnInvoke(context) {}
 `
 
-var network1 network.NetworkConf = network.NetworkConf{
-	Name:      "test server",
-	ProductId: "test-product",
-	CodecId:   "script_codec",
-	Port:      18080,
-	Script:    script,
-}
+func TestWebSocketServer_OnlineAndProperties(t *testing.T) {
+	timeseries.MockReset()
+	port := testhelper.FreeTCPPort(t)
+	productId := fmt.Sprintf("ws-p-%d", port)
+	deviceId := "dev-ws-1"
+	testhelper.SetupProductDevice(t, productId, deviceId)
 
-func init() {
-	logs.InitNop()
-	core.RegDeviceStore(store.NewMockDeviceStore())
-	var product *core.Product = &core.Product{
-		Id:          "test-product",
-		Config:      make(map[string]string),
-		StorePolicy: "mock",
+	conf := network.NetworkConf{
+		Name:          "ws-it",
+		ProductId:     productId,
+		CodecId:       "script_codec",
+		Port:          port,
+		Script:        script,
+		Configuration: `{"host":"127.0.0.1","useTLS":false,"paths":["/socket"]}`,
 	}
-	tslData := &tsl.TslData{}
-	err := tslData.FromJson(`{"properties":[{"id":"temperature","type":"float"}],"functions":[{"id":"func1","inputs":[{"id":"name", "type":"string"}]}]}`)
-	if err != nil {
-		logs.Errorf(err.Error())
-	}
-	product.TslData = tslData
-	core.PutProduct(product)
-	{
-		device := core.NewDevice("1234", product.Id, 0)
-		core.PutDevice(device)
-	}
-	{
-		device := core.NewDevice("4567", product.Id, 0)
-		core.PutDevice(device)
-	}
-}
+	// paths 可能不在 spec 里，用 routers
+	conf.Configuration = `{"host":"127.0.0.1","useTLS":false,"routers":[{"url":"/socket"}]}`
 
-func TestServer(t *testing.T) {
-	network := network1
-	network.Configuration = `{"host": "localhost", "useTLS": false, "paths":["/socket"]}`
+	srv := websocketserver.NewServer()
+	require.NoError(t, srv.Start(conf))
+	t.Cleanup(func() { _ = srv.Stop() })
+	_, err := core.NewCodec(conf.CodecId, conf.ProductId, conf.Script)
+	require.NoError(t, err)
+	time.Sleep(50 * time.Millisecond)
 
-	websocketserver.NewServer().Start(network)
-	core.NewCodec(network1.CodecId, network1.ProductId, network1.Script)
-
-	c := &client{}
-	go c.initClient("1234")
-	c1 := &client{}
-	c1.initClient("4567")
-}
-
-type client struct {
-	done      chan interface{}
-	interrupt chan os.Signal
-}
-
-func (c *client) receiveHandler(connection *websocket.Conn) {
-	defer close(c.done)
-	for {
-		_, msg, err := connection.ReadMessage()
-		if err != nil {
-			log.Println("client Error in receive:", err)
-			return
-		}
-		log.Printf("client Received: %s\n", msg)
-	}
-}
-
-func (c *client) initClient(deviceId string) {
-	c.done = make(chan interface{})    // Channel to indicate that the receiverHandler is done
-	c.interrupt = make(chan os.Signal) // Channel to listen for interrupt signal to terminate gracefully
-
-	signal.Notify(c.interrupt, os.Interrupt) // Notify the interrupt channel for SIGINT
-
-	socketUrl := "ws://localhost:" + fmt.Sprint(network1.Port) + "/socket?deviceId=" + deviceId
-	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
-	if err != nil {
-		panic(fmt.Errorf("Error connecting to Websocket Server: %v", err))
-	}
+	u := fmt.Sprintf("ws://127.0.0.1:%d/socket?deviceId=%s", port, deviceId)
+	conn, _, err := websocket.DefaultDialer.Dial(u, nil)
+	require.NoError(t, err)
 	defer conn.Close()
-	go c.receiveHandler(conn)
 
-	// Our main loop for the client
-	// We send our relevant packets here
-	count := 1
-	ticker := time.NewTicker(time.Second * 1)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			// Send an echo packet every second
-			err := conn.WriteMessage(websocket.TextMessage, []byte(`{"temperature": 16.1, "fff":1}`))
-			if err != nil {
-				log.Println("Error during writing to websocket:", err)
-				return
-			}
-			count++
-			if count == 10 {
-				time.Sleep(time.Second * 2)
-				return
-			}
+	time.Sleep(100 * time.Millisecond)
+	require.NotNil(t, core.GetSession(deviceId), "device should be online after ws connect")
 
-		case <-c.interrupt:
-			// We received a SIGINT (Ctrl + C). Terminate gracefully...
-			log.Println("Received SIGINT interrupt signal. Closing all pending connections")
+	before := timeseries.MockPropertiesCount()
+	msg := fmt.Sprintf(`{"deviceId":"%s","temperature":16.1}`, deviceId)
+	require.NoError(t, conn.WriteMessage(websocket.TextMessage, []byte(msg)))
 
-			// Close our websocket connection
-			err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			if err != nil {
-				log.Println("Error during closing websocket:", err)
-				return
-			}
+	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_, resp, err := conn.ReadMessage()
+	require.NoError(t, err)
+	require.Contains(t, string(resp), "ok")
 
-			select {
-			case <-c.done:
-				log.Println("Receiver Channel Closed! Exiting....")
-			case <-ticker.C:
-				log.Println("Timeout in closing receiving channel. Exiting....")
-			}
-			return
-		}
+	require.Greater(t, timeseries.MockPropertiesCount(), before)
+	saved := timeseries.MockLastProperties()
+	require.NotNil(t, saved)
+	require.Equal(t, deviceId, fmt.Sprint(saved["deviceId"]))
+	require.EqualValues(t, 16.1, saved["temperature"])
+}
+
+func TestWebSocketServer_UnknownDeviceOnlineError(t *testing.T) {
+	port := testhelper.FreeTCPPort(t)
+	productId := fmt.Sprintf("ws-p2-%d", port)
+	testhelper.SetupProductDevice(t, productId, "real-dev")
+
+	conf := network.NetworkConf{
+		ProductId:     productId,
+		CodecId:       "script_codec",
+		Port:          port,
+		Script:        script,
+		Configuration: `{"host":"127.0.0.1","useTLS":false,"routers":[{"url":"/socket"}]}`,
 	}
+	srv := websocketserver.NewServer()
+	require.NoError(t, srv.Start(conf))
+	t.Cleanup(func() { _ = srv.Stop() })
+	_, err := core.NewCodec(conf.CodecId, conf.ProductId, conf.Script)
+	require.NoError(t, err)
+	time.Sleep(50 * time.Millisecond)
+
+	u := fmt.Sprintf("ws://127.0.0.1:%d/socket?deviceId=ghost", port)
+	conn, _, err := websocket.DefaultDialer.Dial(u, nil)
+	require.NoError(t, err)
+	defer conn.Close()
+	time.Sleep(100 * time.Millisecond)
+	// DeviceOnline 失败：不应挂上 ghost session
+	require.Nil(t, core.GetSession("ghost"))
 }

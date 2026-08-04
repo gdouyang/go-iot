@@ -1,113 +1,142 @@
 package httpserver_test
 
 import (
-	_ "go-iot/pkg/codec"
-	"go-iot/pkg/core"
-	"go-iot/pkg/network"
-	httpserver "go-iot/pkg/network/servers/http"
-	"go-iot/pkg/store"
-	_ "go-iot/pkg/timeseries"
-	"go-iot/pkg/tsl"
+	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
 
-	logs "go-iot/pkg/logger"
+	_ "go-iot/pkg/codec"
+	"go-iot/pkg/core"
+	"go-iot/pkg/network"
+	httpserver "go-iot/pkg/network/servers/http"
+	"go-iot/pkg/network/testhelper"
+	"go-iot/pkg/timeseries"
+
+	"github.com/stretchr/testify/require"
 )
 
 const script = `
 function OnMessage(context) {
-	console.log("OnMessage: " + context.MsgToString())
 	context.DeviceOnline(context.GetQuery("deviceId"))
-  var data = JSON.parse(context.MsgToString())
-  context.SaveProperties(data)
-	context.GetSession().Response(data)
+	var data = JSON.parse(context.MsgToString())
+	context.SaveProperties(data)
+	context.GetSession().ResponseJSON(JSON.stringify({ok:true, deviceId: data.deviceId}))
 }
-function OnInvoke(context) {
-	console.log("OnInvoke: " + JSON.stringify(context))
-}
+function OnInvoke(context) {}
 `
 
-var network1 network.NetworkConf = network.NetworkConf{
-	Name:      "test server",
-	ProductId: "test-product",
-	CodecId:   "script_codec",
-	Port:      18080,
-	Script:    script,
-}
+func TestHttpServer_DeviceOnlineAndSaveProperties(t *testing.T) {
+	timeseries.MockReset()
+	port := testhelper.FreeTCPPort(t)
+	productId := fmt.Sprintf("http-p-%d", port)
+	deviceId := "dev-http-1"
+	testhelper.SetupProductDevice(t, productId, deviceId)
 
-func init() {
-	logs.InitNop()
-	core.RegDeviceStore(store.NewMockDeviceStore())
-	var product *core.Product = &core.Product{
-		Id:          "test-product",
-		Config:      make(map[string]string),
-		StorePolicy: "mock",
+	conf := network.NetworkConf{
+		Name:          "http-it",
+		ProductId:     productId,
+		CodecId:       "script_codec",
+		Port:          port,
+		Script:        script,
+		Configuration: `{"host":"127.0.0.1","useTLS":false,"paths":["/test"]}`,
 	}
-	tslData := &tsl.TslData{}
-	err := tslData.FromJson(`{"properties":[{"id":"temperature","type":"float"}],
-	"functions":[{"id":"func1","inputs":[{"id":"name", "type":"string"}]}]}`)
-	if err != nil {
-		logs.Errorf(err.Error())
-	}
-	product.TslData = tslData
-	core.PutProduct(product)
-	{
-		device := core.NewDevice("1234", product.Id, 0)
-		core.PutDevice(device)
-	}
-}
+	// paths 字段可能被忽略，使用 routers
+	conf.Configuration = `{"host":"127.0.0.1","useTLS":false,"routers":[{"url":"/test"}]}`
+	srv := httpserver.NewServer()
+	require.NoError(t, srv.Start(conf))
+	t.Cleanup(func() { _ = srv.Stop() })
+	_, err := core.NewCodec(conf.CodecId, conf.ProductId, conf.Script)
+	require.NoError(t, err)
 
-func TestServer(t *testing.T) {
-	network := network1
-	network.Configuration = `{"host": "localhost", "useTLS": false, "paths":["/test"]}`
-	httpserver.NewServer().Start(network)
-	core.NewCodec(network1.CodecId, network1.ProductId, network1.Script)
-	initClient()
-}
+	// 等监听就绪
+	time.Sleep(50 * time.Millisecond)
 
-func initClient() {
-	res, err := http.Post("http://localhost:18080/test", "application/json", strings.NewReader(`{"deviceId": "1234", "temperature": 16.1}`))
-	//Get请求
-	// res, err := http.Get("http://www.baidu.com")
-	if err != nil {
-		logs.Errorf(err.Error())
-	}
-	//利用ioutil包读取百度服务器返回的数据
+	before := timeseries.MockPropertiesCount()
+	body := fmt.Sprintf(`{"deviceId":"%s","temperature":16.1}`, deviceId)
+	url := fmt.Sprintf("http://127.0.0.1:%d/test?deviceId=%s", port, deviceId)
+	res, err := http.Post(url, "application/json", strings.NewReader(body))
+	require.NoError(t, err)
+	defer res.Body.Close()
 	data, err := io.ReadAll(res.Body)
-	res.Body.Close() //一定要记得关闭连接
-	if err != nil {
-		panic(err)
-	}
-	log.Printf("client Received: %d %s \n", res.StatusCode, data)
-	// time.Sleep(time.Second * 11)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, res.StatusCode, "body=%s", data)
+	require.Contains(t, string(data), "ok")
+	require.Contains(t, string(data), deviceId)
+
+	// 校验 SaveProperties 真正落数（mock 时序内存记录）
+	require.Greater(t, timeseries.MockPropertiesCount(), before, "SaveProperties should be called")
+	saved := timeseries.MockLastProperties()
+	require.NotNil(t, saved, "SaveProperties should record data")
+	require.Equal(t, deviceId, fmt.Sprint(saved["deviceId"]))
+	// JS number 经 goja 多为 float64
+	require.EqualValues(t, 16.1, saved["temperature"])
+
+	// 也可走 QueryProperty（mock 会返回最近匹配 deviceId 的记录）
+	p := core.GetProduct(productId)
+	require.NotNil(t, p)
+	q, err := p.GetTimeSeries().QueryProperty(p, core.TimeDataSearchRequest{DeviceId: deviceId})
+	require.NoError(t, err)
+	require.NotNil(t, q)
+	require.EqualValues(t, 1, q["total"])
 }
 
-func TestHttp(t *testing.T) {
-	u, err := url.ParseRequestURI("http://www.baidu.com")
-	if err != nil {
-		logs.Errorf(err.Error())
-		return
+func TestHttpServer_MissingDeviceOnlineFailsGracefully(t *testing.T) {
+	port := testhelper.FreeTCPPort(t)
+	productId := fmt.Sprintf("http-p2-%d", port)
+	testhelper.SetupProductDevice(t, productId, "exists-dev")
+
+	conf := network.NetworkConf{
+		Name:          "http-it2",
+		ProductId:     productId,
+		CodecId:       "script_codec",
+		Port:          port,
+		Script:        script,
+		Configuration: `{"host":"127.0.0.1","useTLS":false,"paths":["/test"]}`,
 	}
-	client := http.Client{Timeout: time.Second * 3}
-	var req *http.Request = &http.Request{
-		Method: "get",
-		URL:    u,
-		Header: map[string][]string{},
+	srv := httpserver.NewServer()
+	require.NoError(t, srv.Start(conf))
+	t.Cleanup(func() { _ = srv.Stop() })
+	_, err := core.NewCodec(conf.CodecId, conf.ProductId, conf.Script)
+	require.NoError(t, err)
+	time.Sleep(50 * time.Millisecond)
+
+	// 不存在的设备：DeviceOnline 返回 error，脚本 throw，请求仍可能 200 但无业务数据
+	res, err := http.Post(
+		fmt.Sprintf("http://127.0.0.1:%d/test?deviceId=no-such", port),
+		"application/json",
+		strings.NewReader(`{"deviceId":"no-such","temperature":1}`),
+	)
+	require.NoError(t, err)
+	defer res.Body.Close()
+	// 不 panic 即通过；body 可能为空
+	_, _ = io.ReadAll(res.Body)
+}
+
+func TestHttpServer_NotFoundPath(t *testing.T) {
+	port := testhelper.FreeTCPPort(t)
+	productId := fmt.Sprintf("http-p3-%d", port)
+	testhelper.SetupProductDevice(t, productId, "d1")
+
+	conf := network.NetworkConf{
+		Name:          "http-it3",
+		ProductId:     productId,
+		CodecId:       "script_codec",
+		Port:          port,
+		Script:        script,
+		Configuration: `{"host":"127.0.0.1","useTLS":false,"routers":[{"url":"/only"}]}`,
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		logs.Errorf(err.Error())
-		return
-	}
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logs.Errorf(err.Error())
-		return
-	}
-	logs.Infof(string(b))
+	// FromJson 用 routers；paths 兼容旧测试
+	conf.Configuration = `{"host":"127.0.0.1","useTLS":false,"routers":[{"url":"/only"}]}`
+	srv := httpserver.NewServer()
+	require.NoError(t, srv.Start(conf))
+	t.Cleanup(func() { _ = srv.Stop() })
+	time.Sleep(50 * time.Millisecond)
+
+	res, err := http.Post(fmt.Sprintf("http://127.0.0.1:%d/other", port), "application/json", strings.NewReader(`{}`))
+	require.NoError(t, err)
+	defer res.Body.Close()
+	require.Equal(t, http.StatusNotFound, res.StatusCode)
 }

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"go-iot/pkg/eventbus"
 	"strconv"
 	"sync"
@@ -102,41 +103,65 @@ func RegDeviceStore(c DeviceStore) {
 
 // 获取设备
 func GetDevice(deviceId string) *Device {
+	if defaultStore == nil {
+		return nil
+	}
 	return defaultStore.GetDevice(deviceId)
 }
 
 // 将设备放入存储器
-func PutDevice(device *Device) {
-	defaultStore.PutDevice(device)
+func PutDevice(device *Device) error {
+	if defaultStore == nil {
+		return errors.New("device store not registered")
+	}
+	return defaultStore.PutDevice(device)
 }
 
 // 将设备从存储器中删除
 func DeleteDevice(deviceId string) {
+	if defaultStore == nil {
+		return
+	}
 	defaultStore.DelDevice(deviceId)
 }
 
 // 获取设备数据
 func GetDeviceData(deviceId, key string) string {
+	if defaultStore == nil {
+		return ""
+	}
 	return defaultStore.GetDeviceData(deviceId, key)
 }
 
 // 设置设备数据
 func SetDeviceData(deviceId, key string, val string) {
+	if defaultStore == nil {
+		return
+	}
 	defaultStore.SetDeviceData(deviceId, key, val)
 }
 
 // 获取产品
 func GetProduct(productId string) *Product {
+	if defaultStore == nil {
+		return nil
+	}
 	return defaultStore.GetProduct(productId)
 }
 
 // 将产品放入存储器
-func PutProduct(product *Product) {
-	defaultStore.PutProduct(product)
+func PutProduct(product *Product) error {
+	if defaultStore == nil {
+		return errors.New("device store not registered")
+	}
+	return defaultStore.PutProduct(product)
 }
 
 // 将产品从存储器中删除
 func DeleteProduct(productId string) {
+	if defaultStore == nil {
+		return
+	}
 	defaultStore.DelProduct(productId)
 }
 
@@ -147,7 +172,7 @@ type DeviceStore interface {
 	// 获取设备
 	GetDevice(deviceId string) *Device
 	// 保存设备
-	PutDevice(device *Device)
+	PutDevice(device *Device) error
 	// 删除设备
 	DelDevice(deviceId string)
 	// 刷新设备过期时间
@@ -159,7 +184,7 @@ type DeviceStore interface {
 	// 获取产品
 	GetProduct(productId string) *Product
 	// 保存产品
-	PutProduct(product *Product)
+	PutProduct(product *Product) error
 	// 删除产品
 	DelProduct(productId string)
 }

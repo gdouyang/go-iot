@@ -78,14 +78,14 @@ func TestEs(t *testing.T) {
 		// Password:  "password",
 	})
 	if err != nil {
-		panic(fmt.Errorf("Error creating the client: %s", err))
+		t.Skipf("elasticsearch client: %v", err)
 	}
 
 	// 1. Get cluster info
 	//
 	res, err := es.Info()
 	if err != nil {
-		panic(fmt.Errorf("Error getting response: %s", err))
+		t.Skipf("elasticsearch not available: %v", err)
 	}
 	defer res.Body.Close()
 	// Check response status

@@ -202,7 +202,10 @@ func (h *BrokerHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packet) b
 		if !ctx.checkAuth() {
 			return false
 		}
-		ctx.DeviceOnline(ctx.DeviceId)
+		if err := ctx.DeviceOnline(ctx.DeviceId); err != nil {
+			logs.Errorf("goiot_mqtt5 DeviceOnline error: %v", err)
+			return false
+		}
 	}
 	h.broker.clients[cl.ID] = client
 	return true

@@ -61,23 +61,23 @@ func (s *ModbusSession) GetConInfo() map[string]any {
 	return s.info
 }
 
-func (s *ModbusSession) ReadDiscreteInputs(startingAddress uint16, length uint16) *context {
+func (s *ModbusSession) ReadDiscreteInputs(startingAddress uint16, length uint16) (*context, error) {
 	return s.getValue(DISCRETES_INPUT, startingAddress, length)
 }
-func (s *ModbusSession) ReadCoils(startingAddress uint16, length uint16) *context {
+func (s *ModbusSession) ReadCoils(startingAddress uint16, length uint16) (*context, error) {
 	return s.getValue(COILS, startingAddress, length)
 }
-func (s *ModbusSession) ReadInputRegisters(startingAddress uint16, length uint16) *context {
+func (s *ModbusSession) ReadInputRegisters(startingAddress uint16, length uint16) (*context, error) {
 	return s.getValue(INPUT_REGISTERS, startingAddress, length)
 }
-func (s *ModbusSession) ReadHoldingRegisters(startingAddress uint16, length uint16) *context {
+func (s *ModbusSession) ReadHoldingRegisters(startingAddress uint16, length uint16) (*context, error) {
 	return s.getValue(HOLDING_REGISTERS, startingAddress, length)
 }
 
-func (s *ModbusSession) getValue(parimaryTable string, startingAddress uint16, length uint16) *context {
+func (s *ModbusSession) getValue(parimaryTable string, startingAddress uint16, length uint16) (*context, error) {
 	data, err := s.client.GetValue(parimaryTable, startingAddress, length)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	return &context{
 		BaseContext: core.BaseContext{
@@ -86,22 +86,19 @@ func (s *ModbusSession) getValue(parimaryTable string, startingAddress uint16, l
 			Session:   s,
 		},
 		Data: data,
-	}
+	}, nil
 }
 
-func (s *ModbusSession) WriteCoils(startingAddress uint16, length uint16, hexStr string) {
-	s.setValue(COILS, startingAddress, length, hexStr)
+func (s *ModbusSession) WriteCoils(startingAddress uint16, length uint16, hexStr string) error {
+	return s.setValue(COILS, startingAddress, length, hexStr)
 }
 
-func (s *ModbusSession) WriteHoldingRegisters(startingAddress uint16, length uint16, hexStr string) {
-	s.setValue(HOLDING_REGISTERS, startingAddress, length, hexStr)
+func (s *ModbusSession) WriteHoldingRegisters(startingAddress uint16, length uint16, hexStr string) error {
+	return s.setValue(HOLDING_REGISTERS, startingAddress, length, hexStr)
 }
 
-func (s *ModbusSession) setValue(parimaryTable string, startingAddress uint16, length uint16, hexStr string) {
-	err := s.client.SetValue(parimaryTable, startingAddress, length, hexStr)
-	if err != nil {
-		panic(err)
-	}
+func (s *ModbusSession) setValue(parimaryTable string, startingAddress uint16, length uint16, hexStr string) error {
+	return s.client.SetValue(parimaryTable, startingAddress, length, hexStr)
 }
 
 // lockAddress mark address is unavailable because real device handle one request at a time
@@ -117,8 +114,8 @@ func (s *ModbusSession) lockAddress(address string) error {
 	} else if s.workingCount >= concurrentCommandLimit {
 		s.mutex.Unlock()
 		errorMessage := fmt.Sprintf("High-frequency command execution. There are %v commands with the same address in the queue", concurrentCommandLimit)
-		logs.Errorf(errorMessage)
-		return fmt.Errorf(errorMessage)
+		logs.Errorf("%s", errorMessage)
+		return fmt.Errorf("%s", errorMessage)
 	} else {
 		s.workingCount = s.workingCount + 1
 	}

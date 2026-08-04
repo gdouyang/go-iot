@@ -27,7 +27,8 @@ const (
 )
 
 var (
-	defaultLogger *zap.SugaredLogger // equal stderrLogger + goiotLogger
+	// 默认 Nop，避免未 Init 时测试/早期日志空指针；生产路径仍应调用 Init。
+	defaultLogger = zap.NewNop().Sugar()
 	lowestLevel   = zap.InfoLevel
 )
 

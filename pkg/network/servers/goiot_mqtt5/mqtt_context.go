@@ -2,8 +2,11 @@ package goiot_mqtt5
 
 import (
 	"encoding/hex"
+	"fmt"
 	"go-iot/pkg/core"
 	"strings"
+
+	logs "go-iot/pkg/logger"
 
 	"github.com/mochi-mqtt/server/v2/packets"
 )
@@ -35,25 +38,30 @@ func (ctx *authContext) GetPassword() string {
 	return ctx.client.info.password
 }
 
-func (ctx *authContext) DeviceOnline(deviceId string) {
+func (ctx *authContext) DeviceOnline(deviceId string) error {
 	deviceId = strings.TrimSpace(deviceId)
-	if len(deviceId) > 0 {
-		device := core.GetDevice(deviceId)
-		if device == nil {
-			ctx.authFailCode = packets.ErrClientIdentifierNotValid.Code
-			return
-		}
-		ctx.DeviceId = deviceId
-		ctx.client.info.deviceId = deviceId
-		ctx.client.info.productId = device.ProductId
-		ctx.authFailCode = 0
-		// 认证成功、让设备上线
-		baseContext := &core.BaseContext{
-			ProductId: device.ProductId,
-			Session:   ctx.client,
-		}
-		baseContext.DeviceOnline(deviceId)
+	if len(deviceId) == 0 {
+		return nil
 	}
+	device := core.GetDevice(deviceId)
+	if device == nil {
+		ctx.authFailCode = packets.ErrClientIdentifierNotValid.Code
+		return fmt.Errorf("device [%s] not exist or noActive", deviceId)
+	}
+	ctx.DeviceId = deviceId
+	ctx.client.info.deviceId = deviceId
+	ctx.client.info.productId = device.ProductId
+	ctx.authFailCode = 0
+	// 认证成功、让设备上线
+	baseContext := &core.BaseContext{
+		ProductId: device.ProductId,
+		Session:   ctx.client,
+	}
+	if err := baseContext.DeviceOnline(deviceId); err != nil {
+		logs.Errorf("goiot_mqtt5 DeviceOnline error: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (ctx *authContext) AuthFail() {

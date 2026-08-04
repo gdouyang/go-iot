@@ -106,6 +106,8 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Valu
 	defer c.pool.Put(vm)
 	fn, success := goja.AssertFunction(vm.Get(name))
 	if success {
+		// recover：捕获脚本宿主 API 的 throw（NewGoError/panic）及意外 panic，避免打崩进程。
+		// goja 对 Go 方法返回的非 nil error 也会变成脚本异常，走下方 err 分支。
 		defer func() {
 			if rec := recover(); rec != nil {
 				l := fmt.Sprintf("productId: [%s] script error: %v", c.productId, rec)

@@ -2,11 +2,12 @@ package timeseries_test
 
 import (
 	"encoding/json"
+	"testing"
+
 	"go-iot/pkg/core"
 	"go-iot/pkg/store"
 	"go-iot/pkg/timeseries"
 	"go-iot/pkg/tsl"
-	"testing"
 
 	logs "go-iot/pkg/logger"
 )
@@ -126,16 +127,24 @@ const text = `
 }
 `
 
+// TestTdengine 依赖外部 TDengine。默认跳过，需要联调时去掉下面的 t.Skip 即可。
 func TestTdengine(t *testing.T) {
+	logs.InitNop()
+	t.Skip("requires external TDengine; remove this Skip to run manually")
+
 	ts := timeseries.TdengineTimeSeries{}
 	core.RegDeviceStore(store.NewMockDeviceStore())
 	product, err := core.NewProduct("test", map[string]string{}, "tdengien", text)
 	if err != nil {
 		t.Error(err)
 	}
-	core.PutProduct(product)
+	if err := core.PutProduct(product); err != nil {
+		t.Fatal(err)
+	}
 	device := core.NewDevice("1234", product.Id, 0)
-	core.PutDevice(device)
+	if err := core.PutDevice(device); err != nil {
+		t.Fatal(err)
+	}
 
 	d := tsl.NewTslData()
 	d.FromJson(text)

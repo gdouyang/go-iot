@@ -245,7 +245,10 @@ func (a *productApi) deploy(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	core.PutProduct(p1)
+	if err := core.PutProduct(p1); err != nil {
+		ctl.RespError(err)
+		return
+	}
 	err = p1.GetTimeSeries().PublishModel(p1, tsl)
 	if err != nil {
 		ctl.RespError(err)

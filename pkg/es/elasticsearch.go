@@ -69,7 +69,7 @@ func CreateEsTemplate(properties map[string]any, indexPattern string, templateNa
 	if err != nil {
 		return fmt.Errorf("%s error: %s", templateName, err.Error())
 	}
-	logs.Infof(string(data))
+	logs.Infof("%s", string(data))
 	// Set up the request object.
 	req := esapi.IndicesPutTemplateRequest{
 		Name: templateName,
@@ -108,7 +108,7 @@ func CreateEsIndex(properties map[string]any, indexName string) error {
 	if err != nil {
 		return fmt.Errorf("%s error: %s", indexName, err.Error())
 	}
-	logs.Infof(string(data))
+	logs.Infof("%s", string(data))
 	// Set up the request object.
 	req := esapi.IndicesCreateRequest{
 		Index: indexName,

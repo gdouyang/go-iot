@@ -527,7 +527,9 @@ func batchEnableDevice(ctl *AuthController, deviceIds []string, term core.Search
 					model := models.DeviceModel{}
 					model.FromEnitty(dev)
 					devopr.Config = model.Metaconfig
-					core.PutDevice(devopr)
+					if err := core.PutDevice(devopr); err != nil {
+						logs.Errorf("put device error: %v", err)
+					}
 				}
 				err = deviceDao.UpdateOnlineStatusList(ids, tagertState)
 				if err != nil {
@@ -578,7 +580,10 @@ func enableDevice(ctl *AuthController, deviceId string, isDeploy bool) {
 			deviceDao.UpdateDevice(&entity)
 		}
 		devopr.Config = dev.Metaconfig
-		core.PutDevice(devopr)
+		if err := core.PutDevice(devopr); err != nil {
+			ctl.RespError(err)
+			return
+		}
 	} else {
 		devopr := core.GetDevice(deviceId)
 		if devopr == nil {

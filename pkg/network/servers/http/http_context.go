@@ -13,32 +13,38 @@ type httpContext struct {
 	r    *http.Request
 }
 
-func (ctx *httpContext) DeviceOnline(deviceId string) {
+// DeviceOnline 供脚本调用；失败返回 error，goja 会转为 JS throw（替代原先 panic）。
+func (ctx *httpContext) DeviceOnline(deviceId string) error {
 	deviceId = strings.TrimSpace(deviceId)
-	if len(deviceId) > 0 {
-		device := ctx.GetDeviceById(deviceId)
-		if device == nil {
-			panic(fmt.Errorf("device [%s] is null", deviceId))
-		}
-		if device.GetProductId() != ctx.ProductId {
-			panic(fmt.Errorf("device [%s] product error: %s != %s", deviceId, ctx.ProductId, device.GetProductId()))
-		}
-		core.DeviceOnlineEvent(deviceId, ctx.ProductId)
+	if len(deviceId) == 0 {
+		return nil
 	}
+	device := ctx.GetDeviceById(deviceId)
+	if device == nil {
+		return fmt.Errorf("device [%s] is null", deviceId)
+	}
+	if device.GetProductId() != ctx.ProductId {
+		return fmt.Errorf("device [%s] product error: %s != %s", deviceId, ctx.ProductId, device.GetProductId())
+	}
+	core.DeviceOnlineEvent(deviceId, ctx.ProductId)
+	return nil
 }
 
-func (ctx *httpContext) DeviceOffline(deviceId string) {
+// DeviceOffline 供脚本调用；失败返回 error，goja 会转为 JS throw（替代原先 panic）。
+func (ctx *httpContext) DeviceOffline(deviceId string) error {
 	deviceId = strings.TrimSpace(deviceId)
-	if len(deviceId) > 0 {
-		device := ctx.GetDeviceById(deviceId)
-		if device == nil {
-			panic(fmt.Errorf("device [%s] is null", deviceId))
-		}
-		if device.GetProductId() != ctx.ProductId {
-			panic(fmt.Errorf("device [%s] product error: %s != %s", deviceId, ctx.ProductId, device.GetProductId()))
-		}
-		core.DeviceOfflineEvent(deviceId, ctx.ProductId, "disconnect")
+	if len(deviceId) == 0 {
+		return nil
 	}
+	device := ctx.GetDeviceById(deviceId)
+	if device == nil {
+		return fmt.Errorf("device [%s] is null", deviceId)
+	}
+	if device.GetProductId() != ctx.ProductId {
+		return fmt.Errorf("device [%s] product error: %s != %s", deviceId, ctx.ProductId, device.GetProductId())
+	}
+	core.DeviceOfflineEvent(deviceId, ctx.ProductId, "disconnect")
+	return nil
 }
 
 func (ctx *httpContext) GetMessage() interface{} {

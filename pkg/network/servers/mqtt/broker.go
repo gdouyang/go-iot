@@ -202,7 +202,10 @@ func (b *Broker) connectionValidation(connect *packets.ConnectPacket, conn net.C
 		if !ctx.checkAuth() {
 			return nil, nil, false
 		}
-		ctx.DeviceOnline(ctx.DeviceId)
+		if err := ctx.DeviceOnline(ctx.DeviceId); err != nil {
+			logs.Errorf("mqtt DeviceOnline error: %v", err)
+			return nil, nil, false
+		}
 	}
 
 	return client, connack, true
@@ -271,7 +274,9 @@ func (b *Broker) setSession(client *Client, connect *packets.ConnectPacket) {
 			ProductId: b.productId,
 			Session:   sess,
 		}
-		baseContext.DeviceOnline(client.info.deviceId)
+		if err := baseContext.DeviceOnline(client.info.deviceId); err != nil {
+			logs.Errorf("mqtt setSession DeviceOnline error: %v", err)
+		}
 		client.session = sess
 	}
 }

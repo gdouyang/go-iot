@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"fmt"
 	"go-iot/pkg/core"
 	"sync"
@@ -22,17 +23,21 @@ func (p *mockDeviceStore) Id() string {
 
 func (m *mockDeviceStore) GetDevice(deviceId string) *core.Device {
 	device, ok := m.cache.Load(deviceId)
-	if ok {
-		return device.(*core.Device)
+	if !ok || device == nil {
+		return nil
 	}
 	return device.(*core.Device)
 }
 
-func (m *mockDeviceStore) PutDevice(device *core.Device) {
+func (m *mockDeviceStore) PutDevice(device *core.Device) error {
 	if device == nil {
-		panic("device not be nil")
+		return errors.New("device not be nil")
+	}
+	if len(device.GetId()) == 0 {
+		return errors.New("device id must be present")
 	}
 	m.cache.Store(device.GetId(), device)
+	return nil
 }
 
 func (m *mockDeviceStore) DelDevice(deviceId string) {
@@ -61,20 +66,21 @@ func (m *mockDeviceStore) RefreshOfflineTimeout(deviceId string) {
 
 func (m *mockDeviceStore) GetProduct(productId string) *core.Product {
 	product, ok := m.cache.Load(productId)
-	if ok {
-		return product.(*core.Product)
+	if !ok || product == nil {
+		return nil
 	}
-	return nil
+	return product.(*core.Product)
 }
 
-func (m *mockDeviceStore) PutProduct(product *core.Product) {
+func (m *mockDeviceStore) PutProduct(product *core.Product) error {
 	if product == nil {
-		panic("product not be nil")
+		return errors.New("product not be nil")
 	}
 	if len(product.GetId()) == 0 {
-		panic("product id must be present")
+		return errors.New("product id must be present")
 	}
 	m.cache.Store(product.GetId(), product)
+	return nil
 }
 
 func (m *mockDeviceStore) DelProduct(productId string) {

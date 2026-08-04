@@ -244,25 +244,34 @@ type BaseContext struct {
 	device    *Device `json:"-"`
 }
 
-// 设备上线，调用后设备状态改为上线
-func (ctx *BaseContext) DeviceOnline(deviceId string) {
+// 设备上线，调用后设备状态改为上线。
+// 返回 error 供 Go 处理；在 JS 中非 nil 会被 goja 转为 throw。
+func (ctx *BaseContext) DeviceOnline(deviceId string) error {
 	deviceId = strings.TrimSpace(deviceId)
-	if len(deviceId) > 0 {
-		sendOnlineEvent := true
-		oldSession := GetSession(deviceId)
-		if oldSession != nil {
-			sendOnlineEvent = false
-		}
-		device := GetDevice(deviceId)
-		if device == nil {
-			logs.Warnf("device [%s] not exist or noActive, close session", deviceId)
-			ctx.GetSession().Disconnect()
-			return
-		}
-		ctx.DeviceId = deviceId
-		ctx.GetSession().SetDeviceId(deviceId)
-		PutSession(deviceId, ctx.GetSession(), sendOnlineEvent)
+	if len(deviceId) == 0 {
+		return nil
 	}
+	sendOnlineEvent := true
+	oldSession := GetSession(deviceId)
+	if oldSession != nil {
+		sendOnlineEvent = false
+	}
+	device := GetDevice(deviceId)
+	if device == nil {
+		logs.Warnf("device [%s] not exist or noActive, close session", deviceId)
+		if s := ctx.GetSession(); s != nil {
+			_ = s.Disconnect()
+		}
+		return fmt.Errorf("device [%s] not exist or noActive", deviceId)
+	}
+	session := ctx.GetSession()
+	if session == nil {
+		return fmt.Errorf("device [%s] session is nil", deviceId)
+	}
+	ctx.DeviceId = deviceId
+	session.SetDeviceId(deviceId)
+	PutSession(deviceId, session, sendOnlineEvent)
+	return nil
 }
 
 // 获取Device，需要在DeviceOnline后才会有值
@@ -318,32 +327,36 @@ func (ctx *BaseContext) KeepAlive(deviceId string) {
 	}
 }
 
-// 保存设备属性的时序数据
-func (ctx *BaseContext) SaveProperties(data map[string]any) {
+// 保存设备属性的时序数据。
+// 返回 error 供 Go 调用方处理；在 JS 脚本中非 nil error 会被 goja 转为 throw，与原先 panic 中断语义兼容。
+func (ctx *BaseContext) SaveProperties(data map[string]any) error {
 	p := ctx.GetProduct()
 	if p == nil {
 		logs.Warnf("product [%s] not exist or noActive", ctx.ProductId)
-		return
+		return fmt.Errorf("product [%s] not exist or noActive", ctx.ProductId)
 	}
 	if _, ok := data[tsl.PropertyDeviceId]; !ok {
 		data[tsl.PropertyDeviceId] = ctx.DeviceId
 	}
 	if data[tsl.PropertyDeviceId] == "" {
-		panic(errors.New("SaveProperties error: deviceId is empty"))
+		return errors.New("SaveProperties error: deviceId is empty")
 	}
 	err := p.GetTimeSeries().SaveProperties(p, data)
 	if err != nil {
 		logs.Errorf("SaveProperties error: %v", err)
 		DebugLog(fmt.Sprintf("%v", data[tsl.PropertyDeviceId]), ctx.ProductId, "SaveProperties error: "+err.Error())
+		return err
 	}
+	return nil
 }
 
-// 保存设备事件的时序数据
-func (ctx *BaseContext) SaveEvents(eventId string, data any) {
+// 保存设备事件的时序数据。
+// 返回 error 供 Go 调用方处理；在 JS 脚本中非 nil error 会被 goja 转为 throw，与原先 panic 中断语义兼容。
+func (ctx *BaseContext) SaveEvents(eventId string, data any) error {
 	p := ctx.GetProduct()
 	if p == nil {
 		logs.Warnf("product [%s] not exist or noActive", ctx.ProductId)
-		return
+		return fmt.Errorf("product [%s] not exist or noActive", ctx.ProductId)
 	}
 	data1 := map[string]any{}
 	switch d := data.(type) {
@@ -356,13 +369,15 @@ func (ctx *BaseContext) SaveEvents(eventId string, data any) {
 		data1[tsl.PropertyDeviceId] = ctx.DeviceId
 	}
 	if data1[tsl.PropertyDeviceId] == "" {
-		panic(errors.New("SaveEvents error: deviceId is empty"))
+		return errors.New("SaveEvents error: deviceId is empty")
 	}
 	err := p.GetTimeSeries().SaveEvents(p, eventId, data1)
 	if err != nil {
 		logs.Errorf("SaveEvents error: %v", err)
 		DebugLog(fmt.Sprintf("%v", data1[tsl.PropertyDeviceId]), ctx.ProductId, "SaveEvents error: "+err.Error())
+		return err
 	}
+	return nil
 }
 
 func (ctx *BaseContext) ReplyOk() {

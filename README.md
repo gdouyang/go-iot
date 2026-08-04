@@ -31,14 +31,25 @@
 
 #### 使用说明
 
-1. ide使用vs code
-2. go版本1.21
-3. go mod tidy
+1. ide 使用 VS Code
+2. Go 版本与 `go.mod` 一致（当前 `go 1.24`）
+3. `go mod tidy` 后构建：`go build -o bin/go-iot .`
+
+运行依赖：
+
+- **Redis**：设备运行态、HTTP Session 等
+- **Elasticsearch**：业务元数据（当前 ORM）与时序数据
 
 ```
 docker run -d --name elasticsearchv7 -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "ES_JAVA_OPTS=-Xms1024m -Xmx1024m" elasticsearch:7.17.7
 
 docker run --name redis6 -d -it -p 6379:6379 redis:6
+```
+
+本地测试：
+
+```
+go test ./pkg/... -count=1 -short
 ```
 
 #### 默认账号

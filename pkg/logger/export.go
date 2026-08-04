@@ -38,7 +38,9 @@ func Errorf(template string, args ...interface{}) {
 
 // Sync syncs all logs, must be called after calling Init().
 func Sync() {
-	defaultLogger.Sync()
+	if defaultLogger != nil {
+		_ = defaultLogger.Sync()
+	}
 }
 
 func IsDebug() bool {

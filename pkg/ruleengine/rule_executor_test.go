@@ -52,8 +52,8 @@ func TestRule(t *testing.T) {
 	prod, err := core.NewProduct("test123", map[string]string{}, core.TIME_SERISE_MOCK, string(b))
 	assert.Nil(t, err)
 	assert.NotNil(t, prod)
-	core.PutProduct(prod)
-	core.PutDevice(&core.Device{Id: "1234"})
+	assert.NoError(t, core.PutProduct(prod))
+	assert.NoError(t, core.PutDevice(&core.Device{Id: "1234"}))
 	eventbus.PublishProperties(&eventbus.PropertiesMessage{
 		DeviceId:  "1234",
 		ProductId: "test123",
