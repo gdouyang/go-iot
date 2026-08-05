@@ -1,5 +1,10 @@
 api-addr: :8088
 
+# 默认管理员（仅首次创建 id=1 的 admin 时生效；已有用户不改密）
+# 未配置 password 时默认为 123456
+admin:
+  password: "123456"
+
 # debug, info, warn, error
 logs:
   level: debug
@@ -19,11 +24,17 @@ redis:
   db: 0
   password: 
 
-# 集群配置
+# 集群配置（详见 doc/cluster.md）
+# 字段名：enabled（结构体 option.Cluster.Enabled；flag: --cluster.enabled）
+# 旧键 enable 在解析时仍兼容（仅当未设置 enabled 时）
 cluster:
   enabled: false
-  name: 
-  index: 1
+  # 节点唯一名，写入设备 ClusterId
+  name:
+  # 分片序号，多节点时须互不重复且在 [0, 节点数) 内，如 0、1、2…
+  index: 0
   token: abc
-  # url: http://192.168.31.221:8080
-  # hosts: http://192.168.31.221:8080,http://192.168.31.136:8080
+  # 本机可被其它节点访问的 API 根地址
+  # url: http://192.168.31.221:8088
+  # 全集群 URL 列表（逗号分隔）
+  # hosts: http://192.168.31.221:8088,http://192.168.31.136:8088

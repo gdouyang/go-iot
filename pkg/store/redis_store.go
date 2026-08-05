@@ -38,6 +38,10 @@ func (store *redisDeviceStore) init() {
 			store.updateClusterId(m.DeviceId)
 			store.RefreshOfflineTimeout(m.DeviceId)
 		}
+		if m, ok := msg.(*eventbus.OfflineMessage); ok {
+			// 仅当本节点仍是归属时清空，避免重连到其它节点后被旧 offline 清掉
+			store.clearClusterIdIfOwner(m.DeviceId)
+		}
 		if m, ok := msg.(*eventbus.PropertiesMessage); ok {
 			store.RefreshOfflineTimeout(m.DeviceId)
 		}
@@ -171,17 +175,64 @@ func (m *redisDeviceStore) SetDeviceData(deviceId, key string, val any) {
 }
 
 func (m *redisDeviceStore) updateClusterId(deviceId string) {
+	localID := cluster.GetClusterId()
 	rdb := redis.GetRedisClient()
+	if rdb == nil {
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	err := rdb.HSet(ctx, m.getDeviceKey(deviceId), "clusterId", cluster.GetClusterId()).Err()
+	err := rdb.HSet(ctx, m.getDeviceKey(deviceId), "clusterId", localID).Err()
 	if err != nil {
 		logs.Errorf("updateClusterId error: %v", err)
 	}
 	device, ok := m.getDevice(deviceId)
-	if ok {
-		device.ClusterId = cluster.GetClusterId()
+	if ok && device != nil {
+		device.ClusterId = localID
 	}
+}
+
+// clearClusterIdIfOwner 设备离线时清空会话归属，便于 Gateway 走离线队列而非错误节点。
+func (m *redisDeviceStore) clearClusterIdIfOwner(deviceId string) {
+	localID := cluster.GetClusterId()
+	// 先看内存缓存
+	if device, ok := m.getDevice(deviceId); ok && device != nil {
+		if len(device.ClusterId) > 0 && device.ClusterId != localID {
+			return
+		}
+	} else {
+		// 缓存未命中时读 Redis，避免误清
+		dev := m.GetDevice(deviceId)
+		if dev != nil && len(dev.ClusterId) > 0 && dev.ClusterId != localID {
+			return
+		}
+	}
+
+	rdb := redis.GetRedisClient()
+	if rdb == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	key := m.getDeviceKey(deviceId)
+	// 仅当 redis 中仍是本节点时清空（防并发重连）
+	cur, err := rdb.HGet(ctx, key, "clusterId").Result()
+	if err != nil && err != redis.Nil {
+		logs.Errorf("clearClusterId HGet error: %v", err)
+		return
+	}
+	if len(cur) > 0 && cur != localID {
+		return
+	}
+	if err := rdb.HSet(ctx, key, "clusterId", "").Err(); err != nil {
+		logs.Errorf("clearClusterId HSet error: %v", err)
+		return
+	}
+	if device, ok := m.getDevice(deviceId); ok && device != nil {
+		device.ClusterId = ""
+	}
+	// 离线后去掉心跳超时探测成员，避免误踢
+	_ = rdb.ZRem(ctx, m.getZKey(), deviceId).Err()
 }
 func (m *redisDeviceStore) getZKey() string {
 	return "goiot:device_offline_check"

@@ -1,0 +1,179 @@
+// Package app is the composition root: construct long-lived dependencies and
+// own process Start/Stop order. Phase A/B keep package-level Reg* for compatibility.
+package app
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"go-iot/pkg/api/eventpush"
+	"go-iot/pkg/api/web"
+	"go-iot/pkg/cluster"
+	"go-iot/pkg/core"
+	"go-iot/pkg/es"
+	"go-iot/pkg/logger"
+	"go-iot/pkg/models"
+	"go-iot/pkg/models/base"
+	modelNetWork "go-iot/pkg/models/network"
+	"go-iot/pkg/network/servers/goiot_mqtt5"
+	"go-iot/pkg/option"
+	"go-iot/pkg/redis"
+	"go-iot/pkg/ruleengine"
+	"go-iot/pkg/store"
+)
+
+// App holds process-scoped dependencies. Global Reg* still used by existing code;
+// new code should prefer fields on App.
+type App struct {
+	Opt *option.Options
+
+	// Devices is registered into core for compatibility; also kept on App for visibility.
+	Devices core.DeviceStore
+	// Sessions 设备连接会话表（内存实现，可替换）。
+	Sessions core.SessionManager
+	// OfflineCmds 离线功能调用队列（生产环境 Redis 实现）。
+	OfflineCmds core.OfflineCommandQueue
+	// NodeInvoker 跨节点同步调用（HTTP RPC）；功能调用经 DeviceGateway 使用。
+	NodeInvoker core.NodeInvoker
+
+	API *web.Server
+}
+
+// New constructs dependencies and fills legacy package globals (Reg*/Config).
+// Does not start network or HTTP listeners.
+func New(opt *option.Options) (*App, error) {
+	if opt == nil {
+		return nil, fmt.Errorf("options is nil")
+	}
+
+	// Order matters for legacy globals:
+	// cluster before netclient restore (Shard uses cluster.Enabled);
+	// es/redis before store and model registration.
+	cluster.Config(opt)
+	es.Config(opt)
+	redis.Config(opt)
+	ruleengine.Config(opt)
+
+	devices := store.NewRedisStore()
+	sessions := core.NewMemorySessionManager()
+	offlineQueue := store.NewRedisOfflineCommandQueue()
+	nodeInvoker := cluster.NewHTTPNodeInvoker()
+
+	core.RegDeviceStore(devices)
+	core.RegSessionManager(sessions)
+	core.RegOfflineCommandQueue(offlineQueue)
+	core.RegNodeInvoker(nodeInvoker)
+
+	a := &App{
+		Opt:         opt,
+		Devices:     devices,
+		Sessions:    sessions,
+		OfflineCmds: offlineQueue,
+		NodeInvoker: nodeInvoker,
+		API:         web.NewServer(opt.APIAddr),
+	}
+	logger.Infof("app assembled: api=%s devices=%s sessions=memory offline_cmds=redis cluster=%v node_invoker=http",
+		opt.APIAddr, devices.Id(), cluster.Enabled())
+	return a, nil
+}
+
+// Start runs bootstrap in a fixed order.
+//
+//  1. Register ES models
+//  2. Seed defaults (admin user, empty network ports)
+//  3. restoreRuntime: menu + network/rule/notify/client recovery
+//  4. eventpush (WebSocket device event fan-out)
+//  5. Built-in MQTT5 broker process
+//  6. HTTP API (non-blocking)
+//
+// Requires main blank-import registry so api.Resources and protocol factories exist
+// before restoreRuntime / API start.
+func (a *App) Start(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	logger.Infof("app start begin")
+
+	models.RegisterModels()
+	logger.Infof("app start: models registered")
+
+	// 默认数据（admin 初始密码来自配置 admin.password，默认 123456）
+	base.EnsureDefaultAdmin(a.Opt.AdminPassword())
+	modelNetWork.EnsureDefaultNetworks()
+	logger.Infof("app start: seed data ensured (admin, default networks)")
+
+	// 菜单 + 运行态恢复
+	a.restoreRuntime()
+
+	// 管理端设备事件 WebSocket 推送
+	eventpush.Start()
+
+	if a.NodeInvoker != nil && a.NodeInvoker.Enabled() {
+		logger.Infof("app start: cluster node invoker enabled (localId=%s, rpc=HTTP %s)",
+			a.NodeInvoker.LocalID(), cluster.CmdInvokePath)
+	} else {
+		logger.Infof("app start: cluster disabled (single node)")
+	}
+
+	if err := goiot_mqtt5.Start(); err != nil {
+		return fmt.Errorf("mqtt5 server start: %w", err)
+	}
+	logger.Infof("app start: goiot mqtt5 started")
+
+	if err := a.API.Start(); err != nil {
+		return fmt.Errorf("api server start: %w", err)
+	}
+	logger.Infof("app start: api server started (non-blocking)")
+
+	logger.Infof("app start end")
+	return nil
+}
+
+// Stop shuts down in reverse order. Product network servers are not tracked yet (Phase C).
+func (a *App) Stop(ctx context.Context) error {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+	}
+	logger.Infof("app stop begin")
+
+	var firstErr error
+	if a.API != nil {
+		if err := a.API.Shutdown(ctx); err != nil {
+			logger.Errorf("api shutdown: %v", err)
+			firstErr = err
+		}
+	}
+
+	if err := goiot_mqtt5.Stop(); err != nil {
+		logger.Errorf("mqtt5 stop: %v", err)
+		if firstErr == nil {
+			firstErr = err
+		}
+	}
+
+	logger.Infof("app stop end")
+	return firstErr
+}
+
+// Run starts the app and blocks until SIGINT/SIGTERM, then Stop.
+func (a *App) Run() error {
+	if err := a.Start(context.Background()); err != nil {
+		return err
+	}
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-sigCh
+	logger.Infof("received signal %v, shutting down", sig)
+
+	stopCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	return a.Stop(stopCtx)
+}

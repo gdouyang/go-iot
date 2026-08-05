@@ -133,20 +133,16 @@ func (d *deviceApi) GetDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	alins.DeviceModel = *ob
 	if ob.State != core.NoActive {
-		dev := core.GetDevice(ob.Id)
-		// 设备在其它节点时转发给其它节点执行
-		if cluster.Enabled() && dev != nil && len(dev.ClusterId) > 0 && dev.ClusterId != cluster.GetClusterId() {
-			resp, err := cluster.SingleInvoke(dev.ClusterId, ctl.Request)
-			if err != nil {
-				ctl.RespError(err)
-				return
-			}
+		// 会话在其它节点：转发；本机则取实时状态
+		if resp, err := cluster.ProxyOrLocal(ob.Id, ctl.Request); err != nil {
+			ctl.RespError(err)
+			return
+		} else if resp != nil {
 			ctl.Resp(*resp)
 			return
-		} else {
-			alins.State = core.GetDeviceState(ob.Id, ob.ProductId)
-			deviceDao.UpdateOnlineStatus(ob.Id, alins.State)
 		}
+		alins.State = core.GetDeviceState(ob.Id, ob.ProductId)
+		deviceDao.UpdateOnlineStatus(ob.Id, alins.State)
 	}
 	ctl.RespOkData(alins)
 }
@@ -233,14 +229,10 @@ func (d *deviceApi) GetConnectionInfo(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	dev := core.GetDevice(deviceId)
-	// 设备在其它节点时转发给其它节点执行
-	if cluster.Enabled() && dev != nil && len(dev.ClusterId) > 0 && dev.ClusterId != cluster.GetClusterId() {
-		resp, err := cluster.SingleInvoke(dev.ClusterId, ctl.Request)
-		if err != nil {
-			ctl.RespError(err)
-			return
-		}
+	if resp, err := cluster.ProxyOrLocal(deviceId, ctl.Request); err != nil {
+		ctl.RespError(err)
+		return
+	} else if resp != nil {
 		ctl.Resp(*resp)
 		return
 	}
@@ -307,11 +299,23 @@ func (d *deviceApi) Connect(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
+	// 出站 client：按分片只投递负责节点，不再 Broadcast 碰运气
 	if cluster.Enabled() {
-		if cluster.Shard(deviceId) {
+		local, remote, rerr := cluster.ResolveShardOwner(deviceId)
+		if rerr != nil {
+			ctl.RespError(rerr)
+			return
+		}
+		if local {
 			err = connectClientDevice(deviceId)
 		} else {
-			err = cluster.BroadcastInvoke(ctl.Request)
+			resp, ierr := cluster.SingleInvoke(remote.Name, ctl.Request)
+			if ierr != nil {
+				ctl.RespError(ierr)
+				return
+			}
+			ctl.Resp(*resp)
+			return
 		}
 	} else {
 		err = connectClientDevice(deviceId)
@@ -334,14 +338,10 @@ func (d *deviceApi) Disconnect(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	dev := core.GetDevice(deviceId)
-	// 设备在其它节点时转发给其它节点执行
-	if cluster.Enabled() && dev != nil && len(dev.ClusterId) > 0 && dev.ClusterId != cluster.GetClusterId() {
-		resp, err := cluster.SingleInvoke(dev.ClusterId, ctl.Request)
-		if err != nil {
-			ctl.RespError(err)
-			return
-		}
+	if resp, err := cluster.ProxyOrLocal(deviceId, ctl.Request); err != nil {
+		ctl.RespError(err)
+		return
+	} else if resp != nil {
 		ctl.Resp(*resp)
 		return
 	}
@@ -426,43 +426,25 @@ func (d *deviceApi) CmdInvoke(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(errors.New("设备未激活"))
 		return
 	}
-	sendCluster := cluster.Enabled() && deviceOper.ClusterId != cluster.GetClusterId()
 	productOper := core.GetProduct(deviceOper.ProductId)
 	if productOper == nil {
 		ctl.RespError(fmt.Errorf("产品'%s'不存在或未发布", deviceOper.ProductId))
 		return
 	}
-	// 无状态网络不用走集群
-	if network.IsStateless(productOper.NetworkType) {
-		sendCluster = false
-	}
-	if sendCluster {
-		ctl.Request.Header.Add(cluster.X_Cluster_Timeout, "13")
-		resp, err := cluster.SingleInvoke(deviceOper.ClusterId, ctl.Request)
-		if err != nil {
-			ctl.RespError(err)
+	// 无状态协议在本节点执行；有状态协议由 DeviceGateway 按 ClusterId 路由（HTTP RPC）
+	forceLocal := network.IsStateless(productOper.NetworkType)
+	err1 := core.GetDeviceGateway().Invoke(ctl.Request.Context(), ob, core.InvokeOptions{
+		OfflineCache: ob.OfflineCache,
+		ForceLocal:   forceLocal,
+		Timeout:      13 * time.Second,
+	})
+	if err1 != nil {
+		if err1.Code == http.StatusOK {
+			ctl.RespOkMsg(err1.Message)
 			return
 		}
-		ctl.Resp(*resp)
+		ctl.RespErr(err1)
 		return
-	} else {
-		if ob.OfflineCache {
-			success, err1 := core.DoCmdInvokeOffline(ob)
-			if err1 != nil {
-				if success {
-					ctl.RespOkMsg(err1.Message)
-				} else {
-					ctl.RespErr(err1)
-				}
-				return
-			}
-		} else {
-			err1 := core.DoCmdInvoke(ob)
-			if err1 != nil {
-				ctl.RespErr(err1)
-				return
-			}
-		}
 	}
 	ctl.RespOk()
 }

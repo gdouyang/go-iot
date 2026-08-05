@@ -37,8 +37,9 @@
 
 运行依赖：
 
-- **Redis**：设备运行态、HTTP Session 等
+- **Redis**：设备运行态、HTTP Session、集群 eventpush 等
 - **Elasticsearch**：业务元数据（当前 ORM）与时序数据
+- **集群（可选）**：[集群配置、路由模型与注意事项](./doc/cluster.md)
 
 ```
 docker run -d --name elasticsearchv7 -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "ES_JAVA_OPTS=-Xms1024m -Xmx1024m" elasticsearch:7.17.7

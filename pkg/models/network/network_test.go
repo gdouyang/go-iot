@@ -9,12 +9,12 @@ import (
 	logs "go-iot/pkg/logger"
 )
 
-// InitDb / 查询依赖 ES。默认跳过，需要联调时去掉 t.Skip 即可。
+// 查询依赖 ES。默认跳过，需要联调时去掉 t.Skip 即可。
 func TestGetUnuseNetwork(t *testing.T) {
 	logs.InitNop()
 	t.Skip("requires Elasticsearch; remove this Skip to run manually")
 
-	models.InitDb()
+	models.RegisterModels()
 
 	nw, err := GetUnuseNetwork()
 	if err != nil {

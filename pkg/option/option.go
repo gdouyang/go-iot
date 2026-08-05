@@ -12,12 +12,12 @@ import (
 )
 
 type Cluster struct {
-	Name   string `yaml:"name"`
-	Enable bool   `yaml:"enable"`
-	Url    string `yaml:"url"`
-	Token  string `yaml:"token"`
-	Index  int    `yaml:"index"`
-	Hosts  string `yaml:"hosts"`
+	Name    string `yaml:"name"`
+	Enabled bool   `yaml:"enabled"` // 是否启用集群（配置/文档统一用 enabled）
+	Url     string `yaml:"url"`
+	Token   string `yaml:"token"`
+	Index   int    `yaml:"index"`
+	Hosts   string `yaml:"hosts"`
 }
 
 type Es struct {
@@ -56,6 +56,16 @@ type Mqtt struct {
 	Certificate []Certificate `yaml:"certificate"`
 }
 
+// Admin 首次初始化默认管理员相关配置。
+// 仅在创建 id=1 的 admin 时使用；库中已有用户时不会改密。
+type Admin struct {
+	// Password 初始密码，未配置时默认 123456
+	Password string `yaml:"password"`
+}
+
+// DefaultAdminPassword 配置未写 password 时的默认初始密码。
+const DefaultAdminPassword = "123456"
+
 // Options is the start-up options.
 type Options struct {
 	flags   *pflag.FlagSet
@@ -84,10 +94,21 @@ type Options struct {
 	// Mqtt配置
 	Mqtt Mqtt `yaml:"mqtt"`
 
+	// 默认管理员（仅首次创建时生效）
+	Admin Admin `yaml:"admin"`
+
 	// 抖动限制最大秒默认3600
 	MaxShakeLimitTime int `yaml:"max-shake-limit-time"`
 	// 控制台输出的banner
 	Banner string `yaml:"banner"`
+}
+
+// AdminPassword 返回初始管理员密码（空则 DefaultAdminPassword）。
+func (opt *Options) AdminPassword() string {
+	if opt == nil || len(opt.Admin.Password) == 0 {
+		return DefaultAdminPassword
+	}
+	return opt.Admin.Password
 }
 
 const banner string = `
@@ -135,12 +156,15 @@ func New() *Options {
 	opt.flags.IntVar(&opt.Es.BulkSize, "es.bulkSize", 1000, "时序数据批量提交大小")
 	opt.flags.IntVar(&opt.Es.WarnTime, "es.warntime", 1000, "时序数据保存时间阈值")
 	// 集群配置
-	opt.flags.BoolVar(&opt.Cluster.Enable, "cluster.enabled", false, "是否启用集群")
+	opt.flags.BoolVar(&opt.Cluster.Enabled, "cluster.enabled", false, "是否启用集群")
 	opt.flags.StringVar(&opt.Cluster.Name, "cluster.name", "", "集群节点名")
 	opt.flags.IntVar(&opt.Cluster.Index, "cluster.index", 1, "集群index")
 	opt.flags.StringVar(&opt.Cluster.Token, "cluster.token", "", "集群通讯token")
 	opt.flags.StringVar(&opt.Cluster.Url, "cluster.url", "", "本机url")
 	opt.flags.StringVar(&opt.Cluster.Hosts, "cluster.hosts", "", "集群内主机列表")
+
+	// 默认管理员初始密码（仅首次创建 admin 时使用）
+	opt.flags.StringVar(&opt.Admin.Password, "admin.password", DefaultAdminPassword, "默认管理员初始密码（仅库中无 admin 时生效）")
 
 	opt.flags.IntVar(&opt.MaxShakeLimitTime, "max-shake-limit-time", 3600, "抖动限制最大秒")
 	opt.flags.StringVar(&opt.Banner, "banner", banner, "")
@@ -187,6 +211,11 @@ func (opt *Options) Parse() (string, error) {
 	})
 	if err != nil {
 		return "", fmt.Errorf("yaml file unmarshal failed, please make sure you provide valid yaml file, %v", err)
+	}
+
+	// 兼容旧配置键 cluster.enable（未写 enabled 时）
+	if !opt.viper.IsSet("cluster.enabled") && opt.viper.IsSet("cluster.enable") {
+		opt.Cluster.Enabled = opt.viper.GetBool("cluster.enable")
 	}
 
 	buff, err := yaml.Marshal(opt)

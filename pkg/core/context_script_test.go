@@ -25,10 +25,10 @@ func newFakeSession() *fakeSession {
 	return &fakeSession{info: map[string]any{}}
 }
 
-func (s *fakeSession) Disconnect() error         { return nil }
-func (s *fakeSession) GetDeviceId() string        { return s.deviceId }
+func (s *fakeSession) Disconnect() error           { return nil }
+func (s *fakeSession) GetDeviceId() string         { return s.deviceId }
 func (s *fakeSession) SetDeviceId(deviceId string) { s.deviceId = deviceId }
-func (s *fakeSession) Close() error               { return nil }
+func (s *fakeSession) Close() error                { return nil }
 func (s *fakeSession) GetConInfo() map[string]any  { return s.info }
 
 func setupProduct(t *testing.T, productId string) *core.Product {

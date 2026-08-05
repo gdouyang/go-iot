@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"go-iot/pkg/api/realtime"
+	"go-iot/pkg/api/eventpush"
 	"go-iot/pkg/api/web"
 	device "go-iot/pkg/models/device"
 	"net/http"
@@ -44,10 +44,10 @@ func init() {
 		// Join.
 		addr := ws.RemoteAddr().String()
 		topic := fmt.Sprintf("/device/%s/%s/%s", productId, deviceId, typ)
-		realtime.Subscribe(realtime.Subscriber{ProductId: productId, DeviceId: deviceId, Topic: topic, Addr: addr, Conn: ws})
+		eventpush.Subscribe(eventpush.Subscriber{ProductId: productId, DeviceId: deviceId, Topic: topic, Addr: addr, Conn: ws})
 		go func() {
 			defer func() {
-				realtime.Unsubscribe(realtime.Subscriber{ProductId: productId, DeviceId: deviceId, Topic: topic, Addr: addr})
+				eventpush.Unsubscribe(eventpush.Subscriber{ProductId: productId, DeviceId: deviceId, Topic: topic, Addr: addr})
 			}()
 
 			// Message receive loop.

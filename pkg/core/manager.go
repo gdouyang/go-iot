@@ -4,18 +4,11 @@ import (
 	"errors"
 	"go-iot/pkg/eventbus"
 	"strconv"
-	"sync"
 )
-
-// session
-var sessionManager sync.Map
 
 // 从Session管理器中获取设备Session
 func GetSession(deviceId string) Session {
-	if val, ok := sessionManager.Load(deviceId); ok {
-		return val.(Session)
-	}
-	return nil
+	return defaultSessions.Get(deviceId)
 }
 
 // 判断设备是否连接断开, session存在也不意味着设备已连接
@@ -34,7 +27,7 @@ func IsDeviceDisconnect(deviceId string) bool {
 
 // 将设备Session放入到Session管理器中
 func PutSession(deviceId string, session Session, sendOnlineEvent bool) {
-	sessionManager.Store(deviceId, session)
+	defaultSessions.Put(deviceId, session)
 	device := GetDevice(deviceId)
 	if device != nil && sendOnlineEvent {
 		DeviceOnlineEvent(deviceId, device.GetProductId())
@@ -52,7 +45,7 @@ func DelSessionByUserDisconnect(deviceId string) {
 func DelSessionWithOfflineReason(deviceId string, msg string) {
 	device := GetDevice(deviceId)
 	if device != nil {
-		if _, ok := sessionManager.LoadAndDelete(device.Id); ok {
+		if defaultSessions.Delete(device.Id) {
 			DeviceOfflineEvent(device.Id, device.GetProductId(), msg)
 		}
 	}
@@ -99,6 +92,11 @@ var defaultStore DeviceStore
 // 注册设备存储器
 func RegDeviceStore(c DeviceStore) {
 	defaultStore = c
+}
+
+// GetDeviceStore 返回当前设备存储器（可为 nil）。
+func GetDeviceStore() DeviceStore {
+	return defaultStore
 }
 
 // 获取设备

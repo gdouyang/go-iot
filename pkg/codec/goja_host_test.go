@@ -263,7 +263,7 @@ type fakeSess struct {
 }
 
 func (s *fakeSess) Disconnect() error          { return nil }
-func (s *fakeSess) GetDeviceId() string         { return s.deviceId }
-func (s *fakeSess) SetDeviceId(id string)       { s.deviceId = id }
-func (s *fakeSess) Close() error                { return nil }
-func (s *fakeSess) GetConInfo() map[string]any  { return s.info }
+func (s *fakeSess) GetDeviceId() string        { return s.deviceId }
+func (s *fakeSess) SetDeviceId(id string)      { s.deviceId = id }
+func (s *fakeSess) Close() error               { return nil }
+func (s *fakeSess) GetConInfo() map[string]any { return s.info }

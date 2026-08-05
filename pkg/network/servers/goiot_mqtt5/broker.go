@@ -70,6 +70,26 @@ func Start() error {
 	return s.init(spec)
 }
 
+// Stop shuts down the built-in MQTT5 broker (clients + server).
+func Stop() error {
+	return broker.Stop()
+}
+
+func (b *Broker) Stop() error {
+	b.Lock()
+	defer b.Unlock()
+	for _, v := range b.clients {
+		go v.Close()
+	}
+	b.clients = make(map[string]*ClientAndSession)
+	if b.server != nil {
+		err := b.server.Close()
+		b.server = nil
+		return err
+	}
+	return nil
+}
+
 func (s *Broker) init(spec *MQTTServerSpec) error {
 	// Create the new MQTT Server.
 	var capabilities = mqtt.NewDefaultServerCapabilities()

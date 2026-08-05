@@ -3,7 +3,6 @@ package network
 import (
 	"errors"
 	"fmt"
-	"go-iot/pkg/boot"
 	"go-iot/pkg/models"
 	"go-iot/pkg/network"
 
@@ -12,18 +11,17 @@ import (
 	logs "go-iot/pkg/logger"
 )
 
-func init() {
-	boot.AddStartLinstener(func() {
-		o := orm.NewOrm()
-		qs := o.QueryTable(&models.Network{})
-		count, err := qs.Count()
-		if err == nil && count == 0 {
-			for i := 0; i < 10; i++ {
-				AddNetWork(&models.Network{Id: int64(i + 1), Port: int32(9010 + i), State: models.Stop, ProductId: ""})
-			}
-			logs.Infof("init networks")
+// EnsureDefaultNetworks 网络表为空时预置 10 个端口配置（由 app.Start 显式调用）。
+func EnsureDefaultNetworks() {
+	o := orm.NewOrm()
+	qs := o.QueryTable(&models.Network{})
+	count, err := qs.Count()
+	if err == nil && count == 0 {
+		for i := 0; i < 10; i++ {
+			AddNetWork(&models.Network{Id: int64(i + 1), Port: int32(9010 + i), State: models.Stop, ProductId: ""})
 		}
-	})
+		logs.Infof("init networks")
+	}
 }
 
 // 分页查询设备

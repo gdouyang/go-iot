@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
-	"go-iot/pkg/boot"
 	"go-iot/pkg/models"
 
 	"go-iot/pkg/es/orm"
@@ -12,22 +11,29 @@ import (
 	logs "go-iot/pkg/logger"
 )
 
-func init() {
-	boot.AddStartLinstener(func() {
-		admin, _ := GetUser(1)
-		if admin == nil {
-			AddUser(&UserDTO{
-				User: models.User{
-					Id:         1,
-					Username:   "admin",
-					Nickname:   "admin",
-					Password:   "123456",
-					EnableFlag: true,
-				},
-			})
-			logs.Infof("init admin user")
-		}
-	})
+// EnsureDefaultAdmin 若不存在 id=1 的用户则创建默认 admin（由 app.Start 显式调用）。
+// password 为空时使用 "123456"。仅首次创建生效，已存在用户不会改密。
+func EnsureDefaultAdmin(password string) {
+	admin, _ := GetUser(1)
+	if admin != nil {
+		return
+	}
+	if len(password) == 0 {
+		password = "123456"
+	}
+	if err := AddUser(&UserDTO{
+		User: models.User{
+			Id:         1,
+			Username:   "admin",
+			Nickname:   "admin",
+			Password:   password,
+			EnableFlag: true,
+		},
+	}); err != nil {
+		logs.Errorf("init admin user error: %v", err)
+		return
+	}
+	logs.Infof("init admin user (password from config or default)")
 }
 
 type UserDTO struct {
