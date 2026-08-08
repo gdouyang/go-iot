@@ -19,7 +19,7 @@ import (
 	"go-iot/pkg/models"
 	"go-iot/pkg/models/base"
 	modelNetWork "go-iot/pkg/models/network"
-	"go-iot/pkg/network/servers/goiot_mqtt5"
+	"go-iot/pkg/network/platform/mqtt5"
 	"go-iot/pkg/option"
 	"go-iot/pkg/redis"
 	"go-iot/pkg/ruleengine"
@@ -120,7 +120,7 @@ func (a *App) Start(ctx context.Context) error {
 		logger.Infof("app start: cluster disabled (single node)")
 	}
 
-	if err := goiot_mqtt5.Start(); err != nil {
+	if err := mqtt5.Start(); err != nil {
 		return fmt.Errorf("mqtt5 server start: %w", err)
 	}
 	logger.Infof("app start: goiot mqtt5 started")
@@ -151,7 +151,7 @@ func (a *App) Stop(ctx context.Context) error {
 		}
 	}
 
-	if err := goiot_mqtt5.Stop(); err != nil {
+	if err := mqtt5.Stop(); err != nil {
 		logger.Errorf("mqtt5 stop: %v", err)
 		if firstErr == nil {
 			firstErr = err

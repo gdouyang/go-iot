@@ -30,10 +30,15 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 )
 
+// sessionSeq 全局自增序号：替代 time.Now().UnixNano() 生成 session id——
+// Windows 时钟精度 ~ms 级，并发连接时纳秒时间戳几乎必然重复，
+// 导致 clients map 互相覆盖、连接丢失（压测多连接场景必现）
+var sessionSeq atomic.Uint64
+
 func newWebsocketSession(conn *websocket.Conn, r *http.Request, wsServer *WebSocketServer, productId string) *WebsocketSession {
 	r.ParseForm()
 	session := &WebsocketSession{
-		id:         fmt.Sprintf("ws%d", time.Now().UnixNano()),
+		id:         fmt.Sprintf("ws%d", sessionSeq.Add(1)),
 		wsServer:   wsServer,
 		conn:       conn,
 		header:     r.Header,
@@ -116,16 +121,34 @@ func (s *WebsocketSession) Close() error {
 	return err
 }
 
-func (s *WebsocketSession) SendText(msg string) error {
+func (s *WebsocketSession) SendText(msg string) (err error) {
+	// 断开后 send 通道已 close：检查状态 + recover 兑底，避免
+	// "send on closed channel" panic 击穿进程（设备断开瞬间脚本响应消息）
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("send to closed session: %v", r)
+		}
+	}()
+	if s.disconnected() {
+		return fmt.Errorf("session disconnected")
+	}
 	s.send <- &wsMsg{messageType: websocket.TextMessage, data: []byte(msg)}
 	return nil
 }
 
-func (s *WebsocketSession) SendBinary(msg string) error {
+func (s *WebsocketSession) SendBinary(msg string) (err error) {
 	payload, err := hex.DecodeString(msg)
 	if err != nil {
 		logs.Warnf("Error message, message is not a hex string: %v", err)
 		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("send to closed session: %v", r)
+		}
+	}()
+	if s.disconnected() {
+		return fmt.Errorf("session disconnected")
 	}
 	s.send <- &wsMsg{messageType: websocket.BinaryMessage, data: payload}
 	return nil
@@ -138,7 +161,11 @@ func (c *WebsocketSession) disconnected() bool {
 // close1 closes the websocket connection and removes the session from the hub.
 func (s *WebsocketSession) close1() {
 	s.Close()
-	core.DelSessionWithTimeoutCheck(s.deviceId)
+	// 只清理仍属于本连接的 session：同 deviceId 重复连接时，新连接的 DeviceOnline
+	// 已把 core session 覆盖为新对象，旧连接断开不得误删新连接的 session（假离线）
+	if cur := core.GetSession(s.deviceId); cur == s {
+		core.DelSessionWithTimeoutCheck(s.deviceId)
+	}
 }
 
 // readLoop pumps messages from the websocket connection to the hub.

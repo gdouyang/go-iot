@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"go-iot/pkg/timeseries"
 
 	"github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/udp"
 	"github.com/stretchr/testify/require"
 )
@@ -46,11 +48,7 @@ func TestCoapServer_DeviceOnlineAndSaveProperties(t *testing.T) {
 	}
 	srv := coapserver.NewServer()
 	require.NoError(t, srv.Start(conf))
-	t.Cleanup(func() {
-		// Coap Stop 可能在 server 未赋值时 panic，做保护
-		defer func() { _ = recover() }()
-		_ = srv.Stop()
-	})
+	t.Cleanup(func() { _ = srv.Stop() })
 	_, err := core.NewCodec(conf.CodecId, conf.ProductId, conf.Script)
 	require.NoError(t, err)
 	time.Sleep(100 * time.Millisecond)
@@ -81,4 +79,69 @@ func TestCoapServerSpec_FromJson(t *testing.T) {
 		Configuration: `{bad`,
 	})
 	require.Error(t, err)
+}
+
+// TestCoapServer_ConcurrentRequests 覆盖并发 UDP 请求：
+// coap 是无状态模型，高并发请求不得 panic、数据不得丢失
+func TestCoapServer_ConcurrentRequests(t *testing.T) {
+	timeseries.MockReset()
+	port := testhelper.FreeUDPPort(t)
+	productId := fmt.Sprintf("coap-conc-%d", port)
+	testhelper.InitCore()
+	core.DeleteProduct(productId)
+	product, err := core.NewProduct(productId, map[string]string{}, core.TIME_SERISE_MOCK, testhelper.DefaultTSL())
+	require.NoError(t, err)
+	require.NoError(t, core.PutProduct(product))
+	for i := 0; i < 20; i++ {
+		require.NoError(t, core.PutDevice(core.NewDevice(fmt.Sprintf("coap-conc-%d", i), productId, 0)))
+	}
+
+	conf := network.NetworkConf{
+		ProductId:     productId,
+		CodecId:       "script_codec",
+		Port:          port,
+		Script:        script,
+		Configuration: `{"host":"127.0.0.1","useTLS":false,"routers":[{"url":"/test"}]}`,
+	}
+	srv := coapserver.NewServer()
+	require.NoError(t, srv.Start(conf))
+	t.Cleanup(func() { _ = srv.Stop() })
+	_, err = core.NewCodec(conf.CodecId, conf.ProductId, conf.Script)
+	require.NoError(t, err)
+	time.Sleep(100 * time.Millisecond)
+
+	const n = 20
+	var wg sync.WaitGroup
+	errCh := make(chan error, n)
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			deviceId := fmt.Sprintf("coap-conc-%d", i)
+			co, err := udp.Dial(fmt.Sprintf("127.0.0.1:%d", port))
+			if err != nil {
+				errCh <- err
+				return
+			}
+			defer co.Close()
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			body := fmt.Sprintf(`{"deviceId":"%s","temperature":%d}`, deviceId, i)
+			res, err := co.Post(ctx, "/test?deviceId="+deviceId, message.AppJSON, strings.NewReader(body))
+			if err != nil {
+				errCh <- err
+				return
+			}
+			if res.Code() != codes.Content {
+				errCh <- fmt.Errorf("req %d: code=%s", i, res.Code().String())
+			}
+		}(i)
+	}
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		t.Errorf("concurrent request error: %v", err)
+	}
+	// 20 个请求全部落数
+	require.EqualValues(t, n, timeseries.MockPropertiesCount())
 }

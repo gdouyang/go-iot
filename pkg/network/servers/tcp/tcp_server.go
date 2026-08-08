@@ -129,6 +129,34 @@ func (s *TcpServer) Reload() error {
 func (s *TcpServer) Stop() error {
 	close(s.done)
 	s.listener.Close()
+
+	// 关闭所有已有连接：快照 + 限流并发（全量 go 会瞬间产生大量 goroutine；
+	// 串行关闭又太慢）。Disconnect 触发 readLoop 退出 → close1 → map/session 清理
+	var sessions []*TcpSession
+	func() {
+		s.Lock()
+		defer s.Unlock()
+		sessions = make([]*TcpSession, 0, len(s.clients))
+		for _, v := range s.clients {
+			sessions = append(sessions, v)
+		}
+		// 用空 map 而非 nil（迟到连接写入时不会 nil map panic）
+		s.clients = make(map[string]*TcpSession)
+	}()
+
+	const closeConcurrency = 2000
+	sem := make(chan struct{}, closeConcurrency)
+	var wg sync.WaitGroup
+	for _, v := range sessions {
+		wg.Add(1)
+		go func(sess *TcpSession) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			_ = sess.Disconnect()
+		}(v)
+	}
+	wg.Wait()
 	return nil
 }
 

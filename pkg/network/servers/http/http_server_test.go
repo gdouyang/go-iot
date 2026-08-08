@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -139,4 +140,68 @@ func TestHttpServer_NotFoundPath(t *testing.T) {
 	require.NoError(t, err)
 	defer res.Body.Close()
 	require.Equal(t, http.StatusNotFound, res.StatusCode)
+}
+
+// TestHttpServer_ConcurrentRequests 覆盖并发请求：
+// http 是无状态模型，高并发请求不得 panic、响应必须完整、数据不得丢失
+func TestHttpServer_ConcurrentRequests(t *testing.T) {
+	timeseries.MockReset()
+	port := testhelper.FreeTCPPort(t)
+	productId := fmt.Sprintf("http-conc-%d", port)
+	testhelper.InitCore()
+	core.DeleteProduct(productId)
+	product, err := core.NewProduct(productId, map[string]string{}, core.TIME_SERISE_MOCK, testhelper.DefaultTSL())
+	require.NoError(t, err)
+	require.NoError(t, core.PutProduct(product))
+	for i := 0; i < 20; i++ {
+		require.NoError(t, core.PutDevice(core.NewDevice(fmt.Sprintf("http-conc-%d", i), productId, 0)))
+	}
+
+	conf := network.NetworkConf{
+		ProductId:     productId,
+		CodecId:       "script_codec",
+		Port:          port,
+		Script:        script,
+		Configuration: `{"host":"127.0.0.1","useTLS":false,"routers":[{"url":"/test"}]}`,
+	}
+	srv := httpserver.NewServer()
+	require.NoError(t, srv.Start(conf))
+	t.Cleanup(func() { _ = srv.Stop() })
+	_, err = core.NewCodec(conf.CodecId, conf.ProductId, conf.Script)
+	require.NoError(t, err)
+	time.Sleep(50 * time.Millisecond)
+
+	const n = 20
+	var wg sync.WaitGroup
+	errCh := make(chan error, n)
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			deviceId := fmt.Sprintf("http-conc-%d", i)
+			body := fmt.Sprintf(`{"deviceId":"%s","temperature":%d}`, deviceId, i)
+			u := fmt.Sprintf("http://127.0.0.1:%d/test?deviceId=%s", port, deviceId)
+			res, err := http.Post(u, "application/json", strings.NewReader(body))
+			if err != nil {
+				errCh <- err
+				return
+			}
+			defer res.Body.Close()
+			data, err := io.ReadAll(res.Body)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			if res.StatusCode != http.StatusOK || !strings.Contains(string(data), "ok") {
+				errCh <- fmt.Errorf("req %d: status=%d body=%s", i, res.StatusCode, data)
+			}
+		}(i)
+	}
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		t.Errorf("concurrent request error: %v", err)
+	}
+	// 20 个请求全部落数
+	require.EqualValues(t, n, timeseries.MockPropertiesCount())
 }

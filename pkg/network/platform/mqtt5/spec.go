@@ -1,4 +1,4 @@
-package goiot_mqtt5
+package mqtt5
 
 import (
 	"crypto/tls"

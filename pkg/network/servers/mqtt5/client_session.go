@@ -144,6 +144,23 @@ func (s *ClientAndSession) Close() error {
 	return nil
 }
 
+// closeByBroker 由 broker 的 OnDisconnect 回调调用（broker 锁已持有）：
+// 只关闭 session 本地资源，不调用 DisconnectClient——客户端已处于断开流程，
+// DisconnectClient 会同步回调 OnDisconnect 造成 broker 锁重入死锁。
+// 用 TryLock：OnDisconnect 可能被 DisconnectClient 同步触发（调用者已持有本锁），
+// 拿不到锁说明关闭流程由锁持有方（Close/Disconnect）负责，跳过即可。
+func (s *ClientAndSession) closeByBroker() {
+	if !s.TryLock() {
+		return
+	}
+	defer s.Unlock()
+	if s.isClose {
+		return
+	}
+	s.isClose = true
+	close(s.done)
+}
+
 func (s *ClientAndSession) SetDeviceId(deviceId string) {
 	s.info.deviceId = deviceId
 }

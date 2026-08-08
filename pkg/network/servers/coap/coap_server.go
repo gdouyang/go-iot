@@ -61,13 +61,15 @@ func (s *CoapServer) Start(network network.NetworkConf) error {
 	if err != nil {
 		return err
 	}
+	// server 必须先赋值再启动 Serve：Serve 阻塞，若在 goroutine 内赋值，
+	// Stop() 会因 s.server 为 nil 而 panic（原实现 Stop 从未真正生效）
+	server := udp.NewServer(options.WithMux(s))
+	s.server = server
 	go func() {
-		server := udp.NewServer(options.WithMux(s))
 		err := server.Serve(l)
 		if err != nil {
 			logs.Errorf("start coap server error: %v", err)
 		}
-		s.server = server
 	}()
 	logs.Infof("coap server start: %s %s", s.productId, addr)
 	return nil

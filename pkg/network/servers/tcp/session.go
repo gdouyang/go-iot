@@ -19,11 +19,16 @@ const (
 	Disconnected = 2
 )
 
+// sessionSeq 全局自增序号：替代 time.Now().UnixNano() 生成 session id——
+// Windows 时钟精度 ~ms 级，并发连接时纳秒时间戳几乎必然重复，
+// 导致 clients map 互相覆盖、连接丢失（压测多连接场景必现）
+var sessionSeq atomic.Uint64
+
 func newTcpSession(server *TcpServer, conn net.Conn, productId string) *TcpSession {
 	//2.网络数据流分隔器
 	delimeter := NewDelimeter(server.spec.Delimeter, conn)
 	session := &TcpSession{
-		id:         fmt.Sprintf("tcp%d", time.Now().UnixNano()),
+		id:         fmt.Sprintf("tcp%d", sessionSeq.Add(1)),
 		tcpServer:  server,
 		conn:       conn,
 		productId:  productId,
@@ -95,16 +100,34 @@ func (s *TcpSession) Close() error {
 	return err
 }
 
-func (s *TcpSession) Send(msg string) error {
+func (s *TcpSession) Send(msg string) (err error) {
+	// 断开后 send 通道已 close：检查状态 + recover 兑底，避免
+	// "send on closed channel" panic 击穿进程（设备断开瞬间脚本响应消息）
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("send to closed session: %v", r)
+		}
+	}()
+	if s.disconnected() {
+		return fmt.Errorf("session disconnected")
+	}
 	s.send <- []byte(msg)
 	return nil
 }
 
-func (s *TcpSession) SendHex(msgHex string) error {
+func (s *TcpSession) SendHex(msgHex string) (err error) {
 	b, err := hex.DecodeString(msgHex)
 	if err != nil {
 		logs.Errorf("tcp hex decode error: %v", err)
 		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("send to closed session: %v", r)
+		}
+	}()
+	if s.disconnected() {
+		return fmt.Errorf("session disconnected")
 	}
 	s.send <- b
 	return nil
@@ -116,7 +139,11 @@ func (c *TcpSession) disconnected() bool {
 
 func (s *TcpSession) close1() {
 	s.Close()
-	core.DelSessionWithTimeoutCheck(s.deviceId)
+	// 只清理仍属于本连接的 session：同 deviceId 重复连接时，新连接的 DeviceOnline
+	// 已把 core session 覆盖为新对象，旧连接断开不得误删新连接的 session（假离线）
+	if cur := core.GetSession(s.deviceId); cur == s {
+		core.DelSessionWithTimeoutCheck(s.deviceId)
+	}
 }
 
 func (s *TcpSession) readLoop() {

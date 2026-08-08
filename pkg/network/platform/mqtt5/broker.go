@@ -1,4 +1,4 @@
-package goiot_mqtt5
+package mqtt5
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"runtime/debug"
 	"sync"
+	"time"
 
 	logs "go-iot/pkg/logger"
 
@@ -76,12 +77,38 @@ func Stop() error {
 }
 
 func (b *Broker) Stop() error {
-	b.Lock()
-	defer b.Unlock()
-	for _, v := range b.clients {
-		go v.Close()
+	var clients []*ClientAndSession
+	func() {
+		b.Lock()
+		defer b.Unlock()
+		clients = make([]*ClientAndSession, 0, len(b.clients))
+		for _, v := range b.clients {
+			clients = append(clients, v)
+		}
+		b.clients = make(map[string]*ClientAndSession)
+	}()
+
+	// 限流并发关闭：全量 go 会瞬间产生 10 万 goroutine 并在 mochi clients map 上激烈竞争；
+	// 串行关闭又太慢（每个 Close 含 DisconnectClient）。用信号量限制同时关闭数。
+	const closeConcurrency = 2000
+	sem := make(chan struct{}, closeConcurrency)
+	var wg sync.WaitGroup
+	for _, v := range clients {
+		wg.Add(1)
+		go func(c *ClientAndSession) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			c.Close()
+			// Stop 已清空 clients map，后续 OnDisconnect 拿不到 client 对象，
+			// 在此补 session 下线（幂等，OnDisconnect 已处理时无副作用）
+			core.DelSessionWithTimeoutCheck(c.info.deviceId)
+		}(v)
 	}
-	b.clients = make(map[string]*ClientAndSession)
+	wg.Wait()
+
+	// server.Close 必须在锁外：mochi CloseAll 会等待 Serve goroutine 退出，
+	// 而它可能正阻塞在 OnDisconnect 的 b.Lock 上（同 clientID 重复连接路径），持锁等待会死锁
 	if b.server != nil {
 		err := b.server.Close()
 		b.server = nil
@@ -93,8 +120,10 @@ func (b *Broker) Stop() error {
 func (s *Broker) init(spec *MQTTServerSpec) error {
 	// Create the new MQTT Server.
 	var capabilities = mqtt.NewDefaultServerCapabilities()
-	capabilities.MaximumClientWritesPending = 1024
-	capabilities.MaximumInflight = 1024
+	// 大连接量场景下调小每连接缓冲，降低内存占用（10万连接约省700MB）
+	// 压测场景以 QoS0 上报为主，128 深度写队列足够；QoS1/2 大批量下发时再调大
+	capabilities.MaximumClientWritesPending = 128
+	capabilities.MaximumInflight = 128
 	server := mqtt.New(&mqtt.Options{
 		Logger:       slog.New(logs.NewSugaredHandler()),
 		Capabilities: capabilities,
@@ -223,7 +252,7 @@ func (h *BrokerHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packet) b
 			return false
 		}
 		if err := ctx.DeviceOnline(ctx.DeviceId); err != nil {
-			logs.Errorf("goiot_mqtt5 DeviceOnline error: %v", err)
+			logs.Errorf("mqtt5 DeviceOnline error: %v", err)
 			return false
 		}
 	}
@@ -243,20 +272,34 @@ func (h *BrokerHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
 	} else {
 		logs.Debugf("client disconnected %s expire: %v", cl.ID, expire)
 	}
-	var getLock = h.broker.TryLock()
-	var unlock = func() {
-		if getLock {
+	// 有限重试获取锁：锁内只有 map 操作（微秒级），正常竞争窗口极短；
+	// 持锁方异常卡死（如认证脚本死循环）时有限重试后放弃，保证断开处理不阻塞系统
+	// （残留条目/session 由同 ID 重连覆盖或 Stop 兜底）
+	for i := 0; i < 100; i++ {
+		if h.broker.TryLock() {
+			// 锁内只做条目删除（微秒级）；closeByBroker/DelSession 等慢操作全部移到锁外
+			var client *ClientAndSession
+			logs.Debugf("delete client: %s", cl.ID)
+			if c := h.broker.clients[cl.ID]; c != nil && c.client == cl {
+				// 只清理属于本次断开的连接：同 clientID 抢占（session takeover）时，新连接
+				// 的 OnConnectAuthenticate 已把 clients[id] 替换为新条目，若按 ID 清理会
+				// 误删新连接条目并下线其 session（新连接"失明"、上报静默丢弃）
+				client = c
+				delete(h.broker.clients, cl.ID)
+			}
 			h.broker.Unlock()
+			if client != nil {
+				// closeByBroker 幂等（TryLock + isClose 判断）；DelSession 不能放在 !isClose 内：
+				// Stop 场景 v.Close() 先置 isClose，后触发的 OnDisconnect 会跳过导致 session 残留
+				client.closeByBroker()
+				core.DelSessionWithTimeoutCheck(client.info.deviceId)
+			}
+			return
 		}
+		time.Sleep(time.Millisecond)
 	}
-	defer unlock()
-	logs.Debugf("delete client: %s", cl.ID)
-	var client = h.broker.clients[cl.ID]
-	if client != nil && !client.isClose {
-		client.Close()
-		core.DelSessionWithTimeoutCheck(client.info.deviceId)
-	}
-	delete(h.broker.clients, cl.ID)
+	// 放弃：持锁方异常卡死（如认证脚本死循环），系统保活优先
+	logs.Warnf("mqtt5 OnDisconnect give up lock for client %s after 100ms", cl.ID)
 }
 
 // 当客户端成功订阅一个或多个主题时调用。
@@ -273,7 +316,11 @@ func (h *BrokerHook) OnUnsubscribed(cl *mqtt.Client, pk packets.Packet) {
 func (h *BrokerHook) OnPublished(cl *mqtt.Client, pk packets.Packet) {
 	logs.Debugf("published to client: %s payload: %s", cl.ID, string(pk.Payload))
 
+	// RLock 保护 clients map 读取（与 OnConnectAuthenticate/OnDisconnect 的写入并发时
+	// 无锁读会触发 fatal: concurrent map read and map write）
+	h.broker.RLock()
 	c := h.broker.clients[cl.ID]
+	h.broker.RUnlock()
 	if c == nil {
 		// client might be disconnected or not yet in map
 		return

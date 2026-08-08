@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func startMqtt5(t *testing.T, productId, script string) (port int32, cleanup func()) {
+func startMqtt5(t *testing.T, productId, script string) (port int32, broker *mqttserver.Broker, cleanup func()) {
 	t.Helper()
 	port = testhelper.FreeTCPPort(t)
 	testhelper.SetupProductDevice(t, productId, "dev-m5-ok")
@@ -35,7 +35,7 @@ func startMqtt5(t *testing.T, productId, script string) (port int32, cleanup fun
 	_, err := core.NewCodec(conf.CodecId, conf.ProductId, conf.Script)
 	require.NoError(t, err)
 	time.Sleep(150 * time.Millisecond)
-	return port, func() { _ = b.Stop() }
+	return port, b, func() { _ = b.Stop() }
 }
 
 func mqtt5Connect(t *testing.T, port int32, clientID string) (*autopaho.ConnectionManager, context.CancelFunc) {
@@ -66,7 +66,7 @@ function OnConnect(context) {
 }
 function OnMessage(context) {}
 `
-	port, cleanup := startMqtt5(t, productId, script)
+	port, _, cleanup := startMqtt5(t, productId, script)
 	defer cleanup()
 
 	// ghost：DeviceOnline 失败后 broker 会拒绝连接（autopaho 会重试直到超时）
@@ -106,7 +106,7 @@ function OnMessage(context) {
   context.SaveProperties({temperature: 1})
 }
 `
-	port, cleanup := startMqtt5(t, productId, script)
+	port, _, cleanup := startMqtt5(t, productId, script)
 	defer cleanup()
 
 	c, cancel := mqtt5Connect(t, port, "dev-m5-ok")
@@ -137,7 +137,7 @@ function OnMessage(context) {
   throw "mqtt5 boom"
 }
 `
-	port, cleanup := startMqtt5(t, productId, script)
+	port, _, cleanup := startMqtt5(t, productId, script)
 	defer cleanup()
 
 	c, cancel := mqtt5Connect(t, port, "dev-m5-ok")
