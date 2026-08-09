@@ -103,6 +103,10 @@ func (c *ScriptCodec) OnStateChecker(ctx core.DeviceLifecycleContext) (string, e
 
 func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Value, err error) {
 	vm := c.pool.Get()
+	if vm == nil {
+		// 池已关闭（脚本重新部署中）：在途调用直接返回，避免 nil vm 执行崩溃
+		return nil, fmt.Errorf("codec pool closed for product: %s", c.productId)
+	}
 	defer c.pool.Put(vm)
 	fn, success := goja.AssertFunction(vm.Get(name))
 	if success {
