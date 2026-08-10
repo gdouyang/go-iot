@@ -121,7 +121,7 @@ func doCmdInvoke(message FuncInvoke, cache bool) *common.Err {
 		// timeout of invoke
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
-		message.Replay = make(chan *FuncInvokeReply)
+		message.Replay = make(chan *FuncInvokeReply, 1) // 缓冲 1：命令超时后设备迟到应答不阻塞发送方 goroutine
 		go func(ctx context.Context) {
 			err = codec.OnInvoke(invokeContext)
 			if nil != err {

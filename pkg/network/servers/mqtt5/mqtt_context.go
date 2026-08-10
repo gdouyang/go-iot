@@ -49,7 +49,9 @@ func (ctx *authContext) DeviceOnline(deviceId string) error {
 		return fmt.Errorf("device [%s] not exist or noActive", deviceId)
 	}
 	ctx.DeviceId = deviceId
+	ctx.client.infoMu.Lock()
 	ctx.client.info.deviceId = deviceId
+	ctx.client.infoMu.Unlock()
 	ctx.authFailCode = 0
 	// 认证成功、让设备上线
 	baseContext := &core.BaseContext{

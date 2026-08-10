@@ -102,7 +102,10 @@ func (b *Broker) Stop() error {
 			c.Close()
 			// Stop 已清空 clients map，后续 OnDisconnect 拿不到 client 对象，
 			// 在此补 session 下线（幂等，OnDisconnect 已处理时无副作用）
-			core.DelSessionWithTimeoutCheck(c.info.deviceId)
+			c.infoMu.Lock()
+			did := c.info.deviceId
+			c.infoMu.Unlock()
+			core.DelSessionWithTimeoutCheck(did)
 		}(v)
 	}
 	wg.Wait()
@@ -222,8 +225,10 @@ func (h *BrokerHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packet) b
 	}
 
 	productId := dev.ProductId
+	client.infoMu.Lock()
 	client.info.productId = productId
 	client.info.deviceId = deviceId
+	client.infoMu.Unlock()
 
 	// check auth
 	ctx := &authContext{
@@ -292,7 +297,10 @@ func (h *BrokerHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
 				// closeByBroker 幂等（TryLock + isClose 判断）；DelSession 不能放在 !isClose 内：
 				// Stop 场景 v.Close() 先置 isClose，后触发的 OnDisconnect 会跳过导致 session 残留
 				client.closeByBroker()
-				core.DelSessionWithTimeoutCheck(client.info.deviceId)
+				client.infoMu.Lock()
+				did := client.info.deviceId
+				client.infoMu.Unlock()
+				core.DelSessionWithTimeoutCheck(did)
 			}
 			return
 		}
@@ -325,16 +333,19 @@ func (h *BrokerHook) OnPublished(cl *mqtt.Client, pk packets.Packet) {
 		// client might be disconnected or not yet in map
 		return
 	}
+	c.infoMu.Lock()
+	productId := c.info.productId
+	c.infoMu.Unlock()
 	// 调用编解码脚本处理
-	sc := core.GetCodec(c.info.productId)
+	sc := core.GetCodec(productId)
 	if sc == nil {
-		logs.Warnf("codec not found for product: %s", c.info.productId)
+		logs.Warnf("codec not found for product: %s", productId)
 		return
 	}
 	sc.OnMessage(&mqttContext{
 		BaseContext: core.BaseContext{
 			DeviceId:  c.GetDeviceId(),
-			ProductId: c.info.productId,
+			ProductId: productId,
 			Session:   c,
 		},
 		Data:      pk.Payload,

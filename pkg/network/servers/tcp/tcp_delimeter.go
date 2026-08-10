@@ -108,6 +108,11 @@ func (p *PipePayloadParser) init() {
 	if err != nil {
 		log.Panicln(err)
 	}
+	// 等待 splitFunc 返回后再启动读取 goroutine：handler 内执行的 JS 与 splitFunc 共用
+	// 同一个 goja VM（非线程安全），并发执行会触发数据竞争；此后所有 VM 调用均发生在读取 goroutine 上。
+	if p.firstInit != nil {
+		p.parser.handle()
+	}
 }
 
 func (p *PipePayloadParser) Delimited(delim string) *PipePayloadParser {
@@ -115,7 +120,6 @@ func (p *PipePayloadParser) Delimited(delim string) *PipePayloadParser {
 		p.firstInit = func(parser *payloadParser) {
 			parser.delimitedMode(delim)
 		}
-		p.parser.handle()
 	}
 	p.parser.delimitedMode(delim)
 	return p
@@ -126,7 +130,6 @@ func (p *PipePayloadParser) Fixed(size int) {
 		p.firstInit = func(parser *payloadParser) {
 			parser.fixedSizeMode(size)
 		}
-		p.parser.handle()
 	}
 	p.parser.fixedSizeMode(size)
 }
@@ -138,7 +141,9 @@ func (p *PipePayloadParser) AddHandler(handler func(data []byte)) {
 func (p *PipePayloadParser) Complete() {
 	p.dataChan <- p.result
 	p.currentPipe.Store(0)
-	p.result = p.result[0:0]
+	// 置 nil 而非 p.result[0:0]：dataChan 接收方持有的 slice 与 p.result 共享底层数组，
+	// 复用底层数组会使接收方读取旧数据与 AppendResult 的追加写入并发执行，产生数据竞争。
+	p.result = nil
 	if p.firstInit != nil {
 		p.firstInit(p.parser)
 	}
@@ -203,8 +208,9 @@ func (p *payloadParser) handle() {
 			buf := make([]byte, 100)
 			count, err := p.reader.Read(buf)
 			if err != nil {
-				logger.Errorf("payloadParser read error: %v", err)
-				continue
+				// 连接关闭即终止读取循环：continue 会在连接关闭后反复记录错误日志，
+				// 泄漏的 goroutine 跨测试存活，且其日志调用会与后续 logger 初始化产生数据竞争。
+				return
 			}
 			data := buf[0:count]
 			p.buff = append(p.buff, data...)

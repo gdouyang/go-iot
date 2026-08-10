@@ -19,7 +19,7 @@ type SugaredHandler struct {
 // NewSugaredHandler 创建适配器
 func NewSugaredHandler() *SugaredHandler {
 	return &SugaredHandler{
-		logger: defaultLogger,
+		logger: defaultLogger.Load(),
 	}
 }
 

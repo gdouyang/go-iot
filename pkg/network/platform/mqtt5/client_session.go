@@ -37,6 +37,8 @@ type (
 		broker      *Broker
 		client      *mqtt.Client
 		info        ClientInfo
+		infoMu      sync.Mutex // 保护 info（特别是 deviceId）读写：NewClient 接管替换整块 info 会
+		           // 与并发 OnPublished→GetDeviceId race；与 broker.Lock 锁序独立
 		isClose     bool
 		done        chan struct{}
 		connectInfo map[string]any
@@ -60,10 +62,17 @@ func NewClient(cl *mqtt.Client, broker *Broker) *ClientAndSession {
 	oldSession := core.GetSession(cl.ID)
 	if oldSession != nil {
 		newSession = oldSession.(*ClientAndSession)
+		// infoMu 内：接管替换整块 info 与并发 GetDeviceId/GetConInfo race；保留旧
+		// deviceId（原实现 newSession.info = info 会覆盖 SetDeviceId 设进的 deviceId）。
+		newSession.infoMu.Lock()
+		if len(newSession.info.deviceId) > 0 {
+			info.deviceId = newSession.info.deviceId
+		}
 		newSession.client = cl
 		newSession.info = info
 		newSession.done = make(chan struct{})
 		newSession.isClose = false
+		newSession.infoMu.Unlock()
 	} else {
 		newSession = &ClientAndSession{
 			broker:      broker,
@@ -78,21 +87,28 @@ func NewClient(cl *mqtt.Client, broker *Broker) *ClientAndSession {
 }
 
 func (c *ClientAndSession) ClientID() string {
+	c.infoMu.Lock()
+	defer c.infoMu.Unlock()
 	return c.info.cid
 }
 
 func (c *ClientAndSession) UserName() string {
+	c.infoMu.Lock()
+	defer c.infoMu.Unlock()
 	return c.info.username
 }
 
 func (c *ClientAndSession) Done() <-chan struct{} {
+	c.infoMu.Lock()
+	defer c.infoMu.Unlock()
 	return c.done
 }
 
 // device session functions
 func (s *ClientAndSession) Publish(topic string, payload string) {
-	var qos byte
+	s.infoMu.Lock()
 	qos, ok := s.info.Topics[topic]
+	s.infoMu.Unlock()
 	if !ok {
 		qos = QoS0
 	}
@@ -110,8 +126,9 @@ func (s *ClientAndSession) PublishHex(topic string, payload string) {
 		logs.Errorf("mqtt hex decode error: %v", err)
 		return
 	}
-	var qos byte
+	s.infoMu.Lock()
 	qos, ok := s.info.Topics[topic]
+	s.infoMu.Unlock()
 	if !ok {
 		qos = byte(QoS0)
 	}
@@ -124,7 +141,10 @@ func (s *ClientAndSession) PublishHex(topic string, payload string) {
 }
 
 func (s *ClientAndSession) Disconnect() error {
-	core.DelSessionByUserDisconnect(s.info.deviceId)
+	s.infoMu.Lock()
+	did := s.info.deviceId
+	s.infoMu.Unlock()
+	core.DelSessionByUserDisconnect(did)
 	s.Close()
 	return nil
 }
@@ -133,14 +153,22 @@ func (s *ClientAndSession) Close() error {
 	s.Lock()
 	defer s.Unlock()
 
+	// isClose/done/client 与 info 字段统一由 infoMu 保护，与 NewClient 接管路径保持同一把锁；
+	// s.Lock 仅作为 Close 与 closeByBroker 之间的重入护栏。
+	// DisconnectClient 必须在释放 infoMu 之后调用：其同步触发的 OnDisconnect 会获取 broker.Lock，
+	// 而 OnConnectAuthenticate 持有 broker.Lock 等待 infoMu，持锁调用将形成锁序反转。
+	s.infoMu.Lock()
 	if s.isClose {
+		s.infoMu.Unlock()
 		return nil
 	}
-
 	s.isClose = true
 	close(s.done)
-	if !s.client.Closed() {
-		s.broker.server.DisconnectClient(s.client, packets.CodeDisconnect)
+	client := s.client
+	s.infoMu.Unlock()
+
+	if !client.Closed() {
+		s.broker.server.DisconnectClient(client, packets.CodeDisconnect)
 	}
 	return nil
 }
@@ -155,6 +183,8 @@ func (s *ClientAndSession) closeByBroker() {
 		return
 	}
 	defer s.Unlock()
+	s.infoMu.Lock()
+	defer s.infoMu.Unlock()
 	if s.isClose {
 		return
 	}
@@ -163,14 +193,24 @@ func (s *ClientAndSession) closeByBroker() {
 }
 
 func (s *ClientAndSession) SetDeviceId(deviceId string) {
+	s.infoMu.Lock()
+	defer s.infoMu.Unlock()
 	s.info.deviceId = deviceId
 }
 
 func (s *ClientAndSession) GetDeviceId() string {
+	s.infoMu.Lock()
+	defer s.infoMu.Unlock()
 	return s.info.deviceId
 }
 
 func (s *ClientAndSession) GetConInfo() map[string]any {
+	// GetConInfo 写共享 s.connectInfo：与并发 API 查询/其它 GetConInfo 不持锁会
+	// fatal: concurrent map read and map write
+	s.Lock()
+	defer s.Unlock()
+	s.infoMu.Lock()
+	defer s.infoMu.Unlock()
 	var protocolVersion = s.client.Properties.ProtocolVersion
 	var protocolInfo = "MQTT 5.0"
 	if protocolVersion < 5 {

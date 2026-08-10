@@ -25,8 +25,6 @@ func init() {
 	})
 }
 
-var m = map[string]*Broker{}
-
 type (
 	// Broker is MQTT5 server, manages clients, topics, sessions, etc.
 	Broker struct {
@@ -123,7 +121,6 @@ func (s *Broker) Start(network network.NetworkConf) error {
 	}()
 
 	s.server = server
-	m[spec.Name] = s
 	return nil
 }
 
@@ -155,7 +152,10 @@ func (b *Broker) Stop() error {
 			c.Close()
 			// Stop 已清空 clients map，后续 OnDisconnect 拿不到 client 对象，
 			// 在此补 session 下线（幂等，OnDisconnect 已处理时无副作用）
-			core.DelSessionWithTimeoutCheck(c.info.deviceId)
+			c.infoMu.Lock()
+			did := c.info.deviceId
+			c.infoMu.Unlock()
+			core.DelSessionWithTimeoutCheck(did)
 		}(v)
 	}
 	wg.Wait()
@@ -274,7 +274,10 @@ func (h *BrokerHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
 				// closeByBroker 幂等（TryLock + isClose 判断）；DelSession 不能放在 !isClose 内：
 				// Stop 场景 v.Close() 先置 isClose，后触发的 OnDisconnect 会跳过导致 session 残留
 				client.closeByBroker()
-				core.DelSessionWithTimeoutCheck(client.info.deviceId)
+				client.infoMu.Lock()
+				did := client.info.deviceId
+				client.infoMu.Unlock()
+				core.DelSessionWithTimeoutCheck(did)
 			}
 			return
 		}

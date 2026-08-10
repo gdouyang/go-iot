@@ -106,7 +106,7 @@ func TestGoiotMqtt5_StopWithActiveConnections(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 	require.EqualValues(t, len(deviceIds), broker.TotalConnection())
 	for _, did := range deviceIds {
-		require.NotNil(t, core.GetSession(did))
+		assertSession(t, did, true)
 	}
 
 	done := make(chan struct{})
@@ -121,7 +121,7 @@ func TestGoiotMqtt5_StopWithActiveConnections(t *testing.T) {
 	}
 	require.EqualValues(t, 0, broker.TotalConnection())
 	for _, did := range deviceIds {
-		require.Nil(t, core.GetSession(did))
+		waitSessionGone(t, did)
 	}
 }
 
@@ -134,11 +134,11 @@ func TestGoiotMqtt5_DisconnectCleanup(t *testing.T) {
 	defer cancel()
 	time.Sleep(300 * time.Millisecond)
 	require.EqualValues(t, 1, broker.TotalConnection())
-	require.NotNil(t, core.GetSession("pf-disc-0"))
+	assertSession(t, "pf-disc-0", true)
 
 	require.NoError(t, c.Disconnect(context.Background()))
 	waitTotalConnection(t, 0)
-	require.Nil(t, core.GetSession("pf-disc-0"))
+	waitSessionGone(t, "pf-disc-0")
 }
 
 // TestGoiotMqtt5_DuplicateClientID 覆盖内置 broker 的同 clientID 重复连接路径
@@ -165,6 +165,33 @@ func TestGoiotMqtt5_DuplicateClientID(t *testing.T) {
 		}
 		if time.Now().After(deadline) {
 			t.Fatalf("duplicate clientID connections not recovered, TotalConnection=%d", n)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// assertSession 仅比较 nil 且错误信息只包含 deviceId 字符串：
+// 避免断言失败时 testify 对包含 sync.Mutex 的 session 值执行 %#v 格式化，
+// 该格式化会并发读取锁状态，与持锁写入的 goroutine 构成数据竞争。
+func assertSession(t *testing.T, deviceId string, wantOnline bool) {
+	t.Helper()
+	if got := core.GetSession(deviceId) != nil; got != wantOnline {
+		t.Fatalf("session %s online=%v, want %v", deviceId, got, wantOnline)
+	}
+}
+
+// waitSessionGone 轮询等待 session 下线：OnDisconnect 的清理过程是异步的
+// （broker 锁 TryLock 重试与 DelSessionWithTimeoutCheck），TotalConnection()==0
+// 不保证 session 已删除，一次性断言可能落入清理窗口。
+func waitSessionGone(t *testing.T, deviceId string) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if core.GetSession(deviceId) == nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("session %s not cleaned up within 5s", deviceId)
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
@@ -210,7 +237,7 @@ func TestGoiotMqtt5_AbruptDisconnect(t *testing.T) {
 	conn := rawPlatformMqtt5Connect(t, port, "pf-abrupt-0")
 	time.Sleep(300 * time.Millisecond)
 	require.EqualValues(t, 1, broker.TotalConnection())
-	require.NotNil(t, core.GetSession("pf-abrupt-0"))
+	assertSession(t, "pf-abrupt-0", true)
 
 	// 异常断开：直接关闭 TCP，不发 DISCONNECT
 	require.NoError(t, conn.Close())
@@ -224,5 +251,5 @@ func TestGoiotMqtt5_AbruptDisconnect(t *testing.T) {
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	require.Nil(t, core.GetSession("pf-abrupt-0"))
+	waitSessionGone(t, "pf-abrupt-0")
 }

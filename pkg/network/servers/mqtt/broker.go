@@ -20,8 +20,6 @@ func init() {
 	})
 }
 
-var m = map[string]*Broker{}
-
 type (
 	// Broker is MQTT server, will manage client, topic, session, etc.
 	Broker struct {
@@ -69,7 +67,6 @@ func (s *Broker) Start(network network.NetworkConf) error {
 
 	go s.run()
 
-	m[spec.Name] = s
 	return nil
 }
 
@@ -118,12 +115,8 @@ func (b *Broker) Stop() error {
 func (b *Broker) deleteSession(clientID string) {
 	b.Lock()
 	defer b.Unlock()
-	if c, ok := b.clients[clientID]; ok {
-		if !c.disconnected() {
-			logs.Debugf("broker watch and delete client %v", c.info.cid)
-			c.close()
-		}
-	}
+	// close() 先置 disconnected 再调本方法，原 "!disconnected() 则 c.close()" 分支恒不执行，
+	// 且会造成 b.Lock 内调 close → close 锁外调 deleteSession 的锁重入，直接删除
 	delete(b.clients, clientID)
 }
 
@@ -301,6 +294,7 @@ func (b *Broker) removeClient(clientID string) {
 }
 
 func (b *Broker) TotalConnection() int32 {
-	l := len(b.clients)
-	return int32(l)
+	b.RLock()
+	defer b.RUnlock()
+	return int32(len(b.clients))
 }

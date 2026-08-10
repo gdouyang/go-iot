@@ -6,6 +6,7 @@ import (
 	"go-iot/pkg/tsl"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	logs "go-iot/pkg/logger"
@@ -20,7 +21,8 @@ type ModbusSession struct {
 	mutex        sync.Mutex
 	lock         chan bool
 	workingCount int
-	stopped      bool
+	stopped      atomic.Bool
+	closeOnce    sync.Once
 	client       *ModbusClient
 	tcpInfo      *TcpInfo
 	rtuInfo      *RtuInfo
@@ -37,12 +39,15 @@ func newSession() *ModbusSession {
 }
 
 func (s *ModbusSession) Disconnect() error {
-	if !s.stopped {
+	// API Close 与 reload/codec 关闭路径可能并发触发 Disconnect；原实现无锁读/写 stopped
+	// 后 close(s.done)/close(s.lock) 会发生 close of closed channel panic。
+	// sync.Once 保证 done 只 close 一次；不 close s.lock 以免与并发 lockAddress 的
+	// s.lock<-true 互相击穿為 send on closed channel panic。
+	s.closeOnce.Do(func() {
+		s.stopped.Store(true)
 		core.DelSessionByUserDisconnect(s.deviceId)
-		s.stopped = true
 		close(s.done)
-		close(s.lock)
-	}
+	})
 	return nil
 }
 
@@ -103,7 +108,7 @@ func (s *ModbusSession) setValue(parimaryTable string, startingAddress uint16, l
 
 // lockAddress mark address is unavailable because real device handle one request at a time
 func (s *ModbusSession) lockAddress(address string) error {
-	if s.stopped {
+	if s.stopped.Load() {
 		return fmt.Errorf("service attempts to stop and unable to handle new request")
 	}
 	s.mutex.Lock()

@@ -203,6 +203,7 @@ type ShakeLimit struct {
 }
 
 type shakeLimitGroup struct {
+	mu    sync.Mutex
 	total int
 	first map[string]any
 	last  map[string]any
@@ -219,6 +220,7 @@ func (s *ShakeLimit) init(handler func(deviceId string, data map[string]any)) {
 				s.group.Range(func(key, v any) bool {
 					deviceId := key.(string)
 					v1 := v.(*shakeLimitGroup)
+					v1.mu.Lock()
 					if v1.total > 0 {
 						if v1.total >= s.Threshold {
 							if s.AlarmFirst {
@@ -231,6 +233,7 @@ func (s *ShakeLimit) init(handler func(deviceId string, data map[string]any)) {
 						v1.last = nil
 						v1.total = 0
 					}
+					v1.mu.Unlock()
 					return true
 				})
 			case <-s.quit:
@@ -241,17 +244,21 @@ func (s *ShakeLimit) init(handler func(deviceId string, data map[string]any)) {
 	}()
 }
 func (s *ShakeLimit) close() {
-	s.quit <- struct{}{}
+	// 幂等：重复 Stop 时 init goroutine 已退出，阻塞发送会卡死 API 线程
+	select {
+	case s.quit <- struct{}{}:
+	default:
+	}
 }
 
 // 添加数据
 func (s *ShakeLimit) add(deviceId string, data map[string]any) {
-	v, ok := s.group.Load(deviceId)
-	if !ok {
-		v = &shakeLimitGroup{}
-		s.group.Store(deviceId, v)
-	}
+	// LoadOrStore：并发首次触发时同 deviceId 只产生一个组，避免孤儿组丢计数
+	v, _ := s.group.LoadOrStore(deviceId, &shakeLimitGroup{})
 	v1 := v.(*shakeLimitGroup)
+	// 字段读写与 init goroutine 及并发事件回调竞争，须持锁
+	v1.mu.Lock()
+	defer v1.mu.Unlock()
 	if !s.AlarmFirst {
 		v1.last = data
 	} else if v1.total == 0 {

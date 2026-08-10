@@ -23,7 +23,6 @@ const (
 	SUBDEVICE = "subdevice" // 子设备
 
 	DEVICE_TIMEOUT_KEY = "offlineTimeout" // 设备离线超时时间，单位秒
-	deviceIsDisconnect = "isDisconnect"   // 设备连接是否断开
 )
 
 // 函数没有实现

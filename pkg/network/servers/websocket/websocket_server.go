@@ -151,6 +151,7 @@ func (b *WebSocketServer) removeClient(clientID string) {
 }
 
 func (s *WebSocketServer) TotalConnection() int32 {
-	l := len(s.clients)
-	return int32(l)
+	s.RLock()
+	defer s.RUnlock()
+	return int32(len(s.clients))
 }

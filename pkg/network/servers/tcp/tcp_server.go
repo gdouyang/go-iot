@@ -19,8 +19,6 @@ func init() {
 	})
 }
 
-var m = map[string]*TcpServer{}
-
 type (
 	TcpServer struct {
 		sync.RWMutex
@@ -66,7 +64,6 @@ func (s *TcpServer) Start(network network.NetworkConf) error {
 	}
 
 	go s.run()
-	m[network.ProductId] = s
 	return nil
 }
 
@@ -171,6 +168,7 @@ func (b *TcpServer) removeClient(clientID string) {
 }
 
 func (s *TcpServer) TotalConnection() int32 {
-	l := len(s.clients)
-	return int32(l)
+	s.RLock()
+	defer s.RUnlock()
+	return int32(len(s.clients))
 }

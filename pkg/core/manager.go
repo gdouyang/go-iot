@@ -4,6 +4,7 @@ import (
 	"errors"
 	"go-iot/pkg/eventbus"
 	"strconv"
+	"sync"
 )
 
 // 从Session管理器中获取设备Session
@@ -13,26 +14,28 @@ func GetSession(deviceId string) Session {
 
 // 判断设备是否连接断开, session存在也不意味着设备已连接
 func IsDeviceDisconnect(deviceId string) bool {
-	session := GetSession(deviceId)
-	if session == nil {
+	if GetSession(deviceId) == nil {
 		return true
 	}
-	if session.GetConInfo() != nil {
-		if v, ok := session.GetConInfo()[deviceIsDisconnect]; ok {
-			return v.(bool)
-		}
+	if v, ok := deviceDisconnect.Load(deviceId); ok {
+		return v.(bool)
 	}
 	return false
 }
 
+// deviceIsDisconnect 标记：原存于 session.GetConInfo() map，上下线事件、超时检查、
+// API 查询连接信息并发读写同一 map 会 fatal: concurrent map read and map write，
+// 改为包级 sync.Map 按 deviceId 隔离（生命周期随 session 增删）
+var deviceDisconnect sync.Map // deviceId -> bool
+
 // 将设备Session放入到Session管理器中
 func PutSession(deviceId string, session Session, sendOnlineEvent bool) {
 	defaultSessions.Put(deviceId, session)
+	deviceDisconnect.Store(deviceId, false)
 	device := GetDevice(deviceId)
 	if device != nil && sendOnlineEvent {
 		DeviceOnlineEvent(deviceId, device.GetProductId())
 	}
-	session.GetConInfo()[deviceIsDisconnect] = false
 	// 发送离线命令
 	sendOfflineCommands(deviceId)
 }
@@ -45,6 +48,9 @@ func DelSessionByUserDisconnect(deviceId string) {
 func DelSessionWithOfflineReason(deviceId string, msg string) {
 	device := GetDevice(deviceId)
 	if device != nil {
+		// key 与 session 同生命周期：无论 Delete 是否成功（会话可能已被 Redis 侧过期），
+		// 标记都随之清除；缺失等价于 false（在线），不影响后续新会话
+		deviceDisconnect.Delete(device.Id)
 		if defaultSessions.Delete(device.Id) {
 			DeviceOfflineEvent(device.Id, device.GetProductId(), msg)
 		}
@@ -62,8 +68,8 @@ func DelSessionWithTimeoutCheck(deviceId string) {
 			timeout, err := strconv.Atoi(timeoutStr)
 			if err == nil && timeout > 0 {
 				session := GetSession(device.Id)
-				if session != nil && session.GetConInfo() != nil {
-					session.GetConInfo()[deviceIsDisconnect] = true
+				if session != nil {
+					deviceDisconnect.Store(device.Id, true)
 				} else {
 					DelSessionByUserDisconnect(deviceId)
 				}
@@ -86,81 +92,108 @@ func DeviceOfflineEvent(deviceId, productId string, message string) {
 	eventbus.PublishOffline(&evt)
 }
 
-// 设备存储器，保存已发布的设备、产品，mem, redis
-var defaultStore DeviceStore
+// 设备存储器，保存已发布的设备、产品，mem, redis。
+// 生产仅在启动期 Reg 一次；测试中每个 case 会 Reg，而上一个 case 残留的 session
+// goroutine 可能仍在并发 GetDevice 读 defaultStore——无锁读写会被 race detector
+// 判定 DATA RACE。用 RWMutex 保护读写以根治。
+var (
+	defaultStore DeviceStore
+	storeMu      sync.RWMutex
+)
 
-// 注册设备存储器
+// RegDeviceStore 注册设备存储器（nil 静默忽略）。
 func RegDeviceStore(c DeviceStore) {
+	if c == nil {
+		return
+	}
+	storeMu.Lock()
 	defaultStore = c
+	storeMu.Unlock()
+}
+
+// getStore 返回当前存储器快照（可为 nil）。
+func getStore() DeviceStore {
+	storeMu.RLock()
+	s := defaultStore
+	storeMu.RUnlock()
+	return s
 }
 
 // GetDeviceStore 返回当前设备存储器（可为 nil）。
 func GetDeviceStore() DeviceStore {
-	return defaultStore
+	return getStore()
 }
 
 // 获取设备
 func GetDevice(deviceId string) *Device {
-	if defaultStore == nil {
+	s := getStore()
+	if s == nil {
 		return nil
 	}
-	return defaultStore.GetDevice(deviceId)
+	return s.GetDevice(deviceId)
 }
 
 // 将设备放入存储器
 func PutDevice(device *Device) error {
-	if defaultStore == nil {
+	s := getStore()
+	if s == nil {
 		return errors.New("device store not registered")
 	}
-	return defaultStore.PutDevice(device)
+	return s.PutDevice(device)
 }
 
 // 将设备从存储器中删除
 func DeleteDevice(deviceId string) {
-	if defaultStore == nil {
+	s := getStore()
+	if s == nil {
 		return
 	}
-	defaultStore.DelDevice(deviceId)
+	s.DelDevice(deviceId)
 }
 
 // 获取设备数据
 func GetDeviceData(deviceId, key string) string {
-	if defaultStore == nil {
+	s := getStore()
+	if s == nil {
 		return ""
 	}
-	return defaultStore.GetDeviceData(deviceId, key)
+	return s.GetDeviceData(deviceId, key)
 }
 
 // 设置设备数据
 func SetDeviceData(deviceId, key string, val string) {
-	if defaultStore == nil {
+	s := getStore()
+	if s == nil {
 		return
 	}
-	defaultStore.SetDeviceData(deviceId, key, val)
+	s.SetDeviceData(deviceId, key, val)
 }
 
 // 获取产品
 func GetProduct(productId string) *Product {
-	if defaultStore == nil {
+	s := getStore()
+	if s == nil {
 		return nil
 	}
-	return defaultStore.GetProduct(productId)
+	return s.GetProduct(productId)
 }
 
 // 将产品放入存储器
 func PutProduct(product *Product) error {
-	if defaultStore == nil {
+	s := getStore()
+	if s == nil {
 		return errors.New("device store not registered")
 	}
-	return defaultStore.PutProduct(product)
+	return s.PutProduct(product)
 }
 
 // 将产品从存储器中删除
 func DeleteProduct(productId string) {
-	if defaultStore == nil {
+	s := getStore()
+	if s == nil {
 		return
 	}
-	defaultStore.DelProduct(productId)
+	s.DelProduct(productId)
 }
 
 // DeviceStore 设备存储器，保存已发布的设备、产品，mem, redis

@@ -47,7 +47,6 @@ func newWebsocketSession(conn *websocket.Conn, r *http.Request, wsServer *WebSoc
 		productId:  productId,
 		send:       make(chan *wsMsg, 256),
 		statusFlag: Connected,
-		info:       map[string]any{},
 	}
 	return session
 }
@@ -70,7 +69,6 @@ type WebsocketSession struct {
 	// Buffered channel of outbound messages.
 	send       chan *wsMsg
 	statusFlag int32
-	info       map[string]any
 }
 
 func (s *WebsocketSession) SetDeviceId(deviceId string) {
@@ -81,22 +79,27 @@ func (s *WebsocketSession) GetDeviceId() string {
 	return s.deviceId
 }
 func (s *WebsocketSession) GetConInfo() map[string]any {
-	s.info["requestURI"] = s.requestURI
-	s.info["header"] = s.header
-	s.info["form"] = s.form
-	s.info["localAddr"] = func() string {
-		if s.conn != nil {
-			return s.conn.LocalAddr().String()
-		}
-		return "unknown"
-	}()
-	s.info["remoteAddr"] = func() string {
-		if s.conn != nil {
-			return s.conn.RemoteAddr().String()
-		}
-		return "unknown"
-	}()
-	return s.info
+	// 锁内重建并返回新 map：原实现每次调用写共享 s.info（与 API 并发查询/其它调用
+	// 并发写同一 map 会 fatal: concurrent map read and map write）
+	s.Lock()
+	defer s.Unlock()
+	return map[string]any{
+		"requestURI": s.requestURI,
+		"header":     s.header,
+		"form":       s.form,
+		"localAddr": func() string {
+			if s.conn != nil {
+				return s.conn.LocalAddr().String()
+			}
+			return "unknown"
+		}(),
+		"remoteAddr": func() string {
+			if s.conn != nil {
+				return s.conn.RemoteAddr().String()
+			}
+			return "unknown"
+		}(),
+	}
 }
 
 func (s *WebsocketSession) Disconnect() error {

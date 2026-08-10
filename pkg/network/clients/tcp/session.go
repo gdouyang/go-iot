@@ -6,6 +6,7 @@ import (
 	tcpserver "go-iot/pkg/network/servers/tcp"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	logs "go-iot/pkg/logger"
@@ -30,6 +31,7 @@ func newTcpSession(deviceId string, s *TcpClientSpec, productId string, conn net
 }
 
 type TcpSession struct {
+	mu        sync.Mutex
 	conn      net.Conn
 	deviceId  string
 	productId string
@@ -61,12 +63,17 @@ func (s *TcpSession) SendHex(msgHex string) error {
 	return err
 }
 
+// Disconnect 幂等：API Close 与 readLoop defer Disconnect 可能并发触发，
+// 无锁读/写 isClose 会发生 double close(s.done) panic
 func (s *TcpSession) Disconnect() error {
+	s.mu.Lock()
 	if s.isClose {
+		s.mu.Unlock()
 		return nil
 	}
-	close(s.done)
 	s.isClose = true
+	close(s.done)
+	s.mu.Unlock()
 	err := s.conn.Close()
 	core.DelSessionByUserDisconnect(s.deviceId)
 	return err
@@ -85,6 +92,10 @@ func (s *TcpSession) GetDeviceId() string {
 }
 
 func (s *TcpSession) GetConInfo() map[string]any {
+	// GetConInfo 写共享 s.info：并发 API 查询会写该 map，不持锁会
+	// fatal: concurrent map read and map write
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.info["localAddr"] = func() string {
 		if s.conn != nil {
 			return s.conn.LocalAddr().String()

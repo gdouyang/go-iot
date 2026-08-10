@@ -106,15 +106,15 @@ func (s *MqttSession) getPacketFromMsg(topic string, payload []byte, qos byte) *
 	return p
 }
 
-func (s *MqttSession) publish(topic string, payload []byte, qos byte) {
+// publishLocked 由调用方持 s.Lock 调用，内部不再取锁。选 qos 与写 pending 均在临界区内，
+// 保证 topic-qos 读取与 nextID/pending 写入对 subscribe/unsubscribe 互斥；
+// 否则 Publish 无锁读 s.info.Topics 与 subscribe 的 s.Lock 写促成 concurrent map read and map write。
+func (s *MqttSession) publishLocked(topic string, payload []byte, qos byte) {
 	client := s.broker.getClient(s.info.ClientID)
 	if client == nil {
 		logs.Errorf("client %s is offline in eg %v", s.info.ClientID, s.broker.productId)
 		return
 	}
-
-	s.Lock()
-	defer s.Unlock()
 
 	logs.Debugf("session %v publish %v", s.info.ClientID, topic)
 	p := s.getPacketFromMsg(topic, payload, qos)
@@ -141,12 +141,13 @@ func (s *MqttSession) puback(p *packets.PubackPacket) {
 
 // device session functions
 func (s *MqttSession) Publish(topic string, payload string) {
-	var qos int
+	s.Lock()
+	defer s.Unlock()
 	qos, ok := s.info.Topics[topic]
 	if !ok {
 		qos = int(QoS0)
 	}
-	s.publish(topic, []byte(payload), byte(qos))
+	s.publishLocked(topic, []byte(payload), byte(qos))
 }
 
 func (s *MqttSession) PublishHex(topic string, payload string) {
@@ -155,12 +156,13 @@ func (s *MqttSession) PublishHex(topic string, payload string) {
 		logs.Errorf("mqtt hex decode error: %v", err)
 		return
 	}
-	var qos int
+	s.Lock()
+	defer s.Unlock()
 	qos, ok := s.info.Topics[topic]
 	if !ok {
 		qos = int(QoS0)
 	}
-	s.publish(topic, b, byte(qos))
+	s.publishLocked(topic, b, byte(qos))
 }
 
 func (s *MqttSession) Disconnect() error {
@@ -176,11 +178,16 @@ func (s *MqttSession) Disconnect() error {
 
 func (s *MqttSession) Close() error {
 	if s.cleanSession() {
+		// 锁内检查+置位+close：readLoop 退出与重连踢旧会话可能并发调 Close，
+		// 原实现无锁会 double close(s.done) panic
+		s.Lock()
 		if s.isClose {
+			s.Unlock()
 			return nil
 		}
-		close(s.done)
 		s.isClose = true
+		close(s.done)
+		s.Unlock()
 		logs.Debugf("session close %s", s.info.deviceId)
 		client := s.broker.getClient(s.info.ClientID)
 		if client != nil {
@@ -197,6 +204,10 @@ func (s *MqttSession) GetDeviceId() string {
 	return s.info.deviceId
 }
 func (s *MqttSession) GetConInfo() map[string]any {
+	// GetConInfo 每次 payload 写 s.info1：与其它并发 GetConInfo/API 查询不持锁会
+	// fatal: concurrent map read and map write 清写共享 map
+	s.Lock()
+	defer s.Unlock()
 	s.info1["username"] = s.info.Username
 	s.info1["clientID"] = s.info.ClientID
 	s.info1["cleanSession"] = s.info.CleanFlag

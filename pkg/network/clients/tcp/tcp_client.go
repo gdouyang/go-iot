@@ -7,6 +7,7 @@ import (
 	"go-iot/pkg/network"
 	"go-iot/pkg/network/clients"
 	"net"
+	"sync"
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 }
 
 type TcpClient struct {
+	mu        sync.Mutex
 	conn      net.Conn
 	deviceId  string
 	productId string
@@ -65,7 +67,9 @@ func (c *TcpClient) Connect(deviceId string, network network.NetworkConf) error 
 func (c *TcpClient) readLoop() {
 	session := newTcpSession(c.deviceId, c.spec, c.productId, c.conn)
 	defer session.Disconnect()
+	c.mu.Lock()
 	c.session = session
+	c.mu.Unlock()
 
 	sc := core.GetCodec(c.productId)
 
@@ -85,6 +89,12 @@ func (c *TcpClient) Reload() error {
 }
 
 func (c *TcpClient) Close() error {
-	c.session.Disconnect()
+	// readLoop goroutine 中赋值 c.session，Close 可能并发发生：取锁 + nil 判断
+	c.mu.Lock()
+	session := c.session
+	c.mu.Unlock()
+	if session != nil {
+		session.Disconnect()
+	}
 	return nil
 }

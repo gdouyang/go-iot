@@ -6,6 +6,8 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/network"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	logs "go-iot/pkg/logger"
 
@@ -34,9 +36,10 @@ type MqttClientSession struct {
 	ClientID  string
 	Username  string
 	CleanFlag bool
+	disconn   sync.Once
 	choke     chan MQTT.Message
 	done      chan struct{}
-	isClose   bool
+	isClose   atomic.Bool
 	core      core.Codec
 	info      map[string]any
 }
@@ -122,12 +125,13 @@ func (s *MqttClientSession) PublishQos1(topic string, msg interface{}) error {
 }
 
 func (s *MqttClientSession) Disconnect() error {
-	if s.isClose {
-		return nil
-	}
-	s.isClose = true
-	s.client.Disconnect(250)
-	core.DelSessionByUserDisconnect(s.deviceId)
+	// API Close、readLoop defer 与 connectionLostHandler 可能并发触发 Disconnect；
+	// 无锁读/写 isClose 会重复 Disconnect/repeat。
+	s.disconn.Do(func() {
+		s.isClose.Store(true)
+		s.client.Disconnect(250)
+		core.DelSessionByUserDisconnect(s.deviceId)
+	})
 	return nil
 }
 

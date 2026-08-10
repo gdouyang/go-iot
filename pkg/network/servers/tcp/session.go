@@ -63,6 +63,10 @@ func (s *TcpSession) GetDeviceId() string {
 	return s.deviceId
 }
 func (s *TcpSession) GetConInfo() map[string]any {
+	// GetConInfo 写共享 s.info：与并发 API 查询/其它 GetConInfo 不持锁会
+	// fatal: concurrent map read and map write
+	s.Lock()
+	defer s.Unlock()
 	s.info["localAddr"] = func() string {
 		if s.conn != nil {
 			return s.conn.LocalAddr().String()

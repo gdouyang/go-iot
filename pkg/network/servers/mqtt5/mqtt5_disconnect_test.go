@@ -102,7 +102,7 @@ function OnMessage(context) {}
 	time.Sleep(300 * time.Millisecond)
 	require.EqualValues(t, 5, b.TotalConnection())
 	for _, did := range deviceIds {
-		require.NotNil(t, core.GetSession(did))
+		assertSession(t, did, true)
 	}
 
 	done := make(chan struct{})
@@ -119,7 +119,7 @@ function OnMessage(context) {}
 	require.EqualValues(t, 0, b.TotalConnection())
 	// Stop 后 session 全部下线
 	for _, did := range deviceIds {
-		require.Nil(t, core.GetSession(did))
+		waitSessionGone(t, did)
 	}
 }
 
@@ -152,6 +152,33 @@ func TestMqtt5_DuplicateClientID_KickOld(t *testing.T) {
 		}
 		if time.Now().After(deadline) {
 			t.Fatalf("duplicate clientID connections not recovered, TotalConnection=%d", n)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// assertSession 仅比较 nil 且错误信息只包含 deviceId 字符串：
+// 避免断言失败时 testify 对包含 sync.Mutex 的 session 值执行 %#v 格式化，
+// 该格式化会并发读取锁状态，与持锁写入的 goroutine 构成数据竞争。
+func assertSession(t *testing.T, deviceId string, wantOnline bool) {
+	t.Helper()
+	if got := core.GetSession(deviceId) != nil; got != wantOnline {
+		t.Fatalf("session %s online=%v, want %v", deviceId, got, wantOnline)
+	}
+}
+
+// waitSessionGone 轮询等待 session 下线：OnDisconnect 的清理过程是异步的
+// （broker 锁 TryLock 重试与 DelSessionWithTimeoutCheck），TotalConnection()==0
+// 不保证 session 已删除，一次性断言可能落入清理窗口。
+func waitSessionGone(t *testing.T, deviceId string) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if core.GetSession(deviceId) == nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("session %s not cleaned up within 5s", deviceId)
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
@@ -204,7 +231,7 @@ function OnMessage(context) {}
 	conn := rawMqtt5Connect(t, port, "dev-m5-ok")
 	time.Sleep(300 * time.Millisecond)
 	require.EqualValues(t, 1, b.TotalConnection())
-	require.NotNil(t, core.GetSession("dev-m5-ok"))
+	assertSession(t, "dev-m5-ok", true)
 
 	// 异常断开：直接关闭 TCP，不发 DISCONNECT
 	require.NoError(t, conn.Close())
@@ -218,7 +245,7 @@ function OnMessage(context) {}
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	require.Nil(t, core.GetSession("dev-m5-ok"))
+	waitSessionGone(t, "dev-m5-ok")
 }
 // 原 TryLock 失败跳过版本会残留 session（TotalConnection 不归零、GetSession 仍在）；
 // 修复后 OnDisconnect 必须完成 map 删除 + session 下线。
@@ -240,7 +267,7 @@ function OnMessage(context) {}
 	defer cancel()
 	time.Sleep(300 * time.Millisecond)
 	require.EqualValues(t, 1, b.TotalConnection())
-	require.NotNil(t, core.GetSession("dev-m5-ok"))
+	assertSession(t, "dev-m5-ok", true)
 
 	require.NoError(t, c.Disconnect(context.Background()))
 	// 等待 OnDisconnect 完成清理
@@ -254,7 +281,7 @@ function OnMessage(context) {}
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	require.Nil(t, core.GetSession("dev-m5-ok"))
+	waitSessionGone(t, "dev-m5-ok")
 }
 
 // TestMqtt5_StopThenLateConnection 覆盖 Stop 后迟到的连接（autopaho 自动重连）：

@@ -5,6 +5,7 @@ import (
 	"go-iot/pkg/option"
 	"io"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -28,9 +29,14 @@ const (
 
 var (
 	// 默认 Nop，避免未 Init 时测试/早期日志空指针；生产路径仍应调用 Init。
-	defaultLogger = zap.NewNop().Sugar()
-	lowestLevel   = zap.InfoLevel
+	// 使用 atomic 保证 Init/InitNop 与并发日志调用之间的可见性，避免全局初始化竞争。
+	defaultLogger atomic.Pointer[zap.SugaredLogger]
+	lowestLevel   atomic.Int32
 )
+
+func init() {
+	defaultLogger.Store(zap.NewNop().Sugar())
+}
 
 func defaultEncoderConfig() zapcore.EncoderConfig {
 	timeEncoder := func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
@@ -57,11 +63,11 @@ func initDefault(opt *option.Options, file bool) {
 
 	switch opt.Log.Level {
 	case "debug":
-		lowestLevel = zap.DebugLevel
+		lowestLevel.Store(int32(zap.DebugLevel))
 	case "warn":
-		lowestLevel = zap.WarnLevel
+		lowestLevel.Store(int32(zap.WarnLevel))
 	case "error":
-		lowestLevel = zap.ErrorLevel
+		lowestLevel.Store(int32(zap.ErrorLevel))
 	}
 
 	var goiotLF io.Writer = os.Stdout
@@ -89,15 +95,16 @@ func initDefault(opt *option.Options, file bool) {
 	if format == "json" {
 		encoder = zapcore.NewJSONEncoder(encoderConfig)
 	}
+	level := zapcore.Level(lowestLevel.Load())
 	stdoutSyncer := zapcore.AddSync(os.Stdout)
-	stdoutCore := zapcore.NewCore(encoder, stdoutSyncer, lowestLevel)
+	stdoutCore := zapcore.NewCore(encoder, stdoutSyncer, level)
 
 	goiotSyncer := zapcore.AddSync(goiotLF)
-	goiotCore := zapcore.NewCore(encoder, goiotSyncer, lowestLevel)
+	goiotCore := zapcore.NewCore(encoder, goiotSyncer, level)
 
 	defaultCore := goiotCore
 	if goiotLF != os.Stdout && goiotLF != os.Stderr {
 		defaultCore = zapcore.NewTee(goiotCore, stdoutCore)
 	}
-	defaultLogger = zap.New(defaultCore, opts...).Sugar()
+	defaultLogger.Store(zap.New(defaultCore, opts...).Sugar())
 }

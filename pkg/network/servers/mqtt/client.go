@@ -190,10 +190,12 @@ func (c *Client) close() {
 	logs.Debugf("client %v connection close", c.info.cid)
 	atomic.StoreInt32(&c.statusFlag, Disconnected)
 	close(c.done) // 删除
-	c.broker.deleteSession(c.info.cid)
-	c.broker.removeClient(c.info.cid)
 	c.conn.Close()
 	c.Unlock()
+	// 锁外清理 map：原实现在 c.Lock 内调 deleteSession（b.Lock），与 deleteSession
+	// 持 b.Lock 调 c.close()（c.Lock）构成锁序反转，重连风暴时互等死锁
+	c.broker.deleteSession(c.info.cid)
+	c.broker.removeClient(c.info.cid)
 	if c.session != nil {
 		c.session.Disconnect()
 	}

@@ -10,6 +10,7 @@ import (
 	"go-iot/pkg/eventbus"
 	"go-iot/pkg/redis"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 
@@ -65,7 +66,14 @@ type Subscriber struct {
 	Topic     string
 	Addr      string
 	Conn      *websocket.Conn
+	// 每订阅者独立写队列与退出信号：慢/死客户端只阻塞自己的写 goroutine，不拖累其它订阅者
+	send chan []byte
+	done chan struct{}
 }
+
+// subQueueSize 每订阅者写队列容量；满则丢弃新帧（遥测实时性优先），
+// 写 goroutine 仍会按写超时清理死连接
+const subQueueSize = 64
 
 // 集群间转发的事件包装
 type clusterMessage struct {
@@ -97,6 +105,9 @@ type eventHub struct {
 	subscribe   chan Subscriber
 	unsubscribe chan Subscriber
 	publish     chan eventbus.Message
+	// subscribers 仅在 writeLoop goroutine 上被修改；mu 用于保护跨 goroutine 的读
+	// 操作（如测试与监控的长度轮询）。dispatch 的遍历与写入同属一个 goroutine，无需加锁。
+	mu          sync.Mutex
 	subscribers *list.List
 	matcher     *eventbus.AntPathMatcher
 }
@@ -118,11 +129,38 @@ func (e *eventHub) writeLoop() {
 	for {
 		select {
 		case sub := <-e.subscribe:
+			sub.send = make(chan []byte, subQueueSize)
+			sub.done = make(chan struct{})
+			e.mu.Lock()
 			e.subscribers.PushBack(&sub)
+			e.mu.Unlock()
+			go sub.writeLoop(e)
 		case event := <-e.publish:
 			e.dispatch(event)
 		case unsub := <-e.unsubscribe:
 			e.removeByAddr(unsub.Addr)
+		}
+	}
+}
+
+// writeWait 单次写超时；与设备侧 WebSocket 会话保持一致。
+// 作用于各订阅者自己的写 goroutine，不影响其它订阅者
+const writeWait = 10 * time.Second
+
+// writeLoop 订阅者专属写循环：hub 入队非阻塞，这里串行写本连接。
+// 写失败（客户端断开/写超时）即通知 hub 移除自己，死连接不会残留
+func (s *Subscriber) writeLoop(e *eventHub) {
+	for {
+		select {
+		case payload := <-s.send:
+			_ = s.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := s.Conn.WriteMessage(websocket.TextMessage, payload); err != nil {
+				// 通知所属 hub 移除自己并关闭连接，死连接不会残留
+				e.unsubscribe <- Subscriber{Addr: s.Addr}
+				return
+			}
+		case <-s.done:
+			return
 		}
 	}
 }
@@ -140,7 +178,11 @@ func (e *eventHub) dispatch(event eventbus.Message) {
 		if sub.Conn == nil || !e.matcher.Match(sub.Topic, path) {
 			continue
 		}
-		_ = sub.Conn.WriteMessage(websocket.TextMessage, payload)
+		select {
+		case sub.send <- payload:
+		default:
+			// 该订阅者消费慢：丢弃本帧，不影响其它订阅者；死连接由其写 goroutine 超时清理
+		}
 		if clusterFanout {
 			publishClusterEvent(event, payload)
 			// 每个本机事件只需 Pub 一次，避免按订阅者重复广播
@@ -173,12 +215,17 @@ func (e *eventHub) removeByAddr(addr string) {
 	if e.subscribers == nil {
 		return
 	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	for el := e.subscribers.Front(); el != nil; el = el.Next() {
 		sub := el.Value.(*Subscriber)
 		if sub.Addr != addr {
 			continue
 		}
 		e.subscribers.Remove(el)
+		if sub.done != nil {
+			close(sub.done) // 终止该订阅者写 goroutine
+		}
 		if sub.Conn != nil {
 			_ = sub.Conn.Close()
 		}
