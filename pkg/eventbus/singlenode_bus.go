@@ -2,7 +2,10 @@ package eventbus
 
 import (
 	"reflect"
+	"runtime/debug"
 	"sync"
+
+	logs "go-iot/pkg/logger"
 )
 
 // event bus of single node
@@ -43,7 +46,16 @@ func (bus *SingleNodeEventBus) publish(topic string, data Message) {
 	for pattern, listener := range bus.m {
 		if bus.match(pattern, topic) {
 			for _, callback := range listener {
-				go callback(data)
+				// 订阅者含用户规则、OTA 等外部逻辑：recover 兜底，
+				// 单个订阅者 panic 不击穿整个进程（协议/HTTP 层已有同款保护）
+				go func(cb func(data Message)) {
+					defer func() {
+						if r := recover(); r != nil {
+							logs.Errorf("eventbus subscriber panic: %v\n%s", r, debug.Stack())
+						}
+					}()
+					cb(data)
+				}(callback)
 			}
 		}
 	}

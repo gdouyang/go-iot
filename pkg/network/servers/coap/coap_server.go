@@ -7,6 +7,7 @@ import (
 	logs "go-iot/pkg/logger"
 	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
+	"runtime/debug"
 
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -66,6 +67,11 @@ func (s *CoapServer) Start(network network.NetworkConf) error {
 	server := udp.NewServer(options.WithMux(s))
 	s.server = server
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logs.Errorf("coap server panic: %v\n%s", r, debug.Stack())
+			}
+		}()
 		err := server.Serve(l)
 		if err != nil {
 			logs.Errorf("start coap server error: %v", err)

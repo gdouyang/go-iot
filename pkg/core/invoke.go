@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"go-iot/pkg/common"
 	"go-iot/pkg/tsl"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
+
+	logs "go-iot/pkg/logger"
 
 	"github.com/google/uuid"
 )
@@ -110,6 +113,11 @@ func doCmdInvoke(message FuncInvoke, cache bool) *common.Err {
 	}
 	if async {
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					logs.Errorf("async invoke panic: %v\n%s", r, debug.Stack())
+				}
+			}()
 			codec.OnInvoke(invokeContext)
 		}()
 		return nil
@@ -123,9 +131,17 @@ func doCmdInvoke(message FuncInvoke, cache bool) *common.Err {
 		defer cancel()
 		message.Replay = make(chan *FuncInvokeReply, 1) // 缓冲 1：命令超时后设备迟到应答不阻塞发送方 goroutine
 		go func(ctx context.Context) {
-			err = codec.OnInvoke(invokeContext)
-			if nil != err {
-				message.Replay <- &FuncInvokeReply{Success: false, Msg: err.Error()}
+			// 局部变量：避免与外层超时分支的 err 写竞争（race）
+			defer func() {
+				if r := recover(); r != nil {
+					logs.Errorf("sync invoke panic: %v\n%s", r, debug.Stack())
+					// 立即回复失败，调用方不必干等超时
+					message.Replay <- &FuncInvokeReply{Success: false, Msg: "设备调用内部错误"}
+				}
+			}()
+			invokeErr := codec.OnInvoke(invokeContext)
+			if nil != invokeErr {
+				message.Replay <- &FuncInvokeReply{Success: false, Msg: invokeErr.Error()}
 			}
 		}(ctx)
 		select {
@@ -251,6 +267,11 @@ func sendOfflineCommands(deviceId string) {
 	}
 	// 异步执行，避免阻塞上线路径
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logs.Errorf("sendOfflineCommands panic: %v\n%s", r, debug.Stack())
+			}
+		}()
 		for _, message := range cmds {
 			message.Async = "false"
 			DoCmdInvoke(message)

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -120,6 +121,11 @@ func (a *deviceApi) importDevice(w http.ResponseWriter, r *http.Request) {
 	token := fmt.Sprintf("batch-import-device-%v", time.Now().UnixMicro())
 	setSseData(token, "")
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logs.Errorf("batch import device panic: %v\n%s", r, debug.Stack())
+			}
+		}()
 		var productMetaconfig map[string]bool = make(map[string]bool)
 		for _, v := range product.Metaconfig {
 			productMetaconfig[v.Property] = true

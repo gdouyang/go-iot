@@ -12,6 +12,7 @@ import (
 	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
 	"net/http"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -474,6 +475,11 @@ func batchEnableDevice(ctl *AuthController, deviceIds []string, term core.Search
 		isDeploy = false
 	}
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logs.Errorf("batch enable device panic: %v\n%s", r, debug.Stack())
+			}
+		}()
 		total := 0
 		resp := `{"success":true, "result": {"finish": %v, "num": %d}}`
 		if len(deviceIds) > 0 {

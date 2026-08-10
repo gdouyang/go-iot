@@ -9,6 +9,8 @@ import (
 	"go-iot/pkg/common"
 	"go-iot/pkg/core"
 	"go-iot/pkg/redis"
+
+	logs "go-iot/pkg/logger"
 )
 
 // RedisOfflineCommandQueue 基于 Redis List 的离线命令队列（与历史 key/TTL 兼容）。
@@ -38,13 +40,27 @@ func (q *RedisOfflineCommandQueue) Enqueue(message core.FuncInvoke) *common.Err 
 		return common.NewErr500("redis not available")
 	}
 	key := offlineRedisKey(message.DeviceId)
-	b, _ := json.Marshal(message)
+	b, err := json.Marshal(message)
+	if err != nil {
+		logs.Errorf("offline queue marshal error: %v", err)
+		return common.NewErr500("离线命令序列化失败")
+	}
 	ctx := context.Background()
-	if client.LLen(ctx, key).Val() >= int64(q.maxLen) {
+	n, err := client.LLen(ctx, key).Result()
+	if err != nil {
+		logs.Errorf("offline queue LLen error: %v", err)
+		return common.NewErr500("redis 查询离线命令队列失败")
+	}
+	if n >= int64(q.maxLen) {
 		return common.NewErr400("设备离线，命令缓存队列已满，请稍后再试")
 	}
-	client.RPush(ctx, key, string(b))
-	client.Expire(ctx, key, q.ttl)
+	if err := client.RPush(ctx, key, string(b)).Err(); err != nil {
+		logs.Errorf("offline queue RPush error: %v", err)
+		return common.NewErr500("redis 缓存离线命令失败")
+	}
+	if err := client.Expire(ctx, key, q.ttl).Err(); err != nil {
+		logs.Errorf("offline queue Expire error: %v", err)
+	}
 	return common.NewErr(200, "设备离线，命令已缓存")
 }
 
@@ -56,10 +72,16 @@ func (q *RedisOfflineCommandQueue) TakeAll(deviceId string) []core.FuncInvoke {
 	key := offlineRedisKey(deviceId)
 	ctx := context.Background()
 	cmds, err := client.LRange(ctx, key, 0, -1).Result()
-	if err != nil || len(cmds) == 0 {
+	if err != nil {
+		logs.Errorf("offline queue LRange error: %v", err)
 		return nil
 	}
-	client.Del(ctx, key)
+	if len(cmds) == 0 {
+		return nil
+	}
+	if err := client.Del(ctx, key).Err(); err != nil {
+		logs.Errorf("offline queue Del error: %v", err)
+	}
 
 	out := make([]core.FuncInvoke, 0, len(cmds))
 	for _, cmdStr := range cmds {

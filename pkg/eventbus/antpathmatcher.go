@@ -385,7 +385,7 @@ func (that *AntPathMatcher) ExtractUriTemplateVariables(pattern string, path str
 	var variables map[string]string = map[string]string{}
 	result := that.doMatch(pattern, path, true, variables)
 	if !result {
-		return nil, fmt.Errorf("pattern \"" + pattern + "\" is not a match for \"" + path + "\"")
+		return nil, fmt.Errorf("pattern %q is not a match for %q", pattern, path)
 	}
 	return variables, nil
 }

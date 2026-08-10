@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"net"
+	"runtime/debug"
 	"sync/atomic"
 
 	"github.com/dop251/goja"
@@ -204,6 +205,12 @@ func (p *payloadParser) fixedSizeMode(size int) {
 
 func (p *payloadParser) handle() {
 	go func() {
+		// 解析逻辑含用户脚本（handler），recover 兜底：panic 后终止该连接解析，不击穿进程
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Errorf("payloadParser panic: %v\n%s", r, debug.Stack())
+			}
+		}()
 		for {
 			buf := make([]byte, 100)
 			count, err := p.reader.Read(buf)

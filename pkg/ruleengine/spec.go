@@ -8,6 +8,7 @@ import (
 	"go-iot/pkg/option"
 	"go-iot/pkg/tsl"
 	"go-iot/pkg/util"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -213,6 +214,11 @@ func (s *ShakeLimit) init(handler func(deviceId string, data map[string]any)) {
 	s.group = &sync.Map{}
 	s.quit = make(chan struct{})
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logs.Errorf("rule shakeLimit panic: %v\n%s", r, debug.Stack())
+			}
+		}()
 		for {
 			select {
 			case <-timeingwhell.After(time.Duration(s.Time) * time.Second):
@@ -221,6 +227,8 @@ func (s *ShakeLimit) init(handler func(deviceId string, data map[string]any)) {
 					deviceId := key.(string)
 					v1 := v.(*shakeLimitGroup)
 					v1.mu.Lock()
+					// defer 保证 handler panic 时也解锁，避免该设备分组永久死锁
+					defer v1.mu.Unlock()
 					if v1.total > 0 {
 						if v1.total >= s.Threshold {
 							if s.AlarmFirst {
@@ -233,7 +241,6 @@ func (s *ShakeLimit) init(handler func(deviceId string, data map[string]any)) {
 						v1.last = nil
 						v1.total = 0
 					}
-					v1.mu.Unlock()
 					return true
 				})
 			case <-s.quit:

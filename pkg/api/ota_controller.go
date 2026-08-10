@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -62,7 +63,12 @@ func init() {
 				select {
 				case otaQueue <- struct{}{}:
 					go func(l models.DeviceOtaLog) {
-						defer func() { <-otaQueue }()
+						defer func() {
+							<-otaQueue
+							if r := recover(); r != nil {
+								logger.Errorf("ota execute panic: %v\n%s", r, debug.Stack())
+							}
+						}()
 						api.executeOta(&l)
 					}(log)
 				default:
@@ -448,16 +454,26 @@ func (a *otaApi) otaUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	go func() {
-		sem := make(chan struct{}, 10) // Limit to 10 concurrent goroutines
-		for _, log := range logs {
-			sem <- struct{}{} // Acquire token
-			go func(l *models.DeviceOtaLog) {
-				defer func() { <-sem }() // Release token
-				a.executeOta(l)
-			}(log)
-		}
-	}()
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Errorf("ota batch execute panic: %v\n%s", r, debug.Stack())
+				}
+			}()
+			sem := make(chan struct{}, 10) // Limit to 10 concurrent goroutines
+			for _, log := range logs {
+				sem <- struct{}{} // Acquire token
+				go func(l *models.DeviceOtaLog) {
+					defer func() {
+						<-sem // Release token
+						if r := recover(); r != nil {
+							logger.Errorf("ota execute panic: %v\n%s", r, debug.Stack())
+						}
+					}()
+					a.executeOta(l)
+				}(log)
+			}
+		}()
 
 	ctl.RespOk()
 }
