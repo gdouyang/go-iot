@@ -29,6 +29,8 @@ func RegResource(r Resource) {
 type Resource struct {
 	Id     string
 	Name   string
+	// Sort 菜单/权限展示顺序（升序，越小越靠前）。侧栏与角色授权树共用。
+	Sort   int32
 	Action []ResourceAction
 }
 
@@ -80,6 +82,11 @@ func (c *AuthController) Prepare() {
 
 func (c *AuthController) isForbidden(r Resource, rc ResourceAction) bool {
 	session := c.GetSession()
+	if session == nil {
+		c.WriteHeader(http.StatusUnauthorized)
+		c.RespError(errors.New("Unauthorized"))
+		return true
+	}
 	permission := session.GetPermission()
 	if _, ok := permission[r.Id+":"+rc.Id]; !ok {
 		c.WriteHeader(http.StatusForbidden)
@@ -90,8 +97,19 @@ func (c *AuthController) isForbidden(r Resource, rc ResourceAction) bool {
 }
 
 func (c *AuthController) Logout() {
-	sess := c.GetSession()
-	session.Del(sess.Sessionid)
+	// 删除 Redis 中本请求能识别到的会话（header / 各 Path cookie）
+	if sess := c.GetSession(); sess != nil {
+		session.Del(sess.Sessionid)
+	}
+	if c.Request != nil {
+		for _, ck := range c.Request.Cookies() {
+			if ck.Name == web.SessionCookieName && ck.Value != "" {
+				session.Del(ck.Value)
+			}
+		}
+	}
+	// 清除浏览器里可能残留的多个 gsessionid
+	c.ClearSessionCookies()
 	c.RespOk()
 }
 

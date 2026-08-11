@@ -1,9 +1,17 @@
 api-addr: :8088
 
 # 默认管理员（仅首次创建 id=1 的 admin 时生效；已有用户不改密）
-# 未配置 password 时默认为 123456
+# 未配置 password 时默认为 123456；生产请设置强密码或环境变量 GOIOT_ADMIN_PASSWORD
+# 密码以 bcrypt 存储；旧 MD5 账号登录后会懒升级
 admin:
   password: "123456"
+
+# 编解码脚本宿主安全（HttpRequest）
+# http-enabled: 关闭后脚本无法发 HTTP
+# http-block-private: 禁止访问私网/本机（SSRF 基线）；脚本需调内网时设为 false
+script:
+  http-enabled: true
+  http-block-private: true
 
 # debug, info, warn, error
 logs:

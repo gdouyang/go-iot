@@ -54,7 +54,19 @@ go test ./pkg/... -count=1 -short
 ```
 
 #### 默认账号
-> admin 123456
+> 首次启动若库中无用户：`admin` / 配置项 `admin.password`（默认 `123456`）  
+> **生产务必**修改 `admin.password` 或环境变量 `GOIOT_ADMIN_PASSWORD`。  
+> 密码使用 **bcrypt** 存储；历史 MD5 账号在登录成功后会自动升级。
+
+#### 安全相关配置（P0）
+
+| 配置 | 说明 |
+|------|------|
+| `admin.password` | 仅首次创建 admin 时生效 |
+| `script.http-enabled` | 脚本 `HttpRequest` 总开关（默认 true） |
+| `script.http-block-private` | 禁止脚本访问私网/本机（默认 true） |
+
+管理 API 需登录；业务资源（设备/产品等）读写均校验角色权限。
 
 #### 压力测试
 - [压力测试](./doc/benchmark.md)

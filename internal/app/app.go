@@ -102,7 +102,7 @@ func (a *App) Start(ctx context.Context) error {
 	models.RegisterModels()
 	logger.Infof("app start: models registered")
 
-	// 默认数据（admin 初始密码来自配置 admin.password，默认 123456）
+	// 默认数据（admin 初始密码来自配置 admin.password / GOIOT_ADMIN_PASSWORD，bcrypt 入库）
 	base.EnsureDefaultAdmin(a.Opt.AdminPassword())
 	modelNetWork.EnsureDefaultNetworks()
 	logger.Infof("app start: seed data ensured (admin, default networks)")

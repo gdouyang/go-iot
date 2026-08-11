@@ -23,12 +23,14 @@ func init() {
 		ctl.Resp(common.JsonRespOkData(cluster.LocalNode()))
 	})
 
-	// 节点视图：集群 token 或登录用户
+	// 节点视图：集群 token 或登录用户（管理端需 sys-config 查询权限）
 	web.RegisterAPI("/cluster/nodes", "GET", func(w http.ResponseWriter, r *http.Request) {
 		ctl := web.NewController(w, r)
 		if ctl.IsNotClusterRequest() {
-			// 管理端：需登录（Prepare 失败会 StopRun）
 			auth := NewAuthController(w, r)
+			if auth.isForbidden(sysConfigResource, QueryAction) {
+				return
+			}
 			auth.RespOkData(cluster.ListNodes())
 			return
 		}
@@ -40,6 +42,9 @@ func init() {
 		ctl := web.NewController(w, r)
 		if ctl.IsNotClusterRequest() {
 			auth := NewAuthController(w, r)
+			if auth.isForbidden(sysConfigResource, QueryAction) {
+				return
+			}
 			auth.RespOkData(cluster.Health())
 			return
 		}

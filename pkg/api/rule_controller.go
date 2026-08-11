@@ -14,6 +14,7 @@ import (
 var ruleResource = Resource{
 	Id:   "rule-mgr",
 	Name: "规则引擎",
+	Sort: 40, // 侧栏：规则引擎
 	Action: []ResourceAction{
 		QueryAction,
 		CretaeAction,

@@ -14,7 +14,8 @@ import (
 func init() {
 	var roleResource = Resource{
 		Id:   "role-mgr",
-		Name: "角色管理",
+		Name: "角色列表",
+		Sort: 70, // 系统管理下：角色列表
 		Action: []ResourceAction{
 			QueryAction,
 			CretaeAction,

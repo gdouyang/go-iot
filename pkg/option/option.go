@@ -63,6 +63,14 @@ type Admin struct {
 	Password string `yaml:"password"`
 }
 
+// Script 编解码脚本宿主能力开关。
+type Script struct {
+	// HTTPEnabled 是否允许 globe.HttpRequest / HttpRequestAsync。默认 true。
+	HTTPEnabled bool `yaml:"http-enabled"`
+	// HTTPBlockPrivate 是否禁止访问私网/本机地址（SSRF 基线）。默认 true。
+	HTTPBlockPrivate bool `yaml:"http-block-private"`
+}
+
 // DefaultAdminPassword 配置未写 password 时的默认初始密码。
 const DefaultAdminPassword = "123456"
 
@@ -97,6 +105,9 @@ type Options struct {
 	// 默认管理员（仅首次创建时生效）
 	Admin Admin `yaml:"admin"`
 
+	// 脚本宿主安全
+	Script Script `yaml:"script"`
+
 	// 抖动限制最大秒默认3600
 	MaxShakeLimitTime int `yaml:"max-shake-limit-time"`
 	// 控制台输出的banner
@@ -109,6 +120,22 @@ func (opt *Options) AdminPassword() string {
 		return DefaultAdminPassword
 	}
 	return opt.Admin.Password
+}
+
+// ScriptHTTPEnabled 脚本是否允许 HTTP 出站（Global 未初始化时默认 true）。
+func ScriptHTTPEnabled() bool {
+	if Global == nil {
+		return true
+	}
+	return Global.Script.HTTPEnabled
+}
+
+// ScriptHTTPBlockPrivate 脚本 HTTP 是否拦截私网（Global 未初始化时默认 true）。
+func ScriptHTTPBlockPrivate() bool {
+	if Global == nil {
+		return true
+	}
+	return Global.Script.HTTPBlockPrivate
 }
 
 const banner string = `
@@ -164,7 +191,11 @@ func New() *Options {
 	opt.flags.StringVar(&opt.Cluster.Hosts, "cluster.hosts", "", "集群内主机列表")
 
 	// 默认管理员初始密码（仅首次创建 admin 时使用）
-	opt.flags.StringVar(&opt.Admin.Password, "admin.password", DefaultAdminPassword, "默认管理员初始密码（仅库中无 admin 时生效）")
+	opt.flags.StringVar(&opt.Admin.Password, "admin.password", DefaultAdminPassword, "默认管理员初始密码（仅库中无 admin 时生效；生产请改）")
+
+	// 脚本 HTTP / SSRF 基线
+	opt.flags.BoolVar(&opt.Script.HTTPEnabled, "script.http-enabled", true, "是否允许编解码脚本 HttpRequest")
+	opt.flags.BoolVar(&opt.Script.HTTPBlockPrivate, "script.http-block-private", true, "脚本 HTTP 是否禁止访问私网/本机（SSRF）")
 
 	opt.flags.IntVar(&opt.MaxShakeLimitTime, "max-shake-limit-time", 3600, "抖动限制最大秒")
 	opt.flags.StringVar(&opt.Banner, "banner", banner, "")
@@ -216,6 +247,15 @@ func (opt *Options) Parse() (string, error) {
 	// 兼容旧配置键 cluster.enable（未写 enabled 时）
 	if !opt.viper.IsSet("cluster.enabled") && opt.viper.IsSet("cluster.enable") {
 		opt.Cluster.Enabled = opt.viper.GetBool("cluster.enable")
+	}
+
+	// script 布尔默认：未配置时保持安全默认（HTTP 开、拦私网）
+	// viper/Unmarshal 对 bool 零值会变成 false，需用 IsSet 区分「显式 false」与「未写」。
+	if !opt.viper.IsSet("script.http-enabled") {
+		opt.Script.HTTPEnabled = true
+	}
+	if !opt.viper.IsSet("script.http-block-private") {
+		opt.Script.HTTPBlockPrivate = true
 	}
 
 	buff, err := yaml.Marshal(opt)

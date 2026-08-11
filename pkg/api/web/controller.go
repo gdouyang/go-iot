@@ -44,28 +44,112 @@ func (c *RespController) Init(w http.ResponseWriter, r *http.Request) {
 func (c *RespController) Prepare() {
 }
 
+// SessionCookieName 管理端会话 Cookie 名。
+const SessionCookieName = "gsessionid"
+
 // expire sec default 1 hour
 func (c *RespController) NewSession(expire int) *session.HttpSession {
 	if expire <= 0 {
-		expire = 60 * 60
+		expire = session.DefaultExpireSec
 	}
-	session := session.NewSession(expire)
-	c.Request.Header.Add("x-access-token", session.Sessionid)
-	gsessionid := fmt.Sprintf("gsessionid=%s; Expires=%s; Max-Age=%d", session.Sessionid, time.Now().Add(time.Duration(expire)*time.Second).UTC().Format(time.RFC1123), expire)
-	c.ResponseWriter.Header().Add("Set-Cookie", gsessionid)
-	return session
+	s := session.NewSession(expire)
+	c.Request.Header.Set("x-access-token", s.Sessionid)
+	// 登录时清掉历史 Path 上的旧 gsessionid，再写统一 Path=/，避免双 cookie
+	c.writeSessionCookie(s)
+	return s
 }
 
+// sessionTokenFromRequest 优先读请求头 token（前端 pinia 默认 key 为 Authorization）。
+// 顺序：x-access-token → Authorization（非 Basic）→ 空。
+func (c *RespController) sessionTokenFromRequest() string {
+	if c == nil || c.Request == nil {
+		return ""
+	}
+	if t := strings.TrimSpace(c.Request.Header.Get("x-access-token")); t != "" {
+		return t
+	}
+	auth := strings.TrimSpace(c.Request.Header.Get("Authorization"))
+	if auth == "" {
+		return ""
+	}
+	lower := strings.ToLower(auth)
+	// Basic 留给 AuthController.Prepare 做账号密码登录
+	if strings.HasPrefix(lower, "basic ") {
+		return ""
+	}
+	if len(auth) > 7 && strings.EqualFold(auth[:7], "bearer ") {
+		return strings.TrimSpace(auth[7:])
+	}
+	// 前端常把 sessionId 直接放在 Authorization 值里
+	return auth
+}
+
+// expireSessionCookie 删除指定 Path 上的 gsessionid（须与当初 Set 的 Path 一致才能删掉）。
+func (c *RespController) expireSessionCookie(path string) {
+	if c == nil || c.ResponseWriter == nil {
+		return
+	}
+	// 过期时间用固定 epoch，兼容旧浏览器
+	const expired = "Thu, 01 Jan 1970 00:00:00 GMT"
+	var cookie string
+	if path == "" {
+		// 无 Path：匹配「未写 Path」的历史 cookie
+		cookie = fmt.Sprintf("%s=; Max-Age=0; Expires=%s; HttpOnly; SameSite=Lax", SessionCookieName, expired)
+	} else {
+		cookie = fmt.Sprintf("%s=; Path=%s; Max-Age=0; Expires=%s; HttpOnly; SameSite=Lax",
+			SessionCookieName, path, expired)
+	}
+	// 必须用 Add：多个 Set-Cookie 不能 Set 互相覆盖
+	c.ResponseWriter.Header().Add("Set-Cookie", cookie)
+}
+
+// ClearSessionCookies 清除常见 Path 上的 gsessionid，避免浏览器残留两个同名 cookie。
+func (c *RespController) ClearSessionCookies() {
+	// 历史版本可能写过 /api 或未写 Path
+	for _, p := range []string{"/", "/api", ""} {
+		c.expireSessionCookie(p)
+	}
+}
+
+// writeSessionCookie 写入/刷新 gsessionid（Path=/），并顺带清掉其它 Path 上的旧副本。
+func (c *RespController) writeSessionCookie(s *session.HttpSession) {
+	if c == nil || c.ResponseWriter == nil || s == nil || len(s.Sessionid) == 0 {
+		return
+	}
+	// 先清 /api、无 Path 旧 cookie，避免与 Path=/ 并存
+	c.expireSessionCookie("/api")
+	c.expireSessionCookie("")
+
+	ttl := s.TTL()
+	expires := time.Now().Add(time.Duration(ttl) * time.Second).UTC().Format(time.RFC1123)
+	cookie := fmt.Sprintf("%s=%s; Path=/; Expires=%s; Max-Age=%d; HttpOnly; SameSite=Lax",
+		SessionCookieName, s.Sessionid, expires, ttl)
+	c.ResponseWriter.Header().Add("Set-Cookie", cookie)
+}
+
+// GetSession 解析当前会话。Header token 优先于 Cookie，避免「新 token + 旧 cookie」用错会话。
 func (c *RespController) GetSession() *session.HttpSession {
-	gsessionid := c.Request.Header.Get("x-access-token")
-	if len(gsessionid) == 0 {
-		cookie, _ := c.Request.Cookie("gsessionid")
-		if cookie != nil {
-			gsessionid = cookie.Value
+	// 1) 请求头（x-access-token / Authorization）
+	if tok := c.sessionTokenFromRequest(); tok != "" {
+		if s := session.Get(tok); s != nil {
+			c.writeSessionCookie(s)
+			return s
 		}
 	}
-	s := session.Get(gsessionid)
-	return s
+	// 2) 可能存在多个同名 cookie（不同 Path），逐个尝试直到 Redis 命中
+	if c.Request != nil {
+		for _, ck := range c.Request.Cookies() {
+			if ck.Name != SessionCookieName || ck.Value == "" {
+				continue
+			}
+			if s := session.Get(ck.Value); s != nil {
+				// 命中后统一写回 Path=/，并清掉其它 Path 副本
+				c.writeSessionCookie(s)
+				return s
+			}
+		}
+	}
+	return nil
 }
 
 // return request path value

@@ -75,6 +75,14 @@ func GetRedisClient() *redis.Client {
 	return rdb
 }
 
+// SetClientForTest 注入 Redis 客户端（单测用 miniredis 等）。返回还原函数。
+// 生产代码请使用 Config / InitRedis，勿调用本函数。
+func SetClientForTest(c *redis.Client) (restore func()) {
+	old := rdb
+	rdb = c
+	return func() { rdb = old }
+}
+
 func Sub(channels ...string) <-chan *redis.Message {
 	client := GetRedisClient()
 	sub := client.Subscribe(client.Context(), channels...)

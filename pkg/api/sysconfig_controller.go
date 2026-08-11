@@ -11,16 +11,19 @@ import (
 	logs "go-iot/pkg/logger"
 )
 
+// sysConfigResource 系统配置资源（集群管理端读接口也复用 Query 动作）。
+var sysConfigResource = Resource{
+	Id:   "sys-config",
+	Name: "系统配置",
+	Sort: 100, // 系统管理下：系统配置
+	Action: []ResourceAction{
+		QueryAction,
+		SaveAction,
+	},
+}
+
 // 系统配置
 func init() {
-	var sysConfigResource = Resource{
-		Id:   "sys-config",
-		Name: "系统配置",
-		Action: []ResourceAction{
-			QueryAction,
-			SaveAction,
-		},
-	}
 	RegResource(sysConfigResource)
 	web.RegisterAPI("/anon/system/config", "GET", func(w http.ResponseWriter, r *http.Request) {
 		ctl := web.NewController(w, r)
@@ -85,6 +88,9 @@ func init() {
 	// 系统信息
 	web.RegisterAPI("/system/info", "GET", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
+		if ctl.isForbidden(sysConfigResource, QueryAction) {
+			return
+		}
 		m := map[string]string{}
 		m["release"] = option.RELEASE
 		m["buildTime"] = option.BUILD_TIME
@@ -92,7 +98,7 @@ func init() {
 		m["repo"] = option.REPO
 		ctl.RespOkData(m)
 	})
-	// 更新token过期时间
+	// 更新token过期时间（仅需登录，无额外资源权限）
 	web.RegisterAPI("/token/refresh", "GET", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
 		ctl.RespOk()

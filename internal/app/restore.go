@@ -39,6 +39,7 @@ func (a *App) initMenuResources() {
 		var m models.MenuResource
 		m.Code = r.Id
 		m.Name = r.Name
+		m.Sort = r.Sort
 		ac, err := json.Marshal(r.Action)
 		if err != nil {
 			logger.Errorf("init resources error: %v", err)
@@ -51,12 +52,16 @@ func (a *App) initMenuResources() {
 		}
 		if old != nil {
 			m.Id = old.Id
-			base.UpdateMenuResource(&m)
+			if err := base.UpdateMenuResource(&m); err != nil {
+				logger.Errorf("update menu resource %s error: %v", m.Code, err)
+			}
 		} else {
-			base.AddMenuResource(&m)
+			if err := base.AddMenuResource(&m); err != nil {
+				logger.Errorf("add menu resource %s error: %v", m.Code, err)
+			}
 		}
 	}
-	logger.Infof("app restore: menu resource inited")
+	logger.Infof("app restore: menu resource inited (%d items)", len(api.Resources))
 }
 
 func (a *App) startRunningRule() {

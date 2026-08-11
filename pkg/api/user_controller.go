@@ -12,7 +12,8 @@ import (
 func init() {
 	var userResource = Resource{
 		Id:   "user-mgr",
-		Name: "用户管理",
+		Name: "用户列表",
+		Sort: 80, // 系统管理下：用户列表
 		Action: []ResourceAction{
 			QueryAction,
 			CretaeAction,

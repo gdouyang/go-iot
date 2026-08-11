@@ -2,7 +2,8 @@ package session
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"go-iot/pkg/redis"
@@ -14,25 +15,53 @@ import (
 
 const (
 	KEY_PREFIX = "goiot:usersession:"
+	// sessionIDBytes 会话 id 随机字节数（hex 后 64 字符）
+	sessionIDBytes = 32
 )
 
 func getSessionId(key string) string {
 	return KEY_PREFIX + key
 }
 
-// expire sec
+// DefaultExpireSec 未指定登录 expires 时的默认 TTL（秒）。
+const DefaultExpireSec = 60 * 60
+
+// NewSession 创建会话。SessionId 使用 crypto/rand，不可从时间戳反推。
+// expire 为秒；≤0 时使用 DefaultExpireSec。
 func NewSession(expire int) *HttpSession {
-	val := fmt.Sprintf("%d", time.Now().Nanosecond())
-	data := []byte(val)
-	has := md5.Sum(data)
-	//将[]byte转成16进制
-	sessionId := fmt.Sprintf("%x", has)
+	if expire <= 0 {
+		expire = DefaultExpireSec
+	}
+	sessionId, err := randomSessionID()
+	if err != nil {
+		// 极罕见：退化为纳秒+再读一次随机，仍避免固定 md5(nanosecond)
+		fallback := make([]byte, sessionIDBytes)
+		_, _ = rand.Read(fallback)
+		sessionId = hex.EncodeToString(fallback)
+		if sessionId == "" {
+			sessionId = fmt.Sprintf("%x%x", time.Now().UnixNano(), time.Now().UnixNano())
+		}
+		logs.Errorf("session id crypto/rand failed: %v, used fallback", err)
+	}
 	sesion := &HttpSession{Sessionid: sessionId, ExpireSec: expire}
+	// 持久化 TTL 秒数，供后续 Get 滑动续期使用（与 Redis EXPIRE 一致）
+	sesion.persistExpireSec()
 	sesion.UpdateExpire()
 	return sesion
 }
 
+func randomSessionID() (string, error) {
+	b := make([]byte, sessionIDBytes)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
 func Get(key string) *HttpSession {
+	if len(key) == 0 {
+		return nil
+	}
 	client := redis.GetRedisClient()
 	sessionid := getSessionId(key)
 	data, err := client.Exists(context.Background(), sessionid).Result()
@@ -49,6 +78,10 @@ func Get(key string) *HttpSession {
 		expire, _ := strconv.Atoi(str)
 		sesion.ExpireSec = expire
 	}
+	if sesion.ExpireSec <= 0 {
+		sesion.ExpireSec = DefaultExpireSec
+	}
+	// 滑动续期：重置 Redis TTL
 	sesion.UpdateExpire()
 	return sesion
 }
@@ -97,13 +130,31 @@ func (s *HttpSession) SetAttribute(key string, value interface{}) {
 	client.HSet(context.Background(), s.getSessionId(), key, string(data))
 }
 
-func (s *HttpSession) UpdateExpire() {
-	client := redis.GetRedisClient()
-	expire := time.Duration(1) * time.Hour
-	if s.ExpireSec > 0 {
-		expire = time.Duration(s.ExpireSec) * time.Second
+// TTL 返回会话有效时长（秒），至少 DefaultExpireSec。
+func (s *HttpSession) TTL() int {
+	if s == nil || s.ExpireSec <= 0 {
+		return DefaultExpireSec
 	}
-	client.Expire(context.Background(), s.getSessionId(), expire)
+	return s.ExpireSec
+}
+
+func (s *HttpSession) persistExpireSec() {
+	if s == nil {
+		return
+	}
+	client := redis.GetRedisClient()
+	// 存原始秒数字符串，避免 JSON 数字类型歧义
+	client.HSet(context.Background(), s.getSessionId(), "expire", strconv.Itoa(s.TTL()))
+}
+
+// UpdateExpire 将 Redis key 的 TTL 重置为 ExpireSec（滑动续期）。
+func (s *HttpSession) UpdateExpire() {
+	if s == nil {
+		return
+	}
+	client := redis.GetRedisClient()
+	ttl := time.Duration(s.TTL()) * time.Second
+	client.Expire(context.Background(), s.getSessionId(), ttl)
 }
 
 func (s *HttpSession) SetPermission(p map[string]bool) {

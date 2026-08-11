@@ -167,6 +167,9 @@ func (a *deviceApi) importDevice(w http.ResponseWriter, r *http.Request) {
 // 设备导入进度
 func (a *deviceApi) getImportResult(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(deviceResource, ImportAction) {
+		return
+	}
 	token := ctl.Param("token")
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")

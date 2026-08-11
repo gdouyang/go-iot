@@ -15,6 +15,7 @@ func init() {
 	var netConfigResource = Resource{
 		Id:   "network-config",
 		Name: "网络管理",
+		Sort: 90, // 系统管理下：网络管理
 		Action: []ResourceAction{
 			QueryAction,
 			CretaeAction,
@@ -26,6 +27,9 @@ func init() {
 	// 分页查询
 	web.RegisterAPI("/server/page", "POST", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
+		if ctl.isForbidden(netConfigResource, QueryAction) {
+			return
+		}
 		var ob models.PageQuery
 		err := ctl.BindJSON(&ob)
 		if err != nil {
@@ -177,6 +181,9 @@ func init() {
 	// 查看连接信息
 	web.RegisterAPI("/server/meters/{id}", "GET", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
+		if ctl.isForbidden(netConfigResource, QueryAction) {
+			return
+		}
 		id := ctl.Param("id")
 		_id, err := strconv.Atoi(id)
 		if err != nil {

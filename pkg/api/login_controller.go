@@ -6,6 +6,8 @@ import (
 	"go-iot/pkg/models"
 	user "go-iot/pkg/models/base"
 	"net/http"
+
+	logs "go-iot/pkg/logger"
 )
 
 func init() {
@@ -47,17 +49,26 @@ func login(c *web.RespController, username, password string, expire int) error {
 	if u == nil {
 		return errors.New("账号或密码错误")
 	}
-	u1 := models.User{
-		Username: username,
-		Password: password,
-	}
-	user.Md5Pwd(&u1)
 	old, err := user.GetUser(u.Id)
 	if err != nil {
 		return err
 	}
-	if u1.Password != old.Password {
+	if old == nil {
 		return errors.New("账号或密码错误")
+	}
+	matched, needUpgrade := user.CheckPassword(old.Password, username, password)
+	if !matched {
+		return errors.New("账号或密码错误")
+	}
+	// 旧 MD5 哈希透明升级为 bcrypt
+	if needUpgrade {
+		if err := user.UpdateUserPwd(&models.User{
+			Id:       old.Id,
+			Username: username,
+			Password: password,
+		}); err != nil {
+			logs.Errorf("password lazy upgrade failed for user %s: %v", username, err)
+		}
 	}
 
 	permission, err := user.GetPermissionByUserId(u.Id)

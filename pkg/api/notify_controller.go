@@ -13,6 +13,7 @@ import (
 var notifyResource = Resource{
 	Id:   "notify-config",
 	Name: "通知配置",
+	Sort: 60, // 侧栏：通知配置
 	Action: []ResourceAction{
 		QueryAction,
 		CretaeAction,

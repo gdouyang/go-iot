@@ -67,25 +67,24 @@ func init() {
 			ctl.RespErrorParam("passwrod")
 			return
 		}
-		u1 := models.User{
-			Id:       ctl.GetCurrentUser().Id,
-			Username: ctl.GetCurrentUser().Username,
-			Password: ob.PasswordOld,
-		}
-		user.Md5Pwd(&u1)
-		old, err := user.GetUser(u1.Id)
+		cur := ctl.GetCurrentUser()
+		old, err := user.GetUser(cur.Id)
 		if err != nil {
 			ctl.RespError(err)
 			return
 		}
-		if old.Password != u1.Password {
+		if old == nil {
+			ctl.RespError(errors.New("user not found"))
+			return
+		}
+		matched, _ := user.CheckPassword(old.Password, cur.Username, ob.PasswordOld)
+		if !matched {
 			ctl.RespError(errors.New("旧密码错误"))
 			return
 		}
-		//
 		u := models.User{
-			Id:       u1.Id,
-			Username: u1.Username,
+			Id:       cur.Id,
+			Username: cur.Username,
 			Password: ob.Password,
 		}
 		err = user.UpdateUserPwd(&u)

@@ -11,10 +11,25 @@ import (
 	"time"
 )
 
+// 文件上传/转换：挂在 file-mgr 资源下，需登录且具备对应动作。
+var fileResource = Resource{
+	Id:   "file-mgr",
+	Name: "文件",
+	Sort: 200, // 非侧栏主菜单，排在业务菜单之后
+	Action: []ResourceAction{
+		QueryAction,
+		SaveAction,
+	},
+}
+
 func init() {
+	RegResource(fileResource)
 	// 文件转base64
 	web.RegisterAPI("/file/base64", "POST", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
+		if ctl.isForbidden(fileResource, SaveAction) {
+			return
+		}
 		f, _, err := ctl.FormFile("file")
 		if err != nil {
 			if err.Error() != "http: no such file" {
@@ -34,6 +49,9 @@ func init() {
 	// 文件上传
 	web.RegisterAPI("/file/upload", "POST", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
+		if ctl.isForbidden(fileResource, SaveAction) {
+			return
+		}
 		f, h, err := ctl.FormFile("file")
 		if err != nil {
 			ctl.RespError(err)

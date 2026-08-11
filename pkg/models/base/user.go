@@ -1,7 +1,6 @@
 package base
 
 import (
-	"crypto/md5"
 	"errors"
 	"fmt"
 	"go-iot/pkg/models"
@@ -11,15 +10,21 @@ import (
 	logs "go-iot/pkg/logger"
 )
 
+// DefaultAdminPassword 未配置时的初始密码（仅首次创建 admin；生产请配置 admin.password / GOIOT_ADMIN_PASSWORD）。
+const DefaultAdminPassword = "123456"
+
 // EnsureDefaultAdmin 若不存在 id=1 的用户则创建默认 admin（由 app.Start 显式调用）。
-// password 为空时使用 "123456"。仅首次创建生效，已存在用户不会改密。
+// password 为空时使用 DefaultAdminPassword。仅首次创建生效，已存在用户不会改密。
+// 密码以 bcrypt 入库。
 func EnsureDefaultAdmin(password string) {
 	admin, _ := GetUser(1)
 	if admin != nil {
 		return
 	}
+	usedDefault := false
 	if len(password) == 0 {
-		password = "123456"
+		password = DefaultAdminPassword
+		usedDefault = true
 	}
 	if err := AddUser(&UserDTO{
 		User: models.User{
@@ -33,7 +38,11 @@ func EnsureDefaultAdmin(password string) {
 		logs.Errorf("init admin user error: %v", err)
 		return
 	}
-	logs.Infof("init admin user (password from config or default)")
+	if usedDefault {
+		logs.Warnf("init admin user with DEFAULT password %q — set admin.password or GOIOT_ADMIN_PASSWORD for production", DefaultAdminPassword)
+	} else {
+		logs.Infof("init admin user (password from config)")
+	}
 }
 
 type UserDTO struct {
@@ -82,7 +91,11 @@ func AddUser(ob *UserDTO) error {
 		return errors.New("user exist")
 	}
 	u := &ob.User
-	Md5Pwd(u)
+	hash, err := HashPassword(u.Password)
+	if err != nil {
+		return err
+	}
+	u.Password = hash
 	//插入数据
 	o := orm.NewOrm()
 	u.CreateTime = models.NewDateTime()
@@ -139,8 +152,17 @@ func UpdateUserPwd(ob *models.User) error {
 	if len(ob.Username) == 0 {
 		return errors.New("username must be present")
 	}
-	Md5Pwd(ob)
-	//更新数据
+	if len(ob.Password) == 0 {
+		return errors.New("password must be present")
+	}
+	// 已是 bcrypt 则直接写；否则对明文做 bcrypt（改密 / 懒迁移）
+	if !IsBcryptHash(ob.Password) {
+		hash, err := HashPassword(ob.Password)
+		if err != nil {
+			return err
+		}
+		ob.Password = hash
+	}
 	o := orm.NewOrm()
 	_, err := o.Update(ob, "Password")
 	if err != nil {
@@ -149,11 +171,22 @@ func UpdateUserPwd(ob *models.User) error {
 	return nil
 }
 
+// Md5Pwd 已废弃：请使用 HashPassword / CheckPassword。
+// 保留空实现会破坏调用方；改为写入 bcrypt，兼容仍调用 Md5Pwd 的旧代码路径。
+// Deprecated: use HashPassword.
 func Md5Pwd(ob *models.User) {
-	data := []byte(ob.Username + ob.Password)
-	has := md5.Sum(data)
-	md5str := fmt.Sprintf("%x", has) //将[]byte转成16进制
-	ob.Password = md5str
+	if ob == nil || len(ob.Password) == 0 {
+		return
+	}
+	if IsBcryptHash(ob.Password) {
+		return
+	}
+	hash, err := HashPassword(ob.Password)
+	if err != nil {
+		logs.Errorf("Md5Pwd(HashPassword) error: %v", err)
+		return
+	}
+	ob.Password = hash
 }
 
 func UpdateUserEnable(ob *models.User) error {

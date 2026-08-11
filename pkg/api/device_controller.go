@@ -21,7 +21,8 @@ import (
 
 var deviceResource = Resource{
 	Id:   "device-mgr",
-	Name: "设备",
+	Name: "设备管理",
+	Sort: 20, // 侧栏：设备管理
 	Action: []ResourceAction{
 		QueryAction,
 		CretaeAction,
@@ -62,6 +63,9 @@ type deviceApi struct {
 // 查询设备列表
 func (d *deviceApi) Page(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
 
 	var ob models.PageQuery
 	err := ctl.BindJSON(&ob)
@@ -81,6 +85,9 @@ func (d *deviceApi) Page(w http.ResponseWriter, r *http.Request) {
 // 查询单个设备
 func (d *deviceApi) GetOne(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
 	deviceId := ctl.Param("id")
 	ob, err := getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
@@ -106,6 +113,9 @@ func (d *deviceApi) GetOne(w http.ResponseWriter, r *http.Request) {
 // get device detail info
 func (d *deviceApi) GetDetail(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
 	ob, err := getDeviceAndCheckCreateId(ctl, ctl.Param("id"))
 	if err != nil {
 		ctl.RespError(err)
@@ -224,6 +234,9 @@ func (d *deviceApi) Delete(w http.ResponseWriter, r *http.Request) {
 // 查看设备连接信息
 func (d *deviceApi) GetConnectionInfo(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
 	deviceId := ctl.Param("id")
 	_, err := getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {
@@ -249,6 +262,9 @@ func (d *deviceApi) GetConnectionInfo(w http.ResponseWriter, r *http.Request) {
 // 设备诊断
 func (d *deviceApi) ConnectionCheck(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
 	deviceId := ctl.Param("id")
 	deviceModel, err := getDeviceAndCheckCreateId(ctl, deviceId)
 	if err != nil {

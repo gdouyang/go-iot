@@ -120,7 +120,14 @@ func (g *globe) HttpRequest(config map[string]any) map[string]any {
 	result := httpResp{}
 	result.setStatus(400)
 	path := config["url"]
-	u, err := url.ParseRequestURI(fmt.Sprintf("%v", path))
+	urlStr := fmt.Sprintf("%v", path)
+	if err := checkScriptHTTPAllowed(urlStr); err != nil {
+		logger.Warnf("script HttpRequest denied: %v", err)
+		core.DebugLog("", g.productId, fmt.Sprintf("HttpRequest denied: %v", err))
+		result.setMessage(err.Error())
+		return result
+	}
+	u, err := url.ParseRequestURI(urlStr)
 	if err != nil {
 		logger.Errorf(err.Error())
 		result.setMessage(err.Error())

@@ -13,6 +13,7 @@ func init() {
 	var profResource = Resource{
 		Id:   "prof",
 		Name: "系统运行状态",
+		Sort: 210, // 运维接口权限，排在最后
 		Action: []ResourceAction{
 			QueryAction,
 		},

@@ -11,6 +11,7 @@ func init() {
 	var alarmResource = Resource{
 		Id:   "alarm-mgr",
 		Name: "设备告警",
+		Sort: 50, // 侧栏：设备告警
 		Action: []ResourceAction{
 			QueryAction,
 			SaveAction,

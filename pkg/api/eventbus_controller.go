@@ -62,6 +62,10 @@ func init() {
 	// 监听产品
 	web.RegisterAPI("/eventbus/{productId}/{deviceId}/{type}", "GET", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
+		// 设备实时事件流：需设备查询权限
+		if ctl.isForbidden(deviceResource, QueryAction) {
+			return
+		}
 		productId := ctl.Param("productId")
 		deviceId := ctl.Param("deviceId")
 		typ := ctl.Param("type")
@@ -70,6 +74,9 @@ func init() {
 	// 监听设备
 	web.RegisterAPI("/eventbus/{deviceId}/{type}", "GET", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
+		if ctl.isForbidden(deviceResource, QueryAction) {
+			return
+		}
 		deviceId := ctl.Param("deviceId")
 		if len(deviceId) == 0 {
 			ctl.RespErrorParam("deviceId")

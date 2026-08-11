@@ -23,7 +23,8 @@ import (
 
 var otaResource = Resource{
 	Id:   "ota-mgr",
-	Name: "OTA管理",
+	Name: "OTA升级",
+	Sort: 30, // 侧栏：OTA升级
 	Action: []ResourceAction{
 		QueryAction,
 		DeleteAction,
@@ -131,6 +132,9 @@ func (a *otaApi) delete(w http.ResponseWriter, r *http.Request) {
 // OTA文件列表
 func (a *otaApi) filePage(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(otaResource, QueryAction) {
+		return
+	}
 	var page models.PageQuery
 	err := ctl.BindJSON(&page)
 	if err != nil {
