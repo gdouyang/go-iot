@@ -7,6 +7,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/es"
 	"go-iot/pkg/eventbus"
+	"go-iot/pkg/models"
 	"go-iot/pkg/tsl"
 	"strings"
 	"time"
@@ -143,20 +144,33 @@ func (t *EsTimeSeries) query(indexName string, param core.TimeDataSearchRequest)
 	if err != nil {
 		return nil, err
 	}
-	var result map[string]any = map[string]any{
-		"pageNum":     param.PageNum,
-		"totalCount":  total,
-		"list":        []map[string]any{},
-		"searchAfter": []any{},
-	}
+	list := []map[string]any{}
+	searchAfter := []any{}
 	if resp.Total > 0 {
 		// convert each hit to result.
-		var list []map[string]any = []map[string]any{}
 		resp.ConvertSource(&list)
-		result["list"] = list
-		result["searchAfter"] = resp.LastSort
+		searchAfter = resp.LastSort
 	}
+	result := pageQueryResult(total, param.PageNum, param.PageSize, list)
+	result["searchAfter"] = searchAfter
 	return result, nil
+}
+
+// pageQueryResult 组装时序分页结果，字段与 models.PageResult 对齐
+func pageQueryResult(total int64, pageNum, pageSize int, list []map[string]any) map[string]any {
+	if list == nil {
+		list = []map[string]any{}
+	}
+	pr := models.PageUtil(total, pageNum, pageSize, list)
+	return map[string]any{
+		"pageNum":    pr.PageNum,
+		"pageSize":   pr.PageSize,
+		"totalPage":  pr.TotalPage,
+		"totalCount": pr.TotalCount,
+		"firstPage":  pr.FirstPage,
+		"lastPage":   pr.LastPage,
+		"list":       pr.List,
+	}
 }
 
 func (t *EsTimeSeries) SaveProperties(product *core.Product, d1 map[string]any) error {

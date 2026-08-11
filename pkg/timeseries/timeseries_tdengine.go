@@ -159,12 +159,7 @@ func (t *TdengineTimeSeries) query(tableName string, param core.TimeDataSearchRe
 		}
 	}
 
-	var result map[string]any = map[string]any{
-		"pageNum":    param.PageNum,
-		"totalCount": total,
-		"list":       list,
-	}
-	return result, nil
+	return pageQueryResult(total, param.PageNum, param.PageSize, list), nil
 }
 
 func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string]any) error {
