@@ -16,6 +16,8 @@ script:
 # debug, info, warn, error
 logs:
   level: debug
+  # 日志级别热刷新间隔（秒）：修改本文件 level 后无需重启即可生效；0 关闭
+  reload-interval: 30
   #format: json
   #filename: logs/go-iot.log
 

@@ -41,6 +41,9 @@ type App struct {
 	NodeInvoker core.NodeInvoker
 
 	API *web.Server
+
+	// logReloadCancel 停止日志级别热刷新协程。
+	logReloadCancel context.CancelFunc
 }
 
 // New constructs dependencies and fills legacy package globals (Reg*/Config).
@@ -130,6 +133,8 @@ func (a *App) Start(ctx context.Context) error {
 	}
 	logger.Infof("app start: api server started (non-blocking)")
 
+	a.startLogLevelReloader()
+
 	logger.Infof("app start end")
 	return nil
 }
@@ -142,6 +147,11 @@ func (a *App) Stop(ctx context.Context) error {
 		defer cancel()
 	}
 	logger.Infof("app stop begin")
+
+	if a.logReloadCancel != nil {
+		a.logReloadCancel()
+		a.logReloadCancel = nil
+	}
 
 	var firstErr error
 	if a.API != nil {
@@ -176,4 +186,54 @@ func (a *App) Run() error {
 	stopCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	return a.Stop(stopCtx)
+}
+
+// startLogLevelReloader 定时从配置文件刷新 logs.level。
+// ReloadInterval<=0 或未配置 config-file 时不启动。
+func (a *App) startLogLevelReloader() {
+	if a == nil || a.Opt == nil {
+		return
+	}
+	intervalSec := a.Opt.Log.ReloadInterval
+	if intervalSec <= 0 {
+		logger.Infof("log level hot-reload disabled (logs.reload-interval=%d)", intervalSec)
+		return
+	}
+	if a.Opt.ConfigFile == "" {
+		logger.Infof("log level hot-reload skipped: config-file empty")
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	a.logReloadCancel = cancel
+	interval := time.Duration(intervalSec) * time.Second
+	configFile := a.Opt.ConfigFile
+
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		logger.Infof("log level hot-reload started: file=%s interval=%s current=%s",
+			configFile, interval, logger.GetLevel())
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				level, err := a.Opt.ReadLogLevelFromFile()
+				if err != nil {
+					logger.Warnf("reload log level from %s failed: %v", configFile, err)
+					continue
+				}
+				// 规范化后再比较，避免大小写/空格导致重复设置
+				normalized := logger.ParseLevel(level).String()
+				current := logger.GetLevel()
+				if normalized == current {
+					continue
+				}
+				logger.SetLevel(normalized)
+				a.Opt.Log.Level = normalized
+				logger.Infof("log level reloaded from config: %s -> %s", current, normalized)
+			}
+		}
+	}()
 }

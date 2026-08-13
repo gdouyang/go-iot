@@ -49,3 +49,8 @@ func Sync() {
 func IsDebug() bool {
 	return zapcore.Level(lowestLevel.Load()) == zap.DebugLevel
 }
+
+// Level 返回当前日志级别，等价于 GetLevel。
+func Level() string {
+	return GetLevel()
+}

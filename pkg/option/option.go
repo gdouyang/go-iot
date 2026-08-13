@@ -41,6 +41,9 @@ type Log struct {
 	Dir    string `yaml:"filename"`
 	Format string `yaml:"format"`
 	Level  string `yaml:"level"`
+	// ReloadInterval 日志级别热刷新间隔（秒）。
+	// 默认 30；设为 0 关闭定时从配置文件刷新。
+	ReloadInterval int `yaml:"reload-interval"`
 }
 
 type Certificate struct {
@@ -167,6 +170,7 @@ func New() *Options {
 	opt.flags.StringVar(&opt.Log.Dir, "logs.filename", "logs/goiot.log", "日志存放位置")
 	opt.flags.StringVar(&opt.Log.Format, "logs.format", "text", "日志格式(text, json)")
 	opt.flags.StringVar(&opt.Log.Level, "logs.level", "info", "日志级别(debug,info,warn,error)")
+	opt.flags.IntVar(&opt.Log.ReloadInterval, "logs.reload-interval", 30, "日志级别热刷新间隔秒数，0关闭")
 	// Mqtt配置
 	opt.flags.IntVar(&opt.Mqtt.Port, "mqtt.port", 1883, "mqtt服务端口")
 	// Redis配置
@@ -271,4 +275,29 @@ func (opt *Options) Parse() (string, error) {
 	Global = opt
 
 	return "", nil
+}
+
+// ReadLogLevelFromFile 仅从配置文件读取 logs.level，不改动其它运行时配置。
+// 文件未配置 level 时返回 "info"。
+func (opt *Options) ReadLogLevelFromFile() (string, error) {
+	if opt == nil || opt.ConfigFile == "" {
+		return "", fmt.Errorf("config file not set")
+	}
+	data, err := os.ReadFile(opt.ConfigFile)
+	if err != nil {
+		return "", fmt.Errorf("read config file %s: %w", opt.ConfigFile, err)
+	}
+	var partial struct {
+		Logs struct {
+			Level string `yaml:"level"`
+		} `yaml:"logs"`
+	}
+	if err := yaml.Unmarshal(data, &partial); err != nil {
+		return "", fmt.Errorf("parse config file %s: %w", opt.ConfigFile, err)
+	}
+	level := strings.ToLower(strings.TrimSpace(partial.Logs.Level))
+	if level == "" {
+		level = "info"
+	}
+	return level, nil
 }

@@ -5,6 +5,7 @@ import (
 	"go-iot/pkg/option"
 	"io"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -31,11 +32,15 @@ var (
 	// 默认 Nop，避免未 Init 时测试/早期日志空指针；生产路径仍应调用 Init。
 	// 使用 atomic 保证 Init/InitNop 与并发日志调用之间的可见性，避免全局初始化竞争。
 	defaultLogger atomic.Pointer[zap.SugaredLogger]
-	lowestLevel   atomic.Int32
+	// atomicLevel 支持运行时动态调整日志级别（无需重建 logger）。
+	atomicLevel = zap.NewAtomicLevelAt(zap.InfoLevel)
+	// lowestLevel 与 atomicLevel 同步，供 IsDebug 等快速判断。
+	lowestLevel atomic.Int32
 )
 
 func init() {
 	defaultLogger.Store(zap.NewNop().Sugar())
+	lowestLevel.Store(int32(zap.InfoLevel))
 }
 
 func defaultEncoderConfig() zapcore.EncoderConfig {
@@ -58,17 +63,37 @@ func defaultEncoderConfig() zapcore.EncoderConfig {
 	}
 }
 
+// ParseLevel 将配置字符串解析为 zap 级别；未知值按 info 处理。
+func ParseLevel(level string) zapcore.Level {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "debug":
+		return zap.DebugLevel
+	case "warn", "warning":
+		return zap.WarnLevel
+	case "error":
+		return zap.ErrorLevel
+	case "info", "":
+		return zap.InfoLevel
+	default:
+		return zap.InfoLevel
+	}
+}
+
+// SetLevel 动态设置全局日志级别（立即生效）。
+func SetLevel(level string) {
+	l := ParseLevel(level)
+	atomicLevel.SetLevel(l)
+	lowestLevel.Store(int32(l))
+}
+
+// GetLevel 返回当前日志级别字符串（debug/info/warn/error）。
+func GetLevel() string {
+	return atomicLevel.Level().String()
+}
+
 func initDefault(opt *option.Options, file bool) {
 	encoderConfig := defaultEncoderConfig()
-
-	switch opt.Log.Level {
-	case "debug":
-		lowestLevel.Store(int32(zap.DebugLevel))
-	case "warn":
-		lowestLevel.Store(int32(zap.WarnLevel))
-	case "error":
-		lowestLevel.Store(int32(zap.ErrorLevel))
-	}
+	SetLevel(opt.Log.Level)
 
 	var goiotLF io.Writer = os.Stdout
 	if file {
@@ -95,12 +120,12 @@ func initDefault(opt *option.Options, file bool) {
 	if format == "json" {
 		encoder = zapcore.NewJSONEncoder(encoderConfig)
 	}
-	level := zapcore.Level(lowestLevel.Load())
+	// 使用 AtomicLevel，运行期 SetLevel 可立刻生效
 	stdoutSyncer := zapcore.AddSync(os.Stdout)
-	stdoutCore := zapcore.NewCore(encoder, stdoutSyncer, level)
+	stdoutCore := zapcore.NewCore(encoder, stdoutSyncer, atomicLevel)
 
 	goiotSyncer := zapcore.AddSync(goiotLF)
-	goiotCore := zapcore.NewCore(encoder, goiotSyncer, level)
+	goiotCore := zapcore.NewCore(encoder, goiotSyncer, atomicLevel)
 
 	defaultCore := goiotCore
 	if goiotLF != os.Stdout && goiotLF != os.Stderr {
