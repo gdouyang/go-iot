@@ -128,6 +128,9 @@ func CreateEsIndex(properties map[string]any, indexName string) error {
  * 删除索引
  */
 func DeleteIndex(index ...string) error {
+	if len(index) == 0 {
+		return nil
+	}
 	var IgnoreUnavailable bool = true
 	req := esapi.IndicesDeleteRequest{
 		Index:             index,
@@ -141,6 +144,49 @@ func DeleteIndex(index ...string) error {
 		return errors.New(resp.Data)
 	}
 	return nil
+}
+
+// CatIndices 按 pattern 列举索引名（支持通配，如 goiot-properties-pid-*）。
+// 无匹配时返回空切片。
+func CatIndices(pattern string) ([]string, error) {
+	if strings.TrimSpace(pattern) == "" {
+		return nil, errors.New("index pattern must be present")
+	}
+	req := esapi.CatIndicesRequest{
+		Index:  []string{pattern},
+		Format: "json",
+		H:      []string{"index"},
+	}
+	resp, err := DoRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Is404() {
+		return []string{}, nil
+	}
+	if resp.IsError {
+		// 无匹配索引时部分 ES 版本返回 error，视为空
+		if strings.Contains(resp.Data, "index_not_found") || strings.Contains(resp.Data, "no such index") {
+			return []string{}, nil
+		}
+		return nil, fmt.Errorf("cat indices %s: %s", pattern, resp.Data)
+	}
+	if len(strings.TrimSpace(resp.Data)) == 0 || resp.Data == "[]" {
+		return []string{}, nil
+	}
+	var rows []struct {
+		Index string `json:"index"`
+	}
+	if err := json.Unmarshal([]byte(resp.Data), &rows); err != nil {
+		return nil, fmt.Errorf("cat indices parse: %w body=%s", err, resp.Data)
+	}
+	out := make([]string, 0, len(rows))
+	for _, r := range rows {
+		if r.Index != "" {
+			out = append(out, r.Index)
+		}
+	}
+	return out, nil
 }
 
 /**

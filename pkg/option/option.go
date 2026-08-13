@@ -29,6 +29,10 @@ type Es struct {
 	BufferSize       int    `yaml:"bufferSize"`
 	BulkSize         int    `yaml:"bulkSize"`
 	WarnTime         int    `yaml:"warntime"`
+	// RetentionMonths 时序最大保存月数（properties/event/logs）。0=默认不清理（升级安全）。
+	RetentionMonths int `yaml:"retention-months"`
+	// RetentionCheckHours 清理任务间隔（小时）。0=不启动定时任务。默认 24。
+	RetentionCheckHours int `yaml:"retention-check-hours"`
 }
 
 type Redis struct {
@@ -74,6 +78,34 @@ type Script struct {
 	HTTPBlockPrivate bool `yaml:"http-block-private"`
 }
 
+// Rule 规则引擎相关配置。
+type Rule struct {
+	// MaxShakeLimitTime 防抖/抖动限制时间轮最大秒数，默认 3600。
+	MaxShakeLimitTime int `yaml:"max-shake-limit-time"`
+}
+
+// Tdengine 时序存储 storePolicy=tdengine（REST SQL）。
+type Tdengine struct {
+	// Enabled 是否启用 TDengine 作为可选时序策略（关闭后新建产品不可选）
+	Enabled bool `yaml:"enabled"`
+	// Url 服务根地址，如 http://localhost:6041（自动拼 /rest/sql）
+	Url string `yaml:"url"`
+	// Username REST Basic 用户，默认 root
+	Username string `yaml:"username"`
+	// Password REST Basic 密码，默认 taosdata
+	Password string `yaml:"password"`
+	// Database 业务库名，默认 goiot
+	Database string `yaml:"database"`
+	// TimeoutSeconds HTTP 超时秒数，默认 30
+	TimeoutSeconds int `yaml:"timeout-seconds"`
+	// BufferSize 批量写入队列容量，默认 20000
+	BufferSize int `yaml:"buffer-size"`
+	// BulkSize 单次批量提交行数，默认 500
+	BulkSize int `yaml:"bulk-size"`
+	// FlushIntervalMs 定时 flush 间隔毫秒，默认 1000
+	FlushIntervalMs int `yaml:"flush-interval-ms"`
+}
+
 // DefaultAdminPassword 配置未写 password 时的默认初始密码。
 const DefaultAdminPassword = "123456"
 
@@ -96,6 +128,9 @@ type Options struct {
 	// es配置
 	Es Es `yaml:"es"`
 
+	// TDengine 时序（storePolicy=tdengine）
+	Tdengine Tdengine `yaml:"tdengine"`
+
 	// redis配置
 	Redis Redis `yaml:"redis"`
 
@@ -111,8 +146,9 @@ type Options struct {
 	// 脚本宿主安全
 	Script Script `yaml:"script"`
 
-	// 抖动限制最大秒默认3600
-	MaxShakeLimitTime int `yaml:"max-shake-limit-time"`
+	// 规则引擎
+	Rule Rule `yaml:"rule"`
+
 	// 控制台输出的banner
 	Banner string `yaml:"banner"`
 }
@@ -139,6 +175,14 @@ func ScriptHTTPBlockPrivate() bool {
 		return true
 	}
 	return Global.Script.HTTPBlockPrivate
+}
+
+// TdengineEnabled 是否启用 TDengine 时序选项。
+func TdengineEnabled() bool {
+	if Global == nil {
+		return false
+	}
+	return Global.Tdengine.Enabled
 }
 
 const banner string = `
@@ -186,6 +230,18 @@ func New() *Options {
 	opt.flags.IntVar(&opt.Es.BufferSize, "es.bufferSize", 10000, "时序数据内存缓冲大小")
 	opt.flags.IntVar(&opt.Es.BulkSize, "es.bulkSize", 1000, "时序数据批量提交大小")
 	opt.flags.IntVar(&opt.Es.WarnTime, "es.warntime", 1000, "时序数据保存时间阈值")
+	opt.flags.IntVar(&opt.Es.RetentionMonths, "es.retention-months", 0, "ES时序最大保存月数，0关闭清理")
+	opt.flags.IntVar(&opt.Es.RetentionCheckHours, "es.retention-check-hours", 24, "ES时序清理任务间隔小时，0不启动")
+	// TDengine
+	opt.flags.BoolVar(&opt.Tdengine.Enabled, "tdengine.enabled", false, "是否启用 TDengine 时序存储选项")
+	opt.flags.StringVar(&opt.Tdengine.Url, "tdengine.url", "http://localhost:6041", "TDengine REST 根地址")
+	opt.flags.StringVar(&opt.Tdengine.Username, "tdengine.username", "root", "TDengine 用户名")
+	opt.flags.StringVar(&opt.Tdengine.Password, "tdengine.password", "taosdata", "TDengine 密码")
+	opt.flags.StringVar(&opt.Tdengine.Database, "tdengine.database", "goiot", "TDengine 业务库名")
+	opt.flags.IntVar(&opt.Tdengine.TimeoutSeconds, "tdengine.timeout-seconds", 30, "TDengine HTTP 超时秒")
+	opt.flags.IntVar(&opt.Tdengine.BufferSize, "tdengine.buffer-size", 20000, "TDengine 批量写队列容量")
+	opt.flags.IntVar(&opt.Tdengine.BulkSize, "tdengine.bulk-size", 500, "TDengine 单次批量行数")
+	opt.flags.IntVar(&opt.Tdengine.FlushIntervalMs, "tdengine.flush-interval-ms", 1000, "TDengine 定时 flush 毫秒")
 	// 集群配置
 	opt.flags.BoolVar(&opt.Cluster.Enabled, "cluster.enabled", false, "是否启用集群")
 	opt.flags.StringVar(&opt.Cluster.Name, "cluster.name", "", "集群节点名")
@@ -201,7 +257,8 @@ func New() *Options {
 	opt.flags.BoolVar(&opt.Script.HTTPEnabled, "script.http-enabled", true, "是否允许编解码脚本 HttpRequest")
 	opt.flags.BoolVar(&opt.Script.HTTPBlockPrivate, "script.http-block-private", true, "脚本 HTTP 是否禁止访问私网/本机（SSRF）")
 
-	opt.flags.IntVar(&opt.MaxShakeLimitTime, "max-shake-limit-time", 3600, "抖动限制最大秒")
+	// 规则引擎
+	opt.flags.IntVar(&opt.Rule.MaxShakeLimitTime, "rule.max-shake-limit-time", 3600, "规则引擎防抖时间轮最大秒数")
 	opt.flags.StringVar(&opt.Banner, "banner", banner, "")
 	opt.viper.BindPFlags(opt.flags)
 
@@ -251,6 +308,41 @@ func (opt *Options) Parse() (string, error) {
 	// 兼容旧配置键 cluster.enable（未写 enabled 时）
 	if !opt.viper.IsSet("cluster.enabled") && opt.viper.IsSet("cluster.enable") {
 		opt.Cluster.Enabled = opt.viper.GetBool("cluster.enable")
+	}
+
+	// 兼容旧顶层键 max-shake-limit-time → rule.max-shake-limit-time
+	if !opt.viper.IsSet("rule.max-shake-limit-time") && opt.viper.IsSet("max-shake-limit-time") {
+		opt.Rule.MaxShakeLimitTime = opt.viper.GetInt("max-shake-limit-time")
+	}
+	if opt.Rule.MaxShakeLimitTime <= 0 {
+		opt.Rule.MaxShakeLimitTime = 3600
+	}
+
+	// tdengine 默认值（未写或空串时）
+	// enabled 默认 false；仅当 flag/yaml 显式设置时为 true（BindPFlags 默认 false）
+	if strings.TrimSpace(opt.Tdengine.Url) == "" {
+		opt.Tdengine.Url = "http://localhost:6041"
+	}
+	if strings.TrimSpace(opt.Tdengine.Username) == "" {
+		opt.Tdengine.Username = "root"
+	}
+	if strings.TrimSpace(opt.Tdengine.Password) == "" {
+		opt.Tdengine.Password = "taosdata"
+	}
+	if strings.TrimSpace(opt.Tdengine.Database) == "" {
+		opt.Tdengine.Database = "goiot"
+	}
+	if opt.Tdengine.TimeoutSeconds <= 0 {
+		opt.Tdengine.TimeoutSeconds = 30
+	}
+	if opt.Tdengine.BufferSize <= 0 {
+		opt.Tdengine.BufferSize = 20000
+	}
+	if opt.Tdengine.BulkSize <= 0 {
+		opt.Tdengine.BulkSize = 500
+	}
+	if opt.Tdengine.FlushIntervalMs <= 0 {
+		opt.Tdengine.FlushIntervalMs = 1000
 	}
 
 	// script 布尔默认：未配置时保持安全默认（HTTP 开、拦私网）

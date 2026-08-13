@@ -94,12 +94,14 @@ type Product struct {
 	Metaconfig  string         `json:"metaconfig,omitempty" orm:"column(meta_config_);null;description(配置属性)"`        // 配置属性
 	State       bool           `json:"state" orm:"column(state_);description(1启用，0禁用)"`
 	StorePolicy string         `json:"storePolicy" orm:"column(store_policy_);size(32);description(数据存储策略 es, mock)"` // 数据存储策略
-	Script      string         `json:"script" orm:"description(脚本)"`                                                  // codec脚本
-	CodecId     string         `json:"codecId" orm:"description(编解码id)"`                                              // 编解码id
-	Tag         map[string]any `json:"tag,omitempty" orm:"description(标签)"`                                           // 标签
-	Desc        string         `json:"desc" orm:"column(desc_);description(产品说明)"`
-	CreateId    int64          `json:"createId" orm:"column(create_id_);null"`
-	CreateTime  DateTime       `json:"createTime" orm:"column(create_time_)"`
+	// RetentionMonths 时序保留月数（仅 storePolicy=es）。nil 或 0=跟随系统全局；>0=使用产品配置。
+	RetentionMonths *int           `json:"retentionMonths,omitempty" orm:"column(retention_months_);type(integer);null;description(时序保留月数,0跟随系统)"`
+	Script          string         `json:"script" orm:"description(脚本)"`     // codec脚本
+	CodecId         string         `json:"codecId" orm:"description(编解码id)"` // 编解码id
+	Tag             map[string]any `json:"tag,omitempty" orm:"description(标签)"` // 标签
+	Desc            string         `json:"desc" orm:"column(desc_);description(产品说明)"`
+	CreateId        int64          `json:"createId" orm:"column(create_id_);null"`
+	CreateTime      DateTime       `json:"createTime" orm:"column(create_time_)"`
 }
 
 // 设备

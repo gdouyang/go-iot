@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
-	"time"
 
 	logs "go-iot/pkg/logger"
 
@@ -31,84 +30,23 @@ func (t *TdengineTimeSeries) Id() string {
 	return core.TIME_SERISE_TDENGINE
 }
 
-func (t *TdengineTimeSeries) PublishModel(product *core.Product, model tsl.TslData) error {
-	err := t.dml("create database if not exists goiot;")
-	if err != nil {
-		return err
-	}
-	if len(model.Properties) > 0 {
-		// 属性
-		sb := strings.Builder{}
-		sb.WriteString("CREATE STABLE IF NOT EXISTS ")
-		sb.WriteString(t.getStableName(product, core.TIME_TYPE_PROP))
-		sb.WriteString(" (")
-		sb.WriteString(t.columnNameRewrite("createTime", "TIMESTAMP"))
-		for _, p := range model.Properties {
-			sb.WriteString(", ")
-			t.createSqlColumn(&sb, p.GetId(), p)
-		}
-		sb.WriteString(" ) tags (")
-		sb.WriteString(t.columnNameRewrite("deviceId", "nchar(64)"))
-		sb.WriteString(");")
-		err := t.dml(sb.String())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		// 事件
-		for _, e := range model.Events {
-			sb := strings.Builder{}
-			sb.WriteString("CREATE STABLE IF NOT EXISTS ")
-			sb.WriteString(t.getEventStableName(product, core.TIME_TYPE_EVENT, e.GetId()))
-			sb.WriteString(" (")
-			sb.WriteString(t.columnNameRewrite("createTime", "TIMESTAMP, "))
-			if object, ok := e.IsObject(); ok {
-				for idx, p1 := range object.Properties {
-					t.createSqlColumn(&sb, p1.GetId(), p1)
-					if idx < len(object.Properties)-1 {
-						sb.WriteString(", ")
-					}
-				}
-			} else {
-				t.createSqlColumn(&sb, e.GetId(), e)
-			}
-			sb.WriteString(" ) tags (")
-			sb.WriteString(t.columnNameRewrite("deviceId", "nchar(64)"))
-			sb.WriteString(");")
-			err := t.dml(sb.String())
-			if err != nil {
-				return err
-			}
-		}
-	}
-	{
-		// device logs
-		sb := strings.Builder{}
-		sb.WriteString("CREATE STABLE IF NOT EXISTS ")
-		sb.WriteString(t.getStableName(product, core.TIME_TYPE_LOGS))
-		sb.WriteString(" (")
-		sb.WriteString(t.columnNameRewrite("createTime", "TIMESTAMP, "))
-		sb.WriteString(t.columnNameRewrite("content", "nchar(1024), "))
-		sb.WriteString(t.columnNameRewrite("type", "nchar(32)"))
-		sb.WriteString(t.columnNameRewrite("traceId", "nchar(64)"))
-		sb.WriteString(" ) tags (")
-		sb.WriteString(t.columnNameRewrite("deviceId", "nchar(64)"))
-		sb.WriteString(");")
-		err := t.dml(sb.String())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
+// PublishModel 实现见 tdengine_schema.go（支持物模型增删列同步）
 
 func (t *TdengineTimeSeries) Del(product *core.Product) error {
-	t.dml("DROP STABLE IF EXISTS " + t.getStableName(product, core.TIME_TYPE_PROP) + ";")
-	for _, e := range product.TslData.Events {
-		t.dml("DROP STABLE IF EXISTS " + t.getEventStableName(product, core.TIME_TYPE_EVENT, e.GetId()) + ";")
+	_ = t.dml("DROP STABLE IF EXISTS " + t.getStableName(product, core.TIME_TYPE_PROP) + ";")
+	// 按前缀清理全部 event 表（含物模型已删除的残留事件表）
+	prefix := "event_" + tdNamePart(product.GetId()) + "_"
+	if names, err := t.listStablesWithPrefix(prefix); err == nil {
+		for _, name := range names {
+			_ = t.dml("DROP STABLE IF EXISTS " + t.dbPrefix() + name + ";")
+		}
 	}
-	t.dml("DROP STABLE IF EXISTS " + t.getStableName(product, core.TIME_TYPE_LOGS) + ";")
+	if product.TslData != nil {
+		for _, e := range product.TslData.Events {
+			_ = t.dml("DROP STABLE IF EXISTS " + t.getEventStableName(product, core.TIME_TYPE_EVENT, e.GetId()) + ";")
+		}
+	}
+	_ = t.dml("DROP STABLE IF EXISTS " + t.getStableName(product, core.TIME_TYPE_LOGS) + ";")
 	return nil
 }
 
@@ -128,32 +66,31 @@ func (t *TdengineTimeSeries) query(tableName string, param core.TimeDataSearchRe
 	if len(param.DeviceId) == 0 {
 		return nil, errors.New("deviceId must be persent")
 	}
-	sb := strings.Builder{}
-	sb.WriteString(tableName)
-	sb.WriteString(" where ")
-	sb.WriteString(t.columnNameRewrite("deviceId"))
-	sb.WriteString(" = ")
-	sb.WriteString(t.whereValueRewrite(param.DeviceId))
-	t.where(&sb, param.Condition)
 	if param.PageNum <= 0 {
 		param.PageNum = 1
 	}
 	if param.PageSize <= 0 {
 		param.PageSize = 10
 	}
-	sb.WriteString(" limit ")
-	sb.WriteString(fmt.Sprintf("%v", param.PageOffset()))
-	sb.WriteString(",")
-	sb.WriteString(fmt.Sprintf("%v", param.PageSize))
-	sb.WriteString(";")
+
+	// where 子句（不含 limit），count 与 search 共用
+	where := strings.Builder{}
+	where.WriteString(tableName)
+	where.WriteString(" where ")
+	where.WriteString(t.columnNameRewrite("deviceId"))
+	where.WriteString(" = ")
+	where.WriteString(t.whereValueRewrite(param.DeviceId))
+	t.where(&where, param.Condition)
+	whereSQL := where.String()
 
 	list := []map[string]any{}
-	total, err := t.count("select count(*) from " + sb.String())
+	total, err := t.count("select count(*) from " + whereSQL + ";")
 	if err != nil {
 		return nil, err
 	}
 	if total > 0 {
-		list, err = t.search("select * from " + sb.String())
+		searchSQL := fmt.Sprintf("select * from %s limit %v,%v;", whereSQL, param.PageOffset(), param.PageSize)
+		list, err = t.search(searchSQL)
 		if err != nil {
 			return nil, err
 		}
@@ -184,14 +121,11 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 		return errors.New("not have deviceId, don't save timeseries data")
 	}
 	sTableName := t.getStableName(product, core.TIME_TYPE_PROP)
-	// INSERT INTO d1001 USING meters TAGS('Beijing.Chaoyang', 2) VALUES('a');
-	createTime := time.Now().Format(timeformt)
-	sql := t.insertSql(sTableName, core.TIME_TYPE_PROP, columns, d1, createTime)
-	err := t.insert(sql)
-	if err != nil {
-		logs.Errorf("exec: %v", err)
-	}
-	// 发送事件总线
+	createTime := nextTdCreateTime()
+	// 入批量队列（异步合并提交），校验已在上方完成
+	frag := t.insertFragment(sTableName, core.TIME_TYPE_PROP, columns, d1, createTime)
+	defaultTdBatch.commit(frag)
+	// 发送事件总线（与 ES 异步落盘语义一致：入队成功即发布）
 	d1["createTime"] = createTime
 	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
 	eventbus.PublishProperties(&event)
@@ -234,13 +168,9 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 		return errors.New("not have deviceId, don't save event timeseries data")
 	}
 	sTableName := t.getEventStableName(product, core.TIME_TYPE_EVENT, eventId)
-	// INSERT INTO d1001 USING meters TAGS('Beijing.Chaoyang', 2) VALUES('a');
-	createTime := time.Now().Format(timeformt)
-	sql := t.insertSql(sTableName, core.TIME_TYPE_EVENT, columns, d1, createTime)
-	err := t.insert(sql)
-	if err != nil {
-		logs.Errorf("exec: %v", err)
-	}
+	createTime := nextTdCreateTime()
+	frag := t.insertFragment(sTableName, core.TIME_TYPE_EVENT, columns, d1, createTime)
+	defaultTdBatch.commit(frag)
 	d1["createTime"] = createTime
 	// 发送事件总线
 	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), eventId, d1)
@@ -253,50 +183,49 @@ func (t *TdengineTimeSeries) SaveLogs(product *core.Product, d1 core.LogData) er
 		return errors.New("deviceId must be present, don't save logs timeseries data")
 	}
 	if len(d1.CreateTime) == 0 {
-		d1.CreateTime = time.Now().Format(timeformt)
+		d1.CreateTime = nextTdCreateTime()
 	}
-	// Build the request body.
 	columns := []string{"type", "content"}
 	sTableName := t.getStableName(product, core.TIME_TYPE_LOGS)
-	sql := t.insertSql(sTableName, core.TIME_TYPE_LOGS, columns, map[string]any{
+	frag := t.insertFragment(sTableName, core.TIME_TYPE_LOGS, columns, map[string]any{
 		"type":     d1.Type,
 		"deviceId": d1.DeviceId,
 		"content":  d1.Content,
 	}, d1.CreateTime)
-	err := t.insert(sql)
-	if err != nil {
-		logs.Errorf("exec: %v", err)
-	}
+	defaultTdBatch.commit(frag)
 	return nil
 }
 
-// devicelogs-{productId}, properties-{productId}
+// {database}.properties_{productId} / {database}.devicelogs_{productId}
+// 产品 ID 经 tdNamePart：小写，'-'→'_'
 func (t *TdengineTimeSeries) getStableName(product *core.Product, typ string) string {
-	index := "goiot" + "." + typ + "_" + strings.ReplaceAll(product.GetId(), "-", "_")
-	return index
+	return tdDatabase() + "." + typ + "_" + tdNamePart(product.GetId())
 }
 
-// event-{productId}-{eventId}
+// {database}.event_{productId}_{eventId}
 func (t *TdengineTimeSeries) getEventStableName(product *core.Product, typ string, eventId string) string {
-	index := "goiot" + "." + typ + "_" + strings.ReplaceAll(product.GetId(), "-", "_") + "_" + strings.ReplaceAll(eventId, "-", "_")
-	return index
+	return tdDatabase() + "." + typ + "_" + tdNamePart(product.GetId()) + "_" + tdNamePart(eventId)
+}
+
+func (t *TdengineTimeSeries) dbPrefix() string {
+	return tdDatabase() + "."
 }
 
 func (t *TdengineTimeSeries) getClient(sql string) ([]byte, error) {
-	req, err := http.NewRequest(http.MethodPost, "http://localhost:6041/rest/sql",
-		bytes.NewBuffer([]byte(sql)))
+	req, err := http.NewRequest(http.MethodPost, tdRestSQLURL(), bytes.NewBuffer([]byte(sql)))
 	if err != nil {
 		return nil, err
 	}
 	logs.Debugf("==>  SQL:%s", sql)
-	req.Header.Add("Authorization", "Basic cm9vdDp0YW9zZGF0YQ==")
+	req.Header.Set("Authorization", tdAuthHeader())
 	req.Close = true
 
-	client := &http.Client{Timeout: time.Duration(time.Second * 3)}
+	client := &http.Client{Timeout: tdHTTPTimeout()}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	buf, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -488,18 +417,28 @@ func (t *TdengineTimeSeries) createSqlColumn(sb *strings.Builder, columnName str
 	}
 }
 
-func (t *TdengineTimeSeries) insertSql(sTableName string, type_ string, columns []string, data map[string]any, createTime string) string {
+// insertFragment 生成可拼入批量 INSERT 的片段（不含 INSERT INTO / 分号）。
+// 例：goiot.properties_d1 USING goiot.properties_p1 TAGS('d1') (create_time_,light_) VALUES('...',1)
+func (t *TdengineTimeSeries) insertFragment(sTableName string, type_ string, columns []string, data map[string]any, createTime string) string {
 	sb := strings.Builder{}
 	deviceId := data[tsl.PropertyDeviceId]
-	sb.WriteString("INSERT INTO goiot.")
-	sb.WriteString(type_)
-	sb.WriteString(fmt.Sprintf("_%v ", deviceId))
-	sb.WriteString("USING ")
+	// 子表名：{type}_{deviceId}，事件额外带 stable 后缀避免多事件共用一张子表冲突
+	child := fmt.Sprintf("%s_%v", type_, deviceId)
+	if type_ == core.TIME_TYPE_EVENT {
+		stable := sTableName
+		if i := strings.LastIndex(sTableName, "."); i >= 0 {
+			stable = sTableName[i+1:]
+		}
+		child = fmt.Sprintf("%s_%v", stable, deviceId)
+	}
+	sb.WriteString(t.dbPrefix())
+	sb.WriteString(child)
+	sb.WriteString(" USING ")
 	sb.WriteString(sTableName)
 	sb.WriteString(" TAGS(")
 	sb.WriteString(fmt.Sprintf("'%v'", deviceId))
 	sb.WriteString(") ")
-	sb.WriteString("( ")
+	sb.WriteString("(")
 	sb.WriteString(t.columnNameRewrite("createTime"))
 	values := strings.Builder{}
 	if len(columns) > 0 {
@@ -514,12 +453,16 @@ func (t *TdengineTimeSeries) insertSql(sTableName string, type_ string, columns 
 			values.WriteString(",")
 		}
 	}
-	sb.WriteString(") ")
-	sb.WriteString("VALUES(")
+	sb.WriteString(") VALUES(")
 	sb.WriteString(fmt.Sprintf("'%s'", createTime))
 	sb.WriteString(values.String())
-	sb.WriteString(");")
+	sb.WriteString(")")
 	return sb.String()
+}
+
+// insertSql 单条完整 SQL（兼容旧测试 / 调试）。
+func (t *TdengineTimeSeries) insertSql(sTableName string, type_ string, columns []string, data map[string]any, createTime string) string {
+	return "INSERT INTO " + t.insertFragment(sTableName, type_, columns, data, createTime) + ";"
 }
 
 func (t *TdengineTimeSeries) whereValueRewrite(value any) string {

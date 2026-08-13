@@ -7,6 +7,7 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/models"
 	"go-iot/pkg/network"
+	"go-iot/pkg/option"
 
 	networkmd "go-iot/pkg/models/network"
 
@@ -14,6 +15,35 @@ import (
 
 	logs "go-iot/pkg/logger"
 )
+
+// ValidateStorePolicy 校验产品时序存储策略是否可用。
+func ValidateStorePolicy(storePolicy string) error {
+	switch storePolicy {
+	case core.TIME_SERISE_ES, core.TIME_SERISE_MOCK, "":
+		return nil
+	case core.TIME_SERISE_TDENGINE:
+		if !option.TdengineEnabled() {
+			return errors.New("TDengine 未启用，请在配置中设置 tdengine.enabled: true")
+		}
+		return nil
+	default:
+		return fmt.Errorf("不支持的时序存储策略: %s", storePolicy)
+	}
+}
+
+// ListStorePolicies 返回当前环境可选的时序存储策略（供前端下拉，不含 mock）。
+func ListStorePolicies() []map[string]string {
+	list := []map[string]string{
+		{"value": core.TIME_SERISE_ES, "label": "Elasticsearch"},
+	}
+	if option.TdengineEnabled() {
+		list = append(list, map[string]string{
+			"value": core.TIME_SERISE_TDENGINE,
+			"label": "TDengine",
+		})
+	}
+	return list
+}
 
 // 分页查询设备
 func PageProduct(page *models.PageQuery, createId int64) (*models.PageResult[models.Product], error) {
@@ -26,7 +56,7 @@ func PageProduct(page *models.PageQuery, createId int64) (*models.PageResult[mod
 	qs = qs.Filter("createId", createId)
 	qs.SearchAfter = page.SearchAfter
 	var result []models.Product
-	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "Desc", "CreateId", "CreateTime"}
+	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "RetentionMonths", "Desc", "CreateId", "CreateTime"}
 	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime", "-id").All(&result, cols...)
 	if err != nil {
 		return nil, err
@@ -52,7 +82,7 @@ func PageProductAll(page *models.PageQuery) (*models.PageResult[models.Product],
 	qs = qs.FilterTerm(page.Condition...)
 	qs.SearchAfter = page.SearchAfter
 	var result []models.Product
-	var cols = []string{"Id", "Name", "NetworkType", "State", "StorePolicy", "Script", "CodecId", "CreateId", "CreateTime"}
+	var cols = []string{"Id", "Name", "NetworkType", "State", "StorePolicy", "RetentionMonths", "Script", "CodecId", "CreateId", "CreateTime"}
 	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime", "-id").All(&result, cols...)
 	if err != nil {
 		return nil, err
@@ -76,7 +106,7 @@ func ListAllProduct(createId int64) ([]models.Product, error) {
 	qs = qs.Filter("createId", createId)
 
 	var result []models.Product
-	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "Desc", "CreateId", "CreateTime"}
+	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "RetentionMonths", "Desc", "CreateId", "CreateTime"}
 	_, err := qs.All(&result, cols...)
 	if err != nil {
 		return nil, err
@@ -85,6 +115,7 @@ func ListAllProduct(createId int64) ([]models.Product, error) {
 }
 
 func AddProduct(ob *models.ProductModel) error {
+	ob.Id = NormalizeId(ob.Id)
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
 		return errors.New("id and name must be present")
 	}
@@ -107,6 +138,12 @@ func AddProduct(ob *models.ProductModel) error {
 	ob.CodecId = core.Script_Codec
 	if len(ob.StorePolicy) == 0 {
 		ob.StorePolicy = core.TIME_SERISE_ES
+	}
+	if err := ValidateStorePolicy(ob.StorePolicy); err != nil {
+		return err
+	}
+	if ob.RetentionMonths != nil && *ob.RetentionMonths < 0 {
+		return errors.New("retentionMonths must be >= 0")
 	}
 	mc := network.GetNetworkMetaConfig(ob.NetworkType)
 	if len(mc.CodecId) > 0 {
@@ -152,6 +189,16 @@ func UpdateProduct(ob *models.ProductModel) error {
 	}
 	if len(ob.Desc) > 0 {
 		columns = append(columns, "Desc")
+	}
+	// RetentionMonths：>=0 写入（0=跟随系统全局，>0=产品配置）；-1 清空为 null（同样跟随全局）
+	if ob.RetentionMonths != nil {
+		if *ob.RetentionMonths < -1 {
+			return errors.New("retentionMonths must be >= 0 or -1 to clear")
+		}
+		if *ob.RetentionMonths == -1 {
+			ob.RetentionMonths = nil
+		}
+		columns = append(columns, "RetentionMonths")
 	}
 	if len(columns) == 0 {
 		return nil

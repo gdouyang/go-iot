@@ -24,6 +24,7 @@ import (
 	"go-iot/pkg/redis"
 	"go-iot/pkg/ruleengine"
 	"go-iot/pkg/store"
+	"go-iot/pkg/timeseries"
 )
 
 // App holds process-scoped dependencies. Global Reg* still used by existing code;
@@ -44,6 +45,8 @@ type App struct {
 
 	// logReloadCancel 停止日志级别热刷新协程。
 	logReloadCancel context.CancelFunc
+	// retentionCancel 停止 ES 时序保留清理协程。
+	retentionCancel context.CancelFunc
 }
 
 // New constructs dependencies and fills legacy package globals (Reg*/Config).
@@ -58,6 +61,7 @@ func New(opt *option.Options) (*App, error) {
 	// es/redis before store and model registration.
 	cluster.Config(opt)
 	es.Config(opt)
+	timeseries.ConfigTdengine(opt)
 	redis.Config(opt)
 	ruleengine.Config(opt)
 
@@ -134,6 +138,7 @@ func (a *App) Start(ctx context.Context) error {
 	logger.Infof("app start: api server started (non-blocking)")
 
 	a.startLogLevelReloader()
+	a.startEsRetentionJob()
 
 	logger.Infof("app start end")
 	return nil
@@ -151,6 +156,10 @@ func (a *App) Stop(ctx context.Context) error {
 	if a.logReloadCancel != nil {
 		a.logReloadCancel()
 		a.logReloadCancel = nil
+	}
+	if a.retentionCancel != nil {
+		a.retentionCancel()
+		a.retentionCancel = nil
 	}
 
 	var firstErr error
@@ -186,6 +195,29 @@ func (a *App) Run() error {
 	stopCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	return a.Stop(stopCtx)
+}
+
+// startEsRetentionJob 启动 ES 时序过期月索引清理。
+// retention-check-hours<=0 不启动；集群模式下仅 index==0 执行。
+func (a *App) startEsRetentionJob() {
+	if a == nil {
+		return
+	}
+	if cluster.Enabled() {
+		local := cluster.LocalNode()
+		if local.Index != 0 {
+			logger.Infof("es retention job skipped on cluster node index=%d (only index=0 runs)", local.Index)
+			return
+		}
+	}
+	// 以 es.Config 写入的 DefaultEsConfig 为准（New 时已 Config）
+	months := es.DefaultEsConfig.RetentionMonths
+	hours := es.DefaultEsConfig.RetentionCheckHours
+	if hours <= 0 {
+		logger.Infof("es retention job disabled (es.retention-check-hours=%d)", hours)
+		return
+	}
+	a.retentionCancel = timeseries.StartEsRetentionLoop(months, hours, nil)
 }
 
 // startLogLevelReloader 定时从配置文件刷新 logs.level。

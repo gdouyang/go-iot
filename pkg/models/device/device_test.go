@@ -29,3 +29,9 @@ func TestId(t *testing.T) {
 	matched = device.DeviceIdValid(".123abcDew.")
 	assert.False(t, matched)
 }
+
+func TestNormalizeId(t *testing.T) {
+	assert.Equal(t, "MYPRODUCT", device.NormalizeId("MyProduct"))
+	assert.Equal(t, "DEV-01", device.NormalizeId("  dev-01  "))
+	assert.Equal(t, "ABC_123", device.NormalizeId("abc_123"))
+}

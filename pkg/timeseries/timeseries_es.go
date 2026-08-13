@@ -44,8 +44,10 @@ func (t *EsTimeSeries) PublishModel(product *core.Product, model tsl.TslData) er
 		properties["deviceId"] = es.Property{Type: "keyword"}
 		properties["createTime"] = es.Property{Type: "date", Format: es.DefaultDateFormat}
 
-		indexPattern := fmt.Sprintf("%s-%s-*", properties_const, product.GetId())
-		templateName := fmt.Sprintf("%s-%s-template", properties_const, product.GetId())
+		// ES 索引名必须全小写
+		pid := esIndexPart(product.GetId())
+		indexPattern := fmt.Sprintf("%s-%s-*", properties_const, pid)
+		templateName := fmt.Sprintf("%s-%s-template", properties_const, pid)
 		err := es.CreateEsTemplate(properties, indexPattern, templateName, "")
 		if err != nil {
 			return err
@@ -53,6 +55,7 @@ func (t *EsTimeSeries) PublishModel(product *core.Product, model tsl.TslData) er
 	}
 	{
 		// 事件
+		pid := esIndexPart(product.GetId())
 		for _, e := range model.Events {
 			var properties map[string]any = map[string]any{}
 			if object, ok := e.IsObject(); ok {
@@ -65,8 +68,9 @@ func (t *EsTimeSeries) PublishModel(product *core.Product, model tsl.TslData) er
 			properties["deviceId"] = es.Property{Type: "keyword"}
 			properties["createTime"] = es.Property{Type: "date", Format: es.DefaultDateFormat}
 
-			indexPattern := fmt.Sprintf("%s-%s-%s-*", event_const, product.GetId(), e.GetId()) // event-{productId}-{eventId}-*
-			templateName := fmt.Sprintf("%s-%s-%s-template", event_const, product.GetId(), e.GetId())
+			eid := esIndexPart(e.GetId())
+			indexPattern := fmt.Sprintf("%s-%s-%s-*", event_const, pid, eid) // event-{productId}-{eventId}-*
+			templateName := fmt.Sprintf("%s-%s-%s-template", event_const, pid, eid)
 			err := es.CreateEsTemplate(properties, indexPattern, templateName, "")
 			if err != nil {
 				return err
@@ -82,8 +86,9 @@ func (t *EsTimeSeries) PublishModel(product *core.Product, model tsl.TslData) er
 		properties["content"] = es.Property{Type: "keyword", IgnoreAbove: "256"}
 		properties["createTime"] = es.Property{Type: "date", Format: es.DefaultDateFormat}
 
-		indexPattern := fmt.Sprintf("%s-%s-*", devicelogs_const, product.GetId()) // devicelogs-{productId}-{eventId}-*
-		templateName := fmt.Sprintf("%s-%s-template", devicelogs_const, product.GetId())
+		pid := esIndexPart(product.GetId())
+		indexPattern := fmt.Sprintf("%s-%s-*", devicelogs_const, pid) // devicelogs-{productId}-*
+		templateName := fmt.Sprintf("%s-%s-template", devicelogs_const, pid)
 		err := es.CreateEsTemplate(properties, indexPattern, templateName, "")
 		if err != nil {
 			return err
@@ -269,26 +274,22 @@ func (t *EsTimeSeries) SaveLogs(product *core.Product, d1 core.LogData) error {
 
 // goiot-devicelogs-{productId}, goiot-properties-{productId}
 func (t *EsTimeSeries) getIndex(product *core.Product, typ string) string {
-	index := typ + "-" + product.GetId()
-	return index
+	return typ + "-" + esIndexPart(product.GetId())
 }
 
 // goiot-devicelogs-{productId}-201102, goiot-properties-{productId}-201102
 func (t *EsTimeSeries) getMonthIndex(product *core.Product, typ string, date time.Time) string {
-	index := t.getIndex(product, typ) + "-" + date.Format("200601")
-	return index
+	return t.getIndex(product, typ) + "-" + date.Format("200601")
 }
 
 // goiot-event-{productId}-{eventId}
 func (t *EsTimeSeries) getEventIndex(product *core.Product, typ string, eventId string) string {
-	index := typ + "-" + product.GetId() + "-" + eventId
-	return index
+	return typ + "-" + esIndexPart(product.GetId()) + "-" + esIndexPart(eventId)
 }
 
 // goiot-event-{productId}-{eventId}-201101
 func (t *EsTimeSeries) getMonthEventIndex(product *core.Product, typ string, eventId string, date time.Time) string {
-	index := t.getEventIndex(product, typ, eventId) + "-" + date.Format("200601")
-	return index
+	return t.getEventIndex(product, typ, eventId) + "-" + date.Format("200601")
 }
 
 // 根据查询时间来列举出索引

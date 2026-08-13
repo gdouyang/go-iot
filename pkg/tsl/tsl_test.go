@@ -239,3 +239,24 @@ func TestTsl(t *testing.T) {
 	s = fmt.Sprintf("%v", "100000ff")
 	log.Println(s)
 }
+
+func TestTslIdCaseInsensitiveRepeat(t *testing.T) {
+	// 属性标识忽略大小写重复
+	d := tsl.NewTslData()
+	err := d.FromJson(`{"properties":[{"id":"Temp","name":"t","type":"int"},{"id":"temp","name":"t2","type":"int"}],"events":[],"functions":[]}`)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "repeat")
+
+	// 功能标识忽略大小写重复
+	d = tsl.NewTslData()
+	err = d.FromJson(`{"properties":[],"events":[],"functions":[{"id":"Switch","name":"s","async":false,"inputs":[]},{"id":"switch","name":"s2","async":false,"inputs":[]}]}`)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "repeat")
+
+	// 不同大小写但内容合法且不重复时可通过
+	d = tsl.NewTslData()
+	err = d.FromJson(`{"properties":[{"id":"Temp","name":"t","type":"int"},{"id":"Humidity","name":"h","type":"float"}],"events":[],"functions":[{"id":"Switch","name":"s","async":false,"inputs":[]}]}`)
+	assert.NoError(t, err)
+	assert.Equal(t, "Temp", d.Properties[0].GetId())
+	assert.Equal(t, "Switch", d.Functions[0].Id)
+}

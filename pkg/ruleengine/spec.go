@@ -56,8 +56,12 @@ func Config(opt *option.Options) {
 	if timeingwhell != nil {
 		timeingwhell.Stop()
 	}
-	maxShakeLimitTime = opt.MaxShakeLimitTime
-	timeingwhell = util.NewTimingWheel(1*time.Second, opt.MaxShakeLimitTime)
+	sec := 3600
+	if opt != nil && opt.Rule.MaxShakeLimitTime > 0 {
+		sec = opt.Rule.MaxShakeLimitTime
+	}
+	maxShakeLimitTime = sec
+	timeingwhell = util.NewTimingWheel(1*time.Second, sec)
 }
 
 type AlarmEvent struct {

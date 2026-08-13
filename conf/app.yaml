@@ -1,50 +1,108 @@
+# go-iot 配置（与 pkg/option.Options / 命令行 flag 对齐）
+# 配置文件：-f conf/app.yaml  环境变量前缀：GOIOT_（. 与 - 转为 _）
+
+# API 监听地址 [host]:port
 api-addr: :8088
 
-# 默认管理员（仅首次创建 id=1 的 admin 时生效；已有用户不改密）
-# 未配置 password 时默认为 123456；生产请设置强密码或环境变量 GOIOT_ADMIN_PASSWORD
+# 默认管理员（仅首次创建 id=1 的 admin 时生效；库中已有用户不改密）
+# 未配置 password 时默认为 123456；生产请改强密码或环境变量 GOIOT_ADMIN_PASSWORD
 # 密码以 bcrypt 存储；旧 MD5 账号登录后会懒升级
 admin:
   password: "123456"
 
-# 编解码脚本宿主安全（HttpRequest）
-# http-enabled: 关闭后脚本无法发 HTTP
+# 编解码脚本宿主安全（globe.HttpRequest / HttpRequestAsync）
+# http-enabled: false 时脚本无法发 HTTP
 # http-block-private: 禁止访问私网/本机（SSRF 基线）；脚本需调内网时设为 false
 script:
   http-enabled: true
   http-block-private: true
 
-# debug, info, warn, error
+# 日志
+# level: debug | info | warn | error（flag 默认 info）
+# format: text | json
+# filename: 日志文件路径；不配则默认 logs/go-iot.log（Init 时）
+# reload-interval: 从本文件热刷新 level 的间隔（秒）；0 关闭；默认 30
 logs:
   level: debug
-  # 日志级别热刷新间隔（秒）：修改本文件 level 后无需重启即可生效；0 关闭
+  format: text
+  # filename: logs/go-iot.log
   reload-interval: 30
-  #format: json
-  #filename: logs/go-iot.log
 
-# es config
+# Elasticsearch（元数据 ORM + 时序 storePolicy=es）
+# usename: 历史拼写，与代码 yaml 标签一致（非 username）
+# bufferSize / bulkSize: 时序批量写入缓冲
+# warntime: 单次 bulk 超过该毫秒打 warn
+# retention-months: 全局时序最大保存月数（properties/event/logs）；0=不清理（升级安全默认）
+# 产品 retentionMonths：0/空=跟随本配置；>0=使用产品月数
+# retention-check-hours: 清理任务间隔（小时）；0=不启动；默认 24
 es:
   url: http://localhost:9200
-  usename: 
-  password: 
-  numberOfShards: 1
-  numberOfReplicas: 0
-# redis config
+  usename: ""
+  password: ""
+  numberOfShards: "1"
+  numberOfReplicas: "0"
+  bufferSize: 10000
+  bulkSize: 1000
+  warntime: 1000
+  retention-months: 0
+  retention-check-hours: 24
+
+# TDengine（时序 storePolicy=tdengine，REST SQL）
+# enabled: 是否在新建产品时提供「TDengine」选项（关闭后不可选；已有 tdengine 产品仍可读配置连接）
+# url: 服务根地址，自动拼 /rest/sql；也可直接写完整 REST 地址
+# database: 业务库名（建库/建表前缀）
+# buffer-size / bulk-size / flush-interval-ms: 批量写入
+tdengine:
+  enabled: false
+  url: http://localhost:6041
+  username: root
+  password: taosdata
+  database: goiot
+  timeout-seconds: 30
+  buffer-size: 20000
+  bulk-size: 500
+  flush-interval-ms: 1000
+
+# Redis（设备缓存、会话、离线命令队列等）
 redis:
   addr: localhost:6379
+  password: ""
   db: 0
-  password: 
 
-# 集群配置（详见 doc/cluster.md）
-# 字段名：enabled（结构体 option.Cluster.Enabled；flag: --cluster.enabled）
-# 旧键 enable 在解析时仍兼容（仅当未设置 enabled 时）
+# 内置 MQTT（option.Mqtt；平台 MQTT5 broker 等）
+# 证书列表：useTLS 为 true 时配置 certificate
+mqtt:
+  host: ""
+  name: ""
+  port: 1883
+  useTLS: false
+  # certificate:
+  #   - name: default
+  #     cert: /path/to/cert.pem
+  #     key: /path/to/key.pem
+
+# 集群（详见 doc/cluster.md）
+# enabled: 是否启用（旧键 enable 仍兼容）
+# name: 节点唯一名，写入设备 ClusterId
+# index: 分片序号，多节点须互不重复且在 [0, 节点数) 内
+# token: 集群通讯凭证
+# url: 本机可被其它节点访问的 API 根地址
+# hosts: 全集群 URL 列表（逗号分隔）
 cluster:
   enabled: false
-  # 节点唯一名，写入设备 ClusterId
-  name:
-  # 分片序号，多节点时须互不重复且在 [0, 节点数) 内，如 0、1、2…
+  name: ""
   index: 0
   token: abc
-  # 本机可被其它节点访问的 API 根地址
+  url: ""
+  hosts: ""
   # url: http://192.168.31.221:8088
-  # 全集群 URL 列表（逗号分隔）
   # hosts: http://192.168.31.221:8088,http://192.168.31.136:8088
+
+# 规则引擎（ruleengine）
+# max-shake-limit-time: 防抖时间轮最大秒数（flag: --rule.max-shake-limit-time，默认 3600）
+# 旧顶层键 max-shake-limit-time 仍兼容
+rule:
+  max-shake-limit-time: 3600
+
+# banner 一般用内置默认，无需配置
+# banner: ""

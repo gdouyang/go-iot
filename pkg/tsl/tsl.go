@@ -389,13 +389,13 @@ func parseFunctions(d string) ([]Function, error) {
 		return true
 	})
 	{
-		var idMap map[string]bool = map[string]bool{}
+		idMap := map[string]bool{}
 		for _, v := range list {
-			if _, ok := idMap[v.Id]; ok {
+			key := idKey(v.Id)
+			if idMap[key] {
 				return nil, fmt.Errorf("function is repeat [%s]", v.Id)
-			} else {
-				idMap[v.Id] = true
 			}
+			idMap[key] = true
 		}
 	}
 	if err1 != nil {
@@ -421,18 +421,18 @@ func parsePropertys(d string, key string) ([]Property, error) {
 		return true
 	})
 	{
-		var idMap map[string]bool = map[string]bool{}
+		idMap := map[string]bool{}
 		for _, v := range list {
 			if obj, ok := v.IsObject(); ok {
 				if len(obj.Properties) == 0 {
 					return list, fmt.Errorf("%s [%s] must have properties", key, v.GetId())
 				}
 			}
-			if _, ok := idMap[v.GetId()]; ok {
+			k := idKey(v.GetId())
+			if idMap[k] {
 				return list, fmt.Errorf("%s is repeat [%s]", key, v.GetId())
-			} else {
-				idMap[v.GetId()] = true
 			}
+			idMap[k] = true
 		}
 	}
 
@@ -503,6 +503,17 @@ func parseProperty(value gjson.Result, idMustNotNull bool) (Property, error) {
 			properties = append(properties, p)
 			return true
 		})
+		if err == nil {
+			seen := map[string]bool{}
+			for _, p := range properties {
+				k := idKey(p.GetId())
+				if seen[k] {
+					err = fmt.Errorf("object property is repeat [%s]", p.GetId())
+					return nil, err
+				}
+				seen[k] = true
+			}
+		}
 		d1.Properties = properties
 	default:
 		err = convert(value.Raw, property)
@@ -528,9 +539,14 @@ func convert(data string, v any) error {
 }
 
 func idCheck(id string) error {
-	matched, _ := regexp.Match("^[0-9a-zA-Z_\\-]+$", []byte(id))
+	matched, _ := regexp.MatchString(`^[0-9a-zA-Z_\-]+$`, id)
 	if !matched {
 		return fmt.Errorf("id [%s] is invalid, must be alphabet,number,underscores", id)
 	}
 	return nil
+}
+
+// idKey 标识比较键：忽略大小写（Temp 与 temp 视为同一标识）。
+func idKey(id string) string {
+	return strings.ToLower(strings.TrimSpace(id))
 }

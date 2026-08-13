@@ -51,6 +51,7 @@ func init() {
 
 	web.RegisterAPI("/product/page", "POST", api.page)
 	web.RegisterAPI("/product/list", "GET", api.list)
+	web.RegisterAPI("/product/store-policies", "GET", api.storePolicies)
 	web.RegisterAPI("/product", "POST", api.add)
 	web.RegisterAPI("/product/{id}", "PUT", api.update)
 	web.RegisterAPI("/product/{id}", "GET", api.get)
@@ -68,6 +69,18 @@ func init() {
 }
 
 type productApi struct {
+}
+
+// storePolicies 可选时序存储策略（受 tdengine.enabled 等配置影响）
+func (a *productApi) storePolicies(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(productResource, QueryAction) {
+		return
+	}
+	ctl.RespOkData(map[string]interface{}{
+		"default": core.TIME_SERISE_ES,
+		"list":    product.ListStorePolicies(),
+	})
 }
 
 // 分页查询
@@ -250,6 +263,10 @@ func (a *productApi) deploy(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(errors.New("物模型属性为空，请先添加属性"))
 		return
 	}
+	if err := product.ValidateStorePolicy(ob.StorePolicy); err != nil {
+		ctl.RespError(err)
+		return
+	}
 	p1, err := ob.ToProeuctOper()
 	if err != nil {
 		ctl.RespError(err)
@@ -304,7 +321,7 @@ func (a *productApi) saveTsl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ob.Id = ctl.Param("id")
-	_, err = getProductAndCheckCreate(ctl, ob.Id)
+	exist, err := getProductAndCheckCreate(ctl, ob.Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -323,6 +340,23 @@ func (a *productApi) saveTsl(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ctl.RespError(err)
 		return
+	}
+	// 已发布产品：同步时序表结构（TDengine ADD/DROP COLUMN 等），并刷新内存物模型
+	if exist.State {
+		exist.Metadata = update.Metadata
+		p1, err := exist.ToProeuctOper()
+		if err != nil {
+			ctl.RespError(fmt.Errorf("reload product oper: %w", err))
+			return
+		}
+		if err := core.PutProduct(p1); err != nil {
+			ctl.RespError(err)
+			return
+		}
+		if err := p1.GetTimeSeries().PublishModel(p1, *tslData); err != nil {
+			ctl.RespError(fmt.Errorf("sync timeseries schema: %w", err))
+			return
+		}
 	}
 	ctl.RespOk()
 }

@@ -12,9 +12,15 @@ import (
 	"go-iot/pkg/es/orm"
 )
 
+// DeviceIdValid 产品/设备 ID 字符集：数字、字母、下划线、中划线。
 func DeviceIdValid(deviceId string) bool {
-	matched, _ := regexp.Match("^[0-9a-zA-Z_\\-]+$", []byte(deviceId))
+	matched, _ := regexp.MatchString(`^[0-9a-zA-Z_\-]+$`, deviceId)
 	return matched
+}
+
+// NormalizeId 新增时规范化 ID：去空白并转大写（历史数据不迁移，仅新建写入时生效）。
+func NormalizeId(id string) string {
+	return strings.ToUpper(strings.TrimSpace(id))
 }
 
 // 分页查询设备
@@ -64,6 +70,8 @@ func ListClientDeviceByProductId(productId string) ([]string, error) {
 }
 
 func AddDevice(ob *models.DeviceModel) error {
+	// 仅规范化本设备 ID；productId/parentId 保持原样以兼容历史大小写数据
+	ob.Id = NormalizeId(ob.Id)
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {
 		return errors.New("id, name must be present")
 	}
