@@ -56,7 +56,7 @@ func PageProduct(page *models.PageQuery, createId int64) (*models.PageResult[mod
 	qs = qs.Filter("createId", createId)
 	qs.SearchAfter = page.SearchAfter
 	var result []models.Product
-	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "RetentionMonths", "Desc", "CreateId", "CreateTime"}
+	var cols = []string{"Id", "Name", "TypeId", "NetworkType", "State", "StorePolicy", "RetentionMonths", "Desc", "CreateId", "CreateTime"}
 	_, err := qs.Limit(page.PageSize, page.PageOffset()).OrderBy("-CreateTime", "-id").All(&result, cols...)
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func ListAllProduct(createId int64) ([]models.Product, error) {
 	qs = qs.Filter("createId", createId)
 
 	var result []models.Product
-	var cols = []string{"Id", "Name", "TypeId", "State", "StorePolicy", "RetentionMonths", "Desc", "CreateId", "CreateTime"}
+	var cols = []string{"Id", "Name", "TypeId", "NetworkType", "State", "StorePolicy", "RetentionMonths", "Desc", "CreateId", "CreateTime"}
 	_, err := qs.All(&result, cols...)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,13 @@ func AddProduct(ob *models.ProductModel) error {
 	if !DeviceIdValid(ob.Id) {
 		return errors.New("产品ID格式错误")
 	}
-	rs, err := GetProduct(ob.Id)
+	if len(ob.NetworkType) == 0 {
+		return errors.New("networkType must be present")
+	}
+	if !network.IsValidNetType(ob.NetworkType) {
+		return fmt.Errorf("不支持的网络类型: %s", ob.NetworkType)
+	}
+	rs, err := getProductById(ob.Id)
 	if err != nil {
 		return err
 	}
@@ -133,7 +139,6 @@ func AddProduct(ob *models.ProductModel) error {
 		return fmt.Errorf("产品[%s]已存在", ob.Id)
 	}
 	//插入数据
-	o := orm.NewOrm()
 	ob.CreateTime = models.NewDateTime()
 	ob.CodecId = core.Script_Codec
 	if len(ob.StorePolicy) == 0 {
@@ -153,14 +158,43 @@ func AddProduct(ob *models.ProductModel) error {
 	if len(ob.Metaconfig) == 0 {
 		entity.Metaconfig = mc.ToJson()
 	}
-	_, err = o.Insert(entity)
-	if err != nil {
+	if err := ensureCanBindNetwork(entity.NetworkType); err != nil {
 		return err
 	}
-	_, err = networkmd.BindNetworkProduct(entity.Id, entity.NetworkType)
+	if err := insertProductEntity(&entity); err != nil {
+		return err
+	}
+	_, err = bindNetworkProduct(entity.Id, entity.NetworkType)
 	if err != nil {
 		logs.Errorf("bind network error: %v", err)
+		if delErr := deleteProductRow(entity.Id); delErr != nil {
+			logs.Errorf("compensate delete product %s after bind fail: %v", entity.Id, delErr)
+		}
+		return err
 	}
+	return nil
+}
+
+// hooks allow unit tests to drive AddProduct without Elasticsearch.
+var (
+	getProductById      = GetProduct
+	lookupUnusedNetwork = networkmd.GetUnuseNetwork
+	insertProductEntity = func(entity *models.Product) error {
+		o := orm.NewOrm()
+		_, err := o.Insert(entity)
+		return err
+	}
+	bindNetworkProduct = networkmd.BindNetworkProduct
+	deleteProductRow   = func(id string) error {
+		return DeleteProduct(&models.Product{Id: id})
+	}
+)
+
+func ensureCanBindNetwork(networkType string) error {
+	if network.IsNetClientType(networkType) {
+		return nil
+	}
+	_, err := lookupUnusedNetwork()
 	return err
 }
 

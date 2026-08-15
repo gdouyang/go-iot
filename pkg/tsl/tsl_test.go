@@ -82,7 +82,7 @@ const text = `
           "name": "名称",
           "type": "string",
           "description": "test",
-          "maxLength": "32",
+          "max": 32,
           "expands": {
             "readOnly": null,
             "level": null
@@ -105,11 +105,9 @@ const text = `
           "elements": [
             {
               "text": "开灯",
-              "value": "on",
-              "id": "0"
+              "value": "on"
             },
             {
-              "id": "2",
               "value": "off",
               "text": "关灯"
             }

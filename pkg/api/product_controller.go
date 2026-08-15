@@ -12,11 +12,10 @@ import (
 	networkmd "go-iot/pkg/models/network"
 	"go-iot/pkg/network"
 	"go-iot/pkg/network/servers"
-	"go-iot/pkg/tsl"
+	productsvc "go-iot/pkg/service/product"
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 var productResource = Resource{
@@ -133,8 +132,12 @@ func (a *productApi) add(w http.ResponseWriter, r *http.Request) {
 		ctl.RespErrorParam("networkType")
 		return
 	}
+	if !network.IsValidNetType(aligns.NetworkType) {
+		ctl.RespError(fmt.Errorf("不支持的网络类型: %s", aligns.NetworkType))
+		return
+	}
 	aligns.CreateId = ctl.GetCurrentUser().Id
-	err = product.AddProduct(&aligns)
+	err = productsvc.Add(&aligns)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -202,35 +205,11 @@ func (a *productApi) delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	productId := ctl.Param("id")
-	ob, err := getProductAndCheckCreate(ctl, productId)
-	if err != nil {
+	if _, err := getProductAndCheckCreate(ctl, productId); err != nil {
 		ctl.RespError(err)
 		return
 	}
-	server := servers.GetServer(productId)
-	if server != nil {
-		ctl.RespError(errors.New("网络服务正在运行, 请先停止"))
-		return
-	}
-	total, err := product.CountDeviceByProductId(productId)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	if total > 0 {
-		ctl.RespError(errors.New("产品下已存在设备, 请先删除设备"))
-		return
-	}
-	// 删除时序数据
-	productoper, _ := core.NewProduct(productId, map[string]string{}, ob.StorePolicy, "")
-	err = productoper.GetTimeSeries().Del(productoper)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	// delete product
-	err = product.DeleteProduct(&models.Product{Id: productId})
-	if err != nil {
+	if err := productsvc.Delete(ctl.GetCurrentUser().Id, productId); err != nil {
 		ctl.RespError(err)
 		return
 	}
@@ -244,45 +223,14 @@ func (a *productApi) deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := ctl.Param("id")
-	ob, err := getProductAndCheckCreate(ctl, id)
-	if err != nil {
+	if _, err := getProductAndCheckCreate(ctl, id); err != nil {
 		ctl.RespError(err)
 		return
 	}
-	if len(strings.TrimSpace(ob.Metadata)) == 0 {
-		ctl.RespError(errors.New("产品没有配置物模型，请先配置"))
-		return
-	}
-	tsl := tsl.TslData{}
-	err = tsl.FromJson(ob.Metadata)
-	if err != nil {
+	if err := productsvc.Deploy(ctl.GetCurrentUser().Id, id); err != nil {
 		ctl.RespError(err)
 		return
 	}
-	if len(tsl.Properties) == 0 {
-		ctl.RespError(errors.New("物模型属性为空，请先添加属性"))
-		return
-	}
-	if err := product.ValidateStorePolicy(ob.StorePolicy); err != nil {
-		ctl.RespError(err)
-		return
-	}
-	p1, err := ob.ToProeuctOper()
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	if err := core.PutProduct(p1); err != nil {
-		ctl.RespError(err)
-		return
-	}
-	err = p1.GetTimeSeries().PublishModel(p1, tsl)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	ob.State = true
-	product.UpdateProductState(&ob.Product)
 	ctl.RespOk()
 }
 
@@ -293,18 +241,19 @@ func (a *productApi) undeploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	productId := ctl.Param("id")
-	ob, err := getProductAndCheckCreate(ctl, productId)
-	if err != nil {
+	if _, err := getProductAndCheckCreate(ctl, productId); err != nil {
 		ctl.RespError(err)
 		return
 	}
-	ob.State = false
 	if ctl.IsNotClusterRequest() {
-		product.UpdateProductState(&ob.Product)
+		if err := productsvc.Undeploy(ctl.GetCurrentUser().Id, productId); err != nil {
+			ctl.RespError(err)
+			return
+		}
 		cluster.BroadcastInvoke(ctl.Request)
+	} else {
+		core.DeleteProduct(productId)
 	}
-	core.DeleteProduct(productId)
-	// 调用集群接口
 	ctl.RespOk()
 }
 
@@ -321,42 +270,13 @@ func (a *productApi) saveTsl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ob.Id = ctl.Param("id")
-	exist, err := getProductAndCheckCreate(ctl, ob.Id)
-	if err != nil {
+	if _, err := getProductAndCheckCreate(ctl, ob.Id); err != nil {
 		ctl.RespError(err)
 		return
 	}
-	var update models.ProductModel
-	update.Id = ob.Id
-	update.Metadata = ob.Metadata
-	tslData := tsl.NewTslData()
-	err = tslData.FromJson(update.Metadata)
-	if err != nil {
+	if err := productsvc.SaveTSL(ctl.GetCurrentUser().Id, ob.Id, ob.Metadata); err != nil {
 		ctl.RespError(err)
 		return
-	}
-	update.Metadata = tslData.Text
-	err = product.UpdateProduct(&update)
-	if err != nil {
-		ctl.RespError(err)
-		return
-	}
-	// 已发布产品：同步时序表结构（TDengine ADD/DROP COLUMN 等），并刷新内存物模型
-	if exist.State {
-		exist.Metadata = update.Metadata
-		p1, err := exist.ToProeuctOper()
-		if err != nil {
-			ctl.RespError(fmt.Errorf("reload product oper: %w", err))
-			return
-		}
-		if err := core.PutProduct(p1); err != nil {
-			ctl.RespError(err)
-			return
-		}
-		if err := p1.GetTimeSeries().PublishModel(p1, *tslData); err != nil {
-			ctl.RespError(fmt.Errorf("sync timeseries schema: %w", err))
-			return
-		}
 	}
 	ctl.RespOk()
 }
@@ -374,20 +294,11 @@ func (a *productApi) saveScript(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	productId := ctl.Param("id")
-	oldProduct, err := getProductAndCheckCreate(ctl, productId)
-	if err != nil {
+	if _, err := getProductAndCheckCreate(ctl, productId); err != nil {
 		ctl.RespError(err)
 		return
 	}
-	update := models.ProductModel{}
-	update.Id = productId
-	update.Script = ob.Script
-	if err = product.UpdateProduct(&update); err != nil {
-		ctl.RespError(err)
-		return
-	}
-	_, err = core.NewCodec(oldProduct.CodecId, oldProduct.Id, update.Script)
-	if err != nil {
+	if err := productsvc.SaveScript(ctl.GetCurrentUser().Id, productId, ob.Script); err != nil {
 		ctl.RespError(err)
 		return
 	}
@@ -603,6 +514,10 @@ func (a *productApi) importProduct(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(pd.NetworkType) == 0 {
 		ctl.RespErrorParam("networkType")
+		return
+	}
+	if !network.IsValidNetType(pd.NetworkType) {
+		ctl.RespError(fmt.Errorf("不支持的网络类型: %s", pd.NetworkType))
 		return
 	}
 	pd.CreateId = ctl.GetCurrentUser().Id

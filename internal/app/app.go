@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"go-iot/pkg/agent"
 	"go-iot/pkg/api/eventpush"
 	"go-iot/pkg/api/web"
 	"go-iot/pkg/cluster"
@@ -107,7 +108,8 @@ func (a *App) Start(ctx context.Context) error {
 	logger.Infof("app start begin")
 
 	models.RegisterModels()
-	logger.Infof("app start: models registered")
+	agent.DefaultStore = agent.NewESStore()
+	logger.Infof("app start: models registered, agent store=es")
 
 	// 默认数据（admin 初始密码来自配置 admin.password / GOIOT_ADMIN_PASSWORD，bcrypt 入库）
 	base.EnsureDefaultAdmin(a.Opt.AdminPassword())

@@ -30,6 +30,16 @@ const (
 	MODBUS NetType = "MODBUS"
 )
 
+func IsValidNetType(str string) bool {
+	switch NetType(str) {
+	case MQTT_BROKER, GOIOT_MQTT_BROKER, TCP_SERVER, HTTP_SERVER, WEBSOCKET_SERVER, COAP_SERVER,
+		MQTT_CLIENT, TCP_CLIENT, MODBUS:
+		return true
+	default:
+		return false
+	}
+}
+
 func IsNetClientType(str string) bool {
 	return TCP_CLIENT == NetType(str) || MQTT_CLIENT == NetType(str) || MODBUS == NetType(str)
 }

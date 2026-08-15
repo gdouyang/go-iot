@@ -12,6 +12,8 @@ func RegisterModels() {
 		new(Product), new(Device), new(Network),
 		new(Rule), new(RuleRelDevice), new(AlarmLog),
 		new(Notify), new(DeviceOtaLog), new(OtaFile),
+		new(AgentConversation), new(AgentMessage), new(AgentDraft),
+		new(AgentAudit), new(AgentUserSettings),
 	)
 }
 

@@ -151,6 +151,12 @@ func (mc *modelCache) getByMd(md interface{}) (*modelInfo, bool) {
 	return mc.getByFullName(name)
 }
 
+// IsRegistered reports whether md was passed to RegisterModel.
+func IsRegistered(md interface{}) bool {
+	_, ok := defaultmodelCache.getByMd(md)
+	return ok
+}
+
 // set model info to collection
 func (mc *modelCache) set(indexName string, mi *modelInfo) *modelInfo {
 	mii := mc.cache[indexName]

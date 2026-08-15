@@ -485,6 +485,9 @@ func parseProperty(value gjson.Result, idMustNotNull bool) (Property, error) {
 	property.setType(property.GetType())
 	switch d1 := property.(type) {
 	case *PropertyObject:
+		if err = rejectUnknownKeys(value.Raw, objectPropertyKeys); err != nil {
+			return nil, err
+		}
 		d1.Id = value.Get("id").String()
 		d1.Name = value.Get("name").String()
 		d1.Expands = map[string]string{}
@@ -521,6 +524,11 @@ func parseProperty(value gjson.Result, idMustNotNull bool) (Property, error) {
 	if err != nil {
 		return nil, err
 	}
+	if ev, ok := property.(*PropertyEnum); ok {
+		if err := ev.Valid(); err != nil {
+			return nil, err
+		}
+	}
 	if idMustNotNull {
 		if len(strings.TrimSpace(property.GetId())) == 0 {
 			err = fmt.Errorf("id of tslProperty must be persent")
@@ -535,7 +543,29 @@ func parseProperty(value gjson.Result, idMustNotNull bool) (Property, error) {
 }
 
 func convert(data string, v any) error {
-	return json.Unmarshal([]byte(data), v)
+	dec := json.NewDecoder(strings.NewReader(data))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(v); err != nil {
+		return fmt.Errorf("tsl property invalid: %w", err)
+	}
+	return nil
+}
+
+var objectPropertyKeys = map[string]struct{}{
+	"id": {}, "name": {}, "type": {}, "description": {}, "expands": {}, "properties": {},
+}
+
+func rejectUnknownKeys(raw string, allowed map[string]struct{}) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &m); err != nil {
+		return err
+	}
+	for k := range m {
+		if _, ok := allowed[k]; !ok {
+			return fmt.Errorf("tsl property has unknown field %q", k)
+		}
+	}
+	return nil
 }
 
 func idCheck(id string) error {

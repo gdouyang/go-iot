@@ -30,6 +30,26 @@ func TestNetTypeConstants(t *testing.T) {
 	}
 }
 
+func TestIsValidNetType(t *testing.T) {
+	for _, typ := range []network.NetType{
+		network.MQTT_BROKER,
+		network.GOIOT_MQTT_BROKER,
+		network.TCP_SERVER,
+		network.HTTP_SERVER,
+		network.WEBSOCKET_SERVER,
+		network.COAP_SERVER,
+		network.MQTT_CLIENT,
+		network.TCP_CLIENT,
+		network.MODBUS,
+	} {
+		assert.True(t, network.IsValidNetType(string(typ)), typ)
+	}
+	assert.False(t, network.IsValidNetType(""))
+	assert.False(t, network.IsValidNetType("MQTT"))
+	assert.False(t, network.IsValidNetType("mqtt"))
+	assert.False(t, network.IsValidNetType("TCP"))
+}
+
 func TestIsStateless(t *testing.T) {
 	assert.True(t, network.IsStateless(string(network.HTTP_SERVER)))
 	assert.False(t, network.IsStateless(string(network.TCP_SERVER)))

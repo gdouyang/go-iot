@@ -1,10 +1,14 @@
 package models
 
 import (
-	"go-iot/pkg/core"
-	"go-iot/pkg/eventbus"
+	"errors"
 	"sync"
 	"time"
+
+	"go-iot/pkg/core"
+	"go-iot/pkg/es/orm"
+	"go-iot/pkg/eventbus"
+	logs "go-iot/pkg/logger"
 )
 
 type deviceState struct {
@@ -86,21 +90,27 @@ func (m *deviceStateSaver) saveState() {
 }
 
 func updateOnlineStatus(list []deviceState, state string) {
-	if len(list) > 0 {
-		var ids []string
-		for _, m := range list {
-			ids = append(ids, m.deviceId)
-			product := core.GetProduct(m.productId)
-			if product != nil {
-				data := core.LogData{
-					DeviceId:   m.deviceId,
-					Type:       state,
-					CreateTime: m.createTime,
-					Content:    `{"deviceId": "` + m.deviceId + `", "state": "` + state + `", "msg":"` + m.message + `"}`,
-				}
-				product.GetTimeSeries().SaveLogs(product, data)
+	if len(list) == 0 {
+		return
+	}
+	var ids []string
+	for _, m := range list {
+		ids = append(ids, m.deviceId)
+		product := core.GetProduct(m.productId)
+		if product != nil {
+			data := core.LogData{
+				DeviceId:   m.deviceId,
+				Type:       state,
+				CreateTime: m.createTime,
+				Content:    `{"deviceId": "` + m.deviceId + `", "state": "` + state + `", "msg":"` + m.message + `"}`,
 			}
+			product.GetTimeSeries().SaveLogs(product, data)
 		}
-		UpdateOnlineStatusList(ids, state)
+	}
+	if err := UpdateOnlineStatusList(ids, state); err != nil {
+		if errors.Is(err, orm.ErrNotModel) {
+			return
+		}
+		logs.Errorf("update online status: %v", err)
 	}
 }

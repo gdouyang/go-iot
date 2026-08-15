@@ -167,6 +167,9 @@ func UpdateOnlineStatusList(ids []string, state string) error {
 	if len(state) == 0 {
 		return errors.New("state must be present")
 	}
+	if !orm.IsRegistered(models.Device{}) {
+		return orm.ErrNotModel
+	}
 	o := orm.NewOrm()
 	_, err := o.QueryTable(models.Device{}).Filter("id__in", ids).Update(orm.Params{"state": state})
 	if err != nil {
