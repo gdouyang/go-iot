@@ -123,7 +123,7 @@ func RunTurn(ctx context.Context, store Store, conv *models.AgentConversation, s
 		}
 		msg := resp.Choices[0].Message
 		msg.ToolCalls = ensureToolCalls(msg.ToolCalls)
-		if willPauseForConfirm(cfg.WriteMode, msg.ToolCalls) {
+		if willPauseForConfirm(cfg.WriteMode, conv.CreateId, msg.ToolCalls) {
 			msg.Content = ""
 		}
 		_ = store.SaveMessage(&models.AgentMessage{
@@ -138,7 +138,7 @@ func RunTurn(ctx context.Context, store Store, conv *models.AgentConversation, s
 		for _, tc := range msg.ToolCalls {
 			name := tc.Function.Name
 			args := json.RawMessage(tc.Function.Arguments)
-			gate := BeforeToolCall(cfg.WriteMode, name, args)
+			gate := BeforeToolCall(cfg.WriteMode, conv.CreateId, name, args)
 			switch gate.Action {
 			case ToolConfirm:
 				preview, _ := json.Marshal(map[string]any{"old": nil, "new": json.RawMessage(args), "truncated": false})
@@ -244,9 +244,9 @@ func assistantPayload(content string, calls []client.ToolCall) string {
 	return string(raw)
 }
 
-func willPauseForConfirm(writeMode string, calls []client.ToolCall) bool {
+func willPauseForConfirm(writeMode string, userId int64, calls []client.ToolCall) bool {
 	for _, tc := range calls {
-		if BeforeToolCall(writeMode, tc.Function.Name, json.RawMessage(tc.Function.Arguments)).Action == ToolConfirm {
+		if BeforeToolCall(writeMode, userId, tc.Function.Name, json.RawMessage(tc.Function.Arguments)).Action == ToolConfirm {
 			return true
 		}
 	}
