@@ -213,15 +213,17 @@ func (m *OfflineMessage) GetProductId() string {
 // DebugMessage
 type DebugMessage struct {
 	Typ        string `json:"type"`
+	Level      string `json:"level"`
 	DeviceId   string `json:"deviceId"`
 	ProductId  string `json:"productId"`
 	CreateTime string `json:"createTime"`
 	Data       string `json:"data"`
 }
 
-func NewDebugMessage(deviceId string, productId string, data string) *DebugMessage {
+func NewDebugMessage(level string, deviceId string, productId string, data string) *DebugMessage {
 	return &DebugMessage{
 		Typ:        string(DEBUG),
+		Level:      level,
 		DeviceId:   deviceId,
 		ProductId:  productId,
 		CreateTime: time.Now().Format(timeformt),

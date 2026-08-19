@@ -11,6 +11,35 @@ import (
 	"github.com/dop251/goja"
 )
 
+var runtimeGlobes sync.Map // *goja.Runtime -> *globe
+
+func bindRuntimeGlobe(vm *goja.Runtime, g *globe) {
+	if vm == nil || g == nil {
+		return
+	}
+	runtimeGlobes.Store(vm, g)
+}
+
+func dropRuntimeGlobe(vm *goja.Runtime) {
+	if vm == nil {
+		return
+	}
+	runtimeGlobes.Delete(vm)
+}
+
+// globeOf 按 VM 取创建时绑定的 globe（与 console.log 闭包同一指针）。
+func globeOf(vm *goja.Runtime) *globe {
+	if vm == nil {
+		return nil
+	}
+	if v, ok := runtimeGlobes.Load(vm); ok {
+		if g, ok := v.(*globe); ok {
+			return g
+		}
+	}
+	return nil
+}
+
 // javascript vm pool
 type VmPool struct {
 	chVM      chan *goja.Runtime
@@ -44,15 +73,23 @@ func NewVmPool1(src string, size int, productId string) (*VmPool, error) {
 		if err != nil {
 			return nil, err
 		}
+		g := &globe{vm: vm, productId: productId}
 		console := vm.NewObject()
-		console.Set("log", func(v ...interface{}) {
-			logs.Debugf("%v", v...)
-			if p.productId != "" {
-				core.DebugLog("", p.productId, fmt.Sprintf("%v", v...))
+		for _, name := range []string{"log", "debug", "info", "warn", "error"} {
+			level := name
+			if name == "log" {
+				level = "debug"
 			}
-		})
+			console.Set(name, func(v ...interface{}) {
+				logs.Debugf("%v", v...)
+				if p.productId != "" {
+					core.DebugLog(level, g.currentDeviceId(), p.productId, fmt.Sprintf("%v", v...))
+				}
+			})
+		}
 		vm.Set("console", console)
-		vm.Set("globe", &globe{vm: vm, productId: productId})
+		vm.Set("globe", g)
+		bindRuntimeGlobe(vm, g)
 		p.Put(vm)
 	}
 	return &p, nil
@@ -82,6 +119,7 @@ func (p *VmPool) Put(vm *goja.Runtime) {
 	defer p.mu.RUnlock()
 	if p.closed {
 		// 池已关闭，丢弃 vm（交给 GC），避免 send on closed channel panic
+		dropRuntimeGlobe(vm)
 		return
 	}
 	p.chVM <- vm
@@ -96,4 +134,7 @@ func (p *VmPool) Close() {
 	}
 	p.closed = true
 	close(p.chVM)
+	for vm := range p.chVM {
+		dropRuntimeGlobe(vm)
+	}
 }

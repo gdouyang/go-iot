@@ -7,6 +7,7 @@ import (
 
 	"go-iot/pkg/core"
 	logs "go-iot/pkg/logger"
+	"go-iot/pkg/option"
 
 	"github.com/dop251/goja"
 )
@@ -41,7 +42,7 @@ func NewScriptCodec(productId, script string) (core.Codec, error) {
 		c.pool.Close()
 	}
 	// 创建新的VmPool
-	pool, err := NewVmPool1(script, 20, productId)
+	pool, err := NewVmPool1(script, option.ScriptVMPoolSize(), productId)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +109,13 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Valu
 		return nil, fmt.Errorf("codec pool closed for product: %s", c.productId)
 	}
 	defer c.pool.Put(vm)
+	g := globeOf(vm)
+	if g != nil {
+		g.mu.Lock()
+		defer g.mu.Unlock()
+	}
+	unbind := g.bindDevice(param)
+	defer unbind()
 	fn, success := goja.AssertFunction(vm.Get(name))
 	if success {
 		// recover：捕获脚本宿主 API 的 throw（NewGoError/panic）及意外 panic，避免打崩进程。
@@ -116,11 +124,7 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Valu
 			if rec := recover(); rec != nil {
 				l := fmt.Sprintf("productId: [%s] script error: %v", c.productId, rec)
 				logs.Errorf(l)
-				deviceId := ""
-				if ctx, ok := param.(core.DeviceLifecycleContext); ok && ctx.GetDevice() != nil {
-					deviceId = ctx.GetDevice().Id
-				}
-				core.DebugLog(deviceId, c.productId, l)
+				core.DebugLog("error", extractDeviceId(param), c.productId, l)
 				logs.Errorf(string(debug.Stack()))
 				err = fmt.Errorf("%v", rec)
 				resp = goja.Undefined()
@@ -129,11 +133,7 @@ func (c *ScriptCodec) FuncInvoke(name string, param interface{}) (resp goja.Valu
 		resp, err = fn(goja.Undefined(), vm.ToValue(param))
 		if err != nil {
 			logs.Errorf("productId: [%s] script error: %v", c.productId, err)
-			deviceId := ""
-			if ctx, ok := param.(core.DeviceLifecycleContext); ok && ctx.GetDevice() != nil {
-				deviceId = ctx.GetDevice().Id
-			}
-			core.DebugLog(deviceId, c.productId, err.Error())
+			core.DebugLog("error", extractDeviceId(param), c.productId, err.Error())
 		}
 		return resp, err
 	}

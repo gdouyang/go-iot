@@ -13,9 +13,11 @@ admin:
 # 编解码脚本宿主安全（globe.HttpRequest / HttpRequestAsync）
 # http-enabled: false 时脚本无法发 HTTP
 # http-block-private: 禁止访问私网/本机（SSRF 基线）；脚本需调内网时设为 false
+# vm-pool-size: 每个产品 JS 引擎数（默认 20，最大 500）；改后需重启，已部署产品需重新保存脚本或重启后加载
 script:
   http-enabled: true
   http-block-private: true
+  vm-pool-size: 20
 
 # 日志
 # level: debug | info | warn | error（flag 默认 info）

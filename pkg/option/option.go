@@ -76,6 +76,8 @@ type Script struct {
 	HTTPEnabled bool `yaml:"http-enabled"`
 	// HTTPBlockPrivate 是否禁止访问私网/本机地址（SSRF 基线）。默认 true。
 	HTTPBlockPrivate bool `yaml:"http-block-private"`
+	// VMPoolSize 每个产品编解码 JS 引擎池大小。默认 20，上限 MaxScriptVMPoolSize。
+	VMPoolSize int `yaml:"vm-pool-size"`
 }
 
 // Rule 规则引擎相关配置。
@@ -108,6 +110,13 @@ type Tdengine struct {
 
 // DefaultAdminPassword 配置未写 password 时的默认初始密码。
 const DefaultAdminPassword = "123456"
+
+const (
+	// DefaultScriptVMPoolSize 每个产品默认 JS 引擎数。
+	DefaultScriptVMPoolSize = 20
+	// MaxScriptVMPoolSize 防止误配把内存打满。
+	MaxScriptVMPoolSize = 500
+)
 
 // Options is the start-up options.
 type Options struct {
@@ -175,6 +184,24 @@ func ScriptHTTPBlockPrivate() bool {
 		return true
 	}
 	return Global.Script.HTTPBlockPrivate
+}
+
+// ScriptVMPoolSize 每个产品编解码 VM 池大小（Global 未初始化或非法值时默认 20）。
+func ScriptVMPoolSize() int {
+	if Global == nil {
+		return DefaultScriptVMPoolSize
+	}
+	return clampScriptVMPoolSize(Global.Script.VMPoolSize)
+}
+
+func clampScriptVMPoolSize(n int) int {
+	if n <= 0 {
+		return DefaultScriptVMPoolSize
+	}
+	if n > MaxScriptVMPoolSize {
+		return MaxScriptVMPoolSize
+	}
+	return n
 }
 
 // TdengineEnabled 是否启用 TDengine 时序选项。
@@ -256,6 +283,7 @@ func New() *Options {
 	// 脚本 HTTP / SSRF 基线
 	opt.flags.BoolVar(&opt.Script.HTTPEnabled, "script.http-enabled", true, "是否允许编解码脚本 HttpRequest")
 	opt.flags.BoolVar(&opt.Script.HTTPBlockPrivate, "script.http-block-private", true, "脚本 HTTP 是否禁止访问私网/本机（SSRF）")
+	opt.flags.IntVar(&opt.Script.VMPoolSize, "script.vm-pool-size", DefaultScriptVMPoolSize, "每个产品编解码 JS 引擎池大小")
 
 	// 规则引擎
 	opt.flags.IntVar(&opt.Rule.MaxShakeLimitTime, "rule.max-shake-limit-time", 3600, "规则引擎防抖时间轮最大秒数")
@@ -353,6 +381,7 @@ func (opt *Options) Parse() (string, error) {
 	if !opt.viper.IsSet("script.http-block-private") {
 		opt.Script.HTTPBlockPrivate = true
 	}
+	opt.Script.VMPoolSize = clampScriptVMPoolSize(opt.Script.VMPoolSize)
 
 	buff, err := yaml.Marshal(opt)
 	if err != nil {

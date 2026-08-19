@@ -91,14 +91,26 @@ func (m *dynamicMux) reloadAPIs() {
 				api.Method)
 		}
 	}
-	// Create a route along /static that will serve contents from
-	// the ./static/ folder.
 	workDir, _ := os.Getwd()
-	m.FileServer(router, "/", http.Dir(filepath.Join(workDir, "views")))
-	m.FileServer(router, "/static", http.Dir(filepath.Join(workDir, "static")))
-	m.FileServer(router, "/api/file", http.Dir(filepath.Join(workDir, "files")))
+	m.mountStaticFiles(router, workDir)
 
 	m.router.Store(router)
+}
+
+// resolveStaticDir 解析 /static 对应的磁盘目录。
+// 前端产物（index.html + static/）可整体放到 views/：优先 views/static，否则回退 ./static。
+func resolveStaticDir(workDir string) string {
+	nested := filepath.Join(workDir, "views", "static")
+	if info, err := os.Stat(nested); err == nil && info.IsDir() {
+		return nested
+	}
+	return filepath.Join(workDir, "static")
+}
+
+func (m *dynamicMux) mountStaticFiles(router chi.Router, workDir string) {
+	m.FileServer(router, "/", http.Dir(filepath.Join(workDir, "views")))
+	m.FileServer(router, "/static", http.Dir(resolveStaticDir(workDir)))
+	m.FileServer(router, "/api/file", http.Dir(filepath.Join(workDir, "files")))
 }
 
 // FileServer conveniently sets up a http.FileServer handler to serve

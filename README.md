@@ -65,6 +65,7 @@ go test ./pkg/... -count=1 -short
 | `admin.password` | 仅首次创建 admin 时生效 |
 | `script.http-enabled` | 脚本 `HttpRequest` 总开关（默认 true） |
 | `script.http-block-private` | 禁止脚本访问私网/本机（默认 true） |
+| `script.vm-pool-size` | 每个产品编解码 JS 引擎池大小（默认 20，最大 500） |
 
 管理 API 需登录；业务资源（设备/产品等）读写均校验角色权限。
 

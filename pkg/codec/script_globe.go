@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dop251/goja"
@@ -24,8 +25,58 @@ import (
 
 // js 全局对象，包含常用工具方法
 type globe struct {
-	vm        *goja.Runtime `json:"-"`
-	productId string        `json:"-"`
+	vm         *goja.Runtime `json:"-"`
+	productId  string        `json:"-"`
+	deviceId   string        `json:"-"`
+	deviceIdFn func() string `json:"-"`
+	// mu 串行同一 VM 上的脚本执行：FuncInvoke 与 HttpRequestAsync complete
+	// 不能并行进入 goja（Runtime 非线程安全），也避免 complete 读到下一轮 deviceId。
+	mu sync.Mutex `json:"-"`
+}
+
+func (g *globe) currentDeviceId() string {
+	if g == nil {
+		return ""
+	}
+	if g.deviceIdFn != nil {
+		if id := g.deviceIdFn(); id != "" {
+			return id
+		}
+	}
+	return g.deviceId
+}
+
+func (g *globe) bindDevice(param interface{}) func() {
+	if g == nil {
+		return func() {}
+	}
+	prev := g.deviceId
+	prevFn := g.deviceIdFn
+	g.deviceId = extractDeviceId(param)
+	g.deviceIdFn = func() string { return extractDeviceId(param) }
+	return func() {
+		g.deviceId = prev
+		g.deviceIdFn = prevFn
+	}
+}
+
+func (g *globe) withDeviceId(deviceId string) func() {
+	if g == nil {
+		return func() {}
+	}
+	prev := g.deviceId
+	prevFn := g.deviceIdFn
+	g.deviceId = deviceId
+	if deviceId == "" {
+		g.deviceIdFn = nil
+	} else {
+		id := deviceId
+		g.deviceIdFn = func() string { return id }
+	}
+	return func() {
+		g.deviceId = prev
+		g.deviceIdFn = prevFn
+	}
 }
 
 func (g *globe) getCallStack() string {
@@ -117,13 +168,17 @@ func (h httpResp) setHeader(header map[string]string) {
 
 // http请求，使编解码脚本有发送http的能力
 func (g *globe) HttpRequest(config map[string]any) map[string]any {
+	return g.doHttpRequest(config, g.currentDeviceId())
+}
+
+func (g *globe) doHttpRequest(config map[string]any, deviceId string) map[string]any {
 	result := httpResp{}
 	result.setStatus(400)
 	path := config["url"]
 	urlStr := fmt.Sprintf("%v", path)
 	if err := checkScriptHTTPAllowed(urlStr); err != nil {
 		logger.Warnf("script HttpRequest denied: %v", err)
-		core.DebugLog("", g.productId, fmt.Sprintf("HttpRequest denied: %v", err))
+		core.DebugLog("warn", deviceId, g.productId, fmt.Sprintf("HttpRequest denied: %v", err))
 		result.setMessage(err.Error())
 		return result
 	}
@@ -159,7 +214,7 @@ func (g *globe) HttpRequest(config map[string]any) map[string]any {
 		h, ok := v.(map[string]any)
 		if !ok {
 			logger.Warnf("headers is not object: %v", v)
-			core.DebugLog("", g.productId, fmt.Sprintf("headers is not object: %v", v))
+			core.DebugLog("warn", deviceId, g.productId, fmt.Sprintf("headers is not object: %v", v))
 			h = map[string]any{}
 		}
 		for key, value := range h {
@@ -171,7 +226,7 @@ func (g *globe) HttpRequest(config map[string]any) map[string]any {
 			b, err := json.Marshal(body)
 			if err != nil {
 				logger.Errorf("data parse error: %v", err)
-				core.DebugLog("", g.productId, fmt.Sprintf("data parse error: %v", err))
+				core.DebugLog("error", deviceId, g.productId, fmt.Sprintf("data parse error: %v", err))
 				result.setMessage(err.Error())
 				return result
 			}
@@ -210,22 +265,30 @@ func (g *globe) HttpRequest(config map[string]any) map[string]any {
 
 // http请求异步
 func (g *globe) HttpRequestAsync(config map[string]interface{}) {
+	deviceId := g.currentDeviceId()
 	go func() {
 		defer func() {
 			if rec := recover(); rec != nil {
 				l := fmt.Sprintf("productId: [%s] error: %v", g.productId, rec)
 				logger.Errorf(l)
-				core.DebugLog("", g.productId, l)
+				core.DebugLog("error", deviceId, g.productId, l)
 			}
 		}()
-		resp := g.HttpRequest(config)
-		if v, ok := config["complete"]; ok {
-			fn, success := goja.AssertFunction(g.vm.ToValue(v))
-			if success {
-				fn(goja.Undefined(), g.vm.ToValue(resp))
-			} else {
-				core.DebugLog("", g.productId, "HttpRequestAsync complete is not a function")
-			}
+		resp := g.doHttpRequest(config, deviceId)
+		v, ok := config["complete"]
+		if !ok {
+			return
+		}
+		// complete 必须在创建它的原 VM 上跑，并与 FuncInvoke 互斥。
+		g.mu.Lock()
+		defer g.mu.Unlock()
+		restore := g.withDeviceId(deviceId)
+		defer restore()
+		fn, success := goja.AssertFunction(g.vm.ToValue(v))
+		if success {
+			fn(goja.Undefined(), g.vm.ToValue(resp))
+		} else {
+			core.DebugLog("warn", deviceId, g.productId, "HttpRequestAsync complete is not a function")
 		}
 	}()
 }

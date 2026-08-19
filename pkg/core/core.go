@@ -224,15 +224,25 @@ func (d *Device) IsSubDevice() bool {
 
 // debug输出日志
 func (d *Device) Debug(v any) {
-	DebugLog(d.Id, d.ProductId, fmt.Sprintf("%v", v))
+	DebugLog("debug", d.Id, d.ProductId, fmt.Sprintf("%v", v))
 }
 
 // 调试日志
-func DebugLog(deviceId, productId string, v string) {
+func DebugLog(level, deviceId, productId string, v string) {
 	if deviceId == "" {
 		deviceId = "-"
 	}
-	eventbus.PublishDebug(eventbus.NewDebugMessage(deviceId, productId, v))
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "info":
+		level = "info"
+	case "warn", "warning":
+		level = "warn"
+	case "error":
+		level = "error"
+	default:
+		level = "debug"
+	}
+	eventbus.PublishDebug(eventbus.NewDebugMessage(level, deviceId, productId, v))
 }
 
 // base context
@@ -343,7 +353,7 @@ func (ctx *BaseContext) SaveProperties(data map[string]any) error {
 	err := p.GetTimeSeries().SaveProperties(p, data)
 	if err != nil {
 		logs.Errorf("SaveProperties error: %v", err)
-		DebugLog(fmt.Sprintf("%v", data[tsl.PropertyDeviceId]), ctx.ProductId, "SaveProperties error: "+err.Error())
+		DebugLog("error", fmt.Sprintf("%v", data[tsl.PropertyDeviceId]), ctx.ProductId, "SaveProperties error: "+err.Error())
 		return err
 	}
 	return nil
@@ -373,7 +383,7 @@ func (ctx *BaseContext) SaveEvents(eventId string, data any) error {
 	err := p.GetTimeSeries().SaveEvents(p, eventId, data1)
 	if err != nil {
 		logs.Errorf("SaveEvents error: %v", err)
-		DebugLog(fmt.Sprintf("%v", data1[tsl.PropertyDeviceId]), ctx.ProductId, "SaveEvents error: "+err.Error())
+		DebugLog("error", fmt.Sprintf("%v", data1[tsl.PropertyDeviceId]), ctx.ProductId, "SaveEvents error: "+err.Error())
 		return err
 	}
 	return nil
