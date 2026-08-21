@@ -15,7 +15,7 @@ const (
 	ToolListProducts   = "list_products"
 	ToolGetProduct     = "get_product"
 	ToolGetTSLSchema   = "get_tsl_schema"
-	ToolGetCodecDoc    = "get_codec_doc"
+	ToolLoadSkill      = "load_skill"
 	ToolValidateTSL    = "validate_tsl"
 	ToolValidateScript = "validate_script"
 	ToolCreateProduct  = "create_product"
@@ -59,7 +59,7 @@ func init() {
 	registerTool(listProductsTool{})
 	registerTool(getProductTool{})
 	registerTool(getTSLSchemaTool{})
-	registerTool(getCodecDocTool{})
+	registerTool(loadSkillTool{})
 	registerTool(validateTSLTool{})
 	registerTool(validateScriptTool{})
 	registerTool(createProductTool{})
@@ -80,6 +80,20 @@ func ToolCatalog() []client.CompatTool {
 		out = append(out, t.Spec())
 	}
 	return out
+}
+
+func ToolsCatalogMarkdown() string {
+	var b strings.Builder
+	b.WriteString("# Available tools:\n")
+	for _, t := range toolOrder {
+		s := t.Spec()
+		b.WriteString("- ")
+		b.WriteString(s.Function.Name)
+		b.WriteString(": ")
+		b.WriteString(s.Function.Description)
+		b.WriteByte('\n')
+	}
+	return b.String()
 }
 
 func HasDeployTool() bool {

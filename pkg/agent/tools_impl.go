@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"go-iot/pkg/agent/client"
-	"go-iot/pkg/agent/codecdoc"
+	"go-iot/pkg/agent/skills"
 	"go-iot/pkg/codec"
 	"go-iot/pkg/core"
 	"go-iot/pkg/models"
@@ -98,28 +98,28 @@ func (getTSLSchemaTool) Execute(ctx ToolContext, args json.RawMessage) (any, str
 	return tsl.Schema(), "", nil
 }
 
-type getCodecDocTool struct{}
+type loadSkillTool struct{}
 
-func (getCodecDocTool) Name() string   { return ToolGetCodecDoc }
-func (getCodecDocTool) Mutating() bool { return false }
-func (getCodecDocTool) Spec() client.CompatTool {
-	return specOf(ToolGetCodecDoc, "Return the full codec markdown for a topic (complete API tables and samples, not a summary). topic is a networkType or split / cron. Omit topic to list docs. Call before save_script.",
-		`{"type":"object","properties":{"topic":{"type":"string","description":"MQTT_BROKER / GOIOT_MQTT_BROKER / MQTT_CLIENT / TCP_SERVER / TCP_CLIENT / HTTP_SERVER / WEBSOCKET_SERVER / COAP_SERVER / MODBUS / split / cron，可空则返回目录"}},"additionalProperties":false}`)
+func (loadSkillTool) Name() string   { return ToolLoadSkill }
+func (loadSkillTool) Mutating() bool { return false }
+func (loadSkillTool) Spec() client.CompatTool {
+	return specOf(ToolLoadSkill, "Load a codec skill (full API markdown, not a summary). name is a skill id or networkType. Omit name to list skills. Call before save_script.",
+		`{"type":"object","properties":{"name":{"type":"string","description":"skill 名或网络类型枚举，可空则返回目录"}},"additionalProperties":false}`)
 }
-func (getCodecDocTool) Validate(ctx ToolContext, args json.RawMessage) error { return nil }
-func (getCodecDocTool) Execute(ctx ToolContext, args json.RawMessage) (any, string, error) {
+func (loadSkillTool) Validate(ctx ToolContext, args json.RawMessage) error { return nil }
+func (loadSkillTool) Execute(ctx ToolContext, args json.RawMessage) (any, string, error) {
 	var p struct {
-		Topic string `json:"topic"`
+		Name string `json:"name"`
 	}
 	_ = json.Unmarshal(args, &p)
-	if strings.TrimSpace(p.Topic) == "" {
-		return map[string]any{"ok": true, "topics": codecdoc.Topics()}, "", nil
+	if strings.TrimSpace(p.Name) == "" {
+		return map[string]any{"ok": true, "skills": skills.Summaries()}, "", nil
 	}
-	md, err := codecdoc.Get(p.Topic)
+	s, md, err := skills.Get(p.Name)
 	if err != nil {
-		return map[string]any{"ok": false, "message": err.Error(), "topics": codecdoc.Topics()}, "", nil
+		return map[string]any{"ok": false, "message": err.Error(), "skills": skills.Summaries()}, "", nil
 	}
-	return map[string]any{"ok": true, "topic": p.Topic, "markdown": md}, "", nil
+	return map[string]any{"ok": true, "name": s.Name, "markdown": md}, "", nil
 }
 
 type validateTSLTool struct{}
