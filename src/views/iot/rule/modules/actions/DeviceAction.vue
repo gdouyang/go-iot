@@ -2,9 +2,7 @@
   <el-col :span="4">
     <el-input placeholder="点击选择设备" v-model="deviceData.name" readonly>
       <template #append>
-        <BaseButton @click="selectDevice"
-          ><Icon icon="el:Link" title="点击选择设备" />
-        </BaseButton>
+        <BaseButton @click="selectDevice"><Icon icon="el:Link" title="点击选择设备" /> </BaseButton>
       </template>
     </el-input>
   </el-col>
@@ -15,7 +13,7 @@
       @change="messageTypeChange"
     >
       <!-- <el-option value="WRITE_PROPERTY">设置属性</el-option> -->
-      <el-option value="INVOKE_FUNCTION" label="调用功能"></el-option>
+      <el-option value="INVOKE_FUNCTION" label="调用功能" />
     </el-select>
   </el-col>
   <!-- <div v-show="messageType === 'WRITE_PROPERTY'">
@@ -42,7 +40,7 @@
           :key="item.id"
           :value="item.id"
           :label="`${item.name}(${item.id})`"
-        ></el-option>
+        />
       </el-select>
     </el-col>
     <el-col :span="24">
@@ -72,16 +70,33 @@ import DeviceSelect from '@/views/iot/device/DeviceSelect.vue'
 import { get as getDevice } from '@/views/iot/device/api.js'
 export default {
   name: 'DeviceAction',
+  components: {
+    Properties,
+    DeviceFunction,
+    DeviceSelect
+  },
   props: {
     actionData: {
       type: Object,
       default: null
     }
   },
-  components: {
-    Properties,
-    DeviceFunction,
-    DeviceSelect
+  data() {
+    return {
+      messageType: null,
+      deviceData: {
+        name: null,
+        metadata: {
+          properties: [],
+          functions: []
+        }
+      },
+      propertiesData: {},
+      arrayData: [],
+      functionData: {},
+      properties: [],
+      functions: []
+    }
   },
   computed: {
     messageTypeDefaultValue() {
@@ -100,23 +115,6 @@ export default {
     const deviceId = this.actionData.configuration.deviceId
     if (deviceId) {
       this.findDevice(deviceId)
-    }
-  },
-  data() {
-    return {
-      messageType: null,
-      deviceData: {
-        name: null,
-        metadata: {
-          properties: [],
-          functions: []
-        }
-      },
-      propertiesData: {},
-      arrayData: [],
-      functionData: {},
-      properties: [],
-      functions: []
     }
   },
   methods: {

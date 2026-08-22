@@ -2,11 +2,7 @@
   <div>
     <ContentWrap>
       <!-- 物模型未配置任何事件定义 -->
-      <el-empty
-        v-if="!events.length"
-        description="暂未配置设备事件"
-        :image-size="120"
-      />
+      <el-empty v-if="!events.length" description="暂未配置设备事件" :image-size="120" />
       <template v-else>
         <div>
           <el-form label-width="auto">
@@ -19,8 +15,7 @@
                       :key="index"
                       :value="item.id"
                       :label="item.name"
-                    >
-                    </el-option>
+                    />
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -43,7 +38,9 @@
                 <div :style="{ overflow: 'hidden' }">
                   <div :style="{ marginLeft: '10px' }">
                     <el-button type="primary" @click="search"> 查询 </el-button>
-                    <el-button :style="{ marginLeft: '8px' }" @click="resetSearch"> 重置 </el-button>
+                    <el-button :style="{ marginLeft: '8px' }" @click="resetSearch">
+                      重置
+                    </el-button>
                   </div>
                 </div>
               </el-col>
@@ -68,11 +65,7 @@
 import _ from 'lodash-es'
 import dayjs from 'dayjs'
 import { getDeviceEventsUrl } from '@/views/iot/device/api.js'
-import {
-  getDefaultCreateTimeRange,
-  defaultTime,
-  dateShortcuts
-} from './dateRange.js'
+import { getDefaultCreateTimeRange, defaultTime, dateShortcuts } from './dateRange.js'
 
 export default {
   name: 'Events',

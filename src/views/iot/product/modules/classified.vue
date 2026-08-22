@@ -61,11 +61,6 @@ export default {
       default: () => {}
     }
   },
-  watch: {
-    visible(newVal) {
-      this.openFlag = newVal
-    }
-  },
   data() {
     return {
       openFlag: false,
@@ -87,6 +82,11 @@ export default {
           scopedSlots: { customRender: 'action' }
         }
       ]
+    }
+  },
+  watch: {
+    visible(newVal) {
+      this.openFlag = newVal
     }
   },
   created() {

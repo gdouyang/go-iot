@@ -64,16 +64,16 @@ export default {
       default: () => {}
     }
   },
-  created() {
-    this.formData = getPropertiesData(this.data)
-    if (this.data && this.data.id) {
-      this.isEdit = true
-    }
-  },
   data() {
     return {
       formData: {},
       isEdit: false
+    }
+  },
+  created() {
+    this.formData = getPropertiesData(this.data)
+    if (this.data && this.data.id) {
+      this.isEdit = true
     }
   },
   mounted() {},

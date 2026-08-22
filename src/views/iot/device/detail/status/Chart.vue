@@ -5,6 +5,7 @@
 <script lang="jsx">
 export default {
   name: 'Chart',
+  components: {},
   props: {
     data: {
       type: Object,
@@ -13,7 +14,6 @@ export default {
       }
     }
   },
-  components: {},
   data() {
     return {
       lineOptionsData: {

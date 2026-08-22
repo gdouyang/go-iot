@@ -157,8 +157,7 @@ defineExpose({
     @update:pageSize="pageSizeChange"
     @update:currentPage="pageNumChange"
     v-bind="$attrs"
-  >
-  </Table>
+  />
 </template>
 
 <style lang="less" scoped>

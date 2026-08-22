@@ -39,11 +39,7 @@
 import _ from 'lodash-es'
 import dayjs from 'dayjs'
 import { getDevicePropertysUrl } from '@/views/iot/device/api.js'
-import {
-  getDefaultCreateTimeRange,
-  defaultTime,
-  dateShortcuts
-} from './dateRange.js'
+import { getDefaultCreateTimeRange, defaultTime, dateShortcuts } from './dateRange.js'
 
 export default {
   name: 'Properties',

@@ -1,5 +1,3 @@
-<style lang="less"></style>
-
 <template>
   <Dialog
     ref="addModal"
@@ -11,13 +9,14 @@
     cancelText="关闭"
   >
     <el-alert
-      style="margin-bottom: 5px"
-      title="导入的物模型会覆盖原来的属性、功能、事件，请谨慎操作！"
-      type="warning"
+      style="margin-bottom: 10px"
+      title="高危操作警告：导入物模型将全量覆盖现存的属性、功能与事件！"
+      description="覆盖后若删减或变更了已有标识，现网在线设备将无法正常解析入库，底层时序数据库映射及已配置的规则引擎可能立即异常，请务必提前备份。"
+      type="error"
       show-icon
       v-if="showOk"
-    >
-    </el-alert>
+      :closable="false"
+    />
     <AceEditor
       ref="AceEditor"
       v-model:value="tsl"
@@ -75,6 +74,67 @@ export default {
         readOnly: false
       })
     },
+    validateTslJson(tsl) {
+      const checkEnumList = (list, typeName) => {
+        if (!Array.isArray(list)) return null
+        for (const item of list) {
+          if (!item) continue
+          if (item.type === 'enum') {
+            const elements = (item.elements || []).filter(
+              (e) => e && e.value !== '' && e.value !== null && e.value !== undefined
+            )
+            if (!elements.length) {
+              return `${typeName} [${item.name || item.id || '未命名'}] 为枚举类型(enum)，但枚举项(elements)为空，必须至少配置一个有效的枚举项`
+            }
+          }
+        }
+        return null
+      }
+
+      const checkObjectList = (list, typeName) => {
+        if (!Array.isArray(list)) return null
+        for (const item of list) {
+          if (!item) continue
+          if (item.type === 'object') {
+            if (!Array.isArray(item.properties) || !item.properties.length) {
+              return `${typeName} [${item.name || item.id || '未命名'}] 为结构体类型(object)，但子属性(properties)为空，必须至少包含一个参数`
+            }
+          }
+        }
+        return null
+      }
+
+      const propErr =
+        checkEnumList(tsl.properties, '属性') || checkObjectList(tsl.properties, '属性')
+      if (propErr) return propErr
+
+      const eventErr = checkEnumList(tsl.events, '事件') || checkObjectList(tsl.events, '事件')
+      if (eventErr) return eventErr
+
+      if (Array.isArray(tsl.functions)) {
+        for (const fn of tsl.functions) {
+          if (!fn) continue
+          const inputErr =
+            checkEnumList(fn.inputs, `功能[${fn.name || fn.id}]输入参数`) ||
+            checkObjectList(fn.inputs, `功能[${fn.name || fn.id}]输入参数`)
+          if (inputErr) return inputErr
+          if (fn.output && fn.output.type === 'enum') {
+            const elements = (fn.output.elements || []).filter(
+              (e) => e && e.value !== '' && e.value !== null && e.value !== undefined
+            )
+            if (!elements.length) {
+              return `功能 [${fn.name || fn.id}] 的输出参数为枚举类型(enum)，但枚举项(elements)为空`
+            }
+          }
+          if (fn.output && fn.output.type === 'object') {
+            if (!Array.isArray(fn.output.properties) || !fn.output.properties.length) {
+              return `功能 [${fn.name || fn.id}] 的输出参数为结构体类型(object)，但子属性(properties)为空`
+            }
+          }
+        }
+      }
+      return null
+    },
     addConfirm() {
       if (!this.tsl) {
         this.$message.error('请填写物模型')
@@ -87,6 +147,11 @@ export default {
           this.$message.error('物模型格式错误，请以“{”开始，以“}”结束')
           return
         }
+        const enumError = this.validateTslJson(tsl)
+        if (enumError) {
+          this.$message.error(enumError)
+          return
+        }
         this.$emit('import', tsl)
         this.$refs.addModal.close()
       } catch (error) {
@@ -97,3 +162,5 @@ export default {
   }
 }
 </script>
+
+<style lang="less"></style>

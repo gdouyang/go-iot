@@ -18,17 +18,15 @@
           :disabled="isEdit"
           placeholder="将自动转为大写"
           @input="onDeviceIdInput"
-        ></el-input>
-        <div v-if="!isEdit" class="form-tip">
-          创建后不可更改
-        </div>
+        />
+        <div v-if="!isEdit" class="form-tip"> 创建后不可更改 </div>
       </el-form-item>
       <el-form-item
         label="名称"
         prop="name"
         :rules="[{ required: true, message: '名称不能为空', trigger: 'blur' }]"
       >
-        <el-input v-model="addObj.name" placeholder="名称" :maxlength="32"></el-input>
+        <el-input v-model="addObj.name" placeholder="名称" :maxlength="32" />
       </el-form-item>
       <el-form-item
         label="产品"
@@ -41,11 +39,9 @@
           :disabled="isEdit"
           placeholder="产品"
         >
-          <el-option v-for="p in productList" :key="p.id" :value="p.id" :label="p.name"></el-option>
+          <el-option v-for="p in productList" :key="p.id" :value="p.id" :label="p.name" />
         </el-select>
-        <div v-if="!isEdit" class="form-tip">
-          创建后不可更改
-        </div>
+        <div v-if="!isEdit" class="form-tip"> 创建后不可更改 </div>
       </el-form-item>
       <el-form-item
         label="设备类型"
@@ -53,13 +49,11 @@
         :rules="[{ required: true, message: '设备类型不能为空', trigger: 'blur' }]"
       >
         <el-select v-model="addObj.deviceType" :disabled="isEdit" @change="deviceTypeChange">
-          <el-option value="device" label="设备"></el-option>
-          <el-option value="gateway" label="网关"></el-option>
-          <el-option value="subdevice" label="子设备"></el-option>
+          <el-option value="device" label="设备" />
+          <el-option value="gateway" label="网关" />
+          <el-option value="subdevice" label="子设备" />
         </el-select>
-        <div v-if="!isEdit" class="form-tip">
-          创建后不可更改
-        </div>
+        <div v-if="!isEdit" class="form-tip"> 创建后不可更改 </div>
       </el-form-item>
       <el-form-item
         label="网关"
@@ -73,11 +67,9 @@
             :key="p.id"
             :value="p.id"
             :label="`${p.name}(${p.id})`"
-          ></el-option>
+          />
         </el-select>
-        <div v-if="!isEdit" class="form-tip">
-          创建后不可更改
-        </div>
+        <div v-if="!isEdit" class="form-tip"> 创建后不可更改 </div>
       </el-form-item>
       <el-form-item label="说明" prop="desc">
         <el-input
@@ -86,7 +78,7 @@
           placeholder="说明"
           :maxlength="200"
           show-word-limit
-        ></el-input>
+        />
       </el-form-item>
     </el-form>
   </Dialog>
@@ -216,4 +208,3 @@ export default {
   color: var(--el-text-color-secondary);
 }
 </style>
-

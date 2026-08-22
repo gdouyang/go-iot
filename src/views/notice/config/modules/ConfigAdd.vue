@@ -1,5 +1,3 @@
-<style lang="less"></style>
-
 <template>
   <Dialog ref="addModal" @close="dialogClose" :width="900">
     <el-form ref="addFormRef" :model="addObj" label-width="auto" style="width: 95%">
@@ -8,12 +6,7 @@
         prop="name"
         :rules="[{ required: true, message: '名称不能为空', trigger: 'blur' }]"
       >
-        <el-input
-          v-model="addObj.name"
-          placeholder="名称"
-          :maxlength="32"
-          show-word-limit
-        ></el-input>
+        <el-input v-model="addObj.name" placeholder="名称" :maxlength="32" show-word-limit />
       </el-form-item>
       <el-form-item
         label="通知类型"
@@ -185,3 +178,5 @@ export default {
   }
 }
 </script>
+
+<style lang="less"></style>

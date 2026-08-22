@@ -14,7 +14,7 @@
           anchor="BMAP_ANCHOR_BOTTOM_RIGHT"
           :showAddressBar="true"
           :autoLocation="true"
-        ></bm-geolocation>
+        />
       </baidu-map>
       <el-drawer
         title="设备"

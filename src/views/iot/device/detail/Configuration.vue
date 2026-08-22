@@ -72,14 +72,14 @@ import { getMetaconfig } from '@/views/iot/product/api.js'
 import ConfigurationUpdate from './ConfigurationUpdate.vue'
 export default {
   name: 'Configuration',
+  components: {
+    ConfigurationUpdate
+  },
   props: {
     device: {
       type: Object,
       default: () => {}
     }
-  },
-  components: {
-    ConfigurationUpdate
   },
   data() {
     return {
@@ -87,9 +87,6 @@ export default {
       updateVisible: false,
       configItem: {}
     }
-  },
-  created() {
-    this.GetData()
   },
   computed: {
     deviceConfig() {
@@ -104,6 +101,9 @@ export default {
     deviceId() {
       return this.device.id
     }
+  },
+  created() {
+    this.GetData()
   },
   methods: {
     getValue(item) {

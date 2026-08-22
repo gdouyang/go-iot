@@ -1,5 +1,3 @@
-<style lang="less"></style>
-
 <template>
   <Dialog
     ref="addModal"
@@ -166,3 +164,5 @@ export default {
   }
 }
 </script>
+
+<style lang="less"></style>

@@ -1,5 +1,3 @@
-<style lang="less"></style>
-
 <template>
   <div>
     <el-form-item
@@ -31,14 +29,14 @@ import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 export default {
   name: 'Dingtalk',
+  components: {
+    MdEditor
+  },
   props: {
     data: {
       type: Object,
       default: null
     }
-  },
-  components: {
-    MdEditor
   },
   data() {
     return {
@@ -74,3 +72,5 @@ export default {
   }
 }
 </script>
+
+<style lang="less"></style>

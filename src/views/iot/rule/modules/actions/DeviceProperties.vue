@@ -19,11 +19,7 @@
         <template v-else>
           <el-row v-if="index === arrayData.length - 1">
             <Icon icon="el:CirclePlus" @click="arrayPlus" />
-            <Icon
-              icon="el:Remove"
-              style="padding-left: 10px"
-              @click="arrayMinus(index)"
-            />
+            <Icon icon="el:Remove" style="padding-left: 10px" @click="arrayMinus(index)" />
           </el-row>
           <Icon v-else icon="el:Remove" @click="arrayMinus(index)" />
         </template>
@@ -47,13 +43,11 @@
         <el-option
           :key="propertiesData.trueValue + ''"
           :label="`${propertiesData.trueText}（${propertiesData.trueValue}）`"
-        >
-        </el-option>
+        />
         <el-option
           :key="propertiesData.falseValue + ''"
           :label="`${propertiesData.falseText}（${propertiesData.falseValue}）`"
-        >
-        </el-option>
+        />
       </el-select>
     </el-col>
   </template>
@@ -92,6 +86,9 @@ import _ from 'lodash-es'
 import PropertiesObject from './DevicePropertiesObject.vue'
 export default {
   name: 'DeviceProperties',
+  components: {
+    PropertiesObject
+  },
   props: {
     propertiesData: {
       type: Object,
@@ -106,8 +103,11 @@ export default {
       default: () => []
     }
   },
-  components: {
-    PropertiesObject
+  data() {
+    return {
+      defaultValue: '',
+      $_: _
+    }
   },
   watch: {
     actionData: {
@@ -119,12 +119,6 @@ export default {
   },
   created() {
     this.setDefaultValue()
-  },
-  data() {
-    return {
-      defaultValue: '',
-      $_: _
-    }
   },
   methods: {
     setDefaultValue() {

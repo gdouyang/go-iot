@@ -1,24 +1,28 @@
 <template>
   <div>
-    <el-card title="事件定义" shadow="never">
-      <el-button type="primary" slot="extra" @click="add">添加</el-button>
-      <el-table rowKey="id" :data="data">
-        <el-table-column prop="id" label="事件标识" />
-        <el-table-column prop="name" label="事件名称" />
-        <el-table-column prop="description" label="说明" />
-        <el-table-column label="操作">
-          <template #default="scope">
-            <el-button link type="primary" @click="edit(scope.row)">修改</el-button>
-            <el-divider direction="vertical" />
-            <el-popconfirm title="确认删除？" @confirm="remove(scope.row)">
-              <template #reference>
-                <el-button link type="primary">删除</el-button>
-              </template>
-            </el-popconfirm>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+    <div class="flex justify-end mb-3">
+      <el-button type="primary" @click="add">
+        <Icon icon="el:Plus" class="mr-1" />
+        添加事件
+      </el-button>
+    </div>
+    <el-table rowKey="id" :data="data" border style="width: 100%" max-height="calc(100vh - 320px)">
+      <el-table-column prop="id" label="事件标识" min-width="120" />
+      <el-table-column prop="name" label="事件名称" min-width="140" />
+      <el-table-column prop="type" label="数据类型" width="120" />
+      <el-table-column prop="description" label="说明" min-width="160" show-overflow-tooltip />
+      <el-table-column label="操作" width="130" fixed="right">
+        <template #default="scope">
+          <el-button link type="primary" @click="edit(scope.row)">修改</el-button>
+          <el-divider direction="vertical" />
+          <el-popconfirm title="确认删除？" @confirm="remove(scope.row)">
+            <template #reference>
+              <el-button link type="danger">删除</el-button>
+            </template>
+          </el-popconfirm>
+        </template>
+      </el-table-column>
+    </el-table>
     <EventsAdd v-if="visible" :data="current" @save="saveData" @close="close" />
   </div>
 </template>
@@ -67,7 +71,9 @@ export default {
     },
     saveData(item, onlySave) {
       const data = this.data || []
-      const i = data.findIndex((j) => String(j.id || '').toLowerCase() === String(item.id || '').toLowerCase())
+      const i = data.findIndex(
+        (j) => String(j.id || '').toLowerCase() === String(item.id || '').toLowerCase()
+      )
       if (i > -1) {
         if (!this.isEdit) {
           this.$message.error('事件标识已存在（不区分大小写），请修改')

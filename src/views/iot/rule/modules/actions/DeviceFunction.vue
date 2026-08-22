@@ -6,16 +6,13 @@
         :key="_item.value"
         :value="_item.value"
         :label="`${_item.text}（${_item.value}）`"
-      >
-      </el-option>
+      />
     </el-select>
   </el-col>
   <el-col v-else-if="item.type === 'bool'" :span="6">
     <el-select placeholder="选择调用参数" v-model="defaultValue" @change="inputsChange">
-      <el-option :value="item.trueValue + ''" :label="`${item.trueText}（${item.trueValue}）`">
-      </el-option>
-      <el-option :value="item.falseValue + ''" :label="`${item.falseText}（${item.falseValue}）`">
-      </el-option>
+      <el-option :value="item.trueValue + ''" :label="`${item.trueText}（${item.trueValue}）`" />
+      <el-option :value="item.falseValue + ''" :label="`${item.falseText}（${item.falseValue}）`" />
     </el-select>
   </el-col>
   <el-col
@@ -24,11 +21,7 @@
     "
     :span="6"
   >
-    <el-input-number
-      v-model="defaultValue"
-      controls-position="right"
-      @change="inputsChange"
-    ></el-input-number>
+    <el-input-number v-model="defaultValue" controls-position="right" @change="inputsChange" />
   </el-col>
   <el-col v-else-if="item.type === 'password'" :span="6">
     <el-input
@@ -37,7 +30,7 @@
       v-model="defaultValue"
       :maxlength="100"
       @change="inputsChange"
-    ></el-input>
+    />
   </el-col>
   <el-col v-else :span="6">
     <el-input placeholder="填写调用参数" v-model="defaultValue" @change="inputsChange" />
@@ -47,6 +40,7 @@
 <script lang="jsx">
 export default {
   name: 'DeviceFunction',
+  components: {},
   props: {
     item: {
       type: Object,
@@ -61,7 +55,12 @@ export default {
       default: null
     }
   },
-  components: {},
+  data() {
+    return {
+      defaultValue: null
+    }
+  },
+  computed: {},
   created() {
     const message = this.actionData.configuration
     const item = this.item
@@ -69,12 +68,6 @@ export default {
       this.defaultValue = message.data[item.id]
     } else {
       this.defaultValue = null
-    }
-  },
-  computed: {},
-  data() {
-    return {
-      defaultValue: null
     }
   },
   methods: {

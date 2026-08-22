@@ -26,6 +26,10 @@ import Base from './Base.vue'
 
 export default {
   name: 'MqttConfig',
+  components: {
+    HttpConfigAdd
+  },
+  mixins: [Base],
   props: {
     productId: {
       type: String,
@@ -36,22 +40,9 @@ export default {
       default: () => null
     }
   },
-  mixins: [Base],
-  components: {
-    HttpConfigAdd
-  },
   data() {
     return {
       data: newHttpAddObj()
-    }
-  },
-  created() {
-    if (!this.network) {
-      this.getData()
-    } else {
-      const data = _.cloneDeep(this.network)
-      this.convertConfiguration(data, newHttpAddObj())
-      this.data = data
     }
   },
   computed: {
@@ -71,6 +62,15 @@ export default {
         return arr
       }
       return [address]
+    }
+  },
+  created() {
+    if (!this.network) {
+      this.getData()
+    } else {
+      const data = _.cloneDeep(this.network)
+      this.convertConfiguration(data, newHttpAddObj())
+      this.data = data
     }
   },
   methods: {

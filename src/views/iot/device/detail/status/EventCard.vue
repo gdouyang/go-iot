@@ -15,6 +15,9 @@ import ChartCard from './ChartCard.vue'
 import { queryEvent } from '../../api.js'
 export default {
   name: 'EventCard',
+  components: {
+    ChartCard
+  },
   props: {
     item: {
       type: Object,
@@ -38,9 +41,6 @@ export default {
       type: Object,
       default: () => {}
     }
-  },
-  components: {
-    ChartCard
   },
   data() {
     return {

@@ -29,6 +29,10 @@ import Base from './Base.vue'
 
 export default {
   name: 'TcpConfig',
+  components: {
+    TcpConfigAdd
+  },
+  mixins: [Base],
   props: {
     productId: {
       type: String,
@@ -39,15 +43,12 @@ export default {
       default: () => null
     }
   },
-  mixins: [Base],
-  components: {
-    TcpConfigAdd
-  },
   data() {
     return {
       data: newTcpAddObj()
     }
   },
+  computed: {},
   created() {
     if (!this.network) {
       this.getData()
@@ -57,7 +58,6 @@ export default {
       this.data = data
     }
   },
-  computed: {},
   methods: {
     parserType(type) {
       return parserType(type)

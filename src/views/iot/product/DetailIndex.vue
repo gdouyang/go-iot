@@ -3,9 +3,7 @@
     <template #header>
       <el-row class="el-descriptions__title" style="align-items: center">
         <el-tooltip content="返回">
-          <BaseButton @click="back" circle size="small"
-            ><Icon icon="el:ArrowLeft"
-          /></BaseButton>
+          <BaseButton @click="back" circle size="small"><Icon icon="el:ArrowLeft" /></BaseButton>
         </el-tooltip>
         <span class="detail-title">
           <span>产品：{{ detailData.name }}</span>
@@ -42,9 +40,9 @@
         </span>
       </el-row>
     </template>
-    <el-tabs model-value="info" style="height: calc(100vh - 234px)">
+    <el-tabs model-value="info" class="product-detail-tabs">
       <el-tab-pane name="info" label="基本信息">
-        <Info v-if="detailData.id" :data="detailData" @refresh="reloadProduct"></Info>
+        <Info v-if="detailData.id" :data="detailData" @refresh="reloadProduct" />
       </el-tab-pane>
       <el-tab-pane name="tsl" label="物模型">
         <TSL
@@ -55,7 +53,7 @@
           :eventsData="events"
           @refresh="reloadProduct"
           @save="updateData"
-        ></TSL>
+        />
       </el-tab-pane>
       <el-tab-pane name="codec" label="编解码">
         <Codec
@@ -64,7 +62,7 @@
           :product="detailData"
           @refresh="reloadProduct"
           @save="updateData"
-        ></Codec>
+        />
       </el-tab-pane>
     </el-tabs>
   </ContentDetailWrap>
@@ -78,12 +76,12 @@ import Codec from './detail/Codec.vue'
 
 export default {
   name: 'ProductDetialIndex',
-  mixins: [],
   components: {
     Info,
     TSL,
     Codec
   },
+  mixins: [],
   data() {
     return {
       loading: true,
@@ -93,13 +91,13 @@ export default {
       events: []
     }
   },
-  mounted() {
-    this.reloadProduct()
-  },
   computed: {
     GetId() {
       return this.$route.query.id
     }
+  },
+  mounted() {
+    this.reloadProduct()
   },
   methods: {
     back() {
@@ -188,5 +186,10 @@ export default {
 .link {
   font-size: 12px;
   margin-left: 10px;
+}
+.product-detail-tabs {
+  :deep(.el-tabs__content) {
+    overflow: visible;
+  }
 }
 </style>

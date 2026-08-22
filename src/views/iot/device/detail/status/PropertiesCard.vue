@@ -15,6 +15,10 @@ import ChartCard from './ChartCard.vue'
 import Chart from './Chart.vue'
 export default {
   name: 'PropertiesCard',
+  components: {
+    ChartCard,
+    Chart
+  },
   props: {
     item: {
       type: Object,
@@ -37,10 +41,6 @@ export default {
       type: Object,
       default: () => {}
     }
-  },
-  components: {
-    ChartCard,
-    Chart
   },
   data() {
     return {

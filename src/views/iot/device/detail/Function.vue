@@ -1,10 +1,6 @@
 <template>
   <el-card shadow="never" title="功能调试" v-loading="spinning">
-    <el-empty
-      v-if="!functionsSelectList.length"
-      description="暂未配置设备功能"
-      :image-size="120"
-    />
+    <el-empty v-if="!functionsSelectList.length" description="暂未配置设备功能" :image-size="120" />
     <el-collapse v-else v-model="activeKey" style="width: 500px">
       <el-collapse-item v-for="f in functionsSelectList" :key="f.id" :name="f.name" :title="f.name">
         <div style="text-align: right">

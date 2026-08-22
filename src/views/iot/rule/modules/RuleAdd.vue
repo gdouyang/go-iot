@@ -34,8 +34,8 @@
               :rules="[{ required: true, message: '选择类型' }]"
             >
               <el-select v-model="scene.type" placeholder="选择类型">
-                <el-option value="scene" label="场景联动"></el-option>
-                <el-option value="alarm" label="设备告警"></el-option>
+                <el-option value="scene" label="场景联动" />
+                <el-option value="alarm" label="设备告警" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -52,8 +52,8 @@
                 v-model="scene.triggerType"
                 @change="sceneTypeChange"
               >
-                <el-option value="device" label="设备触发"></el-option>
-                <el-option value="timer" label="定时触发"></el-option>
+                <el-option value="device" label="设备触发" />
+                <el-option value="timer" label="定时触发" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -126,21 +126,16 @@ import _ from 'lodash-es'
 
 export default {
   name: 'SceneAdd',
-  props: {},
+  components: {
+    Trigger,
+    Action
+  },
   provide() {
     return {
       formChecker: this.formChecker
     }
   },
-  components: {
-    Trigger,
-    Action
-  },
-  computed: {
-    title() {
-      return this.data && this.data.id ? '编辑规则' : '新建规则'
-    }
-  },
+  props: {},
   data() {
     return {
       loading: false,
@@ -150,6 +145,11 @@ export default {
       formChecker: new Map(),
       openDrawer: false,
       oldState: ''
+    }
+  },
+  computed: {
+    title() {
+      return this.data && this.data.id ? '编辑规则' : '新建规则'
     }
   },
   created() {},

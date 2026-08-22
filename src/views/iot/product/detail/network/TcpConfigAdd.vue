@@ -22,7 +22,7 @@
           :rules="[{ required: true, message: 'crt文件不能为空', trigger: 'blur' }]"
         >
           <CertificateUpload v-model="addObj.certBase64" />
-          <el-input type="textarea" v-model="addObj.certBase64" show-word-limit></el-input>
+          <el-input type="textarea" v-model="addObj.certBase64" show-word-limit />
         </el-form-item>
         <el-form-item
           v-if="addObj.configuration.useTLS"
@@ -31,7 +31,7 @@
           :rules="[{ required: true, message: 'key文件不能为空', trigger: 'blur' }]"
         >
           <CertificateUpload v-model="addObj.keyBase64" />
-          <el-input type="textarea" v-model="addObj.keyBase64" show-word-limit></el-input>
+          <el-input type="textarea" v-model="addObj.keyBase64" show-word-limit />
         </el-form-item>
         <el-form-item
           label="解析方式"
@@ -39,10 +39,10 @@
           :rules="[{ required: true, message: '请选择' }]"
         >
           <el-select v-model="addObj.configuration.delimeter.type" @change="parserTypeChange">
-            <el-option value="NONE" label="不处理"></el-option>
-            <el-option value="Delimited" label="分隔符"></el-option>
-            <el-option value="FixLength" label="固定长度"></el-option>
-            <el-option value="SplitFunc" label="自定义脚本"></el-option>
+            <el-option value="NONE" label="不处理" />
+            <el-option value="Delimited" label="分隔符" />
+            <el-option value="FixLength" label="固定长度" />
+            <el-option value="SplitFunc" label="自定义脚本" />
           </el-select>
         </el-form-item>
         <el-form-item
@@ -50,7 +50,7 @@
           prop="configuration.delimeter.delimited"
           v-if="addObj.configuration.delimeter.type === 'Delimited'"
         >
-          <el-input v-model="addObj.configuration.delimeter.delimited" :maxlength="64"></el-input>
+          <el-input v-model="addObj.configuration.delimeter.delimited" :maxlength="64" />
         </el-form-item>
         <!-- 固定长度 -->
         <el-form-item
@@ -58,11 +58,7 @@
           prop="configuration.delimeter.length"
           v-if="addObj.configuration.delimeter.type === 'FixLength'"
         >
-          <el-input-number
-            v-model="addObj.configuration.delimeter.length"
-            :min="0"
-            :max="60000"
-          ></el-input-number>
+          <el-input-number v-model="addObj.configuration.delimeter.length" :min="0" :max="60000" />
         </el-form-item>
         <!-- 自定义脚本 -->
         <template v-if="addObj.configuration.delimeter.type === 'SplitFunc'">
@@ -109,11 +105,11 @@ import Base from './Base.vue'
 
 export default {
   name: 'TcpConfigAdd',
-  props: {},
-  mixins: [Base],
   components: {
     VAceEditor
   },
+  mixins: [Base],
+  props: {},
   data() {
     return {
       addObj: newTcpAddObj(),
@@ -131,8 +127,8 @@ export default {
       openDrawer: false
     }
   },
-  created() {},
   computed: {},
+  created() {},
   methods: {
     open(productId) {
       if (!productId) {

@@ -12,7 +12,7 @@
         :key="item.value"
         :label="item.text"
         :value="item.value"
-      ></el-option>
+      />
     </el-select>
   </el-form-item>
 </template>
@@ -27,7 +27,6 @@ export default {
       default: () => {}
     }
   },
-  created() {},
   data() {
     return {
       dateSource: [
@@ -50,6 +49,7 @@ export default {
       ]
     }
   },
+  created() {},
   mounted() {},
   methods: {}
 }

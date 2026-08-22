@@ -22,7 +22,7 @@
           :rules="[{ required: true, message: 'crt文件不能为空', trigger: 'blur' }]"
         >
           <CertificateUpload v-model="addObj.certBase64" />
-          <el-input type="textarea" v-model="addObj.certBase64" show-word-limit></el-input>
+          <el-input type="textarea" v-model="addObj.certBase64" show-word-limit />
         </el-form-item>
         <el-form-item
           v-if="addObj.configuration.useTLS"
@@ -31,13 +31,13 @@
           :rules="[{ required: true, message: 'key文件不能为空', trigger: 'blur' }]"
         >
           <CertificateUpload v-model="addObj.keyBase64" />
-          <el-input type="textarea" v-model="addObj.keyBase64" show-word-limit></el-input>
+          <el-input type="textarea" v-model="addObj.keyBase64" show-word-limit />
         </el-form-item>
         <el-form-item label="协议路由">
           <el-card shadow="never">
             <el-row v-for="(i, index) in addObj.configuration.routers" :key="index" class="mb-5px">
               <el-col span="15">
-                <el-input v-model="i.url" placeholder="/**"></el-input>
+                <el-input v-model="i.url" placeholder="/**" />
               </el-col>
               <el-col span="8" class="ml-10px text-center">
                 <el-button
@@ -67,17 +67,17 @@ import Base from './Base.vue'
 
 export default {
   name: 'WebSocketConfigAdd',
-  props: {},
-  mixins: [Base],
   components: {},
+  mixins: [Base],
+  props: {},
   data() {
     return {
       addObj: newWebSocketAddObj(),
       isEdit: false
     }
   },
-  created() {},
   computed: {},
+  created() {},
   methods: {
     open(productId) {
       if (!productId) {

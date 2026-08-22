@@ -14,7 +14,7 @@
             label="Key"
             :rules="[{ required: true, message: 'Key不能为空', trigger: 'blur' }]"
           >
-            <el-input v-model="configuration.property" :disabled="true" :maxlength="32"></el-input>
+            <el-input v-model="configuration.property" :disabled="true" :maxlength="32" />
           </el-form-item>
           <el-form-item label="值">
             <el-input
@@ -23,8 +23,8 @@
               type="password"
               show-password
               :maxlength="100"
-            ></el-input>
-            <el-input v-model="configuration.value" :maxlength="100" v-else></el-input>
+            />
+            <el-input v-model="configuration.value" :maxlength="100" v-else />
           </el-form-item>
         </el-col>
       </el-row>

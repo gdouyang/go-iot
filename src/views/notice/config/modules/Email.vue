@@ -1,5 +1,3 @@
-<style lang="less"></style>
-
 <template>
   <div>
     <el-form-item
@@ -26,13 +24,13 @@
 import _ from 'lodash-es'
 export default {
   name: 'Email',
+  components: {},
   props: {
     data: {
       type: Object,
       default: null
     }
   },
-  components: {},
   data() {
     return {
       template: {}
@@ -56,3 +54,5 @@ export default {
   }
 }
 </script>
+
+<style lang="less"></style>

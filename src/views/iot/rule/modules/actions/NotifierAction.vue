@@ -12,8 +12,7 @@
           :key="item.type"
           :value="item.type"
           :label="item.name"
-        >
-        </el-option>
+        />
       </el-select>
     </el-tooltip>
   </el-col>
@@ -24,8 +23,12 @@
         v-model="actionData.configuration.notifierId"
         :class="{ 'v-error': notifierIdError }"
       >
-        <el-option v-for="item in messageConfig" :key="item.id" :value="item.id" :label="item.name">
-        </el-option>
+        <el-option
+          v-for="item in messageConfig"
+          :key="item.id"
+          :value="item.id"
+          :label="item.name"
+        />
       </el-select>
     </el-tooltip>
   </el-col>
@@ -37,14 +40,14 @@ import _ from 'lodash-es'
 import { configTypes, listAll } from '@/views/notice/api.js'
 export default {
   name: 'NotifierAction',
+  components: {},
+  inject: ['formChecker'],
   props: {
     actionData: {
       type: Object,
       default: null
     }
   },
-  inject: ['formChecker'],
-  components: {},
   data() {
     return {
       notifyTypeConfig: [],
@@ -72,7 +75,7 @@ export default {
       return true
     })
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.formChecker.delete(this.checkerId)
   },
   methods: {

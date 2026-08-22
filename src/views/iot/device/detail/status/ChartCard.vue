@@ -16,13 +16,13 @@
 // import _ from 'lodash-es'
 export default {
   name: 'ChartCard',
+  components: {},
   props: {
     title: {
       type: String,
       default: ''
     }
   },
-  components: {},
   data() {
     return {}
   },

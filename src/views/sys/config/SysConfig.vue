@@ -21,12 +21,12 @@
             type="link"
             icon="setting"
             style="width: auto; height: auto"
-          ></el-button>
+          />
         </el-input>
       </el-form-item>
 
       <el-form-item label="接入IP">
-        <el-input v-model="mdl.accessIp" :max-length="128"> </el-input>
+        <el-input v-model="mdl.accessIp" :max-length="128" />
       </el-form-item>
 
       <el-form-item>

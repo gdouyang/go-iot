@@ -1,12 +1,6 @@
 <template>
   <div>
-    <Dialog
-      ref="addModal"
-      @confirm="handleOk"
-      @close="handleCancel"
-      :width="500"
-      maxHeight="auto"
-    >
+    <Dialog ref="addModal" @confirm="handleOk" @close="handleCancel" :width="500" maxHeight="auto">
       <!-- v-loading 不能直接绑在 Dialog 上：其根节点是 ElDialog 组件，指令无法落到真实 DOM -->
       <div v-loading="loading">
         <el-form ref="addFormRef" :model="addObj" label-width="auto">
@@ -31,8 +25,8 @@
             :rules="[{ required: true, message: '请选择' }]"
           >
             <el-select v-model="addObj.enableFlag">
-              <el-option value="true" label="启动"></el-option>
-              <el-option value="false" label="禁用"></el-option>
+              <el-option value="true" label="启动" />
+              <el-option value="false" label="禁用" />
             </el-select>
           </el-form-item>
 
@@ -71,8 +65,7 @@
                 :label="item.name"
                 :value="item.id"
                 :key="item.id"
-              >
-              </el-option>
+              />
             </el-select>
           </el-form-item>
 
@@ -105,13 +98,13 @@ const defaultAddObj = {
 }
 export default {
   name: 'UserModal',
+  components: {},
   props: {
     showTanent: {
       type: Boolean,
       default: false
     }
   },
-  components: {},
   data() {
     return {
       loading: false,

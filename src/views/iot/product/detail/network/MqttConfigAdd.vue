@@ -22,7 +22,7 @@
           :rules="[{ required: true, message: 'crt文件不能为空', trigger: 'blur' }]"
         >
           <CertificateUpload v-model="addObj.certBase64" />
-          <el-input type="textarea" v-model="addObj.certBase64" show-word-limit></el-input>
+          <el-input type="textarea" v-model="addObj.certBase64" show-word-limit />
         </el-form-item>
         <el-form-item
           v-if="addObj.configuration.useTLS"
@@ -31,7 +31,7 @@
           :rules="[{ required: true, message: 'key文件不能为空', trigger: 'blur' }]"
         >
           <CertificateUpload v-model="addObj.keyBase64" />
-          <el-input type="textarea" v-model="addObj.keyBase64" show-word-limit></el-input>
+          <el-input type="textarea" v-model="addObj.keyBase64" show-word-limit />
         </el-form-item>
       </el-form>
     </Dialog>
@@ -45,17 +45,17 @@ import Base from './Base.vue'
 
 export default {
   name: 'MqttConfigAdd',
-  props: {},
-  mixins: [Base],
   components: {},
+  mixins: [Base],
+  props: {},
   data() {
     return {
       addObj: newMqttAddObj(),
       isEdit: false
     }
   },
-  created() {},
   computed: {},
+  created() {},
   methods: {
     open(productId) {
       if (!productId) {

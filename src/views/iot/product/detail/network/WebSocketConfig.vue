@@ -26,6 +26,10 @@ import Base from './Base.vue'
 
 export default {
   name: 'MqttConfig',
+  components: {
+    WebSocketConfigAdd
+  },
+  mixins: [Base],
   props: {
     productId: {
       type: String,
@@ -36,22 +40,9 @@ export default {
       default: () => null
     }
   },
-  mixins: [Base],
-  components: {
-    WebSocketConfigAdd
-  },
   data() {
     return {
       data: newWebSocketAddObj()
-    }
-  },
-  created() {
-    if (!this.network) {
-      this.getData()
-    } else {
-      const data = _.cloneDeep(this.network)
-      this.convertConfiguration(data, newWebSocketAddObj())
-      this.data = data
     }
   },
   computed: {
@@ -71,6 +62,15 @@ export default {
         return arr
       }
       return [address]
+    }
+  },
+  created() {
+    if (!this.network) {
+      this.getData()
+    } else {
+      const data = _.cloneDeep(this.network)
+      this.convertConfiguration(data, newWebSocketAddObj())
+      this.data = data
     }
   },
   methods: {

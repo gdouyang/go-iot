@@ -33,23 +33,23 @@ import { connectionCheck } from '../api.js'
 
 export default {
   name: 'DeviceCheckComponent',
+  components: {},
   props: {
     deviceId: {
       type: String,
       default: ''
     }
   },
-  components: {},
   data() {
     return {
       loading: false,
       checkInfo: {}
     }
   },
+  computed: {},
   created() {},
   mounted() {},
-  destroyed() {},
-  computed: {},
+  unmounted() {},
   methods: {
     doConnectionCheck() {
       this.loading = true

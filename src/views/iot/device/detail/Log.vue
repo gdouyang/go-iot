@@ -56,11 +56,7 @@
 import _ from 'lodash-es'
 import dayjs from 'dayjs'
 import { getDeviceLogsUrl } from '@/views/iot/device/api.js'
-import {
-  getDefaultCreateTimeRange,
-  defaultTime,
-  dateShortcuts
-} from './dateRange.js'
+import { getDefaultCreateTimeRange, defaultTime, dateShortcuts } from './dateRange.js'
 
 const defaultOptions = [
   // { id: 'event', name: '事件上报' },

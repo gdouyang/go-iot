@@ -5,7 +5,7 @@
         v-if="item in properties.elements"
         :key="item.value"
         :label="`${item.text}（${item.value}）`"
-      ></el-option>
+      />
     </el-select>
   </el-col>
   <el-col v-else-if="properties.type === 'bool'" :span="4">
@@ -13,13 +13,11 @@
       <el-option
         :key="properties.trueValue"
         :label="`${properties.trueText}（${properties.trueValue}）`"
-      >
-      </el-option>
+      />
       <el-option
         :key="properties.falseValue"
         :label="`${properties.falseText}（${properties.falseValue}）`"
-      >
-      </el-option>
+      />
     </el-select>
   </el-col>
   <el-col v-else :span="4">
@@ -35,6 +33,7 @@
 <script lang="jsx">
 export default {
   name: 'DevicePropertiesObject',
+  components: {},
   props: {
     properties: {
       type: Object,
@@ -49,7 +48,11 @@ export default {
       default: null
     }
   },
-  components: {},
+  data() {
+    return {
+      defaultValue: ''
+    }
+  },
   created() {
     const propertiesData = this.propertiesData
     const properties = this.properties
@@ -61,11 +64,6 @@ export default {
         message.properties[propertiesData.id] &&
         message.properties[propertiesData.id][properties.id]) ||
       undefined
-  },
-  data() {
-    return {
-      defaultValue: ''
-    }
   },
   methods: {
     selectChange(value) {

@@ -90,7 +90,7 @@ export default {
   mounted() {
     this.propertiesRealTime()
   },
-  beforeDestroy() {},
+  beforeUnmount() {},
   methods: {
     propertiesRealTime() {
       const device = this.device

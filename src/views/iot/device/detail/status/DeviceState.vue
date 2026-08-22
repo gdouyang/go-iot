@@ -15,6 +15,9 @@ import { getStatusText, queryLogs } from '../../api.js'
 // import dayjs from 'dayjs'
 export default {
   name: 'DeviceState',
+  components: {
+    ChartCard
+  },
   props: {
     state: {
       type: String,
@@ -27,22 +30,19 @@ export default {
       }
     }
   },
-  components: {
-    ChartCard
-  },
   data() {
     return {
       time: ''
     }
-  },
-  mounted() {
-    this.GetTime()
   },
   computed: {
     deviceStateText() {
       const status = this.state
       return getStatusText(status)
     }
+  },
+  mounted() {
+    this.GetTime()
   },
   methods: {
     GetTime() {

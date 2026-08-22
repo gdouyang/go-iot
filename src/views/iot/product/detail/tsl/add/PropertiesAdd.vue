@@ -35,7 +35,7 @@
       <!-- -->
       <DataTypeItem
         label="数据类型"
-        :data.sync="formData"
+        v-model:data="formData"
         :rules="[{ required: true, message: '请选择' }]"
       />
       <!-- -->
@@ -81,12 +81,6 @@ export default {
       default: () => {}
     }
   },
-  created() {
-    this.formData = _.cloneDeep(_.assign({}, defaultFormData, this.data))
-    if (this.data && this.data.id) {
-      this.isEdit = true
-    }
-  },
   data() {
     return {
       formData: _.cloneDeep(defaultFormData),
@@ -94,11 +88,40 @@ export default {
     }
   },
   watch: {},
+  created() {
+    this.formData = _.cloneDeep(_.assign({}, defaultFormData, this.data))
+    if (this.data && this.data.id) {
+      this.isEdit = true
+    }
+  },
   mounted() {},
   methods: {
     saveData() {
       this.$refs.form.validate((valid) => {
         if (valid) {
+          if (this.formData.type === 'enum') {
+            const elements = (this.formData.elements || []).filter(
+              (item) => item && item.value !== '' && item.value !== null && item.value !== undefined
+            )
+            if (!elements.length) {
+              this.$message.error('枚举类型必须至少配置一个有效的枚举项标识(value)')
+              return
+            }
+            this.formData.elements = elements
+          } else {
+            delete this.formData.elements
+          }
+          if (this.formData.type === 'object') {
+            if (!this.formData.properties || !this.formData.properties.length) {
+              this.$message.error('结构体类型(object)必须至少添加一个参数(properties)')
+              return
+            }
+          } else {
+            delete this.formData.properties
+          }
+          if (this.formData.type !== 'array') {
+            delete this.formData.elementType
+          }
           this.$emit('save', this.formData)
         }
       })

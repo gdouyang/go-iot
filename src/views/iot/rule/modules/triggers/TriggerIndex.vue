@@ -34,8 +34,8 @@
               />
               <small style="margin: 0px 5px">次及以上时，处理</small>
               <el-radio-group v-model="shakeLimit.alarmFirst" size="small" buttonStyle="solid">
-                <el-radio-button :value="true" label="第一次"></el-radio-button>
-                <el-radio-button :value="false" label="最后一次"></el-radio-button>
+                <el-radio-button :value="true" label="第一次" />
+                <el-radio-button :value="false" label="最后一次" />
               </el-radio-group>
             </template>
           </div>
@@ -49,12 +49,7 @@
             placeholder="选择产品"
             :class="{ 'v-error': !scene.productId }"
           >
-            <el-option
-              v-for="p in productList"
-              :key="p.id"
-              :value="p.id"
-              :label="p.name"
-            ></el-option>
+            <el-option v-for="p in productList" :key="p.id" :value="p.id" :label="p.name" />
           </el-select>
         </el-col>
         <el-col :span="4" style="text-align: center">
@@ -69,10 +64,10 @@
             :class="{ 'v-error': !scene.trigger.filterType }"
             @change="triggerTypeChange"
           >
-            <el-option value="online" label="上线"></el-option>
-            <el-option value="offline" label="离线"></el-option>
-            <el-option value="properties" v-if="metaData.properties" label="属性"></el-option>
-            <el-option value="event" v-if="metaData.events" label="事件"></el-option>
+            <el-option value="online" label="上线" />
+            <el-option value="offline" label="离线" />
+            <el-option value="properties" v-if="metaData.properties" label="属性" />
+            <el-option value="event" v-if="metaData.events" label="事件" />
           </el-select>
         </el-col>
       </el-row>
@@ -106,8 +101,8 @@
               v-model="item.logic"
               :class="{ 'v-error': !item.logic }"
             >
-              <el-option value="and" label="AND(并且)"></el-option>
-              <el-option value="or" label="OR(或)"></el-option>
+              <el-option value="and" label="AND(并且)" />
+              <el-option value="or" label="OR(或)" />
             </el-select>
           </el-col>
           <el-col :span="6">
@@ -122,7 +117,7 @@
                 :value="d.id"
                 :key="d.id"
                 :label="`${d.id}(${d.name})`"
-              ></el-option>
+              />
             </el-select>
           </el-col>
           <el-col v-if="item.valueType.type && item.valueType.type !== 'this'" :span="4">
@@ -131,13 +126,13 @@
               v-model="item.operator"
               :class="{ 'v-error': !item.operator }"
             >
-              <el-option value="eq" label="等于(=)"></el-option>
-              <el-option value="neq" label="不等于(!=)"></el-option>
+              <el-option value="eq" label="等于(=)" />
+              <el-option value="neq" label="不等于(!=)" />
               <template v-if="isNumberType(item)">
-                <el-option value="gt" label="大于(>)"></el-option>
-                <el-option value="lt" label="小于(<)"></el-option>
-                <el-option value="gte" label="大于等于(>=)"></el-option>
-                <el-option value="lte" label="小于等于(<=)"></el-option>
+                <el-option value="gt" label="大于(>)" />
+                <el-option value="lt" label="小于(<)" />
+                <el-option value="gte" label="大于等于(>=)" />
+                <el-option value="lte" label="小于等于(<=)" />
               </template>
               <!-- <el-option value="like">模糊(%)</el-option> -->
             </el-select>
@@ -159,13 +154,11 @@
               <el-option
                 :key="item.valueType.trueValue + ''"
                 :label="`${item.valueType.trueText}（${item.valueType.trueValue}）`"
-              >
-              </el-option>
+              />
               <el-option
                 :key="item.valueType.falseValue + ''"
                 :label="`${item.valueType.falseText}（${item.valueType.falseValue}）`"
-              >
-              </el-option>
+              />
             </el-select>
             <el-select
               v-if="item.valueType.type === 'enum'"
@@ -176,8 +169,7 @@
                 v-for="elem in item.valueType.elements"
                 :key="elem.value + ''"
                 :label="`${elem.text}（${elem.value}）`"
-              >
-              </el-option>
+              />
             </el-select>
             <el-input-number
               v-else-if="['float', 'double'].indexOf(item.valueType.type) !== -1"
@@ -226,15 +218,15 @@ import DeviceSelect from '@/views/iot/device/DeviceSelect.vue'
 
 export default {
   name: 'SceneTrigger',
+  components: {
+    DeviceSelect
+  },
+  inject: ['formChecker'],
   props: {
     data: {
       type: Object,
       default: null
     }
-  },
-  inject: ['formChecker'],
-  components: {
-    DeviceSelect
   },
   data() {
     return {
@@ -316,7 +308,7 @@ export default {
       return true
     })
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.formChecker.delete(this.checkerId)
   },
   methods: {

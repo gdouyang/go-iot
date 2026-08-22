@@ -32,15 +32,15 @@ import Configuration from './Configuration.vue'
 
 export default {
   name: 'DeviceInfo',
+  components: {
+    DeviceAdd,
+    Configuration
+  },
   props: {
     device: {
       type: Object,
       default: () => {}
     }
-  },
-  components: {
-    DeviceAdd,
-    Configuration
   },
   data() {
     return {
@@ -52,7 +52,6 @@ export default {
       }
     }
   },
-  created() {},
   computed: {
     GetCreateTime() {
       return dayjs(this.device.createTime).format('YYYY-MM-DD HH:mm:ss')
@@ -62,6 +61,7 @@ export default {
       return id
     }
   },
+  created() {},
   methods: {
     refresh() {
       this.$emit('refresh')

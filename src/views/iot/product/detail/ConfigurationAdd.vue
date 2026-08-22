@@ -21,11 +21,7 @@
               }
             ]"
           >
-            <el-input
-              v-model="configuration.property"
-              :disabled="isEdit"
-              :maxlength="32"
-            ></el-input>
+            <el-input v-model="configuration.property" :disabled="isEdit" :maxlength="32" />
           </el-form-item>
           <el-form-item
             prop="type"
@@ -45,15 +41,15 @@
               show-password
               v-model="configuration.value"
               :maxlength="100"
-            ></el-input>
-            <el-input v-model="configuration.value" :maxlength="100" v-else></el-input>
+            />
+            <el-input v-model="configuration.value" :maxlength="100" v-else />
           </el-form-item>
           <el-form-item label="描述">
             <el-input
               v-model="configuration.desc"
               :disabled="configuration.buildin"
               :maxlength="100"
-            ></el-input>
+            />
           </el-form-item>
         </el-col>
       </el-row>
@@ -89,16 +85,16 @@ export default {
       default: () => null
     }
   },
-  watch: {
-    visible(newVal) {
-      this.openFlag = newVal
-    }
-  },
   data() {
     return {
       openFlag: false,
       configuration: _.cloneDeep(defaultData),
       isEdit: false
+    }
+  },
+  watch: {
+    visible(newVal) {
+      this.openFlag = newVal
     }
   },
   mounted() {

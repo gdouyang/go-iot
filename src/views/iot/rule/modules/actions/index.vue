@@ -21,8 +21,8 @@
           @change="executorChange"
           :class="{ 'v-error': hasError }"
         >
-          <el-option value="notifier" label="消息通知"></el-option>
-          <el-option value="device-message-sender" label="设备输出"></el-option>
+          <el-option value="notifier" label="消息通知" />
+          <el-option value="device-message-sender" label="设备输出" />
         </el-select>
       </el-col>
       <template v-if="action.executor === 'notifier'">
@@ -42,6 +42,11 @@ import NotifierAction from './NotifierAction.vue'
 import DeviceAction from './DeviceAction.vue'
 export default {
   name: 'Actions',
+  components: {
+    NotifierAction,
+    DeviceAction
+  },
+  inject: ['formChecker'],
   props: {
     action: {
       type: Object,
@@ -51,11 +56,6 @@ export default {
       type: Number,
       default: null
     }
-  },
-  inject: ['formChecker'],
-  components: {
-    NotifierAction,
-    DeviceAction
   },
   data() {
     return {
@@ -73,7 +73,7 @@ export default {
       return true
     })
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.formChecker.delete(this.checkerId)
   },
   methods: {

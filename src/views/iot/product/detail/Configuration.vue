@@ -55,6 +55,9 @@ import { updateProduct } from '@/views/iot/product/api.js'
 import ConfigurationAdd from './ConfigurationAdd.vue'
 export default {
   name: 'Configuration',
+  components: {
+    ConfigurationAdd
+  },
   props: {
     productId: {
       type: String,
@@ -64,9 +67,6 @@ export default {
       type: Array,
       default: () => []
     }
-  },
-  components: {
-    ConfigurationAdd
   },
   data() {
     return {

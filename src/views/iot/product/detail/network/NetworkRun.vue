@@ -32,6 +32,7 @@
 import { runNetwork } from '@/views/iot/product/api.js'
 export default {
   name: 'NetworkRun',
+  components: {},
   props: {
     productId: {
       type: String,
@@ -42,11 +43,9 @@ export default {
       default: () => {}
     }
   },
-  components: {},
   data() {
     return {}
   },
-  created() {},
   computed: {
     isRuning() {
       return this.network.state === 'runing'
@@ -55,6 +54,7 @@ export default {
       return this.network.type === 'TCP_CLIENT' || this.network.type === 'MQTT_CLIENT'
     }
   },
+  created() {},
   methods: {
     runNetwork(state) {
       return runNetwork(this.productId, state).then((resp) => {

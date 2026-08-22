@@ -3,9 +3,7 @@
     <template #header>
       <el-row class="el-descriptions__title flex-item-center">
         <el-tooltip content="返回">
-          <BaseButton @click="back" circle size="small"
-            ><Icon icon="el:ArrowLeft"
-          /></BaseButton>
+          <BaseButton @click="back" circle size="small"><Icon icon="el:ArrowLeft" /></BaseButton>
         </el-tooltip>
         <span class="detail-title">
           <span>设备：{{ getDeviceId }}</span>
@@ -75,15 +73,15 @@
       </el-descriptions>
     </div>
     <el-tabs v-model="activeTabKey">
-      <el-tab-pane name="info" label="基本信息"> </el-tab-pane>
-      <el-tab-pane name="status" label="运行状态"> </el-tab-pane>
-      <el-tab-pane name="properties" label="设备属性"> </el-tab-pane>
-      <el-tab-pane name="function" label="设备功能"> </el-tab-pane>
-      <el-tab-pane name="events" label="设备事件"> </el-tab-pane>
-      <el-tab-pane name="log" label="日志"> </el-tab-pane>
+      <el-tab-pane name="info" label="基本信息" />
+      <el-tab-pane name="status" label="运行状态" />
+      <el-tab-pane name="properties" label="设备属性" />
+      <el-tab-pane name="function" label="设备功能" />
+      <el-tab-pane name="events" label="设备事件" />
+      <el-tab-pane name="log" label="日志" />
     </el-tabs>
     <template v-if="activeTabKey === 'info'">
-      <Info v-if="detailData.id" :device="detailData" @refresh="reloadDevice"></Info>
+      <Info v-if="detailData.id" :device="detailData" @refresh="reloadDevice" />
     </template>
     <template v-if="activeTabKey === 'status'">
       <Status
@@ -91,13 +89,13 @@
         :device="detailData"
         @refresh="reloadDevice"
         :realtimeData="realtimeData"
-      ></Status>
+      />
     </template>
     <template v-if="activeTabKey === 'function'">
-      <Function v-if="detailData.id" :device="detailData"></Function>
+      <Function v-if="detailData.id" :device="detailData" />
     </template>
     <template v-if="activeTabKey === 'log'">
-      <Log v-if="detailData.id" :deviceId="detailData.id"></Log>
+      <Log v-if="detailData.id" :deviceId="detailData.id" />
     </template>
     <template v-if="activeTabKey === 'properties'">
       <Properties v-if="detailData.id" :device="detailData" />
@@ -156,26 +154,6 @@ export default {
       eventWs: null
     }
   },
-  created() {
-    this.eventWs = new EventBusWs(getEventBusUrl(this.getDeviceId, '*'), (evt) => this.onWsMessage(evt))
-    this.eventWs.connect()
-  },
-  mounted() {
-    const { id } = this.$route.query
-    this.getDeviceDetail(id).then((result) => {
-      if (result) {
-        this.detailData = result
-        if (result.state === 'online') {
-          this.getConnectionInfo()
-        }
-      }
-    })
-  },
-  unmounted() {
-    if (this.eventWs) {
-      this.eventWs.close()
-    }
-  },
   computed: {
     getDeviceId() {
       return this.$route.query.id
@@ -194,6 +172,28 @@ export default {
         this.detailData.networkType === 'MQTT_CLIENT' ||
         this.detailData.networkType === 'MODBUS'
       )
+    }
+  },
+  created() {
+    this.eventWs = new EventBusWs(getEventBusUrl(this.getDeviceId, '*'), (evt) =>
+      this.onWsMessage(evt)
+    )
+    this.eventWs.connect()
+  },
+  mounted() {
+    const { id } = this.$route.query
+    this.getDeviceDetail(id).then((result) => {
+      if (result) {
+        this.detailData = result
+        if (result.state === 'online') {
+          this.getConnectionInfo()
+        }
+      }
+    })
+  },
+  unmounted() {
+    if (this.eventWs) {
+      this.eventWs.close()
     }
   },
   methods: {

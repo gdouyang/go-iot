@@ -11,11 +11,13 @@
     </span>
     <el-divider direction="vertical" />
     <span v-if="record.state === 'stopped'">
-      <el-popconfirm title="确认启动？" v-hasPermi="'rule-mgr:save'" @confirm="start(record)">
-        <template #reference>
-          <el-button link type="primary">启动</el-button>
-        </template>
-      </el-popconfirm>
+      <span v-hasPermi="'rule-mgr:save'">
+        <el-popconfirm title="确认启动？" @confirm="start(record)">
+          <template #reference>
+            <el-button link type="primary">启动</el-button>
+          </template>
+        </el-popconfirm>
+      </span>
       <span v-hasPermi="'rule-mgr:delete'">
         <el-divider direction="vertical" />
         <el-popconfirm title="确认删除？" @confirm="deleteScene(record.id)">
@@ -25,11 +27,13 @@
         </el-popconfirm>
       </span>
     </span>
-    <el-popconfirm v-else title="确认停止？" v-hasPermi="'rule-mgr:save'" @confirm="stop(record)">
-      <template #reference>
-        <el-button link type="primary">停止</el-button>
-      </template>
-    </el-popconfirm>
+    <span v-else v-hasPermi="'rule-mgr:save'">
+      <el-popconfirm title="确认停止？" @confirm="stop(record)">
+        <template #reference>
+          <el-button link type="primary">停止</el-button>
+        </template>
+      </el-popconfirm>
+    </span>
   </span>
 </template>
 

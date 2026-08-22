@@ -108,13 +108,6 @@ export default {
       default: () => {}
     }
   },
-  created() {
-    this.formData = getFunctionsData(this.data)
-    this.inputs = this.formData.inputs
-    if (this.data && this.data.id) {
-      this.isEdit = true
-    }
-  },
   data() {
     return {
       formData: _.assign({}, defaultFormData),
@@ -126,19 +119,41 @@ export default {
     }
   },
   watch: {},
+  created() {
+    this.formData = getFunctionsData(this.data)
+    this.inputs = this.formData.inputs
+    if (this.data && this.data.id) {
+      this.isEdit = true
+    }
+  },
   mounted() {},
   methods: {
     saveData() {
       this.$refs.form.validate((valid) => {
         if (valid) {
-          if (this.formData.output.type !== 'object') {
-            delete this.formData.output.properties
-          }
-          if (this.formData.output.type !== 'array') {
-            delete this.formData.output.elementType
-          }
-          if (!this.formData.output.type) {
-            this.formData.output = {}
+          if (this.formData.output) {
+            if (this.formData.output.type === 'enum') {
+              const elements = (this.formData.output.elements || []).filter(
+                (item) =>
+                  item && item.value !== '' && item.value !== null && item.value !== undefined
+              )
+              if (!elements.length) {
+                this.$message.error('输出参数为枚举类型时，必须至少配置一个有效的枚举项标识(value)')
+                return
+              }
+              this.formData.output.elements = elements
+            } else {
+              delete this.formData.output.elements
+            }
+            if (this.formData.output.type !== 'object') {
+              delete this.formData.output.properties
+            }
+            if (this.formData.output.type !== 'array') {
+              delete this.formData.output.elementType
+            }
+            if (!this.formData.output.type) {
+              this.formData.output = {}
+            }
           }
           this.formData.expands.interval = _.toString(this.formData.expands.interval)
           this.$emit('save', this.formData)

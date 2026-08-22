@@ -14,10 +14,10 @@ export default {
       default: () => {}
     }
   },
-  created() {},
   data() {
     return {}
   },
+  created() {},
   mounted() {},
   methods: {}
 }

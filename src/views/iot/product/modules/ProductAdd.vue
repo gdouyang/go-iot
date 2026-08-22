@@ -1,5 +1,3 @@
-<style lang="less"></style>
-
 <template>
   <div>
     <Dialog ref="addModal" @confirm="addConfirm" @close="addClose" maxHeight="auto">
@@ -21,17 +19,15 @@
             :disabled="isEdit"
             placeholder="将自动转为大写"
             @input="onProductIdInput"
-          ></el-input>
-          <div v-if="!isEdit" class="form-tip">
-            创建后不可更改
-          </div>
+          />
+          <div v-if="!isEdit" class="form-tip"> 创建后不可更改 </div>
         </el-form-item>
         <el-form-item
           label="名称"
           prop="name"
           :rules="[{ required: true, message: '名称不能为空' }]"
         >
-          <el-input v-model="addObj.name" placeholder="名称" :maxlength="32"></el-input>
+          <el-input v-model="addObj.name" placeholder="名称" :maxlength="32" />
         </el-form-item>
         <el-form-item
           label="网络类型"
@@ -39,9 +35,7 @@
           :rules="[{ required: true, message: '网络类型不能为空' }]"
         >
           <network-type-select v-model="addObj.networkType" :disabled="isEdit" />
-          <div v-if="!isEdit" class="form-tip">
-            创建后不可更改
-          </div>
+          <div v-if="!isEdit" class="form-tip"> 创建后不可更改 </div>
         </el-form-item>
         <el-form-item
           label="时序存储"
@@ -61,9 +55,7 @@
               :value="item.value"
             />
           </el-select>
-          <div v-if="!isEdit" class="form-tip">
-            创建后不可更改
-          </div>
+          <div v-if="!isEdit" class="form-tip"> 创建后不可更改 </div>
         </el-form-item>
         <el-form-item
           v-if="addObj.storePolicy === 'es'"
@@ -81,9 +73,7 @@
             placeholder="0=跟随系统"
             style="width: 100%"
           />
-          <div class="form-tip">
-            0 跟随系统全局配置；大于 0 使用本产品的保留月数。
-          </div>
+          <div class="form-tip"> 0 跟随系统全局配置；大于 0 使用本产品的保留月数。 </div>
         </el-form-item>
         <el-form-item label="说明" prop="desc">
           <el-input
@@ -92,7 +82,7 @@
             placeholder="说明"
             :maxlength="200"
             show-word-limit
-          ></el-input>
+          />
         </el-form-item>
       </el-form>
     </Dialog>
@@ -255,6 +245,8 @@ export default {
   }
 }
 </script>
+
+<style lang="less"></style>
 
 <style lang="less" scoped>
 .form-tip {

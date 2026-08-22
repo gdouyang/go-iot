@@ -10,16 +10,14 @@
         <el-descriptions-item label="网络类型" :span="1">{{
           data.networkType
         }}</el-descriptions-item>
-        <el-descriptions-item label="时序保留" :span="1">{{
-          retentionLabel
-        }}</el-descriptions-item>
+        <el-descriptions-item label="时序保留" :span="1">{{ retentionLabel }}</el-descriptions-item>
         <el-descriptions-item label="时序存储" :span="1">{{
           storePolicyLabel
         }}</el-descriptions-item>
         <el-descriptions-item label="说明" :span="2">{{ data.desc }}</el-descriptions-item>
       </el-descriptions>
 
-      <Network v-if="data.id" :product="data"></Network>
+      <Network v-if="data.id" :product="data" />
 
       <Configuration :productId="data.id" :configuration="configuration" @refresh="refresh()" />
     </ContentWrap>
@@ -37,25 +35,22 @@ import Network from './Network.vue'
 
 export default {
   name: 'ProductInfo',
+  components: {
+    ProductAdd,
+    Configuration,
+    Network
+  },
   props: {
     data: {
       type: Object,
       default: () => {}
     }
   },
-  components: {
-    ProductAdd,
-    Configuration,
-    Network
-  },
   data() {
     return {
       configuration: [],
       addVisible: false
     }
-  },
-  created() {
-    this.GetData()
   },
   computed: {
     retentionLabel() {
@@ -79,6 +74,9 @@ export default {
     'data.metaconfig'(newVal) {
       this.GetData()
     }
+  },
+  created() {
+    this.GetData()
   },
   methods: {
     GetData() {
