@@ -38,6 +38,9 @@ logs:
 # 产品 retentionMonths：0/空=跟随本配置；>0=使用产品月数
 # retention-check-hours: 清理任务间隔（小时）；0=不启动；默认 24
 es:
+  # ES 地址：逗号分隔多个节点即集群模式（go-elasticsearch 原生多节点，自动轮询/故障转移/节点嗅探）：
+  #   单节点：  url: http://localhost:9200
+  #   集群：    url: "http://192.168.31.200:9200,http://192.168.31.201:9200"
   url: http://localhost:9200
   usename: ""
   password: ""
@@ -66,10 +69,16 @@ tdengine:
   flush-interval-ms: 1000
 
 # Redis（设备缓存、会话、离线命令队列等）
+# addr 逗号分隔多个节点时自动启用 Redis Cluster 模式（NewClusterClient，水平扩展/高可用）：
+#   单实例：  addr: localhost:6379
+#   集群：    addr: "192.168.31.200:6379,192.168.31.201:6379,192.168.31.202:6379"
+# 注意：Cluster 模式不支持 select db（db 配置被忽略，启动日志会 WARN 提示）；
+# 大并发设备上线场景建议调大 pool-size（默认 100，压测用 500）避免 connection pool timeout
 redis:
   addr: localhost:6379
   password: ""
   db: 0
+  # pool-size: 500
 
 # 内置 MQTT（option.Mqtt；平台 MQTT5 broker 等）
 # 证书列表：useTLS 为 true 时配置 certificate

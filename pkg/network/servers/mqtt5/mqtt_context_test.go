@@ -20,10 +20,7 @@ func TestAuthContext_DeviceOnline_EmptyAndMissing(t *testing.T) {
 
 	ctx := &authContext{
 		BaseContext: core.BaseContext{ProductId: "m5-auth-p"},
-		client: &ClientAndSession{
-			info:        ClientInfo{},
-			connectInfo: map[string]any{},
-		},
+		rawClientId: "m5-auth-dev",
 	}
 
 	require.NoError(t, ctx.DeviceOnline(""))

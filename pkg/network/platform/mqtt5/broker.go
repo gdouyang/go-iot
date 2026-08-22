@@ -7,9 +7,9 @@ import (
 	"go-iot/pkg/core"
 	"go-iot/pkg/network"
 	"go-iot/pkg/option"
-	"log/slog"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	logs "go-iot/pkg/logger"
@@ -30,6 +30,7 @@ type (
 		server  *mqtt.Server
 		tlsCfg  *tls.Config
 		clients map[string]*ClientAndSession
+		stopped atomic.Bool
 	}
 	// 事件钩子
 	BrokerHook struct {
@@ -63,6 +64,7 @@ func Start() error {
 		Certificate: certs,
 	}
 	s := &broker
+	s.stopped.Store(false)
 	s.name = spec.Name
 	s.spec = spec
 	s.clients = make(map[string]*ClientAndSession)
@@ -77,6 +79,7 @@ func Stop() error {
 }
 
 func (b *Broker) Stop() error {
+	b.stopped.Store(true)
 	var clients []*ClientAndSession
 	func() {
 		b.Lock()
@@ -128,10 +131,10 @@ func (s *Broker) init(spec *MQTTServerSpec) error {
 	capabilities.MaximumClientWritesPending = 128
 	capabilities.MaximumInflight = 128
 	server := mqtt.New(&mqtt.Options{
-		Logger:       slog.New(logs.NewSugaredHandler()),
-		Capabilities: capabilities,
-		// ClientNetWriteBufferSize: 4096,
-		// ClientNetReadBufferSize:  4096,
+		Logger:                   newMqttLogger(),
+		Capabilities:             capabilities,
+		ClientNetWriteBufferSize: 1024,
+		ClientNetReadBufferSize:  1024,
 		// SysTopicResendInterval: 10,
 	})
 
@@ -209,35 +212,30 @@ func (h *BrokerHook) Init(config any) error {
 // 它可以在自定义Hook钩子中使用，以检查连接的用户是否与现有用户数据库中的用户匹配。
 // 如果允许访问，则返回 true。
 func (h *BrokerHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packet) bool {
-	logs.Debugf("client connected %s", cl.ID)
-	h.broker.Lock()
-	defer h.broker.Unlock()
-	client := NewClient(cl, h.broker)
-	client.info.password = string(pk.Connect.Password)
+	if logs.IsDebug() {
+		logs.Debugf("client connected %s", cl.ID)
+	}
 
-	// find product by clientId (assuming clientId is deviceId)
+	// 1. 锁外执行身份认证与脚本计算（绝不持有全局锁，避免阻塞 OnDisconnect 与消息上行）
 	deviceId := cl.ID
 	dev := core.GetDevice(deviceId)
 	if dev == nil {
-		// try to find in db
 		logs.Errorf("device not found: %s", deviceId)
 		return false
 	}
 
 	productId := dev.ProductId
-	client.infoMu.Lock()
-	client.info.productId = productId
-	client.info.deviceId = deviceId
-	client.infoMu.Unlock()
+	password := string(pk.Connect.Password)
+	username := string(cl.Properties.Username)
 
-	// check auth
 	ctx := &authContext{
 		BaseContext: core.BaseContext{
 			ProductId: productId,
-			Session:   nil,
 			DeviceId:  deviceId,
 		},
-		client: client,
+		rawClientId: deviceId,
+		rawUsername: username,
+		rawPassword: password,
 	}
 	codec := core.GetCodec(productId)
 	if codec == nil {
@@ -250,18 +248,49 @@ func (h *BrokerHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packet) b
 	}
 	if err != nil {
 		if err != core.ErrFunctionNotImpl {
-			logs.Errorf(err.Error())
+			logs.Errorf("platform mqtt5 auth error: %v", err)
 			return false
 		}
 		if !ctx.checkAuth() {
 			return false
 		}
 		if err := ctx.DeviceOnline(ctx.DeviceId); err != nil {
-			logs.Errorf("mqtt5 DeviceOnline error: %v", err)
+			logs.Errorf("platform mqtt5 DeviceOnline error: %v", err)
 			return false
 		}
 	}
+
+	// 2. 认证通过后，微秒级短临界区：登记 clients map 并上线全局 Session
+	// 认证通过后，微秒级短临界区：仅登记 clients map。
+	// DeviceOnline 必须在锁外调用：其内部 device 不存在时会调 session.Disconnect()
+	// → 同步触发 OnDisconnect → TryLock 自旋，持锁调用会自旋 100ms 后放弃并残留条目
+	h.broker.Lock()
+	// 检查服务器是否在认证期间已停止或连接已被底层关闭（防旧连接慢认证反向覆盖新连接）
+	if h.broker.stopped.Load() || cl.Closed() {
+		h.broker.Unlock()
+		return false
+	}
+	client := NewClient(cl, h.broker)
+	client.infoMu.Lock()
+	client.info.password = password
+	client.info.productId = ctx.ProductId
+	client.info.deviceId = ctx.DeviceId
+	client.infoMu.Unlock()
 	h.broker.clients[cl.ID] = client
+	h.broker.Unlock()
+
+	// 锁外上线全局 Session；失败则下线刚登记的连接（Close→OnDisconnect 会清理 map 条目）
+	if ctx.onlineCalled {
+		baseContext := &core.BaseContext{
+			ProductId: ctx.ProductId,
+			Session:   client,
+		}
+		if err := baseContext.DeviceOnline(ctx.DeviceId); err != nil {
+			logs.Errorf("platform mqtt5 DeviceOnline error: %v", err)
+			client.Close()
+			return false
+		}
+	}
 	return true
 }
 
@@ -272,11 +301,11 @@ func (h *BrokerHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) bool 
 
 // 当客户端因任何原因断开连接时调用。
 func (h *BrokerHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
-	if err != nil {
+
+	if logs.IsDebug() {
 		logs.Debugf("client disconnected %s expire: %v error: %v", cl.ID, expire, err)
-	} else {
-		logs.Debugf("client disconnected %s expire: %v", cl.ID, expire)
 	}
+
 	// 有限重试获取锁：锁内只有 map 操作（微秒级），正常竞争窗口极短；
 	// 持锁方异常卡死（如认证脚本死循环）时有限重试后放弃，保证断开处理不阻塞系统
 	// （残留条目/session 由同 ID 重连覆盖或 Stop 兜底）
@@ -284,7 +313,9 @@ func (h *BrokerHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
 		if h.broker.TryLock() {
 			// 锁内只做条目删除（微秒级）；closeByBroker/DelSession 等慢操作全部移到锁外
 			var client *ClientAndSession
-			logs.Debugf("delete client: %s", cl.ID)
+			if logs.IsDebug() {
+				logs.Debugf("delete client: %s", cl.ID)
+			}
 			if c := h.broker.clients[cl.ID]; c != nil && c.client == cl {
 				// 只清理属于本次断开的连接：同 clientID 抢占（session takeover）时，新连接
 				// 的 OnConnectAuthenticate 已把 clients[id] 替换为新条目，若按 ID 清理会
@@ -312,17 +343,23 @@ func (h *BrokerHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
 
 // 当客户端成功订阅一个或多个主题时调用。
 func (h *BrokerHook) OnSubscribed(cl *mqtt.Client, pk packets.Packet, reasonCodes []byte) {
-	logs.Debugf("subscribed qos=%v client=%s filters=%v", reasonCodes, cl.ID, pk.Filters)
+	if logs.IsDebug() {
+		logs.Debugf("subscribed qos=%v client=%s filters=%v", reasonCodes, cl.ID, pk.Filters)
+	}
 }
 
 // 当客户端成功取消订阅一个或多个主题时调用。
 func (h *BrokerHook) OnUnsubscribed(cl *mqtt.Client, pk packets.Packet) {
-	logs.Debugf("unsubscribed client: %s filters: %v", cl.ID, pk.Filters)
+	if logs.IsDebug() {
+		logs.Debugf("unsubscribed client: %s filters: %v", cl.ID, pk.Filters)
+	}
 }
 
 // 当客户端向订阅者发布消息后调用
 func (h *BrokerHook) OnPublished(cl *mqtt.Client, pk packets.Packet) {
-	logs.Debugf("published to client: %s payload: %s", cl.ID, string(pk.Payload))
+	if logs.IsDebug() {
+		logs.Debugf("published to client: %s payload: %s", cl.ID, string(pk.Payload))
+	}
 
 	// RLock 保护 clients map 读取（与 OnConnectAuthenticate/OnDisconnect 的写入并发时
 	// 无锁读会触发 fatal: concurrent map read and map write）

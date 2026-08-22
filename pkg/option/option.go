@@ -39,6 +39,7 @@ type Redis struct {
 	Addr     string `yaml:"addr"`
 	Password string `yaml:"password"`
 	Db       int    `yaml:"db"`
+	PoolSize int    `yaml:"pool-size"` // 连接池大小；≤0 时用 pkg/redis 默认值(100)
 }
 
 type Log struct {
@@ -248,6 +249,7 @@ func New() *Options {
 	opt.flags.StringVar(&opt.Redis.Addr, "redis.addr", "localhost:6379", "redis地址(localhost:6379)")
 	opt.flags.StringVar(&opt.Redis.Password, "redis.password", "", "redis密码")
 	opt.flags.IntVar(&opt.Redis.Db, "redis.db", 0, "redis数据库")
+	opt.flags.IntVar(&opt.Redis.PoolSize, "redis.pool-size", 100, "redis连接池大小(默认100，大并发上线场景建议调大)")
 	// ES配置
 	opt.flags.StringVar(&opt.Es.Url, "es.url", "http://localhost:9200", "elasticsearch地址(http://localhost:9200)")
 	opt.flags.StringVar(&opt.Es.Username, "es.usename", "", "elasticsearch用户名")

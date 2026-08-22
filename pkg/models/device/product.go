@@ -19,7 +19,7 @@ import (
 // ValidateStorePolicy 校验产品时序存储策略是否可用。
 func ValidateStorePolicy(storePolicy string) error {
 	switch storePolicy {
-	case core.TIME_SERISE_ES, core.TIME_SERISE_MOCK, "":
+	case core.TIME_SERISE_ES, core.TIME_SERISE_MOCK, core.TIME_SERISE_NOOP, "":
 		return nil
 	case core.TIME_SERISE_TDENGINE:
 		if !option.TdengineEnabled() {
@@ -31,7 +31,7 @@ func ValidateStorePolicy(storePolicy string) error {
 	}
 }
 
-// ListStorePolicies 返回当前环境可选的时序存储策略（供前端下拉，不含 mock）。
+// ListStorePolicies 返回当前环境可选的时序存储策略（供前端下拉，不含 mock/noop）。
 func ListStorePolicies() []map[string]string {
 	list := []map[string]string{
 		{"value": core.TIME_SERISE_ES, "label": "Elasticsearch"},

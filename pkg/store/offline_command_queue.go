@@ -64,30 +64,37 @@ func (q *RedisOfflineCommandQueue) Enqueue(message core.FuncInvoke) *common.Err 
 	return common.NewErr(200, "设备离线，命令已缓存")
 }
 
+// takeAllScript 原子取出并清空设备离线命令队列：
+// LRange 与 Del 必须在 Redis 服务端单次执行（Lua），否则两步之间存在窗口，
+// 设备快速断开重连时两个并发 TakeAll 会读到同一批命令导致重复下发
+var takeAllScript = redis.NewScript(`
+local cmds = redis.call('LRANGE', KEYS[1], 0, -1)
+redis.call('DEL', KEYS[1])
+return cmds
+`)
+
 func (q *RedisOfflineCommandQueue) TakeAll(deviceId string) []core.FuncInvoke {
 	client := redis.GetRedisClient()
 	if client == nil {
 		return nil
 	}
-	key := offlineRedisKey(deviceId)
 	ctx := context.Background()
-	cmds, err := client.LRange(ctx, key, 0, -1).Result()
+	cmds, err := takeAllScript.Run(ctx, client, []string{offlineRedisKey(deviceId)}).Slice()
 	if err != nil {
-		logs.Errorf("offline queue LRange error: %v", err)
+		// 队列为空时脚本返回空 table，Slice() 会报 redis.Nil，属正常情况
+		if err != redis.Nil {
+			logs.Errorf("offline queue TakeAll error: %v", err)
+		}
 		return nil
-	}
-	if len(cmds) == 0 {
-		return nil
-	}
-	if err := client.Del(ctx, key).Err(); err != nil {
-		logs.Errorf("offline queue Del error: %v", err)
 	}
 
 	out := make([]core.FuncInvoke, 0, len(cmds))
 	for _, cmdStr := range cmds {
-		var message core.FuncInvoke
-		if err := json.Unmarshal([]byte(cmdStr), &message); err == nil {
-			out = append(out, message)
+		if s, ok := cmdStr.(string); ok {
+			var message core.FuncInvoke
+			if err := json.Unmarshal([]byte(s), &message); err == nil {
+				out = append(out, message)
+			}
 		}
 	}
 	return out

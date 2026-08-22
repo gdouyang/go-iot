@@ -9,7 +9,8 @@ import (
 const (
 	TIME_SERISE_ES       = "es"         // 时序数据存储策略es
 	TIME_SERISE_TDENGINE = "tdengine"   // 时序数据存储策略Tdengine
-	TIME_SERISE_MOCK     = "mock"       // 时序数据存储策略mock
+	TIME_SERISE_MOCK     = "mock"       // 时序数据存储策略mock (单测用)
+	TIME_SERISE_NOOP     = "noop"       // 时序数据存储策略noop (大规模压测用)
 	TIME_TYPE_PROP       = "properties" // 物模型-属性
 	TIME_TYPE_LOGS       = "devicelogs" // 物模型-日志
 	TIME_TYPE_EVENT      = "event"      // 物模型-事件

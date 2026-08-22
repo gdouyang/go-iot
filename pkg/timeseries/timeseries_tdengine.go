@@ -2,6 +2,7 @@ package timeseries
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"go-iot/pkg/core"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	logs "go-iot/pkg/logger"
 
@@ -121,10 +123,10 @@ func (t *TdengineTimeSeries) SaveProperties(product *core.Product, d1 map[string
 		return errors.New("not have deviceId, don't save timeseries data")
 	}
 	sTableName := t.getStableName(product, core.TIME_TYPE_PROP)
-	createTime := nextTdCreateTime()
-	// 入批量队列（异步合并提交），校验已在上方完成
-	frag := t.insertFragment(sTableName, core.TIME_TYPE_PROP, columns, d1, createTime)
-	defaultTdBatch.commit(frag)
+	// 原子分配 createTime + 构造 + 入队（保证 ch 内顺序 = 时间戳顺序，避免同子表乱序写入）
+	createTime := defaultTdBatch.commitWithTime(func(ct string) string {
+		return t.insertFragment(sTableName, core.TIME_TYPE_PROP, columns, d1, ct)
+	})
 	// 发送事件总线（与 ES 异步落盘语义一致：入队成功即发布）
 	d1["createTime"] = createTime
 	event := eventbus.NewPropertiesMessage(fmt.Sprintf("%v", deviceId), product.GetId(), d1)
@@ -168,9 +170,9 @@ func (t *TdengineTimeSeries) SaveEvents(product *core.Product, eventId string, d
 		return errors.New("not have deviceId, don't save event timeseries data")
 	}
 	sTableName := t.getEventStableName(product, core.TIME_TYPE_EVENT, eventId)
-	createTime := nextTdCreateTime()
-	frag := t.insertFragment(sTableName, core.TIME_TYPE_EVENT, columns, d1, createTime)
-	defaultTdBatch.commit(frag)
+	createTime := defaultTdBatch.commitWithTime(func(ct string) string {
+		return t.insertFragment(sTableName, core.TIME_TYPE_EVENT, columns, d1, ct)
+	})
 	d1["createTime"] = createTime
 	// 发送事件总线
 	evt := eventbus.NewEventMessage(fmt.Sprintf("%v", deviceId), product.GetId(), eventId, d1)
@@ -183,16 +185,25 @@ func (t *TdengineTimeSeries) SaveLogs(product *core.Product, d1 core.LogData) er
 		return errors.New("deviceId must be present, don't save logs timeseries data")
 	}
 	if len(d1.CreateTime) == 0 {
-		d1.CreateTime = nextTdCreateTime()
+		columns := []string{"type", "content"}
+		sTableName := t.getStableName(product, core.TIME_TYPE_LOGS)
+		d1.CreateTime = defaultTdBatch.commitWithTime(func(ct string) string {
+			return t.insertFragment(sTableName, core.TIME_TYPE_LOGS, columns, map[string]any{
+				"type":     d1.Type,
+				"deviceId": d1.DeviceId,
+				"content":  d1.Content,
+			}, ct)
+		})
+	} else {
+		// 外部指定时间戳：顺序由调用方保证，直接入队
+		columns := []string{"type", "content"}
+		sTableName := t.getStableName(product, core.TIME_TYPE_LOGS)
+		defaultTdBatch.commit(t.insertFragment(sTableName, core.TIME_TYPE_LOGS, columns, map[string]any{
+			"type":     d1.Type,
+			"deviceId": d1.DeviceId,
+			"content":  d1.Content,
+		}, d1.CreateTime))
 	}
-	columns := []string{"type", "content"}
-	sTableName := t.getStableName(product, core.TIME_TYPE_LOGS)
-	frag := t.insertFragment(sTableName, core.TIME_TYPE_LOGS, columns, map[string]any{
-		"type":     d1.Type,
-		"deviceId": d1.DeviceId,
-		"content":  d1.Content,
-	}, d1.CreateTime)
-	defaultTdBatch.commit(frag)
 	return nil
 }
 
@@ -211,17 +222,28 @@ func (t *TdengineTimeSeries) dbPrefix() string {
 	return tdDatabase() + "."
 }
 
+var tdHttpClient = &http.Client{
+	Transport: &http.Transport{
+		MaxIdleConns:        500,
+		MaxIdleConnsPerHost: 200,
+		MaxConnsPerHost:     200,
+		IdleConnTimeout:     90 * time.Second,
+		DisableKeepAlives:   false,
+	},
+}
+
 func (t *TdengineTimeSeries) getClient(sql string) ([]byte, error) {
-	req, err := http.NewRequest(http.MethodPost, tdRestSQLURL(), bytes.NewBuffer([]byte(sql)))
+	ctx, cancel := context.WithTimeout(context.Background(), tdHTTPTimeout())
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tdRestSQLURL(), bytes.NewBuffer([]byte(sql)))
 	if err != nil {
 		return nil, err
 	}
 	logs.Debugf("==>  SQL:%s", sql)
 	req.Header.Set("Authorization", tdAuthHeader())
-	req.Close = true
+	req.Header.Set("Connection", "keep-alive")
 
-	client := &http.Client{Timeout: tdHTTPTimeout()}
-	resp, err := client.Do(req)
+	resp, err := tdHttpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

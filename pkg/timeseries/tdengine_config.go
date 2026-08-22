@@ -88,8 +88,8 @@ func ConfigTdengine(opt *option.Options) {
 	tdCfg = cfg
 	tdCfgMu.Unlock()
 
-	// 更新批量写入参数（不重建 channel，仅改阈值）
-	defaultTdBatch.applyConfig(cfg.BulkSize, cfg.FlushInterval)
+	// 更新批量写入参数（ch 容量取 buffer-size，启动早期无并发，重建安全）
+	defaultTdBatch.applyConfig(cfg.BufferSize, cfg.BulkSize, cfg.FlushInterval)
 
 	logs.Infof("tdengine config: %v", cfg)
 }

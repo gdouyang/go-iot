@@ -6,16 +6,17 @@ import (
 	"go-iot/pkg/core"
 	"strings"
 
-	logs "go-iot/pkg/logger"
-
 	"github.com/mochi-mqtt/server/v2/packets"
 )
 
 // 认证上下文没有消息和会话，当认证通过后会话将被设置
 type authContext struct {
 	core.BaseContext
-	client       *ClientAndSession
+	rawClientId  string
+	rawUsername  string
+	rawPassword  string
 	authFailCode byte
+	onlineCalled bool
 }
 
 func (ctx *authContext) GetMessage() interface{} {
@@ -27,15 +28,15 @@ func (ctx *authContext) GetSession() core.Session {
 }
 
 func (ctx *authContext) GetClientId() string {
-	return ctx.client.ClientID()
+	return ctx.rawClientId
 }
 
 func (ctx *authContext) GetUserName() string {
-	return ctx.client.UserName()
+	return ctx.rawUsername
 }
 
 func (ctx *authContext) GetPassword() string {
-	return ctx.client.info.password
+	return ctx.rawPassword
 }
 
 func (ctx *authContext) DeviceOnline(deviceId string) error {
@@ -49,19 +50,8 @@ func (ctx *authContext) DeviceOnline(deviceId string) error {
 		return fmt.Errorf("device [%s] not exist or noActive", deviceId)
 	}
 	ctx.DeviceId = deviceId
-	ctx.client.infoMu.Lock()
-	ctx.client.info.deviceId = deviceId
-	ctx.client.infoMu.Unlock()
+	ctx.onlineCalled = true
 	ctx.authFailCode = 0
-	// 认证成功、让设备上线
-	baseContext := &core.BaseContext{
-		ProductId: ctx.client.broker.productId,
-		Session:   ctx.client,
-	}
-	if err := baseContext.DeviceOnline(deviceId); err != nil {
-		logs.Errorf("mqtt5 DeviceOnline error: %v", err)
-		return err
-	}
 	return nil
 }
 

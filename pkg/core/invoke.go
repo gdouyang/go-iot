@@ -261,17 +261,16 @@ func cacheOfflineCommand(message FuncInvoke) *common.Err {
 
 // 发送离线命令
 func sendOfflineCommands(deviceId string) {
-	cmds := defaultOfflineQueue.TakeAll(deviceId)
-	if len(cmds) == 0 {
-		return
-	}
-	// 异步执行，避免阻塞上线路径
+	// 整体异步（含 TakeAll 的队列读取）：设备上线风暴时每个连接都会走到这里，
+	// 同步读 Redis 会与认证路径争抢连接池，导致 connection pool timeout、
+	// 认证被拖慢进而被 broker 断开
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
 				logs.Errorf("sendOfflineCommands panic: %v\n%s", r, debug.Stack())
 			}
 		}()
+		cmds := defaultOfflineQueue.TakeAll(deviceId)
 		for _, message := range cmds {
 			message.Async = "false"
 			DoCmdInvoke(message)
