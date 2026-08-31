@@ -7,6 +7,8 @@
 #   ./build.sh macm            # 别名 → bin/go-iot-darwin-arm64
 #   ./build.sh darwin-amd64    # → bin/go-iot-darwin-amd64
 #   ./build.sh darwin-arm64    # → bin/go-iot-darwin-arm64
+#   ./build.sh fe              # 仅构建前端（产物输出到 bin/views/）
+#   ./build.sh all             # 构建前端 + 编译本机 Go 程序
 # 产物按 GOOS-GOARCH 命名，不再使用 go-iot-mac / go-iot-mac_arm
 
 set -euo pipefail
@@ -24,6 +26,11 @@ if [[ -z "${TARGET}" && -n "${2:-}" ]]; then
   TARGET="${2}"
 fi
 
+build_fe() {
+  echo "building frontend (pnpm build:pro)..."
+  (cd frontend && pnpm build:pro)
+}
+
 do_build() {
   local goos="$1"
   local goarch="$2"
@@ -37,6 +44,23 @@ do_build() {
 BUILD_FILE_NAME=""
 
 case "${TARGET}" in
+  fe)
+    build_fe
+    echo "frontend build ok"
+    exit 0
+    ;;
+  all)
+    build_fe
+    if [[ "${OS:-}" == Windows* ]]; then
+      echo "go build -v -trimpath -o ${OUT_DIR}/go-iot.exe"
+      go build -v -trimpath -ldflags "${GO_LD_FLAGS}" -o "${OUT_DIR}/go-iot.exe" main.go
+      BUILD_FILE_NAME="${OUT_DIR}/go-iot.exe"
+    else
+      echo "go build -v -trimpath -o ${OUT_DIR}/go-iot"
+      go build -v -trimpath -ldflags "${GO_LD_FLAGS}" -o "${OUT_DIR}/go-iot" main.go
+      BUILD_FILE_NAME="${OUT_DIR}/go-iot"
+    fi
+    ;;
   linux)
     do_build linux amd64 "${OUT_DIR}/go-iot-linux-amd64"
     ;;
@@ -59,7 +83,7 @@ case "${TARGET}" in
     ;;
   *)
     echo "unknown target: ${TARGET}" >&2
-    echo "usage: $0 [linux|mac|macm|darwin-amd64|darwin-arm64]" >&2
+    echo "usage: $0 [linux|mac|macm|darwin-amd64|darwin-arm64|fe|all]" >&2
     exit 1
     ;;
 esac

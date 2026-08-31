@@ -1,0 +1,42 @@
+@import './var.css';
+@import 'element-plus/theme-chalk/dark/css-vars.css';
+
+// 解决抽屉弹出时，body宽度变化的问题
+.el-popup-parent--hidden {
+  width: 100% !important;
+}
+// 数据列表 操作
+.table-operator {
+  margin-bottom: 18px;
+  display: flex;
+}
+.detail-title {
+  margin: 0px 8px;
+}
+.el-descriptions__label {
+  min-width: 200px;
+}
+.el-descriptions__content {
+  min-width: 220px;
+}
+
+.el-drawer__header {
+  margin-bottom: 18px;
+}
+.el-tabs__nav-wrap::after {
+  height: 1px;
+}
+.drawer-footer {
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  border-top: 1px solid #e8e8e8;
+  padding: 10px 16px;
+  text-align: right;
+}
+.pre-content {
+  overflow: auto;
+  white-space: break-spaces;
+  word-break: break-all;
+}

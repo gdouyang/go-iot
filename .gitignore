@@ -14,3 +14,9 @@ static/
 tmp_crc.go
 docs/
 .reasonix/
+
+# frontend
+frontend/node_modules/
+frontend/dist*/
+frontend/stats.html
+frontend/.eslintcache

@@ -66,3 +66,4 @@ func TestFileServer_FallsBackToRootStatic(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Equal(t, "from-root", rec.Body.String())
 }
+
