@@ -3,6 +3,7 @@ package modbus
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -41,4 +42,31 @@ func TestModbusSession_LockAddressAfterDisconnectSafe(t *testing.T) {
 
 	// 随后调用 lockAddress 必须快速返回错误而非阻塞或 panic
 	require.Error(t, s.lockAddress(s.lockableAddress(nil)))
+}
+
+func TestCloseHandlerIfIdleIgnoresStopped(t *testing.T) {
+	s := newSession()
+	s.tcpInfo = &TcpInfo{Address: "127.0.0.1", Port: 502, IdleTimeout: 1}
+	s.client = &ModbusClient{IsModbusTcp: true}
+	s.lastUsed.Store(time.Now().Add(-time.Minute).UnixMilli())
+	s.stopped.Store(true)
+	s.closeHandlerIfIdle()
+	require.Nil(t, s.client)
+}
+
+func TestDisconnectFromWithConnDoesNotDeadlock(t *testing.T) {
+	s := newSession()
+	s.tcpInfo = &TcpInfo{Address: "127.0.0.1", Port: 502, IdleTimeout: 5}
+	done := make(chan struct{})
+	go func() {
+		_ = s.lockAddress("x")
+		_ = s.Disconnect()
+		s.unlockAddress("x")
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Disconnect while holding lockAddress deadlocked")
+	}
 }

@@ -51,39 +51,11 @@ func (ctx *context) MsgToBool() bool {
 	return (ctx.Data[0] & 1) > 0
 }
 
-type modbusInvokeContext struct {
-	core.FuncInvokeContext
-}
-
-func (ctx *modbusInvokeContext) Int16ToData(val int16) string {
-	dataBytes, err := getBinaryData(int16(val))
-	if err != nil {
-		logs.Warnf(err.Error())
-	}
-	return hex.EncodeToString(dataBytes)
-}
-func (ctx *modbusInvokeContext) FloatToInt16Data(val float64) string {
-	dataBytes, err := getBinaryData(int16(val))
-	if err != nil {
-		logs.Warnf(err.Error())
-	}
-	return hex.EncodeToString(dataBytes)
-}
-
-func (ctx *modbusInvokeContext) FloatToUint16Data(val float64) string {
-	dataBytes, err := getBinaryData(uint16(val))
-	if err != nil {
-		logs.Warnf(err.Error())
-	}
-	return hex.EncodeToString(dataBytes)
-}
-
-func getBinaryData(val interface{}) (dataBytes []byte, err error) {
+func hexEncodeBinary(val any) string {
 	buf := new(bytes.Buffer)
-	err = binary.Write(buf, binary.BigEndian, val)
-	if err != nil {
-		return dataBytes, err
+	if err := binary.Write(buf, binary.BigEndian, val); err != nil {
+		logs.Warnf(err.Error())
+		return ""
 	}
-	dataBytes = buf.Bytes()
-	return dataBytes, err
+	return hex.EncodeToString(buf.Bytes())
 }

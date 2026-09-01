@@ -78,3 +78,32 @@ func TestReadLogLevelFromFileMissing(t *testing.T) {
 	_, err := opt.ReadLogLevelFromFile()
 	require.Error(t, err)
 }
+
+func parseOptionsFromYAML(t *testing.T, yamlBody string, extraArgs ...string) *Options {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "app.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(yamlBody), 0o644))
+	prev := Global
+	t.Cleanup(func() { Global = prev })
+	opt := New()
+	opt.ConfigFile = path
+	old := os.Args
+	os.Args = append([]string{"go-iot"}, extraArgs...)
+	t.Cleanup(func() { os.Args = old })
+	_, err := opt.Parse()
+	require.NoError(t, err)
+	return opt
+}
+
+func TestParseEsUsernameFromYAML(t *testing.T) {
+	opt := parseOptionsFromYAML(t, `
+es:
+  username: elastic
+`)
+	require.Equal(t, "elastic", opt.Es.Username)
+}
+
+func TestParseEsUsernameFlag(t *testing.T) {
+	opt := parseOptionsFromYAML(t, "api-addr: :8088\n", "--es.username", "flag-user")
+	require.Equal(t, "flag-user", opt.Es.Username)
+}

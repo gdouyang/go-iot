@@ -1,13 +1,15 @@
 package modbus
 
 import (
+	stdctx "context"
 	"fmt"
-	"go-iot/pkg/core"
-	"go-iot/pkg/tsl"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"errors"
+
+	"go-iot/pkg/core"
 
 	logs "go-iot/pkg/logger"
 )
@@ -23,11 +25,24 @@ type ModbusSession struct {
 	workingCount int
 	stopped      atomic.Bool
 	closeOnce    sync.Once
+	idleOnce     sync.Once
 	client       *ModbusClient
 	tcpInfo      *TcpInfo
 	rtuInfo      *RtuInfo
 	done         chan struct{}
 	info         map[string]any
+	infoMu       sync.Mutex
+	lastUsed     atomic.Int64
+	lastCollect  atomic.Int64
+
+	schedMu     sync.Mutex
+	schedCtx    stdctx.Context
+	schedCancel stdctx.CancelFunc
+	schedGen    atomic.Uint64
+	runtime     *CollectorRuntime
+	lastValues  sync.Map
+	failCount   sync.Map
+	heartbeatN  sync.Map
 }
 
 func newSession() *ModbusSession {
@@ -45,6 +60,10 @@ func (s *ModbusSession) Disconnect() error {
 	// s.lock<-true 互相击穿為 send on closed channel panic。
 	s.closeOnce.Do(func() {
 		s.stopped.Store(true)
+		if s.schedCancel != nil {
+			s.schedCancel()
+		}
+		unregisterSession(s.deviceId)
 		core.DelSessionByUserDisconnect(s.deviceId)
 		close(s.done)
 	})
@@ -62,8 +81,24 @@ func (s *ModbusSession) GetDeviceId() string {
 	return s.deviceId
 }
 
+func (s *ModbusSession) debugLog(level, format string, args ...any) {
+	if s == nil {
+		return
+	}
+	core.DebugLog(level, s.deviceId, s.productId, fmt.Sprintf(format, args...))
+}
+
 func (s *ModbusSession) GetConInfo() map[string]any {
-	return s.info
+	s.infoMu.Lock()
+	defer s.infoMu.Unlock()
+	out := map[string]any{}
+	for k, v := range s.info {
+		out[k] = v
+	}
+	if ts := s.lastCollect.Load(); ts > 0 {
+		out["lastCollect"] = ts
+	}
+	return out
 }
 
 func (s *ModbusSession) ReadDiscreteInputs(startingAddress uint16, length uint16) (*context, error) {
@@ -80,18 +115,23 @@ func (s *ModbusSession) ReadHoldingRegisters(startingAddress uint16, length uint
 }
 
 func (s *ModbusSession) getValue(parimaryTable string, startingAddress uint16, length uint16) (*context, error) {
-	data, err := s.client.GetValue(parimaryTable, startingAddress, length)
-	if err != nil {
-		return nil, err
-	}
-	return &context{
-		BaseContext: core.BaseContext{
-			DeviceId:  s.deviceId,
-			ProductId: s.productId,
-			Session:   s,
-		},
-		Data: data,
-	}, nil
+	var out *context
+	err := s.withConn(func(cli *ModbusClient) error {
+		data, err := cli.GetValue(parimaryTable, startingAddress, length)
+		if err != nil {
+			return err
+		}
+		out = &context{
+			BaseContext: core.BaseContext{
+				DeviceId:  s.deviceId,
+				ProductId: s.productId,
+				Session:   s,
+			},
+			Data: data,
+		}
+		return nil
+	})
+	return out, err
 }
 
 func (s *ModbusSession) WriteCoils(startingAddress uint16, length uint16, hexStr string) error {
@@ -103,7 +143,21 @@ func (s *ModbusSession) WriteHoldingRegisters(startingAddress uint16, length uin
 }
 
 func (s *ModbusSession) setValue(parimaryTable string, startingAddress uint16, length uint16, hexStr string) error {
-	return s.client.SetValue(parimaryTable, startingAddress, length, hexStr)
+	return s.withConn(func(cli *ModbusClient) error {
+		return cli.SetValue(parimaryTable, startingAddress, length, hexStr)
+	})
+}
+
+func (s *ModbusSession) Int16ToData(val int16) string {
+	return hexEncodeBinary(val)
+}
+
+func (s *ModbusSession) FloatToInt16Data(val float64) string {
+	return hexEncodeBinary(int16(val))
+}
+
+func (s *ModbusSession) FloatToUint16Data(val float64) string {
+	return hexEncodeBinary(uint16(val))
 }
 
 // lockAddress mark address is unavailable because real device handle one request at a time
@@ -127,7 +181,10 @@ func (s *ModbusSession) lockAddress(address string) error {
 
 	s.mutex.Unlock()
 	s.lock <- true
-
+	if s.stopped.Load() {
+		s.unlockAddress(address)
+		return fmt.Errorf("service attempts to stop and unable to handle new request")
+	}
 	return nil
 }
 
@@ -151,79 +208,128 @@ func (s *ModbusSession) lockableAddress(info interface{}) string {
 }
 
 func (s *ModbusSession) connection(callback func()) error {
+	return s.withConn(func(_ *ModbusClient) error {
+		if callback != nil {
+			callback()
+		}
+		return nil
+	})
+}
+
+func (s *ModbusSession) withConn(fn func(*ModbusClient) error) error {
 	var connectionInfo interface{} = s.tcpInfo
-	var err error
 	if s.rtuInfo != nil {
 		connectionInfo = s.rtuInfo
 	}
-
-	err = s.lockAddress(s.lockableAddress(connectionInfo))
-	if err != nil {
+	if err := s.lockAddress(s.lockableAddress(connectionInfo)); err != nil {
 		return err
 	}
 	defer s.unlockAddress(s.lockableAddress(connectionInfo))
 
-	// create device client and open connection
-	var protocol string = ProtocolTCP
-	if s.tcpInfo != nil {
-		protocol = ProtocolTCP
+	protocol := ProtocolTCP
+	if s.rtuInfo != nil {
+		protocol = ProtocolRTU
 	}
-	deviceClient, err := NewDeviceClient(protocol, connectionInfo)
-	if err != nil {
-		logs.Errorf("Read command NewDeviceClient failed. err:%v \n", err)
+
+	open := func() error {
+		if s.client != nil {
+			return nil
+		}
+		deviceClient, err := NewDeviceClient(protocol, connectionInfo)
+		if err != nil {
+			logs.Errorf("Read command NewDeviceClient failed. err:%v \n", err)
+			s.debugLog("error", "collector NewDeviceClient failed: %v", err)
+			return err
+		}
+		if err = deviceClient.OpenConnection(); err != nil {
+			logs.Errorf("Read command OpenConnection failed. err:%v \n", err)
+			s.debugLog("error", "collector OpenConnection failed: %v", err)
+			return err
+		}
+		s.client = deviceClient
+		return nil
+	}
+	closeNow := func() {
+		if s.client != nil {
+			_ = s.client.CloseConnection()
+			s.client = nil
+		}
+	}
+
+	run := func() error {
+		if err := open(); err != nil {
+			return err
+		}
+		err := fn(s.client)
+		if err != nil && !errors.Is(err, core.ErrFunctionNotImpl) {
+			closeNow()
+		}
 		return err
 	}
 
-	err = deviceClient.OpenConnection()
-	if err != nil {
-		logs.Errorf("Read command OpenConnection failed. err:%v \n", err)
-		return err
+	err := run()
+	if err != nil && !errors.Is(err, core.ErrFunctionNotImpl) {
+		err = run()
 	}
+	if err == nil || errors.Is(err, core.ErrFunctionNotImpl) {
+		s.lastUsed.Store(time.Now().UnixMilli())
+		s.startIdleLoop()
+	}
+	if s.stopped.Load() {
+		closeNow()
+	}
+	return err
+}
 
-	defer func() {
-		_ = deviceClient.CloseConnection()
+func (s *ModbusSession) startIdleLoop() {
+	s.idleOnce.Do(func() {
+		go s.idleLoop()
+	})
+}
+
+func (s *ModbusSession) idleTimeout() time.Duration {
+	sec := 5
+	if s.tcpInfo != nil && s.tcpInfo.IdleTimeout > 0 {
+		sec = s.tcpInfo.IdleTimeout
+	} else if s.rtuInfo != nil && s.rtuInfo.IdleTimeout > 0 {
+		sec = s.rtuInfo.IdleTimeout
+	}
+	return time.Duration(sec) * time.Second
+}
+
+func (s *ModbusSession) idleLoop() {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-s.done:
+			s.closeHandlerIfIdle()
+			return
+		case <-ticker.C:
+			if s.client == nil {
+				continue
+			}
+			if time.Since(time.UnixMilli(s.lastUsed.Load())) >= s.idleTimeout() {
+				s.closeHandlerIfIdle()
+			}
+		}
+	}
+}
+
+func (s *ModbusSession) closeHandlerIfIdle() {
+	s.lock <- true
+	defer func() { <-s.lock }()
+	if !s.stopped.Load() {
+		if time.Since(time.UnixMilli(s.lastUsed.Load())) < s.idleTimeout() {
+			return
+		}
+	}
+	if s.client != nil {
+		_ = s.client.CloseConnection()
 		s.client = nil
-	}()
-	s.client = deviceClient
-	callback()
-	return nil
+	}
 }
 
 func (s *ModbusSession) readLoop() {
-	product := core.GetProduct(s.productId)
-	if product != nil {
-		for _, f := range product.GetTsl().Functions {
-			go s.interval(f)
-		}
-	}
-}
-
-func (s *ModbusSession) interval(f tsl.Function) {
-	if f.Expands != nil {
-		if val, ok := f.Expands["interval"]; ok && len(val) > 0 {
-			num, err := strconv.Atoi(val)
-			if err != nil {
-				logs.Warnf("interval must gt 0, error: %v", err)
-				return
-			}
-			if num < 1 {
-				logs.Warnf("interval must gt 0, function=%v", f.Id)
-				return
-			}
-			ticker := time.NewTicker(time.Second * time.Duration(num))
-			defer ticker.Stop()
-
-			for {
-				select {
-				case <-ticker.C:
-					core.DoCmdInvoke(core.FuncInvoke{
-						FunctionId: f.Id,
-						DeviceId:   s.deviceId,
-					})
-				case <-s.done:
-					return
-				}
-			}
-		}
-	}
+	s.startSchedulers()
 }

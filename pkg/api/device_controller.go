@@ -25,7 +25,7 @@ var deviceResource = Resource{
 	Sort: 20, // 侧栏：设备管理
 	Action: []ResourceAction{
 		QueryAction,
-		CretaeAction,
+		CreateAction,
 		SaveAction,
 		DeleteAction,
 		ImportAction,
@@ -50,6 +50,8 @@ func init() {
 	web.RegisterAPI("/device/batch/deploy", "POST", d.BatchDeploy)
 	web.RegisterAPI("/device/batch/undeploy", "POST", d.BatchUndeploy)
 	web.RegisterAPI("/device/{id}/invoke", "POST", d.CmdInvoke)
+	web.RegisterAPI("/device/{id}/collect", "POST", d.CollectNow)
+	web.RegisterAPI("/device/{id}/collect/status", "GET", d.CollectStatus)
 	web.RegisterAPI("/device/{id}/properties", "POST", d.QueryProperty)
 	web.RegisterAPI("/device/{id}/logs", "POST", d.QueryLogs)
 	web.RegisterAPI("/device/{id}/event/{eventId}", "POST", d.QueryEvent)
@@ -161,7 +163,7 @@ func (d *deviceApi) GetDetail(w http.ResponseWriter, r *http.Request) {
 // 添加设备
 func (d *deviceApi) Add(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(deviceResource, CretaeAction) {
+	if ctl.isForbidden(deviceResource, CreateAction) {
 		return
 	}
 	var ob models.DeviceModel
@@ -588,6 +590,7 @@ func enableDevice(ctl *AuthController, deviceId string, isDeploy bool) {
 			ctl.RespError(err)
 			return
 		}
+		collectorRuntimeForProduct(dev.ProductId).ReloadDevice(deviceId)
 	} else {
 		devopr := core.GetDevice(deviceId)
 		if devopr == nil {
@@ -607,6 +610,57 @@ func enableDevice(ctl *AuthController, deviceId string, isDeploy bool) {
 		cluster.BroadcastInvoke(ctl.Request)
 	}
 	ctl.RespOk()
+}
+
+func (d *deviceApi) CollectNow(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(deviceResource, SaveAction) {
+		return
+	}
+	deviceId := ctl.Param("id")
+	dev, err := getDeviceAndCheckCreateId(ctl, deviceId)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	if resp, err := cluster.ProxyOrLocal(deviceId, ctl.Request); err != nil {
+		ctl.RespError(err)
+		return
+	} else if resp != nil {
+		ctl.Resp(*resp)
+		return
+	}
+	groupId := r.URL.Query().Get("groupId")
+	if err := collectorRuntimeForProduct(dev.ProductId).CollectNow(deviceId, groupId); err != nil {
+		ctl.RespError(err)
+		return
+	}
+	ctl.RespOk()
+}
+
+func (d *deviceApi) CollectStatus(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(deviceResource, QueryAction) {
+		return
+	}
+	deviceId := ctl.Param("id")
+	if _, err := getDeviceAndCheckCreateId(ctl, deviceId); err != nil {
+		ctl.RespError(err)
+		return
+	}
+	if resp, err := cluster.ProxyOrLocal(deviceId, ctl.Request); err != nil {
+		ctl.RespError(err)
+		return
+	} else if resp != nil {
+		ctl.Resp(*resp)
+		return
+	}
+	s := core.GetSession(deviceId)
+	if s == nil {
+		ctl.RespOkData(map[string]any{"connected": false})
+		return
+	}
+	ctl.RespOkData(map[string]any{"connected": true, "info": s.GetConInfo()})
 }
 
 // 查询设备时序数据
@@ -651,4 +705,14 @@ func queryDeviceTimeseriesData(ctl *AuthController, typ string) {
 
 func getDeviceAndCheckCreateId(ctl *AuthController, deviceId string) (*models.DeviceModel, error) {
 	return deviceDao.GetDeviceAndCheckCreateId(deviceId, ctl.GetCurrentUser().Id)
+}
+
+func collectorRuntimeForProduct(productId string) core.CollectorRuntime {
+	if p := core.GetProduct(productId); p != nil && p.NetworkType != "" {
+		return core.GetCollectorRuntime(p.NetworkType)
+	}
+	if pd, err := deviceDao.GetProduct(productId); err == nil && pd != nil {
+		return core.GetCollectorRuntime(pd.NetworkType)
+	}
+	return core.GetCollectorRuntime("")
 }

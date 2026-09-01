@@ -17,7 +17,7 @@ var ruleResource = Resource{
 	Sort: 40, // 侧栏：规则引擎
 	Action: []ResourceAction{
 		QueryAction,
-		CretaeAction,
+		CreateAction,
 		SaveAction,
 		DeleteAction,
 	},
@@ -71,7 +71,7 @@ func (a *ruleApi) page(w http.ResponseWriter, r *http.Request) {
 }
 func (a *ruleApi) add(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(ruleResource, CretaeAction) {
+	if ctl.isForbidden(ruleResource, CreateAction) {
 		return
 	}
 	var ob models.RuleModel
@@ -126,7 +126,7 @@ func (a *ruleApi) update(w http.ResponseWriter, r *http.Request) {
 
 func (a *ruleApi) copy(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(ruleResource, CretaeAction) {
+	if ctl.isForbidden(ruleResource, CreateAction) {
 		return
 	}
 	id := ctl.Param("id")

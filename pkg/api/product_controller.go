@@ -24,7 +24,7 @@ var productResource = Resource{
 	Sort: 10, // 侧栏：产品管理
 	Action: []ResourceAction{
 		QueryAction,
-		CretaeAction,
+		CreateAction,
 		SaveAction,
 		DeleteAction,
 	},
@@ -59,6 +59,8 @@ func init() {
 	web.RegisterAPI("/product/{id}/undeploy", "POST", api.undeploy)
 	web.RegisterAPI("/product/{id}/tsl", "PUT", api.saveTsl)
 	web.RegisterAPI("/product/{id}/script", "PUT", api.saveScript)
+	web.RegisterAPI("/product/{id}/collector", "PUT", api.saveCollector)
+	web.RegisterAPI("/product/{id}/collector", "GET", api.getCollector)
 	web.RegisterAPI("/product/network/{productId}", "GET", api.getNetwork)
 	web.RegisterAPI("/product/network", "PUT", api.updateNetwork)
 	web.RegisterAPI("/product/network/{productId}/run", "POST", api.startNetwork)
@@ -119,7 +121,7 @@ func (a *productApi) list(w http.ResponseWriter, r *http.Request) {
 // 添加型号
 func (a *productApi) add(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(productResource, CretaeAction) {
+	if ctl.isForbidden(productResource, CreateAction) {
 		return
 	}
 	var aligns models.ProductModel
@@ -227,9 +229,19 @@ func (a *productApi) deploy(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	if err := productsvc.Deploy(ctl.GetCurrentUser().Id, id); err != nil {
-		ctl.RespError(err)
-		return
+	if ctl.IsNotClusterRequest() {
+		if err := productsvc.Deploy(ctl.GetCurrentUser().Id, id); err != nil {
+			ctl.RespError(err)
+			return
+		}
+		if p, err := product.GetProductMust(id); err == nil && p.State {
+			cluster.BroadcastInvoke(ctl.Request)
+		}
+	} else {
+		if err := productsvc.ApplyProductRuntime(id); err != nil {
+			ctl.RespError(err)
+			return
+		}
 	}
 	ctl.RespOk()
 }
@@ -274,9 +286,19 @@ func (a *productApi) saveTsl(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	if err := productsvc.SaveTSL(ctl.GetCurrentUser().Id, ob.Id, ob.Metadata); err != nil {
-		ctl.RespError(err)
-		return
+	if ctl.IsNotClusterRequest() {
+		if err := productsvc.SaveTSL(ctl.GetCurrentUser().Id, ob.Id, ob.Metadata); err != nil {
+			ctl.RespError(err)
+			return
+		}
+		if p, err := product.GetProductMust(ob.Id); err == nil && p.State {
+			cluster.BroadcastInvoke(ctl.Request)
+		}
+	} else {
+		if err := productsvc.ApplyProductRuntime(ob.Id); err != nil {
+			ctl.RespError(err)
+			return
+		}
 	}
 	ctl.RespOk()
 }
@@ -301,6 +323,52 @@ func (a *productApi) saveScript(w http.ResponseWriter, r *http.Request) {
 	if err := productsvc.SaveScript(ctl.GetCurrentUser().Id, productId, ob.Script); err != nil {
 		ctl.RespError(err)
 		return
+	}
+	ctl.RespOk()
+}
+
+func (a *productApi) getCollector(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(productResource, QueryAction) {
+		return
+	}
+	id := ctl.Param("id")
+	cfg, err := productsvc.GetCollector(ctl.GetCurrentUser().Id, id)
+	if err != nil {
+		ctl.RespError(err)
+		return
+	}
+	ctl.RespOkData(cfg)
+}
+
+func (a *productApi) saveCollector(w http.ResponseWriter, r *http.Request) {
+	ctl := NewAuthController(w, r)
+	if ctl.isForbidden(productResource, SaveAction) {
+		return
+	}
+	id := ctl.Param("id")
+	if _, err := getProductAndCheckCreate(ctl, id); err != nil {
+		ctl.RespError(err)
+		return
+	}
+	if ctl.IsNotClusterRequest() {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			ctl.RespError(err)
+			return
+		}
+		if err := productsvc.SaveCollector(ctl.GetCurrentUser().Id, id, body); err != nil {
+			ctl.RespError(err)
+			return
+		}
+		if p, err := product.GetProductMust(id); err == nil && p.State {
+			cluster.BroadcastInvoke(ctl.Request)
+		}
+	} else {
+		if err := productsvc.ApplyCollectorRuntime(id); err != nil {
+			ctl.RespError(err)
+			return
+		}
 	}
 	ctl.RespOk()
 }
@@ -470,12 +538,16 @@ func (a *productApi) exportProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	productId := ctl.Param("id")
-	pd, err := product.GetProductMust(productId)
+	pd, err := getProductAndCheckCreate(ctl, productId)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	data, err := json.Marshal(pd)
+	dump := productDump{ProductModel: *pd}
+	if raw, err2 := productsvc.ExportCollector(ctl.GetCurrentUser().Id, productId); err2 == nil && len(raw) > 0 {
+		dump.Collector = raw
+	}
+	data, err := json.Marshal(dump)
 	if err != nil {
 		ctl.RespError(err)
 		return
@@ -506,12 +578,13 @@ func (a *productApi) importProduct(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	var pd models.ProductModel
-	err = json.Unmarshal(data, &pd)
+	var dump productDump
+	err = json.Unmarshal(data, &dump)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
+	pd := dump.ProductModel
 	if len(pd.NetworkType) == 0 {
 		ctl.RespErrorParam("networkType")
 		return
@@ -522,10 +595,27 @@ func (a *productApi) importProduct(w http.ResponseWriter, r *http.Request) {
 	}
 	pd.CreateId = ctl.GetCurrentUser().Id
 	pd.State = false
+	if len(dump.Collector) > 0 {
+		if err := productsvc.ValidateCollector(pd.NetworkType, dump.Collector, pd.Metadata); err != nil {
+			ctl.RespError(err)
+			return
+		}
+	}
 	err = product.AddProduct(&pd)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
+	if len(dump.Collector) > 0 {
+		if err := productsvc.SaveCollector(ctl.GetCurrentUser().Id, pd.Id, dump.Collector); err != nil {
+			ctl.RespError(err)
+			return
+		}
+	}
 	ctl.RespOk()
+}
+
+type productDump struct {
+	models.ProductModel
+	Collector json.RawMessage `json:"collector,omitempty"`
 }

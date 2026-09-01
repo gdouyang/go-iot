@@ -76,6 +76,21 @@ function OnInvoke(context) {
       meta: 'session',
       value: 'session.WriteHoldingRegisters(startingAddress, length, hexStr)'
     },
+    {
+      caption: 'session.Int16ToData()',
+      meta: 'session',
+      value: 'var hex = session.Int16ToData(num)'
+    },
+    {
+      caption: 'session.FloatToInt16Data()',
+      meta: 'session',
+      value: 'var hex = session.FloatToInt16Data(num)'
+    },
+    {
+      caption: 'session.FloatToUint16Data()',
+      meta: 'session',
+      value: 'var hex = session.FloatToUint16Data(num)'
+    },
     // OnInvoke
     {
       caption: 'context.GetMessage()',

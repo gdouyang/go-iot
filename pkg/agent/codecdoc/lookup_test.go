@@ -70,6 +70,10 @@ func TestModbusDocHasSignedConverters(t *testing.T) {
 	require.Contains(t, md, "MsgToInt64")
 	require.Contains(t, md, "boolean")
 	require.True(t, strings.Contains(md, "MsgToBool"))
+	require.Contains(t, md, "source:'collect'")
+	require.Contains(t, md, "WriteHoldingRegisters")
+	require.NotContains(t, md, `"interval": "1"`)
+	require.NotContains(t, md, "没有 OnConnect / OnMessage")
 }
 
 func TestMQTTClientHasPublishQos1(t *testing.T) {

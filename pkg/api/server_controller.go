@@ -18,7 +18,7 @@ func init() {
 		Sort: 90, // 系统管理下：网络管理
 		Action: []ResourceAction{
 			QueryAction,
-			CretaeAction,
+			CreateAction,
 			SaveAction,
 			DeleteAction,
 		},
@@ -47,7 +47,7 @@ func init() {
 	// 新增
 	web.RegisterAPI("/server", "POST", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
-		if ctl.isForbidden(netConfigResource, CretaeAction) {
+		if ctl.isForbidden(netConfigResource, CreateAction) {
 			return
 		}
 		var ob models.Network

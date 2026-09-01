@@ -31,7 +31,7 @@ logs:
   reload-interval: 30
 
 # Elasticsearch（元数据 ORM + 时序 storePolicy=es）
-# usename: 历史拼写，与代码 yaml 标签一致（非 username）
+# username: ES 用户名
 # bufferSize / bulkSize: 时序批量写入缓冲
 # warntime: 单次 bulk 超过该毫秒打 warn
 # retention-months: 全局时序最大保存月数（properties/event/logs）；0=不清理（升级安全默认）
@@ -42,7 +42,7 @@ es:
   #   单节点：  url: http://localhost:9200
   #   集群：    url: "http://192.168.31.200:9200,http://192.168.31.201:9200"
   url: http://localhost:9200
-  usename: ""
+  username: ""
   password: ""
   numberOfShards: "1"
   numberOfReplicas: "0"

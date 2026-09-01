@@ -86,22 +86,29 @@ type SystemConfig struct {
 
 // 产品
 type Product struct {
-	Id          string         `json:"id" orm:"pk;column(id_);size(32);description(产品ID)"`
-	Name        string         `json:"name" orm:"column(name_);description(名称)"`
-	TypeId      string         `json:"typeId" orm:"column(type_id_);null;description(类型)"`
-	NetworkType string         `json:"networkType" orm:"column(network_type_);size(32);description(网络类型MQTT_BROKER)"` // 网络类型MQTT_BROKER
-	Metadata    string         `json:"metadata,omitempty" orm:"column(meta_data_);null;description(物模型)"`             // 物模型
-	Metaconfig  string         `json:"metaconfig,omitempty" orm:"column(meta_config_);null;description(配置属性)"`        // 配置属性
-	State       bool           `json:"state" orm:"column(state_);description(1启用，0禁用)"`
-	StorePolicy string         `json:"storePolicy" orm:"column(store_policy_);size(32);description(数据存储策略 es, mock)"` // 数据存储策略
+	Id          string `json:"id" orm:"pk;column(id_);size(32);description(产品ID)"`
+	Name        string `json:"name" orm:"column(name_);description(名称)"`
+	TypeId      string `json:"typeId" orm:"column(type_id_);null;description(类型)"`
+	NetworkType string `json:"networkType" orm:"column(network_type_);size(32);description(网络类型MQTT_BROKER)"` // 网络类型MQTT_BROKER
+	Metadata    string `json:"metadata,omitempty" orm:"column(meta_data_);null;description(物模型)"`             // 物模型
+	Metaconfig  string `json:"metaconfig,omitempty" orm:"column(meta_config_);null;description(配置属性)"`        // 配置属性
+	State       bool   `json:"state" orm:"column(state_);description(1启用，0禁用)"`
+	StorePolicy string `json:"storePolicy" orm:"column(store_policy_);size(32);description(数据存储策略 es, mock)"` // 数据存储策略
 	// RetentionMonths 时序保留月数（仅 storePolicy=es）。nil 或 0=跟随系统全局；>0=使用产品配置。
 	RetentionMonths *int           `json:"retentionMonths,omitempty" orm:"column(retention_months_);type(integer);null;description(时序保留月数,0跟随系统)"`
-	Script          string         `json:"script" orm:"description(脚本)"`     // codec脚本
-	CodecId         string         `json:"codecId" orm:"description(编解码id)"` // 编解码id
+	Script          string         `json:"script" orm:"description(脚本)"`        // codec脚本
+	CodecId         string         `json:"codecId" orm:"description(编解码id)"`    // 编解码id
 	Tag             map[string]any `json:"tag,omitempty" orm:"description(标签)"` // 标签
 	Desc            string         `json:"desc" orm:"column(desc_);description(产品说明)"`
 	CreateId        int64          `json:"createId" orm:"column(create_id_);null"`
 	CreateTime      DateTime       `json:"createTime" orm:"column(create_time_)"`
+}
+
+// ProductCollector 产品点表，与产品文档分离。Id = 产品ID。
+type ProductCollector struct {
+	Id         string   `json:"id" orm:"pk;column(id_);size(32);description(产品ID)"`
+	Config     string   `json:"config" orm:"column(config_);null;description(点表JSON)"`
+	UpdateTime DateTime `json:"updateTime" orm:"column(update_time_)"`
 }
 
 // 设备

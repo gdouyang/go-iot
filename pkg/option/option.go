@@ -22,7 +22,7 @@ type Cluster struct {
 
 type Es struct {
 	Url              string `yaml:"url"`
-	Username         string `yaml:"usename"`
+	Username         string `yaml:"username"`
 	Password         string `yaml:"password"`
 	NumberOfShards   string `yaml:"numberOfShards"`
 	NumberOfReplicas string `yaml:"numberOfReplicas"`
@@ -252,7 +252,7 @@ func New() *Options {
 	opt.flags.IntVar(&opt.Redis.PoolSize, "redis.pool-size", 100, "redis连接池大小(默认100，大并发上线场景建议调大)")
 	// ES配置
 	opt.flags.StringVar(&opt.Es.Url, "es.url", "http://localhost:9200", "elasticsearch地址(http://localhost:9200)")
-	opt.flags.StringVar(&opt.Es.Username, "es.usename", "", "elasticsearch用户名")
+	opt.flags.StringVar(&opt.Es.Username, "es.username", "", "elasticsearch用户名")
 	opt.flags.StringVar(&opt.Es.Password, "es.password", "", "elasticsearch密码")
 	opt.flags.StringVar(&opt.Es.NumberOfShards, "es.numberOfShards", "1", "时序数据分片数")
 	opt.flags.StringVar(&opt.Es.NumberOfReplicas, "es.numberOfReplicas", "0", "数序数据副本数")

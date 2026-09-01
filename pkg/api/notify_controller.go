@@ -16,7 +16,7 @@ var notifyResource = Resource{
 	Sort: 60, // 侧栏：通知配置
 	Action: []ResourceAction{
 		QueryAction,
-		CretaeAction,
+		CreateAction,
 		SaveAction,
 		DeleteAction,
 	},
@@ -94,7 +94,7 @@ func (a *notifyApi) list(w http.ResponseWriter, r *http.Request) {
 
 func (a *notifyApi) add(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(notifyResource, CretaeAction) {
+	if ctl.isForbidden(notifyResource, CreateAction) {
 		return
 	}
 	var ob models.Notify
@@ -201,7 +201,7 @@ func (a *notifyApi) delete(w http.ResponseWriter, r *http.Request) {
 
 func (a *notifyApi) copy(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(notifyResource, CretaeAction) {
+	if ctl.isForbidden(notifyResource, CreateAction) {
 		return
 	}
 	id := ctl.Param("id")

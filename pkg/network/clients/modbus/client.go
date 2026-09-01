@@ -32,11 +32,12 @@ func (c *Client) Connect(deviceId string, network network.NetworkConf) error {
 	session.deviceId = deviceId
 	session.productId = network.ProductId
 	session.tcpInfo = tcpInfo
-	err = session.connection(func() {})
+	err = session.withConn(func(_ *ModbusClient) error { return nil })
 	if err != nil {
 		return err
 	}
 	core.PutSession(deviceId, session, true)
+	registerSession(session)
 	session.readLoop()
 	return nil
 }

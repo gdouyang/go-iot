@@ -1,14 +1,15 @@
 package product
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
 	"go-iot/pkg/codec"
 	"go-iot/pkg/core"
-	devicemd "go-iot/pkg/models/device"
 	"go-iot/pkg/models"
+	devicemd "go-iot/pkg/models/device"
 	"go-iot/pkg/network/servers"
 	"go-iot/pkg/tsl"
 )
@@ -20,18 +21,27 @@ var (
 
 // hooks keep ES out of unit tests while HTTP/Agent still call the same functions.
 var (
-	getProductMust = devicemd.GetProductMust
-	updateProduct  = devicemd.UpdateProduct
-	updateState    = devicemd.UpdateProductState
-	addProduct     = devicemd.AddProduct
-	deleteProduct  = devicemd.DeleteProduct
-	countDevices   = devicemd.CountDeviceByProductId
-	compileOnly    = codec.CompileOnly
-	newCodec       = core.NewCodec
-	putProduct     = core.PutProduct
-	deleteRuntime  = core.DeleteProduct
-	getServer      = servers.GetServer
+	getProductMust      = devicemd.GetProductMust
+	updateProduct       = devicemd.UpdateProduct
+	updateState         = devicemd.UpdateProductState
+	addProduct          = devicemd.AddProduct
+	deleteProduct       = devicemd.DeleteProduct
+	countDevices        = devicemd.CountDeviceByProductId
+	compileOnly         = codec.CompileOnly
+	newCodec            = core.NewCodec
+	putProduct          = core.PutProduct
+	deleteRuntime       = core.DeleteProduct
+	getServer           = servers.GetServer
+	getCollectorJSON    = devicemd.GetProductCollectorJSON
+	saveCollectorJSON   = devicemd.SaveProductCollectorJSON
+	deleteCollectorJSON = devicemd.DeleteProductCollector
 )
+
+func init() {
+	core.SetCollectorJSONLoader(func(productId string) (string, error) {
+		return getCollectorJSON(productId)
+	})
+}
 
 func AssertOwner(exist *models.ProductModel, userId int64) error {
 	if exist == nil || exist.CreateId != userId {
@@ -56,6 +66,13 @@ func SaveTSL(userId int64, productId, metadata string) error {
 	if err := tslData.FromJson(metadata); err != nil {
 		return err
 	}
+	if raw, err := getCollectorJSON(productId); err != nil {
+		return err
+	} else if len(raw) > 0 {
+		if _, err := core.GetCollectorRuntime(exist.NetworkType).Normalize([]byte(raw), tslData); err != nil {
+			return fmt.Errorf("tsl still referenced by collector: %w", err)
+		}
+	}
 	update := models.ProductModel{}
 	update.Id = productId
 	update.Metadata = tslData.Text
@@ -74,6 +91,7 @@ func SaveTSL(userId int64, productId, metadata string) error {
 		if err := p1.GetTimeSeries().PublishModel(p1, *tslData); err != nil {
 			return fmt.Errorf("sync timeseries schema: %w", err)
 		}
+		core.GetCollectorRuntime(exist.NetworkType).Reload(productId)
 	}
 	return nil
 }
@@ -86,7 +104,7 @@ func SaveScript(userId int64, productId, script string) error {
 	if err := AssertOwner(exist, userId); err != nil {
 		return err
 	}
-	if exist.CodecId != core.Script_Codec {
+	if !core.HasCodecCreator(exist.CodecId) {
 		return ErrNotScriptCodec
 	}
 	if err := compileOnly(script); err != nil {
@@ -123,6 +141,13 @@ func Deploy(userId int64, productId string) error {
 	if err := devicemd.ValidateStorePolicy(exist.StorePolicy); err != nil {
 		return err
 	}
+	if raw, err := getCollectorJSON(productId); err != nil {
+		return err
+	} else if len(raw) > 0 {
+		if _, err := core.GetCollectorRuntime(exist.NetworkType).Normalize([]byte(raw), &tslData); err != nil {
+			return err
+		}
+	}
 	p1, err := exist.ToProeuctOper()
 	if err != nil {
 		return err
@@ -134,7 +159,11 @@ func Deploy(userId int64, productId string) error {
 		return err
 	}
 	exist.State = true
-	return updateState(&exist.Product)
+	if err := updateState(&exist.Product); err != nil {
+		return err
+	}
+	core.GetCollectorRuntime(exist.NetworkType).Reload(productId)
+	return nil
 }
 
 func Undeploy(userId int64, productId string) error {
@@ -149,6 +178,7 @@ func Undeploy(userId int64, productId string) error {
 	if err := updateState(&exist.Product); err != nil {
 		return err
 	}
+	core.GetCollectorRuntime(exist.NetworkType).Invalidate(productId)
 	deleteRuntime(productId)
 	return nil
 }
@@ -177,5 +207,116 @@ func Delete(userId int64, productId string) error {
 			return err
 		}
 	}
+	if err := deleteCollectorJSON(productId); err != nil {
+		return err
+	}
+	core.GetCollectorRuntime(exist.NetworkType).Invalidate(productId)
 	return deleteProduct(&models.Product{Id: productId})
+}
+
+// ValidateCollector 按网络类型解析并校验点表，不落库。
+func ValidateCollector(networkType string, raw []byte, metadata string) error {
+	tslData := tsl.NewTslData()
+	if len(metadata) > 0 {
+		if err := tslData.FromJson(metadata); err != nil {
+			return err
+		}
+	}
+	_, err := core.GetCollectorRuntime(networkType).Normalize(raw, tslData)
+	return err
+}
+
+// ExportCollector 导出非空点表 JSON；空配置返回 nil。
+func ExportCollector(userId int64, productId string) (json.RawMessage, error) {
+	raw, err := GetCollector(userId, productId)
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) == 0 || string(raw) == "{}" {
+		return nil, nil
+	}
+	return raw, nil
+}
+
+// GetCollector 读点表原文。无配置返回 {}。
+func GetCollector(userId int64, productId string) (json.RawMessage, error) {
+	exist, err := getProductMust(productId)
+	if err != nil {
+		return nil, err
+	}
+	if err := AssertOwner(exist, userId); err != nil {
+		return nil, err
+	}
+	raw, err := getCollectorJSON(productId)
+	if err != nil {
+		return nil, err
+	}
+	raw = strings.TrimSpace(raw)
+	if raw == "" || raw == "null" {
+		return json.RawMessage(`{}`), nil
+	}
+	return json.RawMessage(raw), nil
+}
+
+// SaveCollector 校验并写入 product_collector。已发布产品只刷新本机采集缓存与会话。
+func SaveCollector(userId int64, productId string, raw []byte) error {
+	exist, err := getProductMust(productId)
+	if err != nil {
+		return err
+	}
+	if err := AssertOwner(exist, userId); err != nil {
+		return err
+	}
+	tslData := tsl.NewTslData()
+	if len(exist.Metadata) > 0 {
+		if err := tslData.FromJson(exist.Metadata); err != nil {
+			return err
+		}
+	}
+	canonical, err := core.GetCollectorRuntime(exist.NetworkType).Normalize(raw, tslData)
+	if err != nil {
+		return err
+	}
+	out := ""
+	if len(canonical) > 0 {
+		out = string(canonical)
+	}
+	if err := saveCollectorJSON(productId, out); err != nil {
+		return err
+	}
+	core.GetCollectorRuntime(exist.NetworkType).Reload(productId)
+	return nil
+}
+
+// ApplyProductRuntime 对端/本机刷新已发布产品运行态（不写 ES）。
+func ApplyProductRuntime(productId string) error {
+	exist, err := getProductMust(productId)
+	if err != nil {
+		return err
+	}
+	if !exist.State {
+		return nil
+	}
+	p1, err := exist.ToProeuctOper()
+	if err != nil {
+		return err
+	}
+	if err := putProduct(p1); err != nil {
+		return err
+	}
+	core.GetCollectorRuntime(exist.NetworkType).Reload(productId)
+	return nil
+}
+
+// ApplyCollectorRuntime 对端刷新点表缓存与本机采集器，不写 Redis 产品。
+func ApplyCollectorRuntime(productId string) error {
+	exist, err := getProductMust(productId)
+	if err != nil {
+		return err
+	}
+	if !exist.State {
+		return nil
+	}
+	core.GetCollectorRuntime(exist.NetworkType).Reload(productId)
+	return nil
 }

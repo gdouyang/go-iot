@@ -15,8 +15,8 @@ import (
 func init() {
 	network.RegNetworkMetaConfigCreator(string(network.TCP_CLIENT), func() core.CodecMetaConfig {
 		list := []core.MetaConfig{
-			{Property: "host", Type: "string", Buildin: true, Desc: "The host of remote [eg: 127.0.0.1]"},
-			{Property: "port", Type: "number", Buildin: true, Desc: "The port of remote"},
+			{Property: "host", Type: "string", Buildin: true, Desc: "对端地址，例如 127.0.0.1"},
+			{Property: "port", Type: "number", Buildin: true, Desc: "对端端口"},
 		}
 		return core.CodecMetaConfig{MetaConfigs: list}
 	})

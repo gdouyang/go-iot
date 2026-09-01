@@ -44,6 +44,9 @@ func (c *ModbusClient) OpenConnection() error {
 }
 
 func (c *ModbusClient) CloseConnection() error {
+	if c == nil {
+		return nil
+	}
 	var err error
 	if c.IsModbusTcp {
 		err = c.TCPClientHandler.Close()

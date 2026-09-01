@@ -18,7 +18,7 @@ func init() {
 		Sort: 70, // 系统管理下：角色列表
 		Action: []ResourceAction{
 			QueryAction,
-			CretaeAction,
+			CreateAction,
 			SaveAction,
 			DeleteAction,
 		},
@@ -57,7 +57,7 @@ func init() {
 	// 新增角色
 	web.RegisterAPI("/role", "POST", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
-		if ctl.isForbidden(roleResource, CretaeAction) {
+		if ctl.isForbidden(roleResource, CreateAction) {
 			return
 		}
 		var ob role.RoleDTO

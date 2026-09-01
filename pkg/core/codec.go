@@ -48,6 +48,12 @@ func RegCodecCreator(codecId string, creator func(productId, script string) (Cod
 	codecFactory[codecId] = creator
 }
 
+// HasCodecCreator 是否已注册该 codecId（SaveScript 等据此决定能否编译保存脚本）。
+func HasCodecCreator(codecId string) bool {
+	_, ok := codecFactory[codecId]
+	return ok
+}
+
 // device lifecycle
 func RegDeviceLifeCycle(productId string, liefcycle DeviceLifecycle) {
 	// val, ok := deviceLifeCycleMap.Load(productId)

@@ -16,7 +16,7 @@ var agentResource = Resource{
 	Id:     "agent-mgr",
 	Name:   "AI 助手",
 	Sort:   15,
-	Action: []ResourceAction{QueryAction, CretaeAction, SaveAction, DeleteAction},
+	Action: []ResourceAction{QueryAction, CreateAction, SaveAction, DeleteAction},
 }
 
 func init() {
@@ -108,7 +108,7 @@ func (a *agentApi) putSettings(w http.ResponseWriter, r *http.Request) {
 
 func (a *agentApi) createConv(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.isForbidden(agentResource, CretaeAction) {
+	if ctl.isForbidden(agentResource, CreateAction) {
 		return
 	}
 	var body struct {

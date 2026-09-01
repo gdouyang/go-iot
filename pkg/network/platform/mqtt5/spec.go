@@ -12,8 +12,8 @@ import (
 func init() {
 	network.RegNetworkMetaConfigCreator(string(network.GOIOT_MQTT_BROKER), func() core.CodecMetaConfig {
 		list := []core.MetaConfig{
-			{Property: "username", Type: "string", Buildin: true, Desc: "The username of mqtt"},
-			{Property: "password", Type: "password", Buildin: true, Desc: "The password of mqtt"},
+			{Property: "username", Type: "string", Buildin: true, Desc: "MQTT 用户名"},
+			{Property: "password", Type: "password", Buildin: true, Desc: "MQTT 密码"},
 		}
 		return core.CodecMetaConfig{MetaConfigs: list}
 	})

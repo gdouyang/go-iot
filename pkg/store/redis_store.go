@@ -373,10 +373,14 @@ func (m *redisDeviceStore) PutProduct(product *core.Product) error {
 	if len(product.GetId()) == 0 {
 		return errors.New("product id must be present")
 	}
+	tslText := ""
+	if product.TslData != nil {
+		tslText = product.TslData.Text
+	}
 	data := map[string]string{
 		"id":          product.Id,
 		"storePolicy": product.StorePolicy,
-		"tslData":     product.TslData.Text,
+		"tslData":     tslText,
 		"networkType": product.NetworkType,
 	}
 	if product.Config != nil {

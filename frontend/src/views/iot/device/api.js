@@ -70,6 +70,11 @@ export function disconnect(deviceId) {
   return request.post(`/device/${deviceId}/disconnect`)
 }
 
+export function collectNow(deviceId, groupId) {
+  const q = groupId ? `?groupId=${encodeURIComponent(groupId)}` : ''
+  return request.post(`/device/${deviceId}/collect${q}`)
+}
+
 export function addDevice(data) {
   return request.post('/device', data)
 }

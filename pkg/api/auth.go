@@ -12,7 +12,7 @@ import (
 
 var (
 	QueryAction  = ResourceAction{Id: "query", Name: "查询"}
-	CretaeAction = ResourceAction{Id: "add", Name: "新增"}
+	CreateAction = ResourceAction{Id: "add", Name: "新增"}
 	SaveAction   = ResourceAction{Id: "save", Name: "保存"}
 	DeleteAction = ResourceAction{Id: "delete", Name: "删除"}
 	ImportAction = ResourceAction{Id: "import", Name: "批量导入"}

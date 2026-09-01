@@ -3,30 +3,28 @@ package modbus
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+
 	"go-iot/pkg/core"
 	"go-iot/pkg/network"
-	"strconv"
 )
 
 func init() {
 	network.RegNetworkMetaConfigCreator(string(network.MODBUS), func() core.CodecMetaConfig {
 
 		list := []core.MetaConfig{
-			{Property: "address", Type: "string", Buildin: true, Value: "127.0.0.1", Desc: "The host of remote [127.0.0.1]"},
-			{Property: "port", Type: "number", Buildin: true, Value: "502", Desc: "The port of remote"},
-			{Property: "unitID", Type: "number", Buildin: true, Desc: ""},
-			{Property: "timeout", Type: "number", Buildin: true, Value: "5", Desc: "Connect & Read timeout(seconds)"},
-			{Property: "idleTimeout", Type: "number", Buildin: true, Value: "5", Desc: "Idle timeout(seconds) to close the connection"},
+			{Property: "address", Type: "string", Buildin: true, Value: "127.0.0.1", Desc: "从站地址，例如 127.0.0.1"},
+			{Property: "port", Type: "number", Buildin: true, Value: "502", Desc: "从站端口，默认 502"},
+			{Property: "unitID", Type: "number", Buildin: true, Desc: "从站号（Unit ID）。TCP 写在报文头，用来指定连哪一台从站。范围 1–247，不能为空。"},
+			{Property: "timeout", Type: "number", Buildin: true, Value: "5", Desc: "连接和读超时（秒）"},
+			{Property: "idleTimeout", Type: "number", Buildin: true, Value: "5", Desc: "空闲多久关闭 TCP 连接（秒）"},
 
 			// {Property: "baudRate", Type: "number", Buildin: true, Desc: ""},
 			// {Property: "dataBits", Type: "number", Buildin: true, Desc: ""},
 			// {Property: "stopBits", Type: "number", Buildin: true, Desc: ""},
 			// {Property: "parity", Type: "number", Buildin: true, Desc: ""},
 		}
-		return core.CodecMetaConfig{
-			MetaConfigs: list,
-			CodecId:     MODBUS_CODEC,
-		}
+		return core.CodecMetaConfig{MetaConfigs: list}
 	})
 }
 

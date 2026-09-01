@@ -16,7 +16,7 @@ func init() {
 		Sort: 80, // 系统管理下：用户列表
 		Action: []ResourceAction{
 			QueryAction,
-			CretaeAction,
+			CreateAction,
 			SaveAction,
 			DeleteAction,
 		},
@@ -56,7 +56,7 @@ func init() {
 	// 新增
 	web.RegisterAPI("/user", "POST", func(w http.ResponseWriter, r *http.Request) {
 		ctl := NewAuthController(w, r)
-		if ctl.isForbidden(userResource, CretaeAction) {
+		if ctl.isForbidden(userResource, CreateAction) {
 			return
 		}
 		var ob user.UserDTO

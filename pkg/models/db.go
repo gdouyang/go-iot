@@ -9,7 +9,7 @@ func RegisterModels() {
 	orm.RegisterModel(
 		new(User), new(Role), new(UserRelRole),
 		new(MenuResource), new(AuthResource), new(SystemConfig),
-		new(Product), new(Device), new(Network),
+		new(Product), new(ProductCollector), new(Device), new(Network),
 		new(Rule), new(RuleRelDevice), new(AlarmLog),
 		new(Notify), new(DeviceOtaLog), new(OtaFile),
 		new(AgentConversation), new(AgentMessage), new(AgentDraft),

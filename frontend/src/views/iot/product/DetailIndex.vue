@@ -64,6 +64,14 @@
           @save="updateData"
         />
       </el-tab-pane>
+      <el-tab-pane v-if="detailData.networkType === 'MODBUS'" name="collector" label="点表/采集">
+        <Collector
+          v-if="detailData.id"
+          :product="detailData"
+          :properties="properties"
+          @saved="reloadProduct"
+        />
+      </el-tab-pane>
     </el-tabs>
   </ContentDetailWrap>
 </template>
@@ -73,13 +81,15 @@ import { deploy, undeploy, get, modifyTsl } from '@/views/iot/product/api.js'
 import Info from './detail/Info.vue'
 import TSL from './detail/TslIndex.vue'
 import Codec from './detail/Codec.vue'
+import Collector from './detail/Collector.vue'
 
 export default {
   name: 'ProductDetialIndex',
   components: {
     Info,
     TSL,
-    Codec
+    Codec,
+    Collector
   },
   mixins: [],
   data() {
@@ -122,9 +132,9 @@ export default {
           if (result.metadata) {
             result.metadata = JSON.parse(result.metadata)
             const metadata = result.metadata
-            this.events = metadata.events
-            this.functions = metadata.functions
-            this.properties = metadata.properties
+            this.events = metadata.events || []
+            this.functions = metadata.functions || []
+            this.properties = metadata.properties || []
           }
         }
       })

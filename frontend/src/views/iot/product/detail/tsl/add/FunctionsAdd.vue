@@ -38,22 +38,6 @@
           <el-radio :value="false">否</el-radio>
         </el-radio-group>
       </el-form-item>
-      <el-form-item
-        label="采集间隔(秒)"
-        prop="expands.interval"
-        v-if="product.networkType === 'MODBUS'"
-      >
-        <el-input-number
-          v-model="formData.expands.interval"
-          :precision="0"
-          :min="0"
-          :max="65535"
-          :step="1"
-          controls-position="right"
-          placeholder="采集间隔(秒)"
-          style="width: 100%"
-        />
-      </el-form-item>
       <el-form-item label="输入参数">
         <div style="width: 100%">
           <div v-for="item in inputs" class="input-div">
@@ -155,7 +139,6 @@ export default {
               this.formData.output = {}
             }
           }
-          this.formData.expands.interval = _.toString(this.formData.expands.interval)
           this.$emit('save', this.formData)
         }
       })

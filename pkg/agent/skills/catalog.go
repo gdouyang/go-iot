@@ -23,7 +23,7 @@ var catalog = []Skill{
 	{Name: "codec-coap-server", Description: "COAP_SERVER：产品单独起 CoAP，适合受限设备用 CoAP 上报；一次请求一次响应。", Topic: "COAP_SERVER"},
 	{Name: "codec-mqtt-client", Description: "MQTT_CLIENT：平台作为客户端去连外部 Broker，设备挂在那个 Broker 上。不是自建/内置 Broker（那是 MQTT_BROKER / GOIOT_MQTT_BROKER）。", Topic: "MQTT_CLIENT"},
 	{Name: "codec-tcp-client", Description: "TCP_CLIENT：平台作为 TCP 客户端去连设备或设备侧服务，不是设备连上来。", Topic: "TCP_CLIENT"},
-	{Name: "codec-modbus", Description: "MODBUS：平台作为 Modbus 主站去读设备寄存器，不是设备连上来。没有 OnConnect/OnMessage，轮询靠物模型功能触发 OnInvoke。", Topic: "MODBUS"},
+	{Name: "codec-modbus", Description: "MODBUS：平台作为 Modbus 主站。采集只用产品点表+采集组（组包读寄存器）。可选 OnMessage 二次处理 GetMessage()={source,groupId,properties}，无则采集器直存。写命令走 OnInvoke。没有 OnConnect。", Topic: "MODBUS"},
 	{Name: "split", Description: "TCP 粘包拆包。写 TCP_SERVER/TCP_CLIENT 且报文要按分隔符或定长切开时用 splitFunc。", Topic: "SPLIT"},
 	{Name: "cron", Description: "定时任务 cron 表达式（分 时 日 月 周）。产品或规则要按时间触发时用。", Topic: "CRON"},
 }

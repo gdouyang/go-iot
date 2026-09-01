@@ -53,6 +53,14 @@ export function updateScript(id, data) {
   return request.put(`/product/${id}/script`, data)
 }
 
+export function getCollector(id) {
+  return request.get(`/product/${id}/collector`)
+}
+
+export function saveCollector(id, data) {
+  return request.put(`/product/${id}/collector`, data)
+}
+
 export function addProduct(data) {
   return request.post(`/product`, data)
 }

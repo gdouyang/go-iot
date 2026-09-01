@@ -55,6 +55,15 @@
               <el-button link type="primary" class="link">连接</el-button>
             </template>
           </el-popconfirm>
+          <el-button
+            v-if="detailData.networkType === 'MODBUS' && deviceState === 'online'"
+            link
+            type="primary"
+            class="link"
+            @click="doCollectNow"
+          >
+            立即采集
+          </el-button>
         </span>
         <el-tooltip content="刷新">
           <BaseButton @click="reloadDevice" circle size="small" class="link"
@@ -114,6 +123,7 @@ import {
   connect,
   disconnect,
   deploy,
+  collectNow,
   getEventBusUrl
 } from './api.js'
 import DeviceCheckComponent from './detail/DeviceCheckComponent.vue'
@@ -249,6 +259,13 @@ export default {
         if (data.success) {
           this.$message.success('断开连接成功')
           this.reloadDevice()
+        }
+      })
+    },
+    doCollectNow() {
+      collectNow(this.getDeviceId).then((data) => {
+        if (data.success) {
+          this.$message.success('已触发采集')
         }
       })
     },
