@@ -166,6 +166,7 @@ export default {
     menuManagement: '菜单管理',
     personalCenter: '个人中心',
     personal: '个人',
+    license: '授权管理',
     avatars: '头像列表'
   },
   permission: {

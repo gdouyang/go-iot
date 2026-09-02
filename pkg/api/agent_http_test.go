@@ -10,6 +10,7 @@ import (
 
 	"go-iot/pkg/agent"
 	"go-iot/pkg/api/web/session"
+	"go-iot/pkg/license"
 	"go-iot/pkg/models"
 	"go-iot/pkg/redis"
 
@@ -21,6 +22,9 @@ import (
 
 func setupAgentHTTP(t *testing.T) (*chi.Mux, func(user *models.User) string) {
 	t.Helper()
+	restoreLic := license.SetTestActive(nil)
+	t.Cleanup(restoreLic)
+
 	mr, err := miniredis.Run()
 	require.NoError(t, err)
 	t.Cleanup(func() { mr.Close() })

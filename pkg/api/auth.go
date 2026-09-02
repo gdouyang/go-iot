@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go-iot/pkg/api/web"
 	"go-iot/pkg/api/web/session"
+	"go-iot/pkg/license"
 	"go-iot/pkg/models"
 	"net/http"
 	"strings"
@@ -27,8 +28,8 @@ func RegResource(r Resource) {
 
 // 权限控制资源
 type Resource struct {
-	Id     string
-	Name   string
+	Id   string
+	Name string
 	// Sort 菜单/权限展示顺序（升序，越小越靠前）。侧栏与角色授权树共用。
 	Sort   int32
 	Action []ResourceAction
@@ -51,6 +52,31 @@ type AuthController struct {
 	web.RespController
 }
 
+// isLicenseExemptPath 判断请求路径是否属于 License 检查豁免的白名单路径
+func isLicenseExemptPath(path string) bool {
+	cleanPath := strings.TrimPrefix(path, web.APIPrefix)
+	if !strings.HasPrefix(cleanPath, "/") {
+		cleanPath = "/" + cleanPath
+	}
+
+	exemptPaths := []string{
+		"/login",
+		"/logout",
+		"/user-info",
+		"/license/status",
+		"/system/license/status",
+		"/system/license/info",
+		"/system/license/upload",
+	}
+
+	for _, p := range exemptPaths {
+		if cleanPath == p || strings.HasPrefix(cleanPath, p+"/") {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *AuthController) Prepare() {
 	s := c.GetSession()
 	if s == nil {
@@ -70,13 +96,27 @@ func (c *AuthController) Prepare() {
 						c.RespError(err)
 						return
 					}
-					return
+					// Basic auth 成功后继续向下进行 License 检查
+					s = c.GetSession()
 				}
 			}
 		}
-		c.WriteHeader(http.StatusUnauthorized)
-		c.RespError(errors.New("Unauthorized"))
-		c.StopRun()
+		if s == nil {
+			c.WriteHeader(http.StatusUnauthorized)
+			c.RespError(errors.New("Unauthorized"))
+			c.StopRun()
+			return
+		}
+	}
+
+	// License 授权状态拦截：未授权或已过期时锁定非白名单业务接口
+	if license.Default().IsRequireRedirect() {
+		if c.Request != nil && !isLicenseExemptPath(c.Request.URL.Path) {
+			c.WriteHeader(http.StatusForbidden)
+			c.RespError(errors.New("系统尚未获得有效 License 授权或授权已过期，业务接口已锁定，请联系管理员导入授权证书"))
+			c.StopRun()
+			return
+		}
 	}
 }
 

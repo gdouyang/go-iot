@@ -166,6 +166,7 @@ export default {
     menuManagement: 'Menu management',
     personalCenter: 'Personal center',
     personal: 'Personal',
+    license: 'License Management',
     avatars: 'Avatars'
   },
   permission: {
