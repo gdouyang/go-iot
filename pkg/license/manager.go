@@ -51,6 +51,9 @@ type Manager struct {
 	status      string
 	lastErr     error
 	cachedFp    string
+	timerOnce   sync.Once
+	stopOnce    sync.Once
+	stopTimerCh chan struct{}
 }
 
 var defaultManager = &Manager{
@@ -90,7 +93,6 @@ func SetTestActive(claims *LicenseClaims) func() {
 // Init 初始化 License 校验器
 func Init(opt *option.Options) {
 	defaultManager.mu.Lock()
-	defer defaultManager.mu.Unlock()
 
 	if opt != nil && len(opt.License.LicFile) > 0 {
 		defaultManager.licFilePath = opt.License.LicFile
@@ -112,6 +114,10 @@ func Init(opt *option.Options) {
 
 	// 初始加载
 	defaultManager.loadLocked()
+	defaultManager.mu.Unlock()
+
+	// 启动每分钟定时刷新 License 状态任务
+	defaultManager.StartTimer()
 }
 
 // Reload 重新从文件加载
@@ -192,13 +198,96 @@ func (m *Manager) loadLocked() error {
 	return nil
 }
 
-func (m *Manager) updateStatusLocked() {
-	if m.claims == nil {
+// StartTimer 启动后台定时任务，每分钟刷新一次 License 状态
+func (m *Manager) StartTimer() {
+	m.timerOnce.Do(func() {
+		m.stopTimerCh = make(chan struct{})
+		go func() {
+			ticker := time.NewTicker(1 * time.Minute)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					func() {
+						defer func() {
+							if r := recover(); r != nil {
+								logs.Errorf("license: timer update status recover: %v", r)
+							}
+						}()
+						m.UpdateStatus()
+					}()
+				case <-m.stopTimerCh:
+					return
+				}
+			}
+		}()
+	})
+}
+
+// StopTimer 停止后台定时任务 (并发安全)
+func (m *Manager) StopTimer() {
+	m.stopOnce.Do(func() {
+		if m.stopTimerCh != nil {
+			close(m.stopTimerCh)
+		}
+	})
+}
+
+// UpdateStatus 由定时任务每分钟调度或外部触发，更新当前 License 的状态
+func (m *Manager) UpdateStatus() {
+	var fileRemoved bool
+	var fileReappeared bool
+
+	m.mu.RLock()
+	licPath := m.licFilePath
+	hasClaims := m.claims != nil
+	m.mu.RUnlock()
+
+	// 锁外执行文件存在性检查，避免磁盘 I/O 占用写锁
+	if len(licPath) > 0 {
+		statInfo, err := os.Stat(licPath)
+		if os.IsNotExist(err) {
+			if hasClaims {
+				fileRemoved = true
+			}
+		} else if err == nil && !statInfo.IsDir() {
+			if !hasClaims {
+				fileReappeared = true
+			}
+		}
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if fileRemoved {
+		m.claims = nil
 		m.status = StatusUnlicensed
+		m.lastErr = ErrLicenseNotFound
+		logs.Warnf("license: file %s was removed, status updated to %s", licPath, StatusUnlicensed)
 		return
 	}
 
-	now := time.Now()
+	if fileReappeared {
+		// 重新从文件加载并立即更新状态
+		if err := m.loadLocked(); err != nil {
+			logs.Errorf("license: reload reappeared file %s error: %v", licPath, err)
+		}
+		return
+	}
+
+	m.updateStatusLocked()
+}
+
+func (m *Manager) updateStatusLocked() {
+	if m.claims == nil {
+		m.status = StatusUnlicensed
+		if m.lastErr == nil {
+			m.lastErr = ErrLicenseNotFound
+		}
+		return
+	}
+
 	// 1. 机器指纹检查
 	if len(m.claims.Fingerprint) > 0 {
 		targetFp := NormalizeFingerprint(m.claims.Fingerprint)
@@ -211,6 +300,7 @@ func (m *Manager) updateStatusLocked() {
 	}
 
 	// 2. 时间检查
+	now := time.Now()
 	if m.claims.ExpiresAt > 0 && now.Unix() > m.claims.ExpiresAt {
 		m.status = StatusExpired
 		m.lastErr = ErrLicenseExpired
@@ -238,7 +328,11 @@ func (m *Manager) CheckValid() error {
 	case StatusUnlicensed:
 		return errors.New("系统未授权，请联系管理员上传有效 License 证书")
 	case StatusExpired:
-		return fmt.Errorf("系统 License 授权已过期 (%s)，请续期授权", m.claims.FormatExpiresAt())
+		expires := ""
+		if m.claims != nil {
+			expires = m.claims.FormatExpiresAt()
+		}
+		return fmt.Errorf("系统 License 授权已过期 (%s)，请续期授权", expires)
 	case StatusFingerprintMismatch:
 		return errors.New("系统硬件指纹与 License 授权不匹配")
 	case StatusInvalidSignature:
@@ -262,7 +356,7 @@ func (m *Manager) CheckCanAddDevice(increment int) error {
 		return nil // 0 表示无限制
 	}
 
-	currentCount, err := countTotalDevices()
+	currentCount, err := countDevicesFunc()
 	if err != nil {
 		logs.Errorf("license: count total devices failed: %v", err)
 		return nil // 容错，避免统计查询异常阻塞业务
@@ -285,15 +379,44 @@ func (m *Manager) IsRequireRedirect() bool {
 // GetInfo 获取当前系统授权详情
 func (m *Manager) GetInfo() *LicenseInfo {
 	m.mu.RLock()
-	defer m.mu.RUnlock()
+	info := &LicenseInfo{
+		Status:             m.status,
+		StatusText:         getStatusText(m.status),
+		MachineFingerprint: m.cachedFp,
+		IsLicensed:         m.status == StatusActive || m.status == StatusExpiringSoon,
+		RequireRedirect:    m.status == StatusUnlicensed || m.status == StatusExpired || m.status == StatusFingerprintMismatch || m.status == StatusInvalidSignature,
+	}
 
-	currentDevices, _ := countTotalDevices()
+	claims := m.claims
+	if claims != nil {
+		info.LicenseId = claims.LicenseId
+		info.CustomerName = claims.CustomerName
+		info.IssuedAt = claims.IssuedAt
+		info.IssuedAtFormatted = claims.FormatIssuedAt()
+		info.ExpiresAt = claims.ExpiresAt
+		info.ExpiresAtFormatted = claims.FormatExpiresAt()
+		info.MaxDevices = claims.MaxDevices
+		info.Fingerprint = claims.Fingerprint
+	}
+	m.mu.RUnlock()
+
+	// 锁外执行设备统计，未授权时不进行外部 I/O
+	if claims != nil {
+		info.CurrentDevices, _ = countDevicesFunc()
+	}
+
+	return info
+}
+
+// GetStatusInfo 获取轻量状态（纯内存，供路由守卫快速判断）
+func (m *Manager) GetStatusInfo() *LicenseInfo {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
 	info := &LicenseInfo{
 		Status:             m.status,
 		StatusText:         getStatusText(m.status),
 		MachineFingerprint: m.cachedFp,
-		CurrentDevices:     currentDevices,
 		IsLicensed:         m.status == StatusActive || m.status == StatusExpiringSoon,
 		RequireRedirect:    m.status == StatusUnlicensed || m.status == StatusExpired || m.status == StatusFingerprintMismatch || m.status == StatusInvalidSignature,
 	}
@@ -311,6 +434,8 @@ func (m *Manager) GetInfo() *LicenseInfo {
 
 	return info
 }
+
+var countDevicesFunc = countTotalDevices
 
 func countTotalDevices() (count int64, err error) {
 	defer func() {

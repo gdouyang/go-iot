@@ -77,7 +77,7 @@ func init() {
 	// 开放轻量级授权状态检测 (供前端路由拦截判断)
 	web.RegisterAPI("/system/license/status", "GET", func(w http.ResponseWriter, r *http.Request) {
 		ctl := web.NewController(w, r)
-		info := license.Default().GetInfo()
+		info := license.Default().GetStatusInfo()
 		// 仅返回轻量关键状态
 		res := map[string]interface{}{
 			"status":             info.Status,
@@ -86,6 +86,7 @@ func init() {
 			"requireRedirect":    info.RequireRedirect,
 			"machineFingerprint": info.MachineFingerprint,
 			"customerName":       info.CustomerName,
+			"expiresAt":          info.ExpiresAt,
 			"expiresAtFormatted": info.ExpiresAtFormatted,
 			"maxDevices":         info.MaxDevices,
 			"currentDevices":     info.CurrentDevices,

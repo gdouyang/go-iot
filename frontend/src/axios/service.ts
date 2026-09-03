@@ -37,7 +37,16 @@ axiosInstance.interceptors.response.use(
     const userStore = useUserStoreWithOut()
     const token = userStore.token
     if (status === 403) {
-      ElMessage.error('403无权限' + data.message)
+      const msg = data?.message || ''
+      if (msg.includes('License') || msg.includes('授权')) {
+        ElMessage.error(msg)
+        const currentPath = router.currentRoute.value?.path
+        if (currentPath !== '/sys/license' && currentPath !== '/license-required') {
+          router.push('/sys/license')
+        }
+      } else {
+        ElMessage.error('403无权限' + msg)
+      }
     } else if (status === 401 && !(data.result && data.result.isLogin)) {
       if (token) {
         ElMessage.error('未登录，请先登录')

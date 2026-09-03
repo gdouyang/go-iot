@@ -217,8 +217,22 @@ export default defineComponent({
       const nowSec = Math.floor(Date.now() / 1000)
       const diffSec = info.value.expiresAt - nowSec
       if (diffSec <= 0) return '已过期'
-      const days = Math.ceil(diffSec / 86400)
-      return `剩余 ${days} 天`
+      if (diffSec < 60) return '剩余不足 1 分钟'
+      if (diffSec < 3600) {
+        const mins = Math.ceil(diffSec / 60)
+        return `剩余 ${mins} 分钟`
+      }
+      if (diffSec < 86400) {
+        const hours = Math.floor(diffSec / 3600)
+        const mins = Math.ceil((diffSec % 3600) / 60)
+        return mins > 0 ? `剩余 ${hours} 小时 ${mins} 分钟` : `剩余 ${hours} 小时`
+      }
+      const days = Math.floor(diffSec / 86400)
+      const hours = Math.floor((diffSec % 86400) / 3600)
+      if (days <= 3 && hours > 0) {
+        return `剩余 ${days} 天 ${hours} 小时`
+      }
+      return `剩余 ${Math.ceil(diffSec / 86400)} 天`
     })
 
     const getStatusTagType = (status) => {

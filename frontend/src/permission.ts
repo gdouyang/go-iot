@@ -16,6 +16,7 @@ import { ElNotification } from 'element-plus'
 
 let licenseChecked = false
 let isLicenseRedirectRequired = false
+let lastLicenseCheckTime = 0
 
 const hasLicensePermission = (userInfo: any) => {
   if (!userInfo) return false
@@ -33,6 +34,7 @@ export const refreshLicenseStatus = async () => {
     const res = await getAnonLicenseStatus()
     isLicenseRedirectRequired = !!res?.requireRedirect
     licenseChecked = true
+    lastLicenseCheckTime = Date.now()
     return res
   } catch (_) {
     return null
@@ -50,8 +52,14 @@ router.beforeEach(async (to, from, next) => {
       return
     }
 
-    // 检查系统 License 授权状态
-    if (!licenseChecked || to.path === '/sys/license' || to.path === '/license-required') {
+    // 检查系统 License 授权状态（页面刷新、距上次检查超30秒、或目标为授权页面时重新校验）
+    const needLicenseCheck =
+      !licenseChecked ||
+      Date.now() - lastLicenseCheckTime > 30000 ||
+      to.path === '/sys/license' ||
+      to.path === '/license-required'
+
+    if (needLicenseCheck) {
       await refreshLicenseStatus()
     }
 
