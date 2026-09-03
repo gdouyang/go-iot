@@ -35,6 +35,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
 import { refreshLicenseStatus } from '@/permission'
 import { getAnonLicenseStatus } from '@/views/sys/api'
+import { copyToClipboard } from '@/utils'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -51,11 +52,14 @@ const fetchFingerprint = async () => {
   } catch (_) {}
 }
 
-const copyCode = () => {
+const copyCode = async () => {
   if (!machineFingerprint.value) return
-  navigator.clipboard.writeText(machineFingerprint.value).then(() => {
+  try {
+    await copyToClipboard(machineFingerprint.value)
     ElMessage.success('机器指纹码已复制到剪贴板，可发送给管理员')
-  })
+  } catch (err) {
+    ElMessage.error('复制失败，请手动选择复制')
+  }
 }
 
 const handleRecheck = async () => {

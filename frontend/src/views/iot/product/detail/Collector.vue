@@ -52,17 +52,22 @@
     <el-table :data="form.groups" border size="small" class="mb-12 collector-table">
       <el-table-column label="标识" width="160">
         <template #default="{ row }">
-          <el-input v-model="row.id" maxlength="32"/>
+          <el-input v-model="row.id" maxlength="32" />
         </template>
       </el-table-column>
       <el-table-column label="名称" min-width="160">
         <template #default="{ row }">
-          <el-input v-model="row.name" maxlength="64"/>
+          <el-input v-model="row.name" maxlength="64" />
         </template>
       </el-table-column>
       <el-table-column label="间隔(ms)" width="168">
         <template #default="{ row }">
-          <el-input-number v-model="row.intervalMs" :min="100" :step="100" controls-position="right" />
+          <el-input-number
+            v-model="row.intervalMs"
+            :min="100"
+            :step="100"
+            controls-position="right"
+          />
         </template>
       </el-table-column>
       <el-table-column label="上报" width="160">

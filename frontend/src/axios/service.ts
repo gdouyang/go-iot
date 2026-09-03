@@ -4,6 +4,7 @@ import { AxiosInstance, InternalAxiosRequestConfig, RequestConfig, AxiosResponse
 import { ElMessage } from 'element-plus'
 import { REQUEST_TIMEOUT } from '@/constants'
 import { useUserStoreWithOut } from '@/store/modules/user'
+import router from '@/router'
 
 export const PATH_URL = import.meta.env.VITE_API_BASE_PATH
 
@@ -31,7 +32,7 @@ axiosInstance.interceptors.response.use(
   },
   (error: AxiosError) => {
     console.log('err： ' + error) // for debug
-    const data = error.response?.data
+    const data = error.response?.data as any
     const status = error.response?.status
     // 从 localstorage 获取 token
     const userStore = useUserStoreWithOut()

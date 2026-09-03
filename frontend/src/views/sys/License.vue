@@ -162,6 +162,7 @@ import { defineComponent, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getLicenseInfo, uploadLicense } from './api'
 import { refreshLicenseStatus } from '@/permission'
+import { copyToClipboard } from '@/utils'
 import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
 
@@ -250,11 +251,14 @@ export default defineComponent({
       }
     }
 
-    const copyMachineCode = () => {
+    const copyMachineCode = async () => {
       if (!info.value.machineFingerprint) return
-      navigator.clipboard.writeText(info.value.machineFingerprint).then(() => {
+      try {
+        await copyToClipboard(info.value.machineFingerprint)
         ElMessage.success('机器指纹码已复制到剪贴板')
-      })
+      } catch (err) {
+        ElMessage.error('复制失败，请手动选择复制')
+      }
     }
 
     const handleFileChange = async (uploadFile) => {
