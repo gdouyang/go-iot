@@ -20,6 +20,18 @@ func NewOrm() Orm {
 	return &defaultOrm{}
 }
 
+// FieldNames 返回已注册模型的全部字段名（Go 字段名，含主键），
+// 供字段级更新时自行挑选要写入的列；模型未注册时返回 nil。
+func FieldNames(md interface{}) []string {
+	mi, ok := defaultmodelCache.getByMd(md)
+	if !ok {
+		return nil
+	}
+	out := make([]string, len(mi.fieldNames))
+	copy(out, mi.fieldNames)
+	return out
+}
+
 type Orm interface {
 	QueryTable(m interface{}) *QuerySeter
 	Insert(md interface{}) (int64, error)

@@ -196,13 +196,21 @@ func (d *Device) SetData(key string, val string) {
 }
 
 func (d *Device) GetConfig(key string) string {
-	if v, ok := d.Config[key]; ok {
-		return v
+	if d.Config != nil {
+		if v, ok := d.Config[key]; ok && strings.TrimSpace(v) != "" {
+			return v
+		}
 	}
 	p := GetProduct(d.ProductId)
 	if p != nil {
-		v := p.GetConfig(key)
-		return v
+		if v := p.GetConfig(key); strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	if d.Config != nil {
+		if v, ok := d.Config[key]; ok {
+			return v
+		}
 	}
 	return ""
 }

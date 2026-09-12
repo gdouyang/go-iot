@@ -110,7 +110,8 @@ func (a *App) Start(ctx context.Context) error {
 
 	models.RegisterModels()
 	agent.DefaultStore = agent.NewESStore()
-	logger.Infof("app start: models registered, agent store=es")
+	agent.StartCancelSubscriber()
+	logger.Infof("app start: models registered, agent store=es, cancel subscriber started")
 
 	// 初始化 License 授权状态
 	license.Init(a.Opt)

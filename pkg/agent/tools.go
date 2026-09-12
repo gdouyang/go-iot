@@ -12,17 +12,36 @@ import (
 )
 
 const (
-	ToolListProducts   = "list_products"
-	ToolGetProduct     = "get_product"
-	ToolGetTSLSchema   = "get_tsl_schema"
-	ToolLoadSkill      = "load_skill"
-	ToolValidateTSL    = "validate_tsl"
-	ToolValidateScript = "validate_script"
-	ToolCreateProduct  = "create_product"
-	ToolUpdateProduct  = "update_product"
-	ToolSaveTSL        = "save_tsl"
-	ToolSaveScript     = "save_script"
-	ToolUpdateNetwork  = "update_network"
+	ToolListProducts      = "list_products"
+	ToolGetProduct        = "get_product"
+	ToolGetProductConfig  = "get_product_config"
+	ToolGetTSL            = "get_tsl"
+	ToolGetScript         = "get_script"
+	ToolGetNetwork        = "get_network"
+	ToolGetCollector      = "get_collector"
+	ToolGetTSLSchema      = "get_tsl_schema"
+	ToolLoadSkill         = "load_skill"
+	ToolValidateTSL       = "validate_tsl"
+	ToolValidateScript    = "validate_script"
+	ToolCreateProduct     = "create_product"
+	ToolCreateDevice      = "create_device"
+	ToolUpdateProduct     = "update_product"
+	ToolSaveProductConfig = "save_product_config"
+	ToolSaveTSL           = "save_tsl"
+	ToolSaveScript        = "save_script"
+	ToolUpdateNetwork     = "update_network"
+	ToolSaveCollector     = "save_collector"
+	ToolDeployProduct     = "deploy_product"
+	ToolStartNetwork      = "start_network"
+	ToolStopNetwork       = "stop_network"
+	ToolGetDebugLogs      = "get_debug_logs"
+	ToolRunScript         = "run_script"
+	ToolGetDevice         = "get_device"
+	ToolListDevices       = "list_devices"
+
+	PermProductAdd  = "product-mgr:add"
+	PermProductSave = "product-mgr:save"
+	PermDeviceAdd   = "device-mgr:add"
 )
 
 const (
@@ -34,6 +53,33 @@ const (
 // ToolContext is passed to every tool Validate/Execute.
 type ToolContext struct {
 	UserId int64
+	Perms  map[string]bool
+}
+
+func (ctx ToolContext) HasPerm(id string) bool {
+	if ctx.Perms == nil {
+		return false
+	}
+	return ctx.Perms[id]
+}
+
+func writePermFor(name string) string {
+	switch name {
+	case ToolCreateProduct:
+		return PermProductAdd
+	case ToolCreateDevice:
+		return PermDeviceAdd
+	default:
+		return PermProductSave
+	}
+}
+
+func requireWritePerm(ctx ToolContext, name string) error {
+	need := writePermFor(name)
+	if ctx.HasPerm(need) {
+		return nil
+	}
+	return fmt.Errorf("%s: missing %s", ReasonForbidden, need)
 }
 
 // Tool is one catalog entry: schema, preflight, and apply/run live on the same type.
@@ -58,15 +104,30 @@ func registerTool(t Tool) {
 func init() {
 	registerTool(listProductsTool{})
 	registerTool(getProductTool{})
+	registerTool(getProductConfigTool{})
+	registerTool(getTSLTool{})
+	registerTool(getScriptTool{})
+	registerTool(getNetworkTool{})
+	registerTool(getCollectorTool{})
 	registerTool(getTSLSchemaTool{})
 	registerTool(loadSkillTool{})
 	registerTool(validateTSLTool{})
 	registerTool(validateScriptTool{})
 	registerTool(createProductTool{})
+	registerTool(createDeviceTool{})
 	registerTool(updateProductTool{})
+	registerTool(saveProductConfigTool{})
 	registerTool(saveTSLTool{})
 	registerTool(saveScriptTool{})
 	registerTool(updateNetworkTool{})
+	registerTool(saveCollectorTool{})
+	registerTool(deployProductTool{})
+	registerTool(startNetworkTool{})
+	registerTool(stopNetworkTool{})
+	registerTool(getDebugLogsTool{})
+	registerTool(runScriptTool{})
+	registerTool(getDeviceTool{})
+	registerTool(listDevicesTool{})
 }
 
 func LookupTool(name string) (Tool, bool) {
@@ -84,7 +145,7 @@ func ToolCatalog() []client.CompatTool {
 
 func ToolsCatalogMarkdown() string {
 	var b strings.Builder
-	b.WriteString("# Available tools:\n")
+	b.WriteString("# 可用工具列表:\n")
 	for _, t := range toolOrder {
 		s := t.Spec()
 		b.WriteString("- ")
@@ -97,12 +158,8 @@ func ToolsCatalogMarkdown() string {
 }
 
 func HasDeployTool() bool {
-	for _, t := range toolOrder {
-		if t.Name() == "deploy_product" || t.Name() == "start_network" {
-			return true
-		}
-	}
-	return false
+	_, ok := LookupTool(ToolDeployProduct)
+	return ok
 }
 
 func IsMutatingTool(name string) bool {
@@ -125,7 +182,7 @@ var lookupProduct = func(id string) (*models.ProductModel, error) {
 	return devicemd.GetProductMust(id)
 }
 
-func BeforeToolCall(writeMode string, userId int64, name string, args json.RawMessage) ToolPreflight {
+func BeforeToolCall(writeMode string, ctx ToolContext, name string, args json.RawMessage) ToolPreflight {
 	if strings.TrimSpace(name) == "" {
 		return ToolPreflight{Action: ToolBlock, Reason: "empty tool name", Terminate: true}
 	}
@@ -133,7 +190,11 @@ func BeforeToolCall(writeMode string, userId int64, name string, args json.RawMe
 	if !ok {
 		return ToolPreflight{Action: ToolBlock, Reason: "unknown tool " + name, Terminate: false}
 	}
-	ctx := ToolContext{UserId: userId}
+	if t.Mutating() {
+		if err := requireWritePerm(ctx, name); err != nil {
+			return ToolPreflight{Action: ToolBlock, Reason: err.Error(), Terminate: false}
+		}
+	}
 	if err := t.Validate(ctx, args); err != nil {
 		return ToolPreflight{Action: ToolBlock, Reason: err.Error(), Terminate: false}
 	}
@@ -177,7 +238,7 @@ func specOf(name, desc, schema string) client.CompatTool {
 }
 
 type ToolExec struct {
-	UserId int64
+	Ctx ToolContext
 }
 
 func (e ToolExec) Execute(name string, args json.RawMessage) (any, error) {
@@ -185,21 +246,22 @@ func (e ToolExec) Execute(name string, args json.RawMessage) (any, error) {
 	if !ok || t.Mutating() {
 		return nil, fmt.Errorf("unknown or mutating tool %s", name)
 	}
-	ctx := ToolContext{UserId: e.UserId}
-	if err := t.Validate(ctx, args); err != nil {
+	if err := t.Validate(e.Ctx, args); err != nil {
 		return map[string]any{"ok": false, "message": err.Error()}, nil
 	}
-	out, _, err := t.Execute(ctx, args)
+	out, _, err := t.Execute(e.Ctx, args)
 	return out, err
 }
 
-func ApplyMutating(userId int64, toolName string, payload string) (productId string, err error) {
+func ApplyMutating(ctx ToolContext, toolName string, payload string) (productId string, err error) {
 	t, ok := LookupTool(toolName)
 	if !ok || !t.Mutating() {
 		return "", fmt.Errorf("unknown mutating tool")
 	}
+	if err := requireWritePerm(ctx, toolName); err != nil {
+		return "", err
+	}
 	args := json.RawMessage(payload)
-	ctx := ToolContext{UserId: userId}
 	if err := t.Validate(ctx, args); err != nil {
 		return "", err
 	}

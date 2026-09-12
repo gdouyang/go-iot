@@ -20,22 +20,32 @@ func stubNoProduct(t *testing.T) {
 	}
 }
 
+func writeCtx(userId int64) ToolContext {
+	return ToolContext{UserId: userId, Perms: map[string]bool{
+		PermProductAdd: true, PermProductSave: true, PermDeviceAdd: true,
+	}}
+}
+
 func TestBeforeToolCallInterceptsWrites(t *testing.T) {
 	stubNoProduct(t)
 	args := json.RawMessage(`{"id":"A","name":"n","networkType":"MQTT_BROKER"}`)
-	g := BeforeToolCall("confirm", 1, ToolCreateProduct, args)
+	g := BeforeToolCall("confirm", writeCtx(1), ToolCreateProduct, args)
 	require.Equal(t, ToolConfirm, g.Action)
 	require.True(t, g.Terminate)
 
-	g = BeforeToolCall("auto", 1, ToolCreateProduct, args)
+	g = BeforeToolCall("auto", writeCtx(1), ToolCreateProduct, args)
 	require.Equal(t, ToolAllow, g.Action)
 
-	g = BeforeToolCall("confirm", 1, ToolListProducts, json.RawMessage(`{}`))
+	g = BeforeToolCall("confirm", writeCtx(1), ToolListProducts, json.RawMessage(`{}`))
 	require.Equal(t, ToolAllow, g.Action)
 
-	g = BeforeToolCall("confirm", 1, ToolSaveTSL, json.RawMessage(`not-json`))
+	g = BeforeToolCall("confirm", writeCtx(1), ToolSaveTSL, json.RawMessage(`not-json`))
 	require.Equal(t, ToolBlock, g.Action)
 	require.False(t, g.Terminate)
+
+	g = BeforeToolCall("confirm", ToolContext{UserId: 1}, ToolCreateProduct, args)
+	require.Equal(t, ToolBlock, g.Action)
+	require.Contains(t, g.Reason, ReasonForbidden)
 }
 
 func TestBeforeToolCallRejectsDirtyTSLBeforeConfirm(t *testing.T) {
@@ -46,13 +56,13 @@ func TestBeforeToolCallRejectsDirtyTSLBeforeConfirm(t *testing.T) {
 	}
 
 	dirty := json.RawMessage(`{"productId":"P1","tsl":{"properties":[{"id":"temperature","name":"温度","type":"float","specs":{"unit":"℃"}}]}}`)
-	g := BeforeToolCall("confirm", 7, ToolSaveTSL, dirty)
+	g := BeforeToolCall("confirm", writeCtx(7), ToolSaveTSL, dirty)
 	require.Equal(t, ToolBlock, g.Action)
 	require.False(t, g.Terminate)
 	require.Contains(t, g.Reason, "specs")
 
 	clean := json.RawMessage(`{"productId":"P1","tsl":{"properties":[{"id":"temperature","name":"温度","type":"float","unit":"℃","scale":1}]}}`)
-	g = BeforeToolCall("confirm", 7, ToolSaveTSL, clean)
+	g = BeforeToolCall("confirm", writeCtx(7), ToolSaveTSL, clean)
 	require.Equal(t, ToolConfirm, g.Action)
 }
 
@@ -63,7 +73,7 @@ func TestBeforeToolCallRequiresProductBeforeTSL(t *testing.T) {
 		return nil, errors.New("product [P1] not exist")
 	}
 	args := json.RawMessage(`{"productId":"P1","tsl":{"properties":[{"id":"t","name":"t","type":"int"}]}}`)
-	g := BeforeToolCall("confirm", 7, ToolSaveTSL, args)
+	g := BeforeToolCall("confirm", writeCtx(7), ToolSaveTSL, args)
 	require.Equal(t, ToolBlock, g.Action)
 	require.Contains(t, g.Reason, "create_product")
 }
@@ -74,16 +84,16 @@ func TestBeforeToolCallRejectsBrokenScriptBeforeConfirm(t *testing.T) {
 	lookupProduct = func(id string) (*models.ProductModel, error) {
 		return &models.ProductModel{Product: models.Product{Id: id, CreateId: 7}}, nil
 	}
-	g := BeforeToolCall("confirm", 7, ToolSaveScript, json.RawMessage(`{"productId":"P1","script":"function OnMessage("}`))
+	g := BeforeToolCall("confirm", writeCtx(7), ToolSaveScript, json.RawMessage(`{"productId":"P1","script":"function OnMessage("}`))
 	require.Equal(t, ToolBlock, g.Action)
 	require.False(t, g.Terminate)
 
-	g = BeforeToolCall("confirm", 7, ToolSaveScript, json.RawMessage(`{"productId":"P1","script":"function OnMessage(c){}"}`))
+	g = BeforeToolCall("confirm", writeCtx(7), ToolSaveScript, json.RawMessage(`{"productId":"P1","script":"function OnMessage(c){}"}`))
 	require.Equal(t, ToolConfirm, g.Action)
 }
 
 func TestBeforeToolCallRejectsBadNetworkType(t *testing.T) {
-	g := BeforeToolCall("confirm", 1, ToolCreateProduct, json.RawMessage(`{"id":"A","name":"n","networkType":"MQTT"}`))
+	g := BeforeToolCall("confirm", writeCtx(1), ToolCreateProduct, json.RawMessage(`{"id":"A","name":"n","networkType":"MQTT"}`))
 	require.Equal(t, ToolBlock, g.Action)
 	require.Contains(t, g.Reason, "网络类型")
 }
@@ -96,8 +106,12 @@ func TestEachToolHasValidateAndExecute(t *testing.T) {
 		require.Equal(t, spec.Function.Name, t0.Name())
 		require.NotEmpty(t, t0.Spec().Function.Name)
 	}
-	_, ok := LookupTool("deploy_product")
-	require.False(t, ok)
+	_, ok := LookupTool(ToolDeployProduct)
+	require.True(t, ok)
+	_, ok = LookupTool(ToolStartNetwork)
+	require.True(t, ok)
+	_, ok = LookupTool(ToolGetTSL)
+	require.True(t, ok)
 }
 
 func TestWillPauseForConfirm(t *testing.T) {
@@ -105,16 +119,16 @@ func TestWillPauseForConfirm(t *testing.T) {
 	var tc client.ToolCall
 	tc.Function.Name = ToolCreateProduct
 	tc.Function.Arguments = `{"id":"A","name":"n","networkType":"MQTT_BROKER"}`
-	require.True(t, willPauseForConfirm("confirm", 1, []client.ToolCall{tc}))
-	require.False(t, willPauseForConfirm("auto", 1, []client.ToolCall{tc}))
+	require.True(t, willPauseForConfirm("confirm", writeCtx(1), []client.ToolCall{tc}))
+	require.False(t, willPauseForConfirm("auto", writeCtx(1), []client.ToolCall{tc}))
 
 	var read client.ToolCall
 	read.Function.Name = ToolListProducts
 	read.Function.Arguments = `{}`
-	require.False(t, willPauseForConfirm("confirm", 1, []client.ToolCall{read}))
+	require.False(t, willPauseForConfirm("confirm", writeCtx(1), []client.ToolCall{read}))
 
 	var dirty client.ToolCall
 	dirty.Function.Name = ToolSaveTSL
 	dirty.Function.Arguments = `{"productId":"P1","tsl":{"properties":[{"id":"t","name":"t","type":"float","specs":{}}]}}`
-	require.False(t, willPauseForConfirm("confirm", 1, []client.ToolCall{dirty}))
+	require.False(t, willPauseForConfirm("confirm", writeCtx(1), []client.ToolCall{dirty}))
 }

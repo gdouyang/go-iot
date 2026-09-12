@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"strings"
 
+	"go-iot/pkg/bootstrap"
 	"go-iot/pkg/codec"
 	"go-iot/pkg/core"
 	"go-iot/pkg/models"
 	devicemd "go-iot/pkg/models/device"
+	networkmd "go-iot/pkg/models/network"
 	"go-iot/pkg/network/servers"
 	"go-iot/pkg/tsl"
 )
@@ -35,6 +37,12 @@ var (
 	getCollectorJSON    = devicemd.GetProductCollectorJSON
 	saveCollectorJSON   = devicemd.SaveProductCollectorJSON
 	deleteCollectorJSON = devicemd.DeleteProductCollector
+	getNetworkByProduct = networkmd.GetByProductId
+	bindNetworkProduct  = networkmd.BindNetworkProduct
+	updateNetworkRow    = networkmd.UpdateNetwork
+	convertCodecNetwork = bootstrap.ConvertCodecNetwork
+	startServer         = servers.StartServer
+	stopServer          = servers.StopServer
 )
 
 func init() {
@@ -120,6 +128,34 @@ func SaveScript(userId int64, productId, script string) error {
 	return err
 }
 
+// AssertDeployable checks TSL / store / collector without mutating runtime.
+func AssertDeployable(exist *models.ProductModel) (*tsl.TslData, error) {
+	if exist == nil {
+		return nil, errors.New("product not exist")
+	}
+	if len(strings.TrimSpace(exist.Metadata)) == 0 {
+		return nil, errors.New("产品没有配置物模型，请先配置")
+	}
+	tslData := tsl.TslData{}
+	if err := tslData.FromJson(exist.Metadata); err != nil {
+		return nil, err
+	}
+	if len(tslData.Properties) == 0 {
+		return nil, errors.New("物模型属性为空，请先添加属性")
+	}
+	if err := devicemd.ValidateStorePolicy(exist.StorePolicy); err != nil {
+		return nil, err
+	}
+	if raw, err := getCollectorJSON(exist.Id); err != nil {
+		return nil, err
+	} else if len(raw) > 0 {
+		if _, err := core.GetCollectorRuntime(exist.NetworkType).Normalize([]byte(raw), &tslData); err != nil {
+			return nil, err
+		}
+	}
+	return &tslData, nil
+}
+
 func Deploy(userId int64, productId string) error {
 	exist, err := getProductMust(productId)
 	if err != nil {
@@ -128,25 +164,9 @@ func Deploy(userId int64, productId string) error {
 	if err := AssertOwner(exist, userId); err != nil {
 		return err
 	}
-	if len(strings.TrimSpace(exist.Metadata)) == 0 {
-		return errors.New("产品没有配置物模型，请先配置")
-	}
-	tslData := tsl.TslData{}
-	if err := tslData.FromJson(exist.Metadata); err != nil {
+	tslData, err := AssertDeployable(exist)
+	if err != nil {
 		return err
-	}
-	if len(tslData.Properties) == 0 {
-		return errors.New("物模型属性为空，请先添加属性")
-	}
-	if err := devicemd.ValidateStorePolicy(exist.StorePolicy); err != nil {
-		return err
-	}
-	if raw, err := getCollectorJSON(productId); err != nil {
-		return err
-	} else if len(raw) > 0 {
-		if _, err := core.GetCollectorRuntime(exist.NetworkType).Normalize([]byte(raw), &tslData); err != nil {
-			return err
-		}
 	}
 	p1, err := exist.ToProeuctOper()
 	if err != nil {
@@ -155,7 +175,7 @@ func Deploy(userId int64, productId string) error {
 	if err := putProduct(p1); err != nil {
 		return err
 	}
-	if err := p1.GetTimeSeries().PublishModel(p1, tslData); err != nil {
+	if err := p1.GetTimeSeries().PublishModel(p1, *tslData); err != nil {
 		return err
 	}
 	exist.State = true

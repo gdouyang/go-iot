@@ -35,7 +35,8 @@ func TestSettingsMaskKeepOnEmptyAndClear(t *testing.T) {
 		ApiKey:  "",
 	})
 	require.NoError(t, err)
-	require.Equal(t, "sk-secret-1234", st2.ApiKey)
+	require.Equal(t, "sk-secret-1234", RevealAPIKey(st2.ApiKey))
+	require.True(t, IsSealedKey(st2.ApiKey))
 	require.True(t, ModelConfigured(st2))
 
 	st3, err := PutSettings(store, 9, SettingsPut{ApiKeyClear: true})
@@ -45,10 +46,11 @@ func TestSettingsMaskKeepOnEmptyAndClear(t *testing.T) {
 	require.False(t, ViewSettings(st3).ApiKeySet)
 }
 
-func TestModelConfiguredRequiresApiKeyOnly(t *testing.T) {
+func TestModelConfiguredRequiresKeyURLAndModel(t *testing.T) {
 	require.False(t, ModelConfigured(nil))
 	require.False(t, ModelConfigured(&models.AgentUserSettings{BaseURL: "https://api.x.ai/v1", Model: "m"}))
-	require.True(t, ModelConfigured(&models.AgentUserSettings{ApiKey: "k"}))
+	require.False(t, ModelConfigured(&models.AgentUserSettings{ApiKey: "k"}))
+	require.True(t, ModelConfigured(&models.AgentUserSettings{ApiKey: "k", BaseURL: "https://api.x.ai/v1", Model: "m"}))
 }
 
 func TestEffectiveFillsCodeDefaults(t *testing.T) {
@@ -97,7 +99,7 @@ func TestPutSettingsAcceptsCustomReasoningEffort(t *testing.T) {
 func TestPutSettingsAllowsPrivateURLWhenFlagSet(t *testing.T) {
 	store := NewMemoryStore()
 	allow := true
-	st, err := PutSettings(store, 2, SettingsPut{
+	st, err := PutSettings(store, 1, SettingsPut{
 		BaseURL:         "http://127.0.0.1:11434/v1",
 		Model:           "llama",
 		ApiKey:          "local",
@@ -105,9 +107,22 @@ func TestPutSettingsAllowsPrivateURLWhenFlagSet(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, st.AllowPrivateLLM)
-	_, err = PutSettings(store, 2, SettingsPut{
+	_, err = PutSettings(store, 1, SettingsPut{
 		BaseURL:         "http://127.0.0.1:11434/v1",
 		AllowPrivateLLM: new(bool),
 	})
 	require.Error(t, err)
+}
+
+func TestNonAdminCannotAllowPrivateLLM(t *testing.T) {
+	store := NewMemoryStore()
+	allow := true
+	_, err := PutSettings(store, 2, SettingsPut{
+		BaseURL:         "http://127.0.0.1:11434/v1",
+		Model:           "llama",
+		ApiKey:          "local",
+		AllowPrivateLLM: &allow,
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), ReasonForbidden)
 }

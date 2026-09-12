@@ -37,6 +37,7 @@
           </el-button>
           <el-button size="small" @click="refresh">刷新</el-button>
           <el-button size="small" @click="clearLogs">清空</el-button>
+          <el-button size="small" @click="downloadLogs">下载日志</el-button>
         </div>
       </div>
       <div class="product-debug" :class="{ isConnect: isConnect, isPaused: paused }">
@@ -456,6 +457,30 @@ export default {
       if (this._ace) {
         this._ace.session.setValue('')
         this._ace.session.setOption('firstLineNumber', 1)
+      }
+    },
+    downloadLogs() {
+      this.flush()
+      const editor = this._ace
+      const content = editor ? editor.session.getValue() : ''
+      if (!content || !content.trim()) {
+        this.$message.warning('当前无日志可下载')
+        return
+      }
+      try {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+        const timeStr = dayjs().format('YYYYMMDDHHmmss')
+        const filename = `debug-log-${this.productId}-${timeStr}.log`
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      } catch (err) {
+        this.$message.error('下载日志失败: ' + (err.message || err))
       }
     },
     onAceScroll() {

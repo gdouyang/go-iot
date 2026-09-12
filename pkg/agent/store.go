@@ -1,25 +1,34 @@
 package agent
 
 import (
+	"context"
 	"sort"
 	"sync"
+	"time"
 
 	"go-iot/pkg/models"
+	"go-iot/pkg/redis"
 )
 
 // Store persists Agent entities. Tests use MemoryStore; production can swap ES.
 type Store interface {
 	SaveConversation(c *models.AgentConversation) error
+	// UpdateTitle 只更新 title（及 updateTime）；标题由异步生成/用户改名单独维护。
+	UpdateTitle(id, title string) error
+	// TouchConversation 只刷新 UpdateTime（运行中心跳），不整份回写。
+	TouchConversation(id string) error
 	GetConversation(id string) (*models.AgentConversation, error)
 	ListConversations(userId int64) ([]models.AgentConversation, error)
 	DeleteConversation(id string) error
 
 	SaveMessage(m *models.AgentMessage) error
 	ListMessages(convId string) ([]models.AgentMessage, error)
+	GetMaxSeq(convId string) (int64, error)
 
 	SaveDraft(d *models.AgentDraft) error
 	GetDraft(id string) (*models.AgentDraft, error)
 	ListDrafts(convId string) ([]models.AgentDraft, error)
+	DeleteDraft(id string) error
 
 	SaveAudit(a *models.AgentAudit) error
 
@@ -29,12 +38,12 @@ type Store interface {
 
 // MemoryStore is the test/default in-process store (shipped, used by HTTP tests).
 type MemoryStore struct {
-	mu    sync.RWMutex
-	convs map[string]*models.AgentConversation
-	msgs  map[string][]models.AgentMessage
+	mu     sync.RWMutex
+	convs  map[string]*models.AgentConversation
+	msgs   map[string][]models.AgentMessage
 	drafts map[string]*models.AgentDraft
 	audits []models.AgentAudit
-	sets  map[int64]*models.AgentUserSettings
+	sets   map[int64]*models.AgentUserSettings
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -51,7 +60,30 @@ func (s *MemoryStore) SaveConversation(c *models.AgentConversation) error {
 	defer s.mu.Unlock()
 	c.UpdateTime = models.NewDateTime()
 	cp := *c
+	// 与 ESStore 一致：整份回写不碰 title，标题只由 UpdateTitle 维护。
+	if exist := s.convs[c.Id]; exist != nil {
+		cp.Title = exist.Title
+	}
 	s.convs[c.Id] = &cp
+	return nil
+}
+
+func (s *MemoryStore) UpdateTitle(id, title string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if c := s.convs[id]; c != nil {
+		c.Title = title
+		c.UpdateTime = models.NewDateTime()
+	}
+	return nil
+}
+
+func (s *MemoryStore) TouchConversation(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if c := s.convs[id]; c != nil {
+		c.UpdateTime = models.NewDateTime()
+	}
 	return nil
 }
 
@@ -95,6 +127,18 @@ func (s *MemoryStore) DeleteConversation(id string) error {
 			delete(s.drafts, k)
 		}
 	}
+	kept := s.audits[:0]
+	for _, a := range s.audits {
+		if a.ConversationId != id {
+			kept = append(kept, a)
+		}
+	}
+	s.audits = kept
+	if client := redis.GetRedisClient(); client != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_ = client.Del(ctx, ConvRedisKey(id, "seq"), ConvRedisKey(id, "lock")).Err()
+	}
 	return nil
 }
 
@@ -114,6 +158,19 @@ func (s *MemoryStore) ListMessages(convId string) ([]models.AgentMessage, error)
 	copy(out, src)
 	SortMessages(out)
 	return out, nil
+}
+
+func (s *MemoryStore) GetMaxSeq(convId string) (int64, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	msgs := s.msgs[convId]
+	var maxSeq int64
+	for _, m := range msgs {
+		if m.SeqNo > maxSeq {
+			maxSeq = m.SeqNo
+		}
+	}
+	return maxSeq, nil
 }
 
 func (s *MemoryStore) SaveDraft(d *models.AgentDraft) error {
@@ -145,6 +202,13 @@ func (s *MemoryStore) ListDrafts(convId string) ([]models.AgentDraft, error) {
 		}
 	}
 	return out, nil
+}
+
+func (s *MemoryStore) DeleteDraft(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.drafts, id)
+	return nil
 }
 
 func (s *MemoryStore) SaveAudit(a *models.AgentAudit) error {

@@ -41,6 +41,17 @@ export default {
       return getStatusText(status)
     }
   },
+  watch: {
+    state: {
+      handler(newVal) {
+        if (newVal === 'online' || newVal === 'offline') {
+          this.GetTime()
+        } else {
+          this.time = ''
+        }
+      }
+    }
+  },
   mounted() {
     this.GetTime()
   },

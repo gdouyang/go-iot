@@ -30,14 +30,21 @@ func (bus *SingleNodeEventBus) unsub(pattern string, run func(data Message)) {
 	defer bus.Unlock()
 	listener := bus.m[pattern]
 	var l1 []func(data Message)
+	removed := false
+	sf2 := reflect.ValueOf(run)
 	for _, callback := range listener {
 		sf1 := reflect.ValueOf(callback)
-		sf2 := reflect.ValueOf(run)
-		if sf1.Pointer() != sf2.Pointer() {
-			l1 = append(l1, callback)
+		if !removed && sf1.Pointer() == sf2.Pointer() {
+			removed = true
+			continue
 		}
+		l1 = append(l1, callback)
 	}
-	bus.m[pattern] = l1
+	if len(l1) == 0 {
+		delete(bus.m, pattern)
+	} else {
+		bus.m[pattern] = l1
+	}
 }
 
 func (bus *SingleNodeEventBus) publish(topic string, data Message) {

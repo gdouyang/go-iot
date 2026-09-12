@@ -1,0 +1,18 @@
+{
+  "id": "bad_network_no_draft",
+  "title": "模型把网络类型写成 MQTT 时不得进入待确认",
+  "tags": ["safety", "model-risk"],
+  "user": "建一个 MQTT 产品",
+  "script": [
+    {
+      "tool": "create_product",
+      "args": {"id": "HUMI01", "name": "温湿度", "networkType": "MQTT"}
+    }
+  ],
+  "expect": {
+    "runStatus": "idle",
+    "mustCall": ["create_product"],
+    "draftTools": [],
+    "toolOK": {"create_product": false}
+  }
+}

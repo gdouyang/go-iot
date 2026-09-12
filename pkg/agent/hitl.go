@@ -8,17 +8,20 @@ import (
 	"go-iot/pkg/models"
 )
 
-var applyMutatingFn = ApplyMutating
-
-type ApplyResult struct {
-	Applied      []map[string]string `json:"applied"`
-	Failed       []map[string]string `json:"failed"`
-	RunStatus    string              `json:"runStatus"`
-	NeedsResume  bool                `json:"needsResume"`
-	PendingDrafts []string           `json:"pendingDrafts"`
+var applyMutatingFn = func(ctx ToolContext, toolName, payload string) (string, error) {
+	return ApplyMutating(ctx, toolName, payload)
 }
 
-func ApplyDrafts(store Store, userId int64, conv *models.AgentConversation, draftIds []string, resume bool) (*ApplyResult, error) {
+type ApplyResult struct {
+	Applied       []map[string]string `json:"applied"`
+	Failed        []map[string]string `json:"failed"`
+	RunStatus     string              `json:"runStatus"`
+	NeedsResume   bool                `json:"needsResume"`
+	PendingDrafts []string            `json:"pendingDrafts"`
+}
+
+func ApplyDrafts(store Store, ctx ToolContext, conv *models.AgentConversation, draftIds []string, resume bool) (*ApplyResult, error) {
+	userId := ctx.UserId
 	if conv.RunStatus == RunRunning || conv.RunStatus == RunApplying {
 		return nil, fmt.Errorf("%s", ReasonRunActive)
 	}
@@ -36,11 +39,11 @@ func ApplyDrafts(store Store, userId int64, conv *models.AgentConversation, draf
 			res.Failed = append(res.Failed, map[string]string{"draftId": id, "reason": ReasonNotFound})
 			continue
 		}
-		if !time.Time(d.ExpireTime).IsZero() && time.Time(d.ExpireTime).Before(time.Now()) {
+		if DraftExpired(*d) {
 			res.Failed = append(res.Failed, map[string]string{"draftId": id, "reason": ReasonDraftExpired})
 			continue
 		}
-		pid, err := applyMutatingFn(userId, d.ToolName, d.Payload)
+		pid, err := applyMutatingFn(ctx, d.ToolName, d.Payload)
 		if err != nil {
 			_ = store.SaveAudit(&models.AgentAudit{
 				Id: newHexID(), ConversationId: conv.Id, DraftId: d.Id, ToolName: d.ToolName,
@@ -71,6 +74,9 @@ func ApplyDrafts(store Store, userId int64, conv *models.AgentConversation, draf
 			ProductId: pid, Action: "apply", Success: true, CreateId: userId, CreateTime: now,
 		})
 		res.Applied = append(res.Applied, map[string]string{"draftId": d.Id, "tool": d.ToolName, "productId": pid})
+		if pid != "" && conv.ProductId == "" {
+			conv.ProductId = pid
+		}
 	}
 
 	all, _ := store.ListDrafts(conv.Id)
@@ -85,13 +91,15 @@ func ApplyDrafts(store Store, userId int64, conv *models.AgentConversation, draf
 		conv.RunStatus = RunIdle
 		conv.NeedsResume = resume && len(res.Failed) == 0 && len(res.Applied) > 0
 	}
+	PurgeSettledDrafts(store, conv.Id)
 	_ = store.SaveConversation(conv)
 	res.RunStatus = conv.RunStatus
 	res.NeedsResume = conv.NeedsResume
 	return res, nil
 }
 
-func RejectDrafts(store Store, userId int64, conv *models.AgentConversation, draftIds []string) (*ApplyResult, error) {
+func RejectDrafts(store Store, ctx ToolContext, conv *models.AgentConversation, draftIds []string) (*ApplyResult, error) {
+	userId := ctx.UserId
 	if conv.RunStatus == RunRunning || conv.RunStatus == RunApplying {
 		return nil, fmt.Errorf("%s", ReasonRunActive)
 	}
@@ -129,18 +137,37 @@ func RejectDrafts(store Store, userId int64, conv *models.AgentConversation, dra
 	}
 	conv.RunStatus = RunStatusForDrafts(len(pending))
 	conv.NeedsResume = false
+	PurgeSettledDrafts(store, conv.Id)
 	_ = store.SaveConversation(conv)
 	res.RunStatus = conv.RunStatus
 	return res, nil
 }
 
-func QueueConfirmDraft(store Store, userId int64, conv *models.AgentConversation, toolCallId, toolName, payload, preview string, productId string) (*models.AgentDraft, error) {
+func PurgeSettledDrafts(store Store, convId string) {
+	if store == nil || convId == "" {
+		return
+	}
+	all, err := store.ListDrafts(convId)
+	if err != nil {
+		return
+	}
+	for _, d := range all {
+		if d.Status == DraftApplied || d.Status == DraftRejected {
+			_ = store.DeleteDraft(d.Id)
+		}
+	}
+}
+
+func QueueConfirmDraft(store Store, userId int64, conv *models.AgentConversation, toolCallId, toolName, payload, preview string, productId string, ttlHours int) (*models.AgentDraft, error) {
 	now := models.NewDateTime()
+	if ttlHours <= 0 {
+		ttlHours = DefaultDraftTTLHours
+	}
 	d := &models.AgentDraft{
 		Id: newHexID(), ConversationId: conv.Id, ToolCallId: toolCallId, ToolName: toolName,
 		ProductId: productId, Payload: payload, Preview: preview, Status: DraftPending,
-		ExpireTime: models.DateTime(time.Now().Add(24 * time.Hour)),
-		CreateId: userId, CreateTime: now,
+		ExpireTime: models.DateTime(time.Now().Add(time.Duration(ttlHours) * time.Hour)),
+		CreateId:   userId, CreateTime: now,
 	}
 	if err := store.SaveDraft(d); err != nil {
 		return nil, err

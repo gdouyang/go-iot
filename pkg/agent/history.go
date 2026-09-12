@@ -1,13 +1,16 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"go-iot/pkg/models"
+	"go-iot/pkg/redis"
 )
 
 const (
@@ -56,43 +59,91 @@ func messageOrder(m models.AgentMessage) int {
 	}
 }
 
-var msgClock struct {
+var msgSeqClock struct {
 	mu   sync.Mutex
 	last map[string]int64
 }
 
-// StampMessage writes a strictly increasing millisecond timestamp on the message.
+// NextSeqNo 分配单会话下单调递增序号。优先通过 Redis INCR 获取；若 Redis 不可用则降级到内存发号器。
+func NextSeqNo(convId string) int64 {
+	if client := redis.GetRedisClient(); client != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		key := ConvRedisKey(convId, "seq")
+		seq, err := client.Incr(ctx, key).Result()
+		if err == nil && seq > 0 {
+			_ = client.Expire(ctx, key, ConvSeqTTL).Err()
+			return seq
+		}
+	}
+
+	msgSeqClock.mu.Lock()
+	defer msgSeqClock.mu.Unlock()
+	if msgSeqClock.last == nil {
+		msgSeqClock.last = map[string]int64{}
+	}
+	next := msgSeqClock.last[convId] + 1
+	msgSeqClock.last[convId] = next
+	return next
+}
+
+// EnsureConvSeq 确保会话序号 key 存在。若不存在则从已有历史消息中获取最大序号并创建，设置 1 天过期。
+func EnsureConvSeq(ctx context.Context, convId string, store Store) {
+	if convId == "" {
+		return
+	}
+	client := redis.GetRedisClient()
+	if client == nil {
+		return
+	}
+	key := ConvRedisKey(convId, "seq")
+	n, err := client.Exists(ctx, key).Result()
+	if err == nil && n > 0 {
+		_ = client.Expire(ctx, key, ConvSeqTTL).Err()
+		return
+	}
+	var maxSeq int64
+	if store != nil {
+		if s, err := store.GetMaxSeq(convId); err == nil {
+			maxSeq = s
+		}
+	}
+	_ = client.SetNX(ctx, key, maxSeq, ConvSeqTTL).Err()
+
+	msgSeqClock.mu.Lock()
+	if msgSeqClock.last == nil {
+		msgSeqClock.last = map[string]int64{}
+	}
+	if msgSeqClock.last[convId] < maxSeq {
+		msgSeqClock.last[convId] = maxSeq
+	}
+	msgSeqClock.mu.Unlock()
+}
+
+// StampMessage 给消息写入自增序号和创建时间。
 func StampMessage(m *models.AgentMessage) {
 	if m == nil {
 		return
 	}
-	now := time.Now().UnixMilli()
-	msgClock.mu.Lock()
-	defer msgClock.mu.Unlock()
-	if msgClock.last == nil {
-		msgClock.last = map[string]int64{}
+	if m.SeqNo <= 0 {
+		m.SeqNo = NextSeqNo(m.ConversationId)
 	}
-	if last := msgClock.last[m.ConversationId]; now <= last {
-		now = last + 1
-	}
-	msgClock.last[m.ConversationId] = now
-	m.CreateTimeMs = now
 	if time.Time(m.CreateTime).IsZero() {
-		m.CreateTime = models.DateTime(time.UnixMilli(now))
+		m.CreateTime = models.NewDateTime()
 	}
 }
 
-func messageTime(m models.AgentMessage) int64 {
-	if m.CreateTimeMs > 0 {
-		return m.CreateTimeMs
-	}
-	return m.CreateTime.UnixMilli()
-}
-
-// SortMessages orders a conversation by CreateTimeMs (write order).
+// SortMessages 按 SeqNo 升序排序。若缺少 SeqNo（历史数据）降级到按创建时间排序。
 func SortMessages(msgs []models.AgentMessage) {
 	sort.SliceStable(msgs, func(i, j int) bool {
-		ti, tj := messageTime(msgs[i]), messageTime(msgs[j])
+		si, sj := msgs[i].SeqNo, msgs[j].SeqNo
+		if si > 0 && sj > 0 && si != sj {
+			return si < sj
+		}
+		if si != sj {
+			return si < sj
+		}
+		ti, tj := msgs[i].CreateTime.UnixMilli(), msgs[j].CreateTime.UnixMilli()
 		if ti != tj {
 			return ti < tj
 		}
@@ -107,13 +158,60 @@ func SortMessages(msgs []models.AgentMessage) {
 // ToInput rebuilds Completions messages. Event rows are never sent to the model.
 // Tool results are attached to the assistant tool_calls they belong to, even if
 // ES returned them out of order (same-second timestamps).
+// When a compaction event is present, messages prior to firstKeptMessageId are omitted
+// and the latest summary is prepended.
 func ToInput(msgs []models.AgentMessage) []json.RawMessage {
+	var latestCompaction *models.AgentMessage
+	for i := len(msgs) - 1; i >= 0; i-- {
+		if msgs[i].Role == RoleEvent && msgs[i].EventType == EventCompaction {
+			latestCompaction = &msgs[i]
+			break
+		}
+	}
+
+	firstKeptIndex := 0
+	var summaryText string
+	if latestCompaction != nil {
+		var cp CompactionPayload
+		_ = json.Unmarshal([]byte(latestCompaction.Payload), &cp)
+		summaryText = cp.Summary
+		if summaryText == "" {
+			summaryText = latestCompaction.Content
+		}
+		if cp.FirstKeptMessageId != "" {
+			found := false
+			for i, m := range msgs {
+				if m.Id == cp.FirstKeptMessageId {
+					firstKeptIndex = i
+					found = true
+					break
+				}
+			}
+			if !found {
+				for i, m := range msgs {
+					if m.Id == latestCompaction.Id {
+						firstKeptIndex = i + 1
+						break
+					}
+				}
+			}
+		} else {
+			for i, m := range msgs {
+				if m.Id == latestCompaction.Id {
+					firstKeptIndex = i + 1
+					break
+				}
+			}
+		}
+	}
+
 	type item struct {
 		msg models.AgentMessage
 		obj map[string]any
 	}
 	var items []item
-	for _, m := range msgs {
+	for i := firstKeptIndex; i < len(msgs); i++ {
+		m := msgs[i]
 		if m.Role == RoleEvent || stringsEmpty(m.Payload) {
 			continue
 		}
@@ -177,6 +275,7 @@ func ToInput(msgs []models.AgentMessage) []json.RawMessage {
 			if len(info.calls) == 0 {
 				delete(it.obj, "tool_calls")
 			}
+			stripReasoningFromInput(it.obj)
 			out = append(out, mustRaw(it.obj))
 			for _, ref := range info.calls {
 				start := used[ref.id]
@@ -192,6 +291,13 @@ func ToInput(msgs []models.AgentMessage) []json.RawMessage {
 		default:
 			out = append(out, mustRaw(it.obj))
 		}
+	}
+	if latestCompaction != nil && strings.TrimSpace(summaryText) != "" {
+		summaryObj := map[string]any{
+			"role":    RoleUser,
+			"content": fmt.Sprintf("The conversation history before this point was compacted into the following summary:\n\n<summary>\n%s\n</summary>", summaryText),
+		}
+		out = append([]json.RawMessage{mustRaw(summaryObj)}, out...)
 	}
 	return out
 }
@@ -289,14 +395,79 @@ func TailMessages(msgs []models.AgentMessage, pageSize int) []models.AgentMessag
 	return msgs[len(msgs)-pageSize:]
 }
 
+func DraftExpired(d models.AgentDraft) bool {
+	if time.Time(d.ExpireTime).IsZero() {
+		return false
+	}
+	return time.Time(d.ExpireTime).Before(time.Now())
+}
+
 func PendingDrafts(drafts []models.AgentDraft) []models.AgentDraft {
 	var out []models.AgentDraft
 	for _, d := range drafts {
-		if d.Status == DraftPending {
+		if d.Status == DraftPending && !DraftExpired(d) {
 			out = append(out, d)
 		}
 	}
 	return out
+}
+
+func MessageView(m *models.AgentMessage, draftStatus string) map[string]any {
+	if m == nil {
+		return map[string]any{}
+	}
+	dto := map[string]any{
+		"id": m.Id, "role": m.Role, "content": m.Content,
+		"eventType": m.EventType, "toolName": m.ToolName,
+		"toolCallId": m.ToolCallId, "draftId": m.DraftId,
+		"productId": m.ProductId, "createdTime": m.CreateTime, "seqNo": m.SeqNo,
+	}
+	if m.Role == RoleAssistant {
+		if r := reasoningFromPayload(m.Payload); r != "" {
+			dto["reasoning"] = r
+		}
+	}
+	if m.EventType == EventConfirmRequired {
+		dto["preview"] = json.RawMessage(orJSON(extractPreviewJSON(m.Payload)))
+		if draftStatus != "" {
+			dto["draftStatus"] = draftStatus
+		}
+	}
+	return dto
+}
+
+func reasoningFromPayload(payload string) string {
+	var m map[string]any
+	if json.Unmarshal([]byte(payload), &m) != nil {
+		return ""
+	}
+	if s, ok := m["reasoning"].(string); ok {
+		return s
+	}
+	if s, ok := m["reasoning_content"].(string); ok {
+		return s
+	}
+	return ""
+}
+
+func stripReasoningFromInput(obj map[string]any) {
+	if obj == nil {
+		return
+	}
+	delete(obj, "reasoning")
+	delete(obj, "reasoning_content")
+	delete(obj, "thinking")
+}
+
+func extractPreviewJSON(payload string) string {
+	var m map[string]json.RawMessage
+	if json.Unmarshal([]byte(payload), &m) != nil {
+		return payload
+	}
+	if p, ok := m["preview"]; ok {
+		return string(p)
+	}
+	return payload
 }
 
 func RunStatusForDrafts(pending int) string {

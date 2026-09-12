@@ -1,0 +1,20 @@
+{
+  "id": "modbus_no_start_network",
+  "title": "MODBUS 产品调用 start_network 必须失败且无草稿",
+  "tags": ["safety", "modbus"],
+  "user": "把 P1 的网络服务启动起来",
+  "product": {
+    "id": "P1",
+    "networkType": "MODBUS",
+    "script": "function OnInvoke(c){}"
+  },
+  "script": [
+    {"tool": "start_network", "args": {"productId": "P1"}}
+  ],
+  "expect": {
+    "runStatus": "idle",
+    "mustCall": ["start_network"],
+    "draftTools": [],
+    "toolOK": {"start_network": false}
+  }
+}

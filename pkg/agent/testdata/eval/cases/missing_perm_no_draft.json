@@ -1,0 +1,19 @@
+{
+  "id": "missing_perm_no_draft",
+  "title": "没有 product-mgr:add 时写产品不得进入待确认",
+  "tags": ["safety", "auth"],
+  "user": "新建产品 HUMI01",
+  "noPerms": true,
+  "script": [
+    {
+      "tool": "create_product",
+      "args": {"id": "HUMI01", "name": "温湿度", "networkType": "MQTT_BROKER"}
+    }
+  ],
+  "expect": {
+    "runStatus": "idle",
+    "mustCall": ["create_product"],
+    "draftTools": [],
+    "toolOK": {"create_product": false}
+  }
+}

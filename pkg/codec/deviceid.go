@@ -10,6 +10,9 @@ func extractDeviceId(param interface{}) string {
 	if param == nil {
 		return ""
 	}
+	if d, ok := param.(*DryRunContext); ok && d != nil {
+		return strings.TrimSpace(d.DeviceId)
+	}
 	if ctx, ok := param.(core.DeviceLifecycleContext); ok && ctx != nil {
 		if d := ctx.GetDevice(); d != nil && d.Id != "" {
 			return d.Id

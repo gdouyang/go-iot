@@ -80,3 +80,22 @@ func TestJoinCompletionsURLRejectsDoubledPath(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "https://api.x.ai/v1/chat/completions", u)
 }
+
+func TestChatReturnsHTTPErrorOn401(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":{"message":"Authentication Fails","type":"authentication_error"}}`))
+	}))
+	defer srv.Close()
+
+	cli := New()
+	cli.HTTP = srv.Client()
+	_, err := cli.Chat(context.Background(), srv.URL+"/v1", "bad-key", CompletionsRequest{Model: "m"})
+	require.Error(t, err)
+	he, ok := err.(*HTTPError)
+	require.True(t, ok)
+	require.Equal(t, 401, he.Status)
+	require.Contains(t, he.Body, "Authentication Fails")
+	require.Contains(t, err.Error(), "llm http 401")
+}
+

@@ -9,7 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
+
+	logs "go-iot/pkg/logger"
 )
 
 type StreamOptions struct {
@@ -51,19 +52,45 @@ type ToolCall struct {
 }
 
 type CompletionsMessage struct {
-	Role      string     `json:"role"`
-	Content   string     `json:"content"`
-	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
+	Role             string          `json:"role"`
+	Content          string          `json:"content"`
+	Reasoning        string          `json:"-"`
+	ReasoningContent string          `json:"reasoning_content,omitempty"`
+	ReasoningRaw     json.RawMessage `json:"reasoning,omitempty"`
+	ToolCalls        []ToolCall      `json:"tool_calls,omitempty"`
+}
+
+func (m *CompletionsMessage) FillReasoning() {
+	if m == nil {
+		return
+	}
+	if strings.TrimSpace(m.Reasoning) != "" {
+		return
+	}
+	m.Reasoning = ReasoningText(m.ReasoningContent, m.ReasoningRaw)
 }
 
 type CompletionsResponse struct {
 	Choices []struct {
 		Message CompletionsMessage `json:"message"`
 	} `json:"choices"`
-	Usage struct {
-		PromptTokens     int `json:"prompt_tokens"`
-		CompletionTokens int `json:"completion_tokens"`
-	} `json:"usage"`
+	Usage Usage `json:"usage"`
+}
+
+type Usage struct {
+	PromptTokens            int `json:"prompt_tokens"`
+	CompletionTokens        int `json:"completion_tokens"`
+	ReasoningTokens         int `json:"reasoning_tokens"`
+	CompletionTokensDetails struct {
+		ReasoningTokens int `json:"reasoning_tokens"`
+	} `json:"completion_tokens_details"`
+}
+
+func (u Usage) ReasoningTokenCount() int {
+	if u.CompletionTokensDetails.ReasoningTokens > 0 {
+		return u.CompletionTokensDetails.ReasoningTokens
+	}
+	return u.ReasoningTokens
 }
 
 type Client struct {
@@ -73,7 +100,8 @@ type Client struct {
 func New() *Client {
 	return &Client{
 		HTTP: &http.Client{
-			Timeout: 90 * time.Second,
+			// Deadline comes from request context (per-call and run timeouts).
+			Timeout: 0,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			},
@@ -118,19 +146,29 @@ func (c *Client) Chat(ctx context.Context, baseURL, apiKey string, req Completio
 	}
 	resp, err := cli.Do(httpReq)
 	if err != nil {
+		if ctx.Err() == nil {
+			logs.Errorf("llm request error: %v", err)
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
+		if ctx.Err() == nil {
+			logs.Errorf("llm read body error: %v", err)
+		}
 		return nil, err
 	}
 	if resp.StatusCode >= 400 {
+		logs.Errorf("llm http %d: %s", resp.StatusCode, string(raw))
 		return nil, &HTTPError{Status: resp.StatusCode, Body: string(raw)}
 	}
 	var out CompletionsResponse
 	if err := json.Unmarshal(raw, &out); err != nil {
 		return nil, err
+	}
+	for i := range out.Choices {
+		out.Choices[i].Message.FillReasoning()
 	}
 	return &out, nil
 }

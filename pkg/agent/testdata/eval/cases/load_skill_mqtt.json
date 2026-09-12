@@ -1,0 +1,15 @@
+{
+  "id": "load_skill_mqtt",
+  "title": "写脚本前 load_skill 应成功且不产生草稿",
+  "tags": ["codec"],
+  "user": "MQTT Broker 编解码怎么写",
+  "script": [
+    {"tool": "load_skill", "args": {"name": "MQTT_BROKER"}}
+  ],
+  "expect": {
+    "runStatus": "idle",
+    "mustCall": ["load_skill"],
+    "draftTools": [],
+    "toolOK": {"load_skill": true}
+  }
+}

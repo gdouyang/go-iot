@@ -40,6 +40,25 @@ func TestToInputOmitsEventRows(t *testing.T) {
 	require.Equal(t, []string{RoleUser, RoleAssistant, RoleTool}, roles)
 }
 
+func TestToInputStripsReasoning(t *testing.T) {
+	asst, _ := json.Marshal(map[string]any{
+		"role": "assistant", "content": "ok", "reasoning": "内部思考不要回传",
+	})
+	in := ToInput([]models.AgentMessage{{Role: RoleAssistant, Payload: string(asst)}})
+	require.Len(t, in, 1)
+	var m map[string]any
+	require.NoError(t, json.Unmarshal(in[0], &m))
+	require.Equal(t, "ok", m["content"])
+	_, has := m["reasoning"]
+	require.False(t, has)
+}
+
+func TestMessageViewIncludesReasoning(t *testing.T) {
+	payload, _ := json.Marshal(map[string]any{"role": "assistant", "content": "答", "reasoning": "想"})
+	v := MessageView(&models.AgentMessage{Id: "1", Role: RoleAssistant, Content: "答", Payload: string(payload)}, "")
+	require.Equal(t, "想", v["reasoning"])
+}
+
 func TestToInputAttachesOutOfOrderToolResults(t *testing.T) {
 	user, _ := json.Marshal(map[string]any{"role": "user", "content": "继续"})
 	asst, _ := json.Marshal(map[string]any{
@@ -108,42 +127,52 @@ func TestToInputDropsEmptyToolCallsAndFillsMissingIDs(t *testing.T) {
 	require.False(t, has)
 }
 
-func TestSortMessagesByCreateTimeMs(t *testing.T) {
+func TestSortMessagesBySeqNo(t *testing.T) {
 	msgs := []models.AgentMessage{
-		{Id: "t", Role: RoleTool, CreateTimeMs: 5},
-		{Id: "e", Role: RoleEvent, EventType: EventApplied, CreateTimeMs: 4},
-		{Id: "a", Role: RoleAssistant, CreateTimeMs: 2},
-		{Id: "c", Role: RoleEvent, EventType: EventConfirmRequired, CreateTimeMs: 3},
-		{Id: "u", Role: RoleUser, CreateTimeMs: 1},
+		{Id: "t", Role: RoleTool, SeqNo: 5},
+		{Id: "e", Role: RoleEvent, EventType: EventApplied, SeqNo: 4},
+		{Id: "a", Role: RoleAssistant, SeqNo: 2},
+		{Id: "c", Role: RoleEvent, EventType: EventConfirmRequired, SeqNo: 3},
+		{Id: "u", Role: RoleUser, SeqNo: 1},
 	}
 	SortMessages(msgs)
 	require.Equal(t, []string{"u", "a", "c", "e", "t"}, []string{msgs[0].Id, msgs[1].Id, msgs[2].Id, msgs[3].Id, msgs[4].Id})
 }
 
-func TestSaveMessageAssignsIncreasingTimestamp(t *testing.T) {
+func TestSaveMessageAssignsIncreasingSeqNo(t *testing.T) {
 	store := NewMemoryStore()
-	conv := "conv-ts"
+	conv := "conv-seq-" + NewHexID()
 	var last int64
 	for i := 0; i < 8; i++ {
 		m := &models.AgentMessage{Id: NewHexID(), ConversationId: conv, Role: RoleUser, Payload: `{"role":"user","content":"x"}`}
 		require.NoError(t, store.SaveMessage(m))
-		require.Greater(t, m.CreateTimeMs, last)
-		last = m.CreateTimeMs
+		require.Greater(t, m.SeqNo, last)
+		last = m.SeqNo
 	}
 	list, err := store.ListMessages(conv)
 	require.NoError(t, err)
 	require.Len(t, list, 8)
 	for i := 1; i < len(list); i++ {
-		require.Greater(t, list[i].CreateTimeMs, list[i-1].CreateTimeMs)
+		require.Greater(t, list[i].SeqNo, list[i-1].SeqNo)
 	}
+	maxSeq, err := store.GetMaxSeq(conv)
+	require.NoError(t, err)
+	require.Equal(t, last, maxSeq)
+
+	emptyMax, err := store.GetMaxSeq("non-existent-conv")
+	require.NoError(t, err)
+	require.Equal(t, int64(0), emptyMax)
 }
 
-func TestHasNoDeployTool(t *testing.T) {
-	require.False(t, HasDeployTool())
+func TestHasDeployAndStartTools(t *testing.T) {
+	require.True(t, HasDeployTool())
+	names := map[string]bool{}
 	for _, t0 := range ToolCatalog() {
-		require.NotEqual(t, "deploy_product", t0.Function.Name)
-		require.NotEqual(t, "start_network", t0.Function.Name)
 		require.Equal(t, "function", t0.Type)
 		require.NotEmpty(t, t0.Function.Name)
+		names[t0.Function.Name] = true
+	}
+	for _, n := range []string{ToolDeployProduct, ToolStartNetwork, ToolGetTSL, ToolGetScript, ToolGetNetwork, ToolGetCollector, ToolSaveCollector, ToolGetDebugLogs, ToolRunScript} {
+		require.True(t, names[n], n)
 	}
 }

@@ -1,0 +1,18 @@
+{
+  "id": "create_device_hitl",
+  "title": "在已有产品下创建设备必须 HITL",
+  "tags": ["device", "hitl"],
+  "user": "给 P1 加设备 1234，名称 1234设备",
+  "product": {"id": "P1", "networkType": "MQTT_BROKER"},
+  "script": [
+    {"tool": "create_device", "args": {"id": "1234", "name": "1234设备", "productId": "P1"}}
+  ],
+  "expect": {
+    "runStatus": "awaiting_confirm",
+    "mustCall": ["create_device"],
+    "callArgs": {
+      "create_device": {"id": "1234", "productId": "P1"}
+    },
+    "draftTools": ["create_device"]
+  }
+}
