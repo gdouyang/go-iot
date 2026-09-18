@@ -42,7 +42,7 @@
     "echarts-wordcloud": "^2.1.0",
     "element-plus": "2.6.0",
     "lodash-es": "^4.17.21",
-    "md-editor-v3": "^4.17.4",
+    "md-editor-v3": "^6.5.4",
     "mitt": "^3.0.1",
     "nprogress": "^0.2.0",
     "pinia": "^2.1.7",
