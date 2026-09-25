@@ -24,7 +24,7 @@ func init() {
 			// {Property: "stopBits", Type: "number", Buildin: true, Desc: ""},
 			// {Property: "parity", Type: "number", Buildin: true, Desc: ""},
 		}
-		return core.CodecMetaConfig{MetaConfigs: list}
+		return core.CodecMetaConfig{MetaConfigs: list, CodecId: core.Script_Codec}
 	})
 }
 

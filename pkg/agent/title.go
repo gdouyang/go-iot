@@ -124,7 +124,7 @@ func summarizeTitle(ctx context.Context, settings *models.AgentUserSettings, use
 	temp := 0.2
 	ctx, cancel := context.WithTimeout(ctx, titleTimeout)
 	defer cancel()
-	resp, err := chat(ctx, cfg.BaseURL, settings.ApiKey, client.CompletionsRequest{
+	resp, err := chat(ctx, cfg.BaseURL, RevealAPIKey(settings.ApiKey), client.CompletionsRequest{
 		Model:           cfg.Model,
 		Messages:        []json.RawMessage{sys, usr},
 		Temperature:     &temp,

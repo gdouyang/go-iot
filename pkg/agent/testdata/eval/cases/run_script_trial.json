@@ -1,0 +1,21 @@
+{
+  "id": "run_script_trial",
+  "title": "试跑脚本不得落库、不得进入 HITL",
+  "tags": ["codec", "dry-run"],
+  "user": "用报文 {\"temp\":1} 试跑 P1 的 OnMessage",
+  "product": {
+    "id": "P1",
+    "networkType": "MQTT_BROKER",
+    "script": "function OnMessage(c){ console.log(\"got \"+c.MsgToString()); c.SaveProperties({n:1}) }"
+  },
+  "script": [
+    {"tool": "run_script", "args": {"productId": "P1", "payload": "{\"temp\":1}"}}
+  ],
+  "expect": {
+    "runStatus": "idle",
+    "mustCall": ["run_script"],
+    "mustNotCall": ["save_script", "deploy_product"],
+    "draftTools": [],
+    "toolOK": {"run_script": true}
+  }
+}

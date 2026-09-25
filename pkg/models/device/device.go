@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"go-iot/pkg/core"
+	"go-iot/pkg/license"
 	"go-iot/pkg/models"
 
 	"go-iot/pkg/es/orm"
@@ -70,6 +71,10 @@ func ListClientDeviceByProductId(productId string) ([]string, error) {
 }
 
 func AddDevice(ob *models.DeviceModel) error {
+	// License 配额与有效期检查
+	if err := license.Default().CheckCanAddDevice(1); err != nil {
+		return err
+	}
 	// 仅规范化本设备 ID；productId/parentId 保持原样以兼容历史大小写数据
 	ob.Id = NormalizeId(ob.Id)
 	if len(ob.Id) == 0 || len(ob.Name) == 0 {

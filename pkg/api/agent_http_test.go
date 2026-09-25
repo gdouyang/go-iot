@@ -10,6 +10,7 @@ import (
 
 	"go-iot/pkg/agent"
 	"go-iot/pkg/api/web/session"
+	"go-iot/pkg/license"
 	"go-iot/pkg/models"
 	"go-iot/pkg/redis"
 
@@ -21,6 +22,9 @@ import (
 
 func setupAgentHTTP(t *testing.T) (*chi.Mux, func(user *models.User) string) {
 	t.Helper()
+	restoreLic := license.SetTestActive(nil)
+	t.Cleanup(restoreLic)
+
 	mr, err := miniredis.Run()
 	require.NoError(t, err)
 	t.Cleanup(func() { mr.Close() })
@@ -56,6 +60,7 @@ func setupAgentHTTP(t *testing.T) (*chi.Mux, func(user *models.User) string) {
 			"agent-mgr:query": true, "agent-mgr:add": true,
 			"agent-mgr:save": true, "agent-mgr:delete": true,
 			"product-mgr:query": true, "product-mgr:add": true, "product-mgr:save": true,
+			"device-mgr:add": true,
 		})
 		return s.Sessionid
 	}
@@ -135,7 +140,7 @@ func TestAgentIsolationAndMessagesModelGate(t *testing.T) {
 
 func TestSettingsNeverReturnFullKey(t *testing.T) {
 	mux, login := setupAgentHTTP(t)
-	tok := login(&models.User{Id: 4, Username: "u"})
+	tok := login(&models.User{Id: 1, Username: "admin"})
 	code, body := doJSON(t, mux, "PUT", "/agent/settings", tok, map[string]any{
 		"baseUrl": "http://127.0.0.1:11434/v1", "model": "grok-4.5", "apiKey": "sk-abcdef9999",
 		"allowPrivateLlm": true,

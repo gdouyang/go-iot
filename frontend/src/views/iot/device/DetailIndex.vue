@@ -184,11 +184,18 @@ export default {
       )
     }
   },
+  watch: {
+    getDeviceId: {
+      handler(newId, oldId) {
+        if (newId && newId !== oldId) {
+          this.initWebSocket()
+          this.reloadDevice()
+        }
+      }
+    }
+  },
   created() {
-    this.eventWs = new EventBusWs(getEventBusUrl(this.getDeviceId, '*'), (evt) =>
-      this.onWsMessage(evt)
-    )
-    this.eventWs.connect()
+    this.initWebSocket()
   },
   mounted() {
     const { id } = this.$route.query
@@ -278,15 +285,32 @@ export default {
         }
       })
     },
+    initWebSocket() {
+      if (this.eventWs) {
+        this.eventWs.close()
+        this.eventWs = null
+      }
+      const deviceId = this.getDeviceId
+      if (!deviceId) {
+        return
+      }
+      this.eventWs = new EventBusWs(getEventBusUrl(deviceId, '*'), (evt) => this.onWsMessage(evt))
+      this.eventWs.connect()
+    },
     onWsMessage(evt) {
-      var data = JSON.parse(evt.data)
-      if (data.type === 'online') {
-        this.detailData.state = 'online'
-        this.getConnectionInfo()
-      } else if (data.type === 'offline') {
-        this.detailData.state = 'offline'
-      } else if (data.type === 'property' || data.type === 'event') {
-        this.realtimeData = data
+      try {
+        var data = JSON.parse(evt.data)
+        if (data.type === 'online') {
+          this.detailData.state = 'online'
+          this.getConnectionInfo()
+        } else if (data.type === 'offline') {
+          this.detailData.state = 'offline'
+          this.connectionInfo = ''
+        } else if (data.type === 'property' || data.type === 'event') {
+          this.realtimeData = data
+        }
+      } catch (e) {
+        console.error('onWsMessage parse error', e)
       }
     }
   }

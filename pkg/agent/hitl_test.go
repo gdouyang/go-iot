@@ -42,14 +42,14 @@ func TestRejectSubsetStaysAwaitingConfirmAndPersistsEvents(t *testing.T) {
 	d1 := seedPending(store, c, ToolUpdateProduct)
 	d2 := seedPending(store, c, ToolUpdateProduct)
 
-	res, err := RejectDrafts(store, 3, c, []string{d1.Id})
+	res, err := RejectDrafts(store, ToolContext{UserId: 3}, c, []string{d1.Id})
 	require.NoError(t, err)
 	require.Equal(t, RunAwaitingConfirm, res.RunStatus)
 	require.Equal(t, []string{d2.Id}, res.PendingDrafts)
 
 	got1, _ := store.GetDraft(d1.Id)
 	got2, _ := store.GetDraft(d2.Id)
-	require.Equal(t, DraftRejected, got1.Status)
+	require.Nil(t, got1)
 	require.Equal(t, DraftPending, got2.Status)
 
 	msgs, _ := store.ListMessages(c.Id)
@@ -67,10 +67,10 @@ func TestRejectSubsetStaysAwaitingConfirmAndPersistsEvents(t *testing.T) {
 func TestApplyPersistsAppliedEventNotAssistantMarkdown(t *testing.T) {
 	store := NewMemoryStore()
 	c := seedConv(store, 3)
-	// update_product apply still hits ES via productsvc — stub by using unknown tool? 
+	// update_product apply still hits ES via productsvc — stub by using unknown tool?
 	// Use reject path already covered; here inject a draft and mock ApplyMutating via update that fails owner.
 	d := seedPending(store, c, ToolUpdateProduct)
-	res, err := ApplyDrafts(store, 3, c, []string{d.Id}, false)
+	res, err := ApplyDrafts(store, ToolContext{UserId: 3}, c, []string{d.Id}, false)
 	require.NoError(t, err)
 	// without ES GetProductMust fails; draft stays pending
 	require.Equal(t, RunAwaitingConfirm, res.RunStatus)
@@ -82,8 +82,8 @@ func TestApplyPersistsAppliedEventNotAssistantMarkdown(t *testing.T) {
 func TestApplySuccessWritesAppliedEvent(t *testing.T) {
 	orig := applyMutatingFn
 	t.Cleanup(func() { applyMutatingFn = orig })
-	applyMutatingFn = func(userId int64, toolName, payload string) (string, error) {
-		require.Equal(t, int64(3), userId)
+	applyMutatingFn = func(ctx ToolContext, toolName, payload string) (string, error) {
+		require.Equal(t, int64(3), ctx.UserId)
 		require.Equal(t, ToolCreateProduct, toolName)
 		return "HUMI-01", nil
 	}
@@ -101,7 +101,7 @@ func TestApplySuccessWritesAppliedEvent(t *testing.T) {
 		Id: NewHexID(), ConversationId: c.Id, Role: RoleAssistant,
 		Payload: string(asst), CreateId: 3, CreateTime: models.NewDateTime(),
 	}))
-	res, err := ApplyDrafts(store, 3, c, []string{d.Id}, true)
+	res, err := ApplyDrafts(store, ToolContext{UserId: 3}, c, []string{d.Id}, true)
 	require.NoError(t, err)
 	require.Equal(t, RunIdle, res.RunStatus)
 	require.True(t, res.NeedsResume)
@@ -109,7 +109,7 @@ func TestApplySuccessWritesAppliedEvent(t *testing.T) {
 	require.Equal(t, "HUMI-01", res.Applied[0]["productId"])
 
 	got, _ := store.GetDraft(d.Id)
-	require.Equal(t, DraftApplied, got.Status)
+	require.Nil(t, got)
 
 	msgs, _ := store.ListMessages(c.Id)
 	var sawApplied, sawAssistantMarkdown bool

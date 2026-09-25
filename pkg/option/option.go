@@ -159,8 +159,19 @@ type Options struct {
 	// 规则引擎
 	Rule Rule `yaml:"rule"`
 
+	// License 授权
+	License License `yaml:"license"`
+
 	// 控制台输出的banner
 	Banner string `yaml:"banner"`
+}
+
+// License 授权相关配置
+type License struct {
+	// LicFile license 文件路径 (默认 conf/license.lic)
+	LicFile string `yaml:"lic-file"`
+	// PublicKey 验签公钥路径或 PEM 字符串
+	PublicKey string `yaml:"public-key"`
 }
 
 // AdminPassword 返回初始管理员密码（空则 DefaultAdminPassword）。
@@ -286,6 +297,10 @@ func New() *Options {
 	opt.flags.BoolVar(&opt.Script.HTTPEnabled, "script.http-enabled", true, "是否允许编解码脚本 HttpRequest")
 	opt.flags.BoolVar(&opt.Script.HTTPBlockPrivate, "script.http-block-private", true, "脚本 HTTP 是否禁止访问私网/本机（SSRF）")
 	opt.flags.IntVar(&opt.Script.VMPoolSize, "script.vm-pool-size", DefaultScriptVMPoolSize, "每个产品编解码 JS 引擎池大小")
+
+	// License 授权
+	opt.flags.StringVar(&opt.License.LicFile, "license.lic-file", "conf/license.lic", "license授权文件路径")
+	opt.flags.StringVar(&opt.License.PublicKey, "license.public-key", "", "验签公钥(文件路径或PEM字符串)")
 
 	// 规则引擎
 	opt.flags.IntVar(&opt.Rule.MaxShakeLimitTime, "rule.max-shake-limit-time", 3600, "规则引擎防抖时间轮最大秒数")

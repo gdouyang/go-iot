@@ -1,0 +1,26 @@
+{
+  "id": "dirty_tsl_no_draft",
+  "title": "物模型带 specs 时不得生成待确认草稿",
+  "tags": ["safety", "tsl", "model-risk"],
+  "user": "给 P1 写温度属性",
+  "product": {"id": "P1", "networkType": "MQTT_BROKER"},
+  "script": [
+    {
+      "tool": "save_tsl",
+      "args": {
+        "productId": "P1",
+        "tsl": {
+          "properties": [
+            {"id": "temperature", "name": "温度", "type": "float", "specs": {"unit": "℃"}}
+          ]
+        }
+      }
+    }
+  ],
+  "expect": {
+    "runStatus": "idle",
+    "mustCall": ["save_tsl"],
+    "draftTools": [],
+    "toolOK": {"save_tsl": false}
+  }
+}

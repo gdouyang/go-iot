@@ -10,6 +10,7 @@ import (
 	"go-iot/pkg/api/web"
 	"go-iot/pkg/common"
 	"go-iot/pkg/models"
+	"time"
 )
 
 var agentResource = Resource{
@@ -59,7 +60,7 @@ func (a *agentApi) mustOwnConv(ctl *AuthController, id string) (*models.AgentCon
 
 func (a *agentApi) status(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.GetCurrentUser() == nil {
+	if ctl.isForbidden(agentResource, QueryAction) {
 		return
 	}
 	st, _ := agent.DefaultStore.GetSettings(ctl.GetCurrentUser().Id)
@@ -77,7 +78,7 @@ func (a *agentApi) status(w http.ResponseWriter, r *http.Request) {
 
 func (a *agentApi) getSettings(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.GetCurrentUser() == nil {
+	if ctl.isForbidden(agentResource, QueryAction) {
 		return
 	}
 	st, err := agent.DefaultStore.GetSettings(ctl.GetCurrentUser().Id)
@@ -85,12 +86,15 @@ func (a *agentApi) getSettings(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
-	ctl.RespOkData(agent.ViewSettings(st))
+	v := agent.ViewSettings(st)
+	u := ctl.GetCurrentUser()
+	v.CanAllowPrivateLLM = agent.IsPlatformAdmin(u.Id, u.Username)
+	ctl.RespOkData(v)
 }
 
 func (a *agentApi) putSettings(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
-	if ctl.GetCurrentUser() == nil {
+	if ctl.isForbidden(agentResource, SaveAction) {
 		return
 	}
 	var put agent.SettingsPut
@@ -98,12 +102,23 @@ func (a *agentApi) putSettings(w http.ResponseWriter, r *http.Request) {
 		a.respReason(ctl, http.StatusBadRequest, agent.ReasonInvalidArgs, err.Error())
 		return
 	}
-	st, err := agent.PutSettings(agent.DefaultStore, ctl.GetCurrentUser().Id, put)
+	u := ctl.GetCurrentUser()
+	if put.AllowPrivateLLM != nil && *put.AllowPrivateLLM && !agent.IsPlatformAdmin(u.Id, u.Username) {
+		a.respReason(ctl, http.StatusForbidden, agent.ReasonForbidden, "only admin can allow private llm")
+		return
+	}
+	st, err := agent.PutSettings(agent.DefaultStore, u.Id, put)
 	if err != nil {
+		if strings.Contains(err.Error(), agent.ReasonForbidden) {
+			a.respReason(ctl, http.StatusForbidden, agent.ReasonForbidden, err.Error())
+			return
+		}
 		a.respReason(ctl, http.StatusBadRequest, agent.ReasonInvalidArgs, err.Error())
 		return
 	}
-	ctl.RespOkData(agent.ViewSettings(st))
+	v := agent.ViewSettings(st)
+	v.CanAllowPrivateLLM = agent.IsPlatformAdmin(u.Id, u.Username)
+	ctl.RespOkData(v)
 }
 
 func (a *agentApi) createConv(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +144,7 @@ func (a *agentApi) createConv(w http.ResponseWriter, r *http.Request) {
 		ctl.RespError(err)
 		return
 	}
+	agent.EnsureConvSeq(r.Context(), c.Id, agent.DefaultStore)
 	ctl.RespOkData(c)
 }
 
@@ -137,12 +153,29 @@ func (a *agentApi) pageConv(w http.ResponseWriter, r *http.Request) {
 	if ctl.isForbidden(agentResource, QueryAction) {
 		return
 	}
+	var q models.PageQuery
+	_ = ctl.BindJSON(&q)
+	if q.PageNum <= 0 {
+		q.PageNum = 1
+	}
+	if q.PageSize <= 0 || q.PageSize > 100 {
+		q.PageSize = 50
+	}
 	list, err := agent.DefaultStore.ListConversations(ctl.GetCurrentUser().Id)
 	if err != nil {
 		ctl.RespError(err)
 		return
 	}
-	ctl.RespOkData(models.PageUtil(int64(len(list)), 1, 50, list))
+	total := int64(len(list))
+	start := (q.PageNum - 1) * q.PageSize
+	if start > len(list) {
+		start = len(list)
+	}
+	end := start + q.PageSize
+	if end > len(list) {
+		end = len(list)
+	}
+	ctl.RespOkData(models.PageUtil(total, q.PageNum, q.PageSize, list[start:end]))
 }
 
 func (a *agentApi) getConv(w http.ResponseWriter, r *http.Request) {
@@ -155,6 +188,7 @@ func (a *agentApi) getConv(w http.ResponseWriter, r *http.Request) {
 		a.respReason(ctl, http.StatusNotFound, agent.ReasonNotFound, "not found")
 		return
 	}
+	agent.SyncRunStatus(agent.DefaultStore, c)
 	drafts, _ := agent.DefaultStore.ListDrafts(c.Id)
 	var pending []map[string]any
 	for _, d := range agent.PendingDrafts(drafts) {
@@ -164,9 +198,9 @@ func (a *agentApi) getConv(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	ctl.RespOkData(map[string]any{
-		"conversation": c,
-		"runStatus":    c.RunStatus,
-		"needsResume":  c.NeedsResume,
+		"conversation":  c,
+		"runStatus":     c.RunStatus,
+		"needsResume":   c.NeedsResume,
 		"pendingDrafts": pending,
 	})
 }
@@ -193,12 +227,11 @@ func (a *agentApi) putConv(w http.ResponseWriter, r *http.Request) {
 		a.respReason(ctl, http.StatusBadRequest, agent.ReasonInvalidArgs, err.Error())
 		return
 	}
-	c.Title = title
-	c.UpdateTime = models.NewDateTime()
-	if err := agent.DefaultStore.SaveConversation(c); err != nil {
+	if err := agent.DefaultStore.UpdateTitle(c.Id, title); err != nil {
 		ctl.RespError(err)
 		return
 	}
+	c.Title = title
 	ctl.RespOkData(c)
 }
 
@@ -234,18 +267,12 @@ func (a *agentApi) listMessages(w http.ResponseWriter, r *http.Request) {
 	pageSize := 50
 	tail := agent.TailMessages(msgs, pageSize)
 	dtos := make([]map[string]any, 0, len(tail))
-	for _, m := range tail {
-		dto := map[string]any{
-			"id": m.Id, "role": m.Role, "content": m.Content,
-			"eventType": m.EventType, "toolName": m.ToolName,
-			"toolCallId": m.ToolCallId, "draftId": m.DraftId,
-			"productId": m.ProductId, "createdTime": m.CreateTime, "createTimeMs": m.CreateTimeMs,
+	for i := range tail {
+		st := ""
+		if tail[i].EventType == agent.EventConfirmRequired {
+			st = draftStatusOf(c.Id, tail[i].DraftId)
 		}
-		if m.EventType == agent.EventConfirmRequired {
-			dto["preview"] = json.RawMessage(orEmptyJSON(extractPreview(m.Payload)))
-			dto["draftStatus"] = draftStatusOf(c.Id, m.DraftId)
-		}
-		dtos = append(dtos, dto)
+		dtos = append(dtos, agent.MessageView(&tail[i], st))
 	}
 	ctl.RespOkData(models.PageUtil(int64(len(msgs)), 1, pageSize, dtos))
 }
@@ -258,6 +285,8 @@ func (a *agentApi) requireModel(ctl *AuthController) (*models.AgentUserSettings,
 	}
 	return st, true
 }
+
+const maxMessageContentLength = 131072 // 128 KB, supports attached hardware protocol docs up to 64KB
 
 func (a *agentApi) postMessage(w http.ResponseWriter, r *http.Request) {
 	ctl := NewAuthController(w, r)
@@ -273,6 +302,7 @@ func (a *agentApi) postMessage(w http.ResponseWriter, r *http.Request) {
 		a.respReason(ctl, http.StatusNotFound, agent.ReasonNotFound, "not found")
 		return
 	}
+	agent.SyncRunStatus(agent.DefaultStore, c)
 	if c.RunStatus == agent.RunRunning || c.RunStatus == agent.RunApplying {
 		a.respReason(ctl, http.StatusConflict, agent.ReasonRunActive, "run active")
 		return
@@ -284,16 +314,11 @@ func (a *agentApi) postMessage(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Content string `json:"content"`
 	}
-	if err := ctl.BindJSON(&body); err != nil || strings.TrimSpace(body.Content) == "" || len(body.Content) > 16384 {
+	if err := ctl.BindJSON(&body); err != nil || strings.TrimSpace(body.Content) == "" || len(body.Content) > maxMessageContentLength {
 		a.respReason(ctl, http.StatusBadRequest, agent.ReasonInvalidArgs, "invalid content")
 		return
 	}
-	res, err := agent.RunTurn(r.Context(), agent.DefaultStore, c, st, body.Content, false)
-	if err != nil {
-		a.mapRunErr(ctl, err)
-		return
-	}
-	ctl.RespOkData(res)
+	a.run(ctl, r, c, st, body.Content, false)
 }
 
 func (a *agentApi) continueRun(w http.ResponseWriter, r *http.Request) {
@@ -310,11 +335,45 @@ func (a *agentApi) continueRun(w http.ResponseWriter, r *http.Request) {
 		a.respReason(ctl, http.StatusNotFound, agent.ReasonNotFound, "not found")
 		return
 	}
+	agent.SyncRunStatus(agent.DefaultStore, c)
 	if c.RunStatus != agent.RunIdle || !c.NeedsResume {
 		a.respReason(ctl, http.StatusConflict, "needsResume=false", "cannot continue")
 		return
 	}
-	res, err := agent.RunTurn(r.Context(), agent.DefaultStore, c, st, "", true)
+	a.run(ctl, r, c, st, "", true)
+}
+
+func (a *agentApi) toolCtx(ctl *AuthController) agent.ToolContext {
+	perms := map[string]bool{}
+	if s := ctl.GetSession(); s != nil {
+		perms = s.GetPermission()
+	}
+	return agent.ToolContext{UserId: ctl.GetCurrentUser().Id, Perms: perms}
+}
+
+func (a *agentApi) run(ctl *AuthController, r *http.Request, c *models.AgentConversation, st *models.AgentUserSettings, text string, continueRun bool) {
+	opts := agent.RunOpts{
+		Store: agent.DefaultStore, Conv: c, Settings: st,
+		UserText: text, Continue: continueRun, Perms: a.toolCtx(ctl).Perms,
+	}
+	if agent.WantsStream(r) {
+		sink := agent.NewSSESink(ctl.ResponseWriter)
+		if sink == nil {
+			a.respReason(ctl, http.StatusInternalServerError, agent.ReasonInvalidArgs, "stream unsupported")
+			return
+		}
+		opts.Sink = sink
+		res, err := agent.RunTurnOpts(r.Context(), opts)
+		if err != nil {
+			sink.Emit("error", map[string]any{"message": err.Error(), "reason": runReason(err)})
+			if res != nil {
+				sink.Emit("done", res)
+			}
+			return
+		}
+		return
+	}
+	res, err := agent.RunTurnOpts(r.Context(), opts)
 	if err != nil {
 		a.mapRunErr(ctl, err)
 		return
@@ -340,28 +399,16 @@ func (a *agentApi) apply(w http.ResponseWriter, r *http.Request) {
 		a.respReason(ctl, http.StatusBadRequest, agent.ReasonInvalidArgs, err.Error())
 		return
 	}
+	agent.SyncRunStatus(agent.DefaultStore, c)
 	if !agent.TryLock(c.Id) {
 		a.respReason(ctl, http.StatusConflict, agent.ReasonRunActive, "busy")
 		return
 	}
-	res, err := agent.ApplyDrafts(agent.DefaultStore, ctl.GetCurrentUser().Id, c, body.DraftIds, body.Resume)
+	res, err := agent.ApplyDrafts(agent.DefaultStore, a.toolCtx(ctl), c, body.DraftIds, body.Resume)
 	agent.Unlock(c.Id)
 	if err != nil {
 		a.mapRunErr(ctl, err)
 		return
-	}
-	if body.Resume && res.NeedsResume {
-		st, _ := agent.DefaultStore.GetSettings(ctl.GetCurrentUser().Id)
-		if agent.ModelConfigured(st) {
-			if c2, err2 := a.mustOwnConv(ctl, c.Id); err2 == nil {
-				run, runErr := agent.RunTurn(r.Context(), agent.DefaultStore, c2, st, "", true)
-				if runErr == nil && run != nil {
-					res.NeedsResume = run.NeedsResume
-					res.RunStatus = run.RunStatus
-					res.PendingDrafts = run.PendingDrafts
-				}
-			}
-		}
 	}
 	ctl.RespOkData(res)
 }
@@ -380,12 +427,13 @@ func (a *agentApi) reject(w http.ResponseWriter, r *http.Request) {
 		DraftIds []string `json:"draftIds"`
 	}
 	_ = ctl.BindJSON(&body)
+	agent.SyncRunStatus(agent.DefaultStore, c)
 	if !agent.TryLock(c.Id) {
 		a.respReason(ctl, http.StatusConflict, agent.ReasonRunActive, "busy")
 		return
 	}
 	defer agent.Unlock(c.Id)
-	res, err := agent.RejectDrafts(agent.DefaultStore, ctl.GetCurrentUser().Id, c, body.DraftIds)
+	res, err := agent.RejectDrafts(agent.DefaultStore, a.toolCtx(ctl), c, body.DraftIds)
 	if err != nil {
 		a.mapRunErr(ctl, err)
 		return
@@ -403,16 +451,29 @@ func (a *agentApi) cancel(w http.ResponseWriter, r *http.Request) {
 		a.respReason(ctl, http.StatusNotFound, agent.ReasonNotFound, "not found")
 		return
 	}
-	if c.RunStatus == agent.RunApplying {
-		ctl.RespOk()
+	localFound := agent.CancelActive(c.Id)
+	agent.BroadcastCancel(c.Id)
+	if localFound {
+		agent.WaitRun(c.Id, 3*time.Second)
+	}
+	c2, err := a.mustOwnConv(ctl, c.Id)
+	if err != nil {
+		a.respReason(ctl, http.StatusNotFound, agent.ReasonNotFound, "not found")
 		return
 	}
-	if agent.PendingLeft(agent.DefaultStore, c.Id) {
-		c.RunStatus = agent.RunAwaitingConfirm
-	} else {
-		c.RunStatus = agent.RunIdle
+	if agent.IsLocked(c2.Id) && c2.RunStatus == agent.RunApplying {
+		a.respReason(ctl, http.StatusConflict, agent.ReasonRunActive, "applying")
+		return
 	}
-	_ = agent.DefaultStore.SaveConversation(c)
+	if !agent.IsLocked(c2.Id) {
+		if agent.PendingLeft(agent.DefaultStore, c2.Id) {
+			c2.RunStatus = agent.RunAwaitingConfirm
+		} else {
+			c2.RunStatus = agent.RunIdle
+		}
+		c2.NeedsResume = false
+		_ = agent.DefaultStore.SaveConversation(c2)
+	}
 	ctl.RespOk()
 }
 
@@ -429,6 +490,8 @@ func (a *agentApi) mapRunErr(ctl *AuthController, err error) {
 		a.respReason(ctl, http.StatusBadRequest, agent.ReasonToolsNotSupported, msg)
 	case strings.Contains(msg, agent.ReasonNotFound):
 		a.respReason(ctl, http.StatusNotFound, agent.ReasonNotFound, msg)
+	case strings.Contains(msg, agent.ReasonForbidden):
+		a.respReason(ctl, http.StatusForbidden, agent.ReasonForbidden, msg)
 	case strings.Contains(msg, "llm http"):
 		a.respReason(ctl, http.StatusBadGateway, "llm_error", msg)
 	default:
@@ -436,22 +499,30 @@ func (a *agentApi) mapRunErr(ctl *AuthController, err error) {
 	}
 }
 
+func runReason(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	for _, r := range []string{
+		agent.ReasonRunActive, agent.ReasonPendingDrafts, agent.ReasonNotAwaiting,
+		agent.ReasonToolsNotSupported, agent.ReasonNotFound, agent.ReasonForbidden,
+	} {
+		if strings.Contains(msg, r) {
+			return r
+		}
+	}
+	if strings.Contains(msg, "llm http") {
+		return "llm_error"
+	}
+	return "error"
+}
+
 func orEmptyJSON(s string) string {
 	if strings.TrimSpace(s) == "" {
 		return "null"
 	}
 	return s
-}
-
-func extractPreview(payload string) string {
-	var m map[string]json.RawMessage
-	if json.Unmarshal([]byte(payload), &m) != nil {
-		return payload
-	}
-	if p, ok := m["preview"]; ok {
-		return string(p)
-	}
-	return payload
 }
 
 func draftStatusOf(convId, draftId string) string {
@@ -464,5 +535,3 @@ func draftStatusOf(convId, draftId string) string {
 	}
 	return d.Status
 }
-
-

@@ -1,0 +1,41 @@
+{
+  "networkTypes": [
+    "MQTT_BROKER",
+    "GOIOT_MQTT_BROKER",
+    "TCP_SERVER",
+    "HTTP_SERVER",
+    "WEBSOCKET_SERVER",
+    "COAP_SERVER",
+    "MQTT_CLIENT",
+    "TCP_CLIENT",
+    "MODBUS"
+  ],
+  "tools": [
+    {"name": "list_products", "mutating": false},
+    {"name": "get_product", "mutating": false},
+    {"name": "get_product_config", "mutating": false},
+    {"name": "get_tsl", "mutating": false},
+    {"name": "get_script", "mutating": false},
+    {"name": "get_network", "mutating": false},
+    {"name": "get_collector", "mutating": false},
+    {"name": "get_tsl_schema", "mutating": false},
+    {"name": "load_skill", "mutating": false},
+    {"name": "validate_tsl", "mutating": false},
+    {"name": "validate_script", "mutating": false},
+    {"name": "get_debug_logs", "mutating": false},
+    {"name": "run_script", "mutating": false},
+    {"name": "get_device", "mutating": false},
+    {"name": "list_devices", "mutating": false},
+    {"name": "create_product", "mutating": true, "writePerm": "product-mgr:add"},
+    {"name": "create_device", "mutating": true, "writePerm": "device-mgr:add"},
+    {"name": "update_product", "mutating": true, "writePerm": "product-mgr:save"},
+    {"name": "save_product_config", "mutating": true, "writePerm": "product-mgr:save"},
+    {"name": "save_tsl", "mutating": true, "writePerm": "product-mgr:save"},
+    {"name": "save_script", "mutating": true, "writePerm": "product-mgr:save"},
+    {"name": "update_network", "mutating": true, "writePerm": "product-mgr:save"},
+    {"name": "save_collector", "mutating": true, "writePerm": "product-mgr:save"},
+    {"name": "deploy_product", "mutating": true, "writePerm": "product-mgr:save"},
+    {"name": "start_network", "mutating": true, "writePerm": "product-mgr:save"},
+    {"name": "stop_network", "mutating": true, "writePerm": "product-mgr:save"}
+  ]
+}

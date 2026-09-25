@@ -82,3 +82,26 @@ export function saveUserInfo(values) {
 export function updatePwd(values) {
   return request.put('user-info/update-pwd', values)
 }
+
+/** 获取 License 授权信息 */
+export function getLicenseInfo() {
+  return request.get('/system/license/info').then((res) => res.result)
+}
+
+/** 上传 License 授权文件 */
+export function uploadLicense(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request
+    .post('/system/license/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    .then((res) => res.result)
+}
+
+/** 轻量检测 License 状态 */
+export function getLicenseStatus() {
+  return request.get('/system/license/status').then((res) => res.result)
+}
+
+export const getAnonLicenseStatus = getLicenseStatus

@@ -137,3 +137,55 @@ export function objToFormData(obj: Recordable) {
   })
   return formData
 }
+
+/**
+ * 兼容 HTTP/HTTPS/局域网IP 的剪贴板复制工具
+ */
+export function copyToClipboard(text: string): Promise<boolean> {
+  if (!text) {
+    return Promise.reject(new Error('复制内容为空'))
+  }
+
+  // 安全上下文下优先尝试现代 Clipboard API
+  if (navigator?.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text).then(
+      () => true,
+      () => fallbackCopy(text)
+    )
+  }
+
+  // HTTP 或非安全上下文使用 textarea + execCommand('copy')
+  return fallbackCopy(text)
+}
+
+function fallbackCopy(text: string): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const textArea = document.createElement('textarea')
+    textArea.value = text
+    textArea.style.position = 'fixed'
+    textArea.style.top = '0'
+    textArea.style.left = '0'
+    textArea.style.width = '2em'
+    textArea.style.height = '2em'
+    textArea.style.padding = '0'
+    textArea.style.border = 'none'
+    textArea.style.outline = 'none'
+    textArea.style.boxShadow = 'none'
+    textArea.style.background = 'transparent'
+    document.body.appendChild(textArea)
+    textArea.focus()
+    textArea.select()
+    try {
+      const successful = document.execCommand('copy')
+      document.body.removeChild(textArea)
+      if (successful) {
+        resolve(true)
+      } else {
+        reject(new Error('浏览器不支持或拒绝复制'))
+      }
+    } catch (err) {
+      document.body.removeChild(textArea)
+      reject(err)
+    }
+  })
+}

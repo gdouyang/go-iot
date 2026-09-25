@@ -1,5 +1,5 @@
 ### OnConnect函数
-> 当有客户端连接是会调用OnConnect函数，在OnConnect函数中可以对客户端进行账号密码的校验，默认情况下客户端的clientId将是设备id，当设置username与password时将校验是否与配置中的一致
+> 当有客户端连接是会调用OnConnect函数，在OnConnect函数中可以对客户端进行账号密码的校验，默认情况下客户端的clientId将是设备id。产品「配置」里的 username/password 是默认值；设备配置非空才覆盖。设备没配该项会回落到产品配置。空设备配置不等于免密。
 - context参数说明
 
 | 方法 | 说明 | 参数 | 返回值 |
@@ -11,18 +11,27 @@
 | DeviceOnline | 将设备上线 | (deviceId: string) | - |
 | AuthFail | 认证失败 | - | - |
 
-> OnConnect 的 `GetSession()` / `GetMessage()` 为 nil。认证前还没有设备，不要用 `context.GetConfig`，用 `GetDeviceById(GetClientId()).GetConfig(...)`。
+> OnConnect 的 `GetSession()` / `GetMessage()` 为 nil。认证前还没有设备，不要用 `context.GetConfig`，用 `GetDeviceById(GetClientId()).GetConfig(...)`。`device.GetConfig` 先读设备，值为空则回落产品配置。
 
 ```javascript
-// 系统默认会根据用户名和密码来认证，如果不满足可写OnConnect来自行判断
-// 当mqtt客户端连接到Broker时可以在这里判断用户名和密码是否正确
+// 产品或设备配了 username/password 就必须校验；都空才可按业务决定是否免密
 function OnConnect(context) {
   var device = context.GetDeviceById(context.GetClientId())
-  if (device && context.GetUserName() == device.GetConfig("username") && context.GetPassword() == device.GetConfig("password")) {
-    context.DeviceOnline(context.GetClientId())
+  if (!device) {
+    context.AuthFail()
     return
   }
-  context.AuthFail()
+  var username = device.GetConfig("username")
+  var password = device.GetConfig("password")
+  if (username || password) {
+    if (context.GetUserName() == username && context.GetPassword() == password) {
+      context.DeviceOnline(context.GetClientId())
+      return
+    }
+    context.AuthFail()
+    return
+  }
+  context.DeviceOnline(context.GetClientId())
 }
 ```
 ### OnMessage函数
@@ -123,7 +132,7 @@ function OnInvoke(context) {
 | Id | 设备id | - | string |
 | Name | 设备名称 | - | string |
 | GetId | 设备id（与 Id 相同） | - | string |
-| GetConfig | 获取配置（先设备后产品） | (key: string) | string |
+| GetConfig | 获取配置（先设备后产品；设备值为空则回落产品） | (key: string) | string |
 | SetConfig | 设置设备配置 | (key: string, value: string) | - |
 | GetData | 获取临时数据 | (key: string) | string |
 | SetData | 设置临时数据 | (key: string, value: string) | - |

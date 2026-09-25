@@ -85,6 +85,16 @@ export const constantRouterMap: AppRouteRecordRaw[] = [
       title: '404',
       noTagsView: true
     }
+  },
+  {
+    path: '/license-required',
+    component: () => import('@/views/Error/LicenseRequired.vue'),
+    name: 'LicenseRequired',
+    meta: {
+      hidden: true,
+      title: '系统未授权',
+      noTagsView: true
+    }
   }
 ]
 
@@ -237,6 +247,12 @@ export const asyncRouterMap: AppRouteRecordRaw[] = [
         name: 'SystemConfig',
         component: () => import('@/views/sys/config/SysConfig.vue'),
         meta: { title: '系统配置', keepAlive: true, permission: ['sys-config'] }
+      },
+      {
+        path: 'license',
+        name: 'LicensePage',
+        component: () => import('@/views/sys/License.vue'),
+        meta: { title: '授权管理', keepAlive: true, permission: ['license-mgr'] }
       }
     ]
   }
@@ -255,6 +271,7 @@ export const resetRouter = (): void => {
     'Login',
     'NoFind',
     'NoPermission',
+    'LicenseRequired',
     'Root',
     'Personal',
     'PersonalCenter'

@@ -18,26 +18,28 @@ const (
 	ReasonNotAwaiting        = "not_awaiting"
 	ReasonDraftExpired       = "draft_expired"
 	ReasonToolsNotSupported  = "tools_not_supported"
+	ReasonForbidden          = "forbidden"
 )
 
 type SettingsView struct {
-	BaseURL           string   `json:"baseUrl"`
-	Model             string   `json:"model"`
-	ReasoningEffort   string   `json:"reasoningEffort"`
-	Temperature       *float64 `json:"temperature"`
-	MaxTokens         int      `json:"maxTokens"`
-	MaxTurns          int      `json:"maxTurns"`
-	TimeoutSeconds    int      `json:"timeoutSeconds"`
-	RunTimeoutSeconds int      `json:"runTimeoutSeconds"`
-	MaxPromptTokens   int      `json:"maxPromptTokens"`
-	DraftTTLHours     int      `json:"draftTtlHours"`
-	AllowPrivateLLM   bool     `json:"allowPrivateLlm"`
-	WriteMode         string   `json:"writeMode"`
-	ApiKeySet         bool     `json:"apiKeySet"`
-	ApiKeyMasked      string   `json:"apiKeyMasked"`
-	ModelConfigured   bool     `json:"modelConfigured"`
-	DefaultBaseURL    string   `json:"defaultBaseUrl"`
-	DefaultModel      string   `json:"defaultModel"`
+	BaseURL            string   `json:"baseUrl"`
+	Model              string   `json:"model"`
+	ReasoningEffort    string   `json:"reasoningEffort"`
+	Temperature        *float64 `json:"temperature"`
+	MaxTokens          int      `json:"maxTokens"`
+	MaxTurns           int      `json:"maxTurns"`
+	TimeoutSeconds     int      `json:"timeoutSeconds"`
+	RunTimeoutSeconds  int      `json:"runTimeoutSeconds"`
+	MaxPromptTokens    int      `json:"maxPromptTokens"`
+	DraftTTLHours      int      `json:"draftTtlHours"`
+	AllowPrivateLLM    bool     `json:"allowPrivateLlm"`
+	WriteMode          string   `json:"writeMode"`
+	ApiKeySet          bool     `json:"apiKeySet"`
+	ApiKeyMasked       string   `json:"apiKeyMasked"`
+	ModelConfigured    bool     `json:"modelConfigured"`
+	CanAllowPrivateLLM bool     `json:"canAllowPrivateLlm"`
+	DefaultBaseURL     string   `json:"defaultBaseUrl"`
+	DefaultModel       string   `json:"defaultModel"`
 }
 
 type SettingsPut struct {
@@ -57,11 +59,24 @@ type SettingsPut struct {
 	WriteMode         string   `json:"writeMode"`
 }
 
+func IsPlatformAdmin(userId int64, username string) bool {
+	return userId == 1 || strings.EqualFold(strings.TrimSpace(username), "admin")
+}
+
 func ModelConfigured(st *models.AgentUserSettings) bool {
 	if st == nil {
 		return false
 	}
-	return strings.TrimSpace(st.ApiKey) != ""
+	if strings.TrimSpace(RevealAPIKey(st.ApiKey)) == "" {
+		return false
+	}
+	if strings.TrimSpace(st.BaseURL) == "" && strings.TrimSpace(DefaultBaseURL) == "" {
+		return false
+	}
+	if strings.TrimSpace(st.Model) == "" && strings.TrimSpace(DefaultModel) == "" {
+		return false
+	}
+	return true
 }
 
 func MaskAPIKey(key string) string {
@@ -101,11 +116,13 @@ func ViewSettings(st *models.AgentUserSettings) SettingsView {
 		if strings.TrimSpace(st.Model) != "" {
 			v.Model = st.Model
 		}
-		v.ApiKeySet = strings.TrimSpace(st.ApiKey) != ""
+		plain := RevealAPIKey(st.ApiKey)
+		v.ApiKeySet = strings.TrimSpace(plain) != ""
 		if v.ApiKeySet {
-			v.ApiKeyMasked = MaskAPIKey(st.ApiKey)
+			v.ApiKeyMasked = MaskAPIKey(plain)
 		}
 		v.ModelConfigured = ModelConfigured(st)
+		v.CanAllowPrivateLLM = IsPlatformAdmin(st.UserId, "")
 	}
 	return v
 }
@@ -131,9 +148,16 @@ func PutSettings(store Store, userId int64, put SettingsPut) (*models.AgentUserS
 			UserId: userId,
 		}
 	}
-	allowPrivate := cur.AllowPrivateLLM
-	if put.AllowPrivateLLM != nil {
-		allowPrivate = *put.AllowPrivateLLM
+	admin := IsPlatformAdmin(userId, "")
+	if put.AllowPrivateLLM != nil && *put.AllowPrivateLLM && !admin {
+		return nil, fmt.Errorf("%s: only admin can allow private llm", ReasonForbidden)
+	}
+	allowPrivate := false
+	if admin {
+		allowPrivate = cur.AllowPrivateLLM
+		if put.AllowPrivateLLM != nil {
+			allowPrivate = *put.AllowPrivateLLM
+		}
 	}
 	if err := ValidateBaseURL(put.BaseURL, allowPrivate); err != nil {
 		return nil, err
@@ -168,9 +192,7 @@ func PutSettings(store Store, userId int64, put SettingsPut) (*models.AgentUserS
 	if put.DraftTTLHours != nil {
 		cur.DraftTTLHours = *put.DraftTTLHours
 	}
-	if put.AllowPrivateLLM != nil {
-		cur.AllowPrivateLLM = *put.AllowPrivateLLM
-	}
+	cur.AllowPrivateLLM = allowPrivate
 	if put.WriteMode != "" {
 		cur.WriteMode = put.WriteMode
 	}
@@ -183,7 +205,17 @@ func PutSettings(store Store, userId int64, put SettingsPut) (*models.AgentUserS
 	if put.ApiKeyClear {
 		cur.ApiKey = ""
 	} else if strings.TrimSpace(put.ApiKey) != "" {
-		cur.ApiKey = strings.TrimSpace(put.ApiKey)
+		sealed, err := SealAPIKey(put.ApiKey)
+		if err != nil {
+			return nil, keySealError(err)
+		}
+		cur.ApiKey = sealed
+	} else if cur.ApiKey != "" && !IsSealedKey(cur.ApiKey) {
+		sealed, err := SealAPIKey(cur.ApiKey)
+		if err != nil {
+			return nil, keySealError(err)
+		}
+		cur.ApiKey = sealed
 	}
 	cur.Id = settingsID(userId)
 	cur.UserId = userId

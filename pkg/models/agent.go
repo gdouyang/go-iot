@@ -31,7 +31,7 @@ type AgentMessage struct {
 	ProductId      string   `json:"productId" orm:"column(product_id_);size(32);null"`
 	CreateId       int64    `json:"createId" orm:"column(create_id_)"`
 	CreateTime     DateTime `json:"createTime" orm:"column(create_time_)"`
-	CreateTimeMs   int64    `json:"createTimeMs" orm:"column(create_time_ms_)"`
+	SeqNo          int64    `json:"seqNo" orm:"column(seq_no_)"`
 }
 
 // AgentDraft 确认草稿。apply 失败保持 pending。
@@ -66,7 +66,8 @@ type AgentAudit struct {
 	CreateTime     DateTime `json:"createTime" orm:"column(create_time_)"`
 }
 
-// AgentUserSettings 每用户模型设置。Id=agentset_{userId}。ApiKey 明文存 ES，JSON 不输出。
+// AgentUserSettings 每用户模型设置。Id=agentset_{userId}。
+// ApiKey 以 enc:v1: AES-GCM 密文存 ES（内置密钥加密）；JSON 不输出明文。
 type AgentUserSettings struct {
 	Id              string   `json:"id" orm:"pk;column(id_);size(32)"`
 	UserId          int64    `json:"userId" orm:"column(user_id_)"`

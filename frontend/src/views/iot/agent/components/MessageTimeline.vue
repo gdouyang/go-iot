@@ -80,13 +80,25 @@
         <Icon icon="ant-design:undo-outlined" />
         <span>已撤销 {{ toolLabel(m.toolName) }}</span>
       </div>
+      <div v-else-if="m.eventType === 'compaction'" class="event-chip is-compaction">
+        <Icon icon="ant-design:compress-outlined" />
+        <span>{{ $t('agent.compacted') }}</span>
+      </div>
 
-      <div v-else-if="m.role === 'assistant' && m.content" class="bubble-row is-assistant">
+      <div
+        v-else-if="m.role === 'assistant' && (m.content || m.reasoning)"
+        class="bubble-row is-assistant"
+      >
         <div class="avatar assistant-avatar">
           <Icon icon="ant-design:robot-outlined" :size="16" />
         </div>
         <div class="bubble assistant-bubble">
+          <details v-if="m.reasoning" class="reasoning-block" :open="!!m.reasoningLive">
+            <summary class="reasoning-summary">{{ $t('agent.reasoning') }}</summary>
+            <pre class="reasoning-text">{{ m.reasoning }}</pre>
+          </details>
           <MdPreview
+            v-if="m.content"
             class="md-body"
             :modelValue="m.content"
             :codeFoldable="false"
@@ -101,15 +113,25 @@
       </div>
     </div>
 
-    <div v-if="runStatus === 'running' || runStatus === 'applying'" class="bubble-row is-assistant">
+    <div v-if="showThinkingRow" class="bubble-row is-assistant">
       <div class="avatar assistant-avatar">
         <Icon icon="ant-design:robot-outlined" :size="16" />
       </div>
-      <div class="bubble assistant-bubble thinking">
-        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-        <span class="thinking-text">{{
-          runStatus === 'applying' ? $t('agent.applying') : $t('agent.thinking')
-        }}</span>
+      <div class="bubble assistant-bubble thinking" :class="{ 'is-reasoning': !!streamReasoning }">
+        <template v-if="streamReasoning">
+          <div class="reasoning-summary live">{{ $t('agent.reasoning') }}</div>
+          <pre class="reasoning-text">{{ streamReasoning }}</pre>
+        </template>
+        <template v-else>
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="thinking-text">{{
+            runStatus === 'applying'
+              ? $t('agent.applying')
+              : runStatus === 'compacting'
+                ? $t('agent.compacting')
+                : $t('agent.thinking')
+          }}</span>
+        </template>
       </div>
     </div>
   </div>
@@ -122,15 +144,30 @@ import 'md-editor-v3/lib/style.css'
 const TOOL_LABELS = {
   list_products: '查询产品',
   get_product: '读取产品',
+  get_product_config: '读取产品配置',
+  get_tsl: '读取物模型',
+  get_script: '读取编解码',
+  get_network: '读取网络',
+  get_collector: '读取点表',
   get_tsl_schema: '物模型约束',
-  get_codec_contract: '编解码约定',
+  load_skill: '加载编解码文档',
   validate_tsl: '校验物模型',
   validate_script: '校验脚本',
   create_product: '创建产品',
+  create_device: '创建设备',
   update_product: '更新产品',
+  save_product_config: '保存产品配置',
   save_tsl: '保存物模型',
   save_script: '保存编解码',
-  update_network: '更新网络'
+  update_network: '更新网络',
+  save_collector: '保存点表',
+  deploy_product: '发布产品',
+  start_network: '启动网络',
+  stop_network: '停止网络',
+  get_debug_logs: '监听调试日志',
+  run_script: '试跑脚本',
+  get_device: '查询设备状态',
+  list_devices: '查询设备列表'
 }
 
 const FIELD_LABELS = {
@@ -147,6 +184,7 @@ const SKIP_SUMMARY = new Set([
   'tsl',
   'script',
   'configuration',
+  'collector',
   'truncated',
   'old',
   'new',
@@ -185,13 +223,35 @@ export default {
   props: {
     messages: { type: Array, default: () => [] },
     runStatus: { type: String, default: 'idle' },
-    pendingDrafts: { type: Array, default: () => [] }
+    pendingDrafts: { type: Array, default: () => [] },
+    streamReasoning: { type: String, default: '' }
   },
   emits: ['apply', 'reject'],
   data() {
     return { openDocs: {} }
   },
+  computed: {
+    showThinkingRow() {
+      if (this.runStatus !== 'running' && this.runStatus !== 'applying') {
+        return false
+      }
+      return !(this.messages || []).some((m) => m && m.reasoningLive)
+    }
+  },
+  watch: {
+    streamReasoning() {
+      this.$nextTick(() => this.scrollReasoning())
+    }
+  },
   methods: {
+    scrollReasoning() {
+      const root = this.$el
+      if (!root || !root.querySelectorAll) return
+      const list = root.querySelectorAll('.reasoning-text')
+      for (let i = 0; i < list.length; i++) {
+        list[i].scrollTop = list[i].scrollHeight
+      }
+    },
     toolLabel(name) {
       return TOOL_LABELS[name] || name || '操作'
     },
@@ -301,6 +361,14 @@ export default {
           title: this.$t('agent.docConfig'),
           viewLabel: this.$t('agent.viewConfig'),
           hideLabel: this.$t('agent.hideConfig'),
+          summary: () => ''
+        },
+        {
+          kind: 'collector',
+          lang: 'json',
+          title: this.$t('agent.docCollector'),
+          viewLabel: this.$t('agent.viewCollector'),
+          hideLabel: this.$t('agent.hideCollector'),
           summary: () => ''
         }
       ]
@@ -425,6 +493,39 @@ export default {
 
 .thinking-text {
   font-size: 13px;
+}
+
+.thinking.is-reasoning {
+  display: block;
+  padding: 8px 12px 10px;
+}
+
+.reasoning-block {
+  margin: 6px 0 8px;
+}
+
+.reasoning-summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  user-select: none;
+  &.live {
+    margin-bottom: 6px;
+  }
+}
+
+.reasoning-text {
+  margin: 6px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+  padding: 8px 10px;
 }
 
 .dot {
@@ -626,6 +727,11 @@ export default {
 .event-chip.is-undone {
   color: var(--el-color-warning);
   background: var(--el-color-warning-light-9);
+}
+
+.event-chip.is-compaction {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
 }
 
 @media (max-width: 768px) {

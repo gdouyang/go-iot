@@ -16,6 +16,7 @@ import (
 	"go-iot/pkg/cluster"
 	"go-iot/pkg/core"
 	"go-iot/pkg/es"
+	"go-iot/pkg/license"
 	"go-iot/pkg/logger"
 	"go-iot/pkg/models"
 	"go-iot/pkg/models/base"
@@ -109,7 +110,11 @@ func (a *App) Start(ctx context.Context) error {
 
 	models.RegisterModels()
 	agent.DefaultStore = agent.NewESStore()
-	logger.Infof("app start: models registered, agent store=es")
+	agent.StartCancelSubscriber()
+	logger.Infof("app start: models registered, agent store=es, cancel subscriber started")
+
+	// 初始化 License 授权状态
+	license.Init(a.Opt)
 
 	// 默认数据（admin 初始密码来自配置 admin.password / GOIOT_ADMIN_PASSWORD，bcrypt 入库）
 	base.EnsureDefaultAdmin(a.Opt.AdminPassword())

@@ -1,6 +1,10 @@
 package agent
 
-import "go-iot/pkg/models"
+import (
+	"time"
+
+	"go-iot/pkg/models"
+)
 
 const (
 	DefaultBaseURL           = ""
@@ -11,10 +15,13 @@ const (
 	DefaultMaxTurns          = 16
 	DefaultTimeoutSeconds    = 90
 	DefaultRunTimeoutSeconds = 600
-	DefaultMaxPromptTokens   = 32000
+	DefaultMaxPromptTokens   = 200000
 	DefaultDraftTTLHours     = 24
 	DefaultWriteMode         = "confirm"
 )
+
+// defaultHeartbeatInterval 运行中心跳间隔。
+const defaultHeartbeatInterval = 15 * time.Second
 
 // Effective fills empty user settings with in-code defaults (not yaml).
 func Effective(st *models.AgentUserSettings) *models.AgentUserSettings {
