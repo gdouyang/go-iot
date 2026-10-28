@@ -8,7 +8,7 @@ require (
 	github.com/eclipse/paho.golang v0.22.0
 	github.com/eclipse/paho.mqtt.golang v1.4.1
 	github.com/elastic/go-elasticsearch/v8 v8.4.0
-	github.com/go-chi/chi/v5 v5.0.10
+	github.com/go-chi/chi/v5 v5.4.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/goburrow/modbus v0.1.0
 	github.com/google/uuid v1.3.0
